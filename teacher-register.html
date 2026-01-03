@@ -2,195 +2,276 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ค้นหาโรงเรียน - FlipSchool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สมัครสมาชิกครู - FlipSchool</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        /* --- CSS Reset & Base --- */
+        :root { --primary: #007bff; --accent: #ffc107; --bg: #f0f2f5; }
+        body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
         
-        h3 { color: #333; margin-top: 0; }
-        
-        /* ช่องค้นหา */
-        .search-wrapper { position: relative; margin-top: 15px; }
-        input[type="text"] { width: 100%; padding: 12px 12px 12px 40px; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
-        input[type="text"]:focus { border-color: #007bff; outline: none; }
-        .search-icon { position: absolute; left: 12px; top: 15px; color: #999; }
-
-        /* ผลการค้นหา (Dropdown) */
-        #resultsBox {
-            position: absolute; top: 100%; left: 0; right: 0;
-            background: white; border: 1px solid #ddd; border-radius: 0 0 8px 8px;
-            max-height: 250px; overflow-y: auto; z-index: 1000;
-            display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        /* --- Container & Card --- */
+        .app-container { width: 100%; max-width: 500px; margin-top: 20px; }
+        .card-glass { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
         }
-        .result-item { padding: 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
-        .result-item:hover { background-color: #f0f7ff; color: #007bff; }
-        .result-item strong { display: block; font-size: 15px; }
-        .result-item small { color: #666; font-size: 13px; }
 
-        /* การ์ดแสดงเมื่อเลือกแล้ว */
-        .selected-card {
-            display: none; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 8px;
-            padding: 15px; margin-top: 15px; position: relative;
+        /* --- Headers --- */
+        .register-header { text-align: center; margin-bottom: 30px; }
+        .register-header h2 { color: var(--primary); margin: 10px 0 5px; font-family: 'Kanit', sans-serif; }
+        .register-header p { color: #666; font-size: 14px; margin: 0; }
+
+        /* --- Forms --- */
+        label { font-weight: 600; font-size: 14px; margin-bottom: 6px; display: block; color: #333; }
+        .form-input { 
+            width: 100%; padding: 12px 15px; 
+            border: 2px solid #e1e1e1; border-radius: 12px; 
+            font-size: 16px; font-family: 'Sarabun', sans-serif;
+            box-sizing: border-box; transition: 0.3s;
         }
-        .close-btn { position: absolute; top: 10px; right: 10px; color: #d32f2f; cursor: pointer; }
+        .form-input:focus { border-color: var(--primary); outline: none; }
 
-        /* Status Bar */
-        #statusMsg { margin-top: 15px; font-size: 13px; color: #666; padding: 10px; background: #f8f9fa; border-radius: 6px; }
+        /* --- Button --- */
+        .btn-main { 
+            width: 100%; padding: 14px; 
+            border: none; border-radius: 12px; 
+            background: linear-gradient(135deg, #007bff, #0056b3); 
+            color: white; font-size: 16px; font-weight: bold; 
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+            transition: transform 0.2s;
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-main:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* --- Search Dropdown --- */
+        .school-search-wrapper { position: relative; }
+        #schoolResults {
+            position: absolute; top: 105%; left: 0; right: 0;
+            background: white; border: 1px solid #eee; border-radius: 12px;
+            max-height: 220px; overflow-y: auto; z-index: 1000;
+            display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .school-item { padding: 12px 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+        .school-item:hover { background-color: #f0f7ff; color: var(--primary); }
+        .school-item strong { display: block; font-size: 15px; }
+        .school-item small { color: #888; font-size: 13px; }
+
+        /* --- Selected School Card --- */
+        .selected-school-card {
+            display: none; background: #e8f5e9; border: 1px solid #c8e6c9;
+            border-radius: 12px; padding: 15px; margin-bottom: 20px; position: relative;
+        }
+        .remove-school { position: absolute; right: 12px; top: 12px; color: #d32f2f; cursor: pointer; }
+
+        /* --- Spinner --- */
+        .spinner { display: none; width: 16px; height: 16px; border: 2px solid #ddd; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h3><i class="fas fa-school"></i> เลือกโรงเรียนสังกัด</h3>
-    
-    <div class="search-wrapper" id="searchSection">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียน... (เช่น หาดใหญ่)" autocomplete="off">
-        <div id="resultsBox"></div>
+    <a href="#" onclick="history.back()" style="position:absolute; top:20px; left:20px; font-size:24px; color:var(--primary);"><i class="fas fa-arrow-left"></i></a>
+
+    <div class="app-container">
+        <div class="card-glass">
+            <div class="register-header">
+                <i class="fas fa-user-plus" style="font-size: 48px; color: var(--accent); margin-bottom: 15px;"></i>
+                <h2>สมัครสมาชิกครู</h2>
+                <p>สร้างบัญชีเพื่อเริ่มจัดการห้องเรียน</p>
+            </div>
+
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                
+                <div style="margin-bottom: 20px;">
+                    <label>ชื่อ-นามสกุลจริง</label>
+                    <input type="text" id="fullname" class="form-input" placeholder="เช่น สมชาย ใจดี" required>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label>โรงเรียนสังกัด <span class="spinner" id="searchSpinner"></span></label>
+                    
+                    <div class="school-search-wrapper" id="searchWrapper">
+                        <input type="text" id="schoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียน... (เช่น หาดใหญ่)" autocomplete="off">
+                        <div id="schoolResults"></div>
+                    </div>
+
+                    <div id="selectedSchoolDisplay" class="selected-school-card">
+                        <h4 id="selSchoolName" style="margin:0; color:#2E7D32;"></h4>
+                        <p id="selSchoolLoc" style="margin:2px 0 0; font-size:13px; color:#555;"></p>
+                        <i class="fas fa-times-circle remove-school" onclick="clearSchoolSelection()"></i>
+                    </div>
+
+                    <input type="hidden" id="schoolId" required>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label>อีเมล (ใช้สำหรับเข้าสู่ระบบ)</label>
+                    <input type="email" id="email" class="form-input" placeholder="name@email.com" required>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <label>รหัสผ่าน</label>
+                    <input type="password" id="password" class="form-input" placeholder="กำหนดรหัสผ่าน 6 ตัวขึ้นไป" minlength="6" required>
+                </div>
+
+                <button type="submit" class="btn-main" id="submitBtn">
+                    ลงทะเบียน <i class="fas fa-arrow-right"></i>
+                </button>
+
+            </form>
+        </div>
     </div>
 
-    <div id="selectedCard" class="selected-card">
-        <i class="fas fa-times close-btn" onclick="resetSelection()"></i>
-        <h4 style="margin:0; color: #2e7d32;" id="showName"></h4>
-        <p style="margin:5px 0 0; color: #555;" id="showLoc"></p>
-        <small style="color: #999;">School ID: <span id="showId"></span></small>
-    </div>
+    <script>
+        // -----------------------------------------------------------
+        // 1. ตั้งค่า Supabase (แก้ไขตรงนี้ให้เป็นค่าของคุณ)
+        // -----------------------------------------------------------
+        const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
+        // -----------------------------------------------------------
 
-    <div id="statusMsg">🔴 รอการโหลดระบบ...</div>
-</div>
-
-<script>
-    // ----------------------------------------------------
-    // 1. ใส่ KEY ของคุณที่นี่ (ห้ามลบ ' ' ออกนะครับ)
-    // ----------------------------------------------------
-    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
-    // ----------------------------------------------------
-
-    let dbClient = null; // เปลี่ยนชื่อตัวแปรเป็น dbClient เพื่อแก้ปัญหาชื่อซ้ำ
-    const statusDiv = document.getElementById('statusMsg');
-    const input = document.getElementById('schoolInput');
-    const resultsBox = document.getElementById('resultsBox');
-    let timer = null;
-
-    // เริ่มทำงานเมื่อเปิดเว็บ
-    document.addEventListener('DOMContentLoaded', () => {
+        let supabase = null;
         
-        // เช็คว่า User ใส่ Key หรือยัง
-        if (SUPABASE_URL.includes('ใส่_') || SUPABASE_URL.length < 10) {
-            statusDiv.innerHTML = "⚠️ <b>แจ้งเตือน:</b> คุณยังไม่ได้ใส่ Supabase Key ในโค้ดครับ";
-            statusDiv.style.color = 'red';
-            return;
-        }
-
-        try {
-            // สร้างการเชื่อมต่อ
-            dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            statusDiv.innerHTML = "🟢 เชื่อมต่อ Supabase สำเร็จ พร้อมใช้งาน";
-            statusDiv.style.color = 'green';
-        } catch (err) {
-            statusDiv.innerHTML = "❌ Error: " + err.message;
-        }
-    });
-
-    // ดักจับการพิมพ์
-    input.addEventListener('input', function() {
-        clearTimeout(timer);
-        const text = this.value.trim();
-
-        if (text.length === 0) {
-            resultsBox.style.display = 'none';
-            return;
-        }
-
-        statusDiv.innerHTML = "⏳ กำลังพิมพ์...";
-        
-        // หน่วงเวลา 0.5 วินาที ก่อนค้นหา (Debounce)
-        timer = setTimeout(() => searchSchool(text), 500);
-    });
-
-    async function searchSchool(keyword) {
-        if (!dbClient) return;
-
-        statusDiv.innerHTML = "🔍 กำลังค้นหา: " + keyword;
-
-        // ค้นหาในตาราง schools
-        const { data, error } = await dbClient
-            .from('schools')
-            .select('*')
-            .ilike('school_name', `%${keyword}%`) // ค้นหาบางส่วนของคำ
-            .limit(10);
-
-        if (error) {
-            console.error(error);
-            statusDiv.innerHTML = "❌ เกิดข้อผิดพลาด: " + error.message;
-            if(error.code === '42501') statusDiv.innerHTML += " (ติดสิทธิ์ RLS ต้องรัน SQL ปลดล็อค)";
-            return;
-        }
-
-        renderResults(data);
-    }
-
-    function renderResults(schools) {
-        resultsBox.innerHTML = '';
-
-        if (!schools || schools.length === 0) {
-            statusDiv.innerHTML = "⚠️ ไม่พบโรงเรียนที่ค้นหา";
-            resultsBox.style.display = 'none';
-            return;
-        }
-
-        statusDiv.innerHTML = `✅ พบข้อมูล ${schools.length} รายการ`;
-        
-        schools.forEach(school => {
-            const div = document.createElement('div');
-            div.className = 'result-item';
-            div.innerHTML = `
-                <strong>${school.school_name}</strong>
-                <small>จ.${school.province} (อ.${school.district})</small>
-            `;
-            
-            // เมื่อคลิกเลือก
-            div.onclick = () => {
-                document.getElementById('searchSection').style.display = 'none';
-                document.getElementById('selectedCard').style.display = 'block';
-                
-                document.getElementById('showName').innerText = school.school_name;
-                document.getElementById('showLoc').innerText = `อ.${school.district} จ.${school.province}`;
-                document.getElementById('showId').innerText = school.school_id;
-                
-                statusDiv.innerHTML = "🆗 เลือกเรียบร้อย (พร้อมบันทึก)";
-                resultsBox.style.display = 'none';
-            };
-
-            resultsBox.appendChild(div);
+        // เริ่มต้นระบบ
+        document.addEventListener('DOMContentLoaded', () => {
+            if (SUPABASE_URL.includes('ใส่_')) {
+                alert("⚠️ แจ้งเตือน: คุณยังไม่ได้ใส่ Supabase Key ในโค้ดครับ");
+            } else {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
         });
 
-        resultsBox.style.display = 'block';
-    }
+        // --- Logic ค้นหาโรงเรียน ---
+        const searchInput = document.getElementById('schoolSearch');
+        const resultsBox = document.getElementById('schoolResults');
+        const spinner = document.getElementById('searchSpinner');
+        let debounceTimer;
 
-    function resetSelection() {
-        document.getElementById('searchSection').style.display = 'block';
-        document.getElementById('selectedCard').style.display = 'none';
-        input.value = '';
-        input.focus();
-        statusDiv.innerHTML = "🟢 พร้อมค้นหาใหม่";
-    }
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+            if (query.length < 2) { resultsBox.style.display = 'none'; return; }
+            
+            spinner.style.display = 'inline-block';
+            debounceTimer = setTimeout(() => searchSchools(query), 500);
+        });
 
-    // คลิกพื้นที่ว่างเพื่อปิด Popup
-    document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !resultsBox.contains(e.target)) {
+        async function searchSchools(keyword) {
+            if (!supabase) return;
+
+            const { data, error } = await supabase
+                .from('schools')
+                .select('*')
+                .ilike('school_name', `%${keyword}%`)
+                .limit(10);
+
+            spinner.style.display = 'none';
+            if (!error) displayResults(data);
+        }
+
+        function displayResults(schools) {
+            resultsBox.innerHTML = '';
+            if (!schools || schools.length === 0) {
+                resultsBox.innerHTML = '<div style="padding:15px; color:#999; text-align:center;">ไม่พบโรงเรียน</div>';
+            } else {
+                schools.forEach(school => {
+                    const div = document.createElement('div');
+                    div.className = 'school-item';
+                    div.innerHTML = `<strong>${school.school_name}</strong><small>จ.${school.province}</small>`;
+                    div.onclick = () => selectSchool(school);
+                    resultsBox.appendChild(div);
+                });
+            }
+            resultsBox.style.display = 'block';
+        }
+
+        function selectSchool(school) {
+            document.getElementById('schoolId').value = school.school_id;
+            document.getElementById('selSchoolName').innerText = school.school_name;
+            document.getElementById('selSchoolLoc').innerText = `อ.${school.district} จ.${school.province}`;
+            
+            document.getElementById('searchWrapper').style.display = 'none';
+            document.getElementById('selectedSchoolDisplay').style.display = 'block';
             resultsBox.style.display = 'none';
         }
-    });
-</script>
+
+        function clearSchoolSelection() {
+            document.getElementById('schoolId').value = '';
+            document.getElementById('searchWrapper').style.display = 'block';
+            document.getElementById('selectedSchoolDisplay').style.display = 'none';
+            searchInput.value = '';
+        }
+
+        // --- Logic การบันทึกข้อมูล (Register) ---
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const schoolId = document.getElementById('schoolId').value;
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!schoolId) { alert('กรุณาเลือกโรงเรียนก่อนครับ'); return; }
+            if (!supabase) { alert('ยังไม่ได้เชื่อมต่อ Supabase'); return; }
+
+            // เริ่มบันทึก
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+            try {
+                // 1. สมัครสมาชิก (Authentication)
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (authError) throw authError;
+
+                // แยกชื่อ-นามสกุล (ง่ายๆ โดยการเว้นวรรค)
+                const nameParts = fullname.trim().split(' ');
+                const firstName = nameParts[0];
+                const lastName = nameParts.slice(1).join(' ') || '-';
+
+                // 2. บันทึกลงตาราง teachers (Database)
+                // หมายเหตุ: ตาราง teachers ต้องมีคอลัมน์ตามนี้
+                const { error: dbError } = await supabase.from('teachers').insert([{
+                    teacher_id: authData.user.id, // ใช้ ID จากระบบ Auth
+                    school_id: schoolId,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                    status: 'ปกติ'
+                }]);
+
+                if (dbError) throw dbError;
+
+                // สำเร็จ
+                alert('✅ สมัครสมาชิกสำเร็จ! ยินดีต้อนรับครับ');
+                window.location.href = 'teacher-login.html'; // ส่งไปหน้า Login
+
+            } catch (err) {
+                console.error(err);
+                alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = 'ลองใหม่อีกครั้ง';
+            }
+        }
+
+        // คลิกนอกกรอบเพื่อปิด Dropdown
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+                resultsBox.style.display = 'none';
+            }
+        });
+    </script>
 
 </body>
 </html>
