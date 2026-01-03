@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import JSON to Supabase (Batch Upload)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background-color: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #3ECF8E; margin-top: 0; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input[type="text"], input[type="password"], input[type="file"] {
+            width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;
+        }
+        button {
+            background-color: #3ECF8E; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 1rem; width: 100%; transition: background 0.3s;
+        }
+        button:hover { background-color: #34b379; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { margin-top: 1rem; white-space: pre-wrap; background: #333; color: #fff; padding: 1rem; border-radius: 4px; height: 200px; overflow-y: auto; font-family: monospace; }
+        .progress-bar { width: 100%; background-color: #e0e0e0; border-radius: 4px; margin-top: 1rem; display: none; }
+        .progress-fill { height: 20px; background-color: #3ECF8E; width: 0%; border-radius: 4px; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🚀 Import JSON to Supabase</h1>
+        <p>นำเข้าข้อมูลโรงเรียนจำนวนมาก (Batch Insert)</p>
+
+        <div class="form-group">
+            <label>Supabase URL:</label>
+            <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co">
+        </div>
+        <div class="form-group">
+            <label>Supabase Key (Anon or Service Role):</label>
+            <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+        
+        <div class="form-group">
+            <label>เลือกไฟล์ JSON (1.json):</label>
+            <input type="file" id="jsonFile" accept=".json">
+        </div>
+
+        <div class="progress-bar" id="progressBarContainer">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <button id="uploadBtn" onclick="startUpload()">เริ่มอัปโหลดข้อมูล</button>
+
+        <div id="status">รอคำสั่ง...</div>
+    </div>
+
+    <script>
+        // ฟังก์ชันช่วยแปลงค่าตัวเลข (ถ้าเป็นค่าว่างหรือขีด ให้เป็น null)
+        function cleanFloat(val) {
+            if (!val || val === '-' || val === '') return null;
+            return parseFloat(val);
+        }
+
+        // ฟังก์ชันช่วยทำความสะอาดข้อความ
+        function cleanString(val) {
+            return val ? String(val).trim() : null;
+        }
+
+        async function startUpload() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            const fileInput = document.getElementById('jsonFile');
+            const statusDiv = document.getElementById('status');
+            const btn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('progressBarContainer');
+            const progressBar = document.getElementById('progressBar');
+
+            // 1. ตรวจสอบข้อมูลเบื้องต้น
+            if (!url || !key) {
+                alert("กรุณากรอก Supabase URL และ Key");
+                return;
+            }
+            if (fileInput.files.length === 0) {
+                alert("กรุณาเลือกไฟล์ JSON");
+                return;
+            }
+
+            // เริ่มต้นการทำงาน
+            btn.disabled = true;
+            statusDiv.innerHTML = "กำลังอ่านไฟล์...";
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            const supabase = window.supabase.createClient(url, key);
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    // 2. แปลงไฟล์เป็น JSON
+                    statusDiv.innerHTML += "\nกำลังแปลงไฟล์ JSON...";
+                    const rawData = JSON.parse(e.target.result);
+                    const totalRecords = rawData.length;
+                    
+                    statusDiv.innerHTML += `\nพบข้อมูลทั้งหมด ${totalRecords} รายการ`;
+                    
+                    // 3. แปลงคีย์จาก JSON (ภาษาไทย/รหัส) ให้ตรงกับ Database Column
+                    const formattedData = rawData.map(item => ({
+                        school_id: cleanString(item.schoolID),
+                        school_name: cleanString(item.schoolTypeName),
+                        department_id: cleanString(item.departmentID),
+                        department_name: cleanString(item.departmentNameThai),
+                        province: cleanString(item.provinceNameThai),
+                        district: cleanString(item.districtNameThai),
+                        sub_district: cleanString(item.subDistrictNameThai),
+                        village_number: cleanString(item.villageNumber),
+                        house_number: cleanString(item.houseNumber),
+                        trok: cleanString(item.trok),
+                        soi: cleanString(item.soi),
+                        street: cleanString(item.street),
+                        postcode: cleanString(item.postcode),
+                        house_reg_id: cleanString(item.houseID),
+                        telephone1: cleanString(item.telephone1),
+                        telephone2: cleanString(item.telephone2),
+                        fax: cleanString(item.fax),
+                        email: cleanString(item.email),
+                        website: cleanString(item.dataS19),
+                        latitude: cleanFloat(item.dataS20),
+                        longitude: cleanFloat(item.dataS21)
+                    }));
+
+                    // 4. แบ่งข้อมูลเป็นชุด (Batching) เพื่อไม่ให้ Server ล่ม
+                    const BATCH_SIZE = 100; // ส่งทีละ 100 รายการ
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
+                        const batch = formattedData.slice(i, i + BATCH_SIZE);
+                        
+                        // ส่งเข้า Supabase
+                        const { error } = await supabase
+                            .from('schools') // *** ชื่อตารางต้องตรงกับใน Supabase ***
+                            .upsert(batch, { onConflict: 'school_id' }); // ใช้ upsert เพื่อทับของเดิมถ้ามี id ซ้ำ
+
+                        if (error) {
+                            console.error('Error batch:', i, error);
+                            statusDiv.innerHTML += `\n❌ Batch ${i} - ${i+BATCH_SIZE} ผิดพลาด: ${error.message}`;
+                            errorCount += batch.length;
+                        } else {
+                            successCount += batch.length;
+                        }
+
+                        // อัปเดต Progress Bar
+                        const percent = Math.min(100, Math.round(((i + BATCH_SIZE) / totalRecords) * 100));
+                        progressBar.style.width = `${percent}%`;
+                        statusDiv.scrollTop = statusDiv.scrollHeight; // เลื่อนลงล่างสุด
+                    }
+
+                    statusDiv.innerHTML += `\n\n✅ เสร็จสิ้น!`;
+                    statusDiv.innerHTML += `\nสำเร็จ: ${successCount}`;
+                    statusDiv.innerHTML += `\nล้มเหลว: ${errorCount}`;
+
+                } catch (err) {
+                    statusDiv.innerHTML += `\n❌ เกิดข้อผิดพลาดร้ายแรง: ${err.message}`;
+                    console.error(err);
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
