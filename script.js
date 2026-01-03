@@ -1,133 +1,98 @@
-/* script.js - Improved Version */
-
-/**
- * --------------------------------------------------------------------------
- * 1. PASSWORD TOGGLE LOGIC (ระบบสลับดูรหัสผ่าน)
- * --------------------------------------------------------------------------
- * ใช้สำหรับสลับ type ของ input ระหว่าง 'password' และ 'text'
- * รองรับการใช้งานหลายช่องในหน้าเดียวกัน (เช่น หน้าลงทะเบียน)
- *
- * @param {HTMLElement} icon - ตัวไอคอนรูปตาที่ถูกกด (this)
- * @param {string} inputId - (Optional) ID ของช่อง input ที่ต้องการสลับ
- * ถ้าไม่ระบุ จะค้นหา ID 'passwordInput' เป็นค่าเริ่มต้น
- */
-function togglePassword(icon, inputId) {
-    // กำหนด ID เป้าหมาย: ถ้าส่งค่ามาให้ใช้ค่านั้น ถ้าไม่ส่งให้ใช้ 'passwordInput'
-    const targetId = inputId || 'passwordInput';
-    const input = document.getElementById(targetId);
-
-    // ถ้าหา input ไม่เจอ ให้จบการทำงานทันทีเพื่อป้องกัน Error
-    if (!input) return;
-
-    if (input.type === "password") {
-        // เปลี่ยนเป็น text เพื่อแสดงรหัสผ่าน
-        input.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash"); // เปลี่ยนไอคอนเป็นรูปตาที่มีขีดฆ่า
-    } else {
-        // เปลี่ยนกลับเป็น password เพื่อซ่อน
-        input.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye"); // เปลี่ยนไอคอนกลับเป็นรูปตาปกติ
-    }
-}
-
-/**
- * ฟังก์ชันปิด Popup แนะนำการติดตั้งสำหรับ iOS
- */
-function closeIosPopup() {
-    const iosPopup = document.getElementById('iosInstallPopup');
-    if (iosPopup) {
-        // ใส่ Effect เลื่อนลงก่อนปิด (ถ้ามี CSS animation)
-        iosPopup.style.opacity = '0';
-        iosPopup.style.bottom = '-100px';
-        setTimeout(() => {
-            iosPopup.style.display = 'none';
-        }, 500); // รอ animation จบ
-    }
-}
-
-
-/**
- * --------------------------------------------------------------------------
- * 2. PWA INSTALLATION LOGIC (ระบบติดตั้งแอป)
- * --------------------------------------------------------------------------
- * ทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
- */
+// รอให้หน้าเว็บโหลดเสร็จสมบูรณ์ก่อนทำงาน
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- ส่วนจัดการ PWA (Progressive Web App) ---
+    let deferredPrompt; // ตัวแปรเก็บ event สำหรับ Chrome/Android
     const installButton = document.getElementById('installPWA');
     const iosPopup = document.getElementById('iosInstallPopup');
 
-    // ตรวจสอบว่ามีปุ่มหรือ Popup อยู่ในหน้านั้นหรือไม่ (ถ้าไม่มีก็ไม่ต้องทำต่อ)
-    if (!installButton && !iosPopup) return;
-
-    // --- Helper Functions ---
-
-    // ตรวจสอบว่าเป็นอุปกรณ์ iOS หรือไม่
+    // ฟังก์ชันตรวจสอบว่าเป็น iOS หรือไม่
     const isIos = () => {
         const userAgent = window.navigator.userAgent.toLowerCase();
         return /iphone|ipad|ipod/.test(userAgent);
     };
 
-    // ตรวจสอบว่าเปิดในโหมด App (Standalone) แล้วหรือยัง
+    // ฟังก์ชันตรวจสอบว่าเปิดในโหมดแอปแล้วหรือยัง (Standalone Mode)
     const isInStandaloneMode = () => {
-        return ('standalone' in window.navigator && window.navigator.standalone) ||
+        return ('standalone' in window.navigator) && (window.navigator.standalone) || 
                window.matchMedia('(display-mode: standalone)').matches;
     };
 
-    // --- Logic A: สำหรับ Android / Desktop Chrome ---
-    let deferredPrompt;
-
+    // 1. Logic สำหรับ Chrome/Android/Desktop (เก็บ event ไว้ใช้)
     window.addEventListener('beforeinstallprompt', (e) => {
-        // ป้องกัน Chrome แสดงแถบติดตั้งอัตโนมัติด้านล่าง (เราจะใช้ปุ่มของเราเอง)
+        // ป้องกันไม่ให้ Browser แสดงแถบติดตั้งอัตโนมัติ (เราจะใช้ปุ่มของเราเอง)
         e.preventDefault();
         deferredPrompt = e;
-
-        // เงื่อนไข: ต้องไม่ใช่ iOS และยังไม่ได้ติดตั้งแอป
-        if (!isIos() && !isInStandaloneMode() && installButton) {
-            installButton.style.display = 'inline-block'; // แสดงปุ่มติดตั้ง
-            console.log('PWA: Ready to install on Android/Desktop');
+        
+        // แสดงปุ่มติดตั้ง (ถ้ายังไม่ได้ติดตั้ง)
+        if (installButton) {
+            installButton.style.display = 'inline-block';
         }
     });
 
+    // 2. Logic สำหรับ iOS (แสดงปุ่มเสมอถ้ายังไม่ได้ติดตั้ง และเป็นอุปกรณ์ iOS)
+    if (isIos() && !isInStandaloneMode()) {
+        if (installButton) {
+            installButton.style.display = 'inline-block';
+        }
+    }
+
+    // เมื่อกดปุ่ม "ติดตั้งแอป"
     if (installButton) {
-        installButton.addEventListener('click', () => {
-            // ซ่อนปุ่มทันทีที่กด
-            installButton.style.display = 'none';
-
-            if (deferredPrompt) {
-                // แสดง Prompt ของ Browser
+        installButton.addEventListener('click', (e) => {
+            if (isIos()) {
+                // ถ้าเป็น iOS -> เปิด Popup สอนวิธีติดตั้ง
+                if (iosPopup) {
+                    iosPopup.style.display = 'block';
+                }
+            } else if (deferredPrompt) {
+                // ถ้าเป็น Android/PC -> เรียก Prompt ของระบบ
                 deferredPrompt.prompt();
-
-                // ตรวจสอบผลลัพธ์ว่าผู้ใช้กด Install หรือ Cancel
+                
+                // รอผลลัพธ์ว่าผู้ใช้กดติดตั้งหรือไม่
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        console.log('PWA: User accepted the install prompt');
+                        console.log('User accepted the PWA install');
                     } else {
-                        console.log('PWA: User dismissed the install prompt');
+                        console.log('User dismissed the PWA install');
                     }
-                    deferredPrompt = null; // เคลียร์ค่า
+                    deferredPrompt = null;
                 });
+            } else {
+                // กรณีอื่นๆ หรือหา event ไม่เจอ
+                alert('คุณสามารถติดตั้งแอปนี้ได้ผ่านเมนูการตั้งค่าของเบราว์เซอร์');
             }
         });
     }
 
-    // --- Logic B: สำหรับ iOS (แสดง Popup คำแนะนำ) ---
-    // เงื่อนไข: เป็น iOS, ยังไม่ได้ติดตั้ง, และมี HTML Popup อยู่ในหน้าเว็บ
-    if (isIos() && !isInStandaloneMode() && iosPopup) {
-        console.log('PWA: Detected iOS device not in standalone mode');
-        
-        // ตั้งเวลาหน่วง 3 วินาที เพื่อให้ผู้ใช้เห็นเนื้อหาเว็บก่อนค่อยเด้งเตือน
-        setTimeout(() => {
-            iosPopup.style.display = 'block';
-        }, 3000);
+    // ซ่อนปุ่มติดตั้ง ถ้าเปิดผ่านแอปอยู่แล้ว
+    if (isInStandaloneMode() && installButton) {
+        installButton.style.display = 'none';
     }
-
-    // --- Analytics / Logging ---
-    window.addEventListener('appinstalled', () => {
-        console.log('PWA: Application installed successfully');
-        // ถ้าต้องการซ่อนปุ่มหรือ Popup ทันทีที่ติดตั้งเสร็จ
-        if (installButton) installButton.style.display = 'none';
-        if (iosPopup) iosPopup.style.display = 'none';
-    });
 });
+
+// --- ฟังก์ชัน Global (เรียกใช้ผ่าน onclick ใน HTML) ---
+
+// 1. ฟังก์ชันปิด Popup iOS
+function closeIosPopup() {
+    const iosPopup = document.getElementById('iosInstallPopup');
+    if (iosPopup) {
+        iosPopup.style.display = 'none';
+    }
+}
+
+// 2. ฟังก์ชันสลับการแสดงรหัสผ่าน (ใช้ในหน้า Login)
+function togglePassword(icon) {
+    const input = document.getElementById('passwordInput');
+    if (input) {
+        if (input.type === "password") {
+            input.type = "text"; // เปลี่ยนเป็น text เพื่อให้เห็นรหัส
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash"); // เปลี่ยนรูปตาเป็นมีขีดทับ
+        } else {
+            input.type = "password"; // กลับเป็น password เหมือนเดิม
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye"); // เปลี่ยนรูปตากลับมาปกติ
+        }
+    }
+}
