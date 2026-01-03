@@ -20,15 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Logic สำหรับ Chrome/Android/Desktop (เก็บ event ไว้ใช้)
     window.addEventListener('beforeinstallprompt', (e) => {
+        // ป้องกันไม่ให้ Browser แสดงแถบติดตั้งอัตโนมัติ (เราจะใช้ปุ่มของเราเอง)
         e.preventDefault();
         deferredPrompt = e;
         
+        // แสดงปุ่มติดตั้ง (ถ้ายังไม่ได้ติดตั้ง)
         if (installButton) {
             installButton.style.display = 'inline-block';
         }
     });
 
-    // 2. Logic สำหรับ iOS
+    // 2. Logic สำหรับ iOS (แสดงปุ่มเสมอถ้ายังไม่ได้ติดตั้ง และเป็นอุปกรณ์ iOS)
     if (isIos() && !isInStandaloneMode()) {
         if (installButton) {
             installButton.style.display = 'inline-block';
@@ -39,15 +41,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (installButton) {
         installButton.addEventListener('click', (e) => {
             if (isIos()) {
+                // ถ้าเป็น iOS -> เปิด Popup สอนวิธีติดตั้ง
                 if (iosPopup) {
                     iosPopup.style.display = 'block';
                 }
             } else if (deferredPrompt) {
+                // ถ้าเป็น Android/PC -> เรียก Prompt ของระบบ
                 deferredPrompt.prompt();
+                
+                // รอผลลัพธ์ว่าผู้ใช้กดติดตั้งหรือไม่
                 deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the PWA install');
+                    } else {
+                        console.log('User dismissed the PWA install');
+                    }
                     deferredPrompt = null;
                 });
             } else {
+                // กรณีอื่นๆ หรือหา event ไม่เจอ
                 alert('คุณสามารถติดตั้งแอปนี้ได้ผ่านเมนูการตั้งค่าของเบราว์เซอร์');
             }
         });
@@ -59,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- ฟังก์ชัน Global ---
+// --- ฟังก์ชัน Global (เรียกใช้ผ่าน onclick ใน HTML) ---
 
 // 1. ฟังก์ชันปิด Popup iOS
 function closeIosPopup() {
@@ -77,13 +89,13 @@ function togglePassword(icon, inputId) {
     
     if (input) {
         if (input.type === "password") {
-            input.type = "text"; 
+            input.type = "text"; // เปลี่ยนเป็น text เพื่อให้เห็นรหัส
             icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash"); 
+            icon.classList.add("fa-eye-slash"); // เปลี่ยนรูปตาเป็นมีขีดทับ
         } else {
-            input.type = "password"; 
+            input.type = "password"; // กลับเป็น password เหมือนเดิม
             icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye"); 
+            icon.classList.add("fa-eye"); // เปลี่ยนรูปตากลับมาปกติ
         }
     } else {
         console.error("ไม่พบ Element ที่มี ID: " + inputId);
