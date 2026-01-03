@@ -1,53 +1,51 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ตัวแปรต่างๆ
+    // อ้างอิง Element
     const installContainer = document.getElementById('installContainer');
     const installButton = document.getElementById('installPWA');
     const popup = document.getElementById('installInstructions');
-    let deferredPrompt; // เก็บ event สำหรับ Android
+    let deferredPrompt; // สำหรับ Android
 
-    // ฟังก์ชันตรวจสอบว่าเปิดผ่าน App แล้วหรือยัง (Standalone Mode)
+    // ฟังก์ชันตรวจสอบว่าเปิดผ่าน App แล้วหรือยัง
     const isInStandaloneMode = () => {
         return ('standalone' in window.navigator) && (window.navigator.standalone) || 
                window.matchMedia('(display-mode: standalone)').matches;
     };
 
-    // --- LOGIC 1: การแสดงปุ่ม ---
-    // ถ้า "ยังไม่ได้เปิดผ่านแอป" ให้แสดงปุ่มเสมอ (ไม่ว่าจะ iOS หรือ Android)
+    // --- 1. ตรวจสอบสถานะการติดตั้ง ---
     if (!isInStandaloneMode()) {
+        // ถ้า "ไม่ได้" เปิดผ่านแอป -> แสดงแถบปุ่มติดตั้ง
         if (installContainer) {
             installContainer.style.display = 'flex';
         }
     } else {
-        // ถ้าเปิดผ่านแอปแล้ว ให้ซ่อนปุ่ม
+        // ถ้าเปิดผ่านแอปแล้ว -> ซ่อนแถบปุ่ม
         if (installContainer) {
             installContainer.style.display = 'none';
         }
     }
 
-    // --- LOGIC 2: เก็บ Event สำหรับ Android ---
+    // --- 2. เก็บ Event ของ Android ---
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        // ปุ่มแสดงอยู่แล้วตาม Logic 1 ไม่ต้องทำอะไรเพิ่ม
+        // ไม่ต้องทำอะไรเพิ่ม เพราะปุ่มแสดงอยู่แล้วตาม Logic ข้อ 1
     });
 
-    // --- LOGIC 3: การทำงานเมื่อกดปุ่ม ---
+    // --- 3. เมื่อกดปุ่มติดตั้ง ---
     if (installButton) {
         installButton.addEventListener('click', () => {
             if (deferredPrompt) {
-                // CASE A: เครื่องรองรับการติดตั้งอัตโนมัติ (Android / Chrome Desktop)
+                // กรณี Android/Chrome: ติดตั้งอัตโนมัติ
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        // ถ้าผู้ใช้กดติดตั้ง ให้ซ่อนปุ่มไปเลย
                         installContainer.style.display = 'none';
                     }
                     deferredPrompt = null;
                 });
             } else {
-                // CASE B: เครื่องไม่รองรับ Auto (iOS / Safari / อื่นๆ)
-                // ให้แสดง Popup คำแนะนำแทน
+                // กรณี iOS/Safari: แสดง Popup คำแนะนำ
                 if (popup) {
                     popup.style.display = 'block';
                 }
@@ -56,9 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- ฟังก์ชัน Global ---
-
-// ปิด Popup คำแนะนำ
+// ฟังก์ชันปิด Popup
 function closePopup() {
     const popup = document.getElementById('installInstructions');
     if (popup) {
@@ -66,13 +62,15 @@ function closePopup() {
     }
 }
 
-// สลับการแสดงรหัสผ่าน (ใช้ได้ทุกหน้า)
+// ฟังก์ชันเปิด/ปิดรหัสผ่าน
 function togglePassword(icon) {
     let input = document.getElementById('passwordInput');
     if (!input) {
+        // กรณีหา ID ไม่เจอ ลองหาจากพี่น้องข้างๆ (เผื่อหน้า Register)
         const wrapper = icon.parentElement;
         input = wrapper.querySelector('input');
     }
+
     if (input) {
         if (input.type === "password") {
             input.type = "text";
