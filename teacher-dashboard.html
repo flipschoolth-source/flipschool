@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>แดชบอร์ดครู - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #4cc9f0;
+            --text-color: #2b2d42;
+            --bg-color: #f4f7f6;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--bg-color);
+            margin: 0; padding: 0;
+            color: var(--text-color);
+            padding-top: 70px; /* เว้นที่ให้ Navbar */
+        }
+
+        /* --- Navbar สีขาว (Theme เดียวกับ Login) --- */
+        nav {
+            position: fixed; top: 0; left: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 30px; box-sizing: border-box;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+
+        .nav-brand {
+            display: flex; align-items: center;
+            text-decoration: none; color: var(--text-color);
+            font-family: 'Kanit', sans-serif; font-size: 22px; font-weight: 600;
+        }
+        .nav-brand img { width: 32px; height: 32px; margin-right: 10px; }
+        .nav-brand span { color: var(--primary-color); }
+
+        .nav-profile {
+            display: flex; align-items: center; gap: 15px;
+        }
+        .profile-name { font-weight: 600; font-size: 14px; color: #555; }
+        .btn-logout {
+            background: #ffe5e5; color: #d32f2f;
+            border: none; padding: 8px 15px; border-radius: 20px;
+            cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 600;
+            transition: 0.2s; display: flex; align-items: center; gap: 5px;
+        }
+        .btn-logout:hover { background: #ffcccc; }
+
+        /* --- Main Content --- */
+        .container {
+            max-width: 1000px; margin: 0 auto; padding: 30px 20px;
+        }
+
+        .welcome-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 30px; border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .welcome-text h1 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 28px; }
+        .welcome-text p { margin: 5px 0 0; opacity: 0.9; }
+
+        /* --- Grid เมนูห้องเรียน --- */
+        .section-title { font-family: 'Kanit', sans-serif; font-size: 20px; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* การ์ดห้องเรียน (Mockup) */
+        .class-card {
+            background: white; border-radius: 16px;
+            overflow: hidden; box-shadow: var(--card-shadow);
+            transition: transform 0.2s; cursor: pointer;
+            border: 1px solid #eee;
+        }
+        .class-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        .card-img { height: 120px; background-color: #ddd; position: relative; }
+        /* สุ่มสีพื้นหลังการ์ด */
+        .bg-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
+        .bg-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
+        .bg-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
+
+        .card-body { padding: 15px; }
+        .card-body h3 { margin: 0; font-size: 18px; color: #333; }
+        .card-body p { margin: 5px 0 0; color: #666; font-size: 14px; }
+        .card-footer { 
+            padding: 10px 15px; border-top: 1px solid #f5f5f5; 
+            display: flex; justify-content: space-between; color: #888; font-size: 12px;
+        }
+
+        /* ปุ่มเพิ่มห้องเรียน (FAB) */
+        .fab-add {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px;
+            background: var(--primary-color); color: white;
+            border-radius: 50%; border: none;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+            font-size: 24px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: transform 0.2s;
+        }
+        .fab-add:hover { transform: scale(1.1) rotate(90deg); }
+
+        /* Loading Screen */
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 2000;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+
+        @media (max-width: 480px) {
+            .nav-brand div { display: none; }
+            .profile-name { display: none; } /* ซ่อนชื่อบนมือถือ */
+            .welcome-section { flex-direction: column; text-align: center; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4361ee; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 15px; color: #666;">กำลังโหลดข้อมูล...</p>
+    </div>
+
+    <nav>
+        <a href="#" class="nav-brand">
+            <img src="img/favicon.png" alt="Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjNDM2MWVlIiBkPSJNMCAyNTZDMCAxMTQuNiAxMTQuNiAwIDI1NiAwczI1NiAxMTQuNiAyNTYgMjU2LTExNC42IDI1Ni0yNTYgMjU2UzAgMzk3LjQgMCAyNTZ6Ii8+PC9zdmc+'">
+            <div>Flip<span>School</span></div>
+        </a>
+        
+        <div class="nav-profile">
+            <span class="profile-name" id="teacherName">...</span>
+            <button class="btn-logout" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="welcome-section">
+            <div class="welcome-text">
+                <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
+                <p>จัดการห้องเรียนและติดตามผลการเรียนนักเรียนได้ที่นี่</p>
+            </div>
+            <i class="fas fa-chalkboard-teacher" style="font-size: 60px; opacity: 0.8;"></i>
+        </div>
+
+        <div class="section-title">
+            <i class="fas fa-book"></i> ห้องเรียนของคุณ
+        </div>
+
+        <div class="class-grid" id="classGrid">
+            <div class="class-card">
+                <div class="card-img bg-1"></div>
+                <div class="card-body">
+                    <h3>ภาษาไทย ป.1/1</h3>
+                    <p>ปีการศึกษา 2567</p>
+                </div>
+                <div class="card-footer">
+                    <span><i class="fas fa-user-graduate"></i> 25 คน</span>
+                    <span><i class="fas fa-ellipsis-v"></i></span>
+                </div>
+            </div>
+
+            <div class="class-card">
+                <div class="card-img bg-2"></div>
+                <div class="card-body">
+                    <h3>คณิตศาสตร์ ป.1/2</h3>
+                    <p>ปีการศึกษา 2567</p>
+                </div>
+                <div class="card-footer">
+                    <span><i class="fas fa-user-graduate"></i> 30 คน</span>
+                    <span><i class="fas fa-ellipsis-v"></i></span>
+                </div>
+            </div>
+             <div class="class-card">
+                <div class="card-img bg-3"></div>
+                <div class="card-body">
+                    <h3>วิทยาศาสตร์ ป.6</h3>
+                    <p>ปีการศึกษา 2567</p>
+                </div>
+                <div class="card-footer">
+                    <span><i class="fas fa-user-graduate"></i> 28 คน</span>
+                    <span><i class="fas fa-ellipsis-v"></i></span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="fab-add" onclick="alert('ฟีเจอร์สร้างห้องเรียนจะมาในไฟล์ถัดไปครับ!')">
+        <i class="fas fa-plus"></i>
+    </button>
+
+<script>
+    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
+    let sysDB = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!window.supabase) return;
+        sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 1. ตรวจสอบว่า Login หรือยัง? (Auth Guard)
+        const { data: { user } } = await sysDB.auth.getUser();
+
+        if (!user) {
+            // ถ้ายังไม่ Login ให้ดีดกลับไปหน้า Login
+            window.location.href = 'teacher-login.html';
+            return;
+        }
+
+        // 2. ถ้า Login แล้ว ให้ดึงข้อมูลชื่อครูมาแสดง
+        await fetchTeacherProfile(user.id);
+        
+        // ปิดหน้า Loading
+        document.getElementById('loadingOverlay').style.display = 'none';
+    });
+
+    async function fetchTeacherProfile(userId) {
+        try {
+            const { data, error } = await sysDB
+                .from('teachers')
+                .select('first_name, last_name')
+                .eq('teacher_id', userId)
+                .single();
+
+            if (data) {
+                const fullName = `${data.first_name} ${data.last_name}`;
+                document.getElementById('teacherName').innerText = fullName;
+                document.getElementById('welcomeHeader').innerText = `สวัสดีครับ คุณครู${data.first_name}`;
+            }
+        } catch (err) {
+            console.error("Error fetching profile:", err);
+        }
+    }
+
+    async function handleLogout() {
+        if (!sysDB) return;
+        await sysDB.auth.signOut();
+        window.location.href = 'teacher-login.html';
+    }
+</script>
+
+</body>
+</html>
