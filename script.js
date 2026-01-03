@@ -1,67 +1,67 @@
+// --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB) ---
+let deferredPrompt;
+const installContainer = document.getElementById('installContainer');
+const iosPrompt = document.getElementById('iosPrompt');
+
+// ตรวจสอบว่าเป็น Standalone (ติดตั้งแล้ว) หรือไม่
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+// ตรวจสอบ iOS ด้วย Regex ง่ายๆ (ครอบคลุม Chrome/Safari บน iOS)
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
 document.addEventListener('DOMContentLoaded', () => {
     
-    const installContainer = document.getElementById('installContainer');
-    const installButton = document.getElementById('installPWA');
-    const popup = document.getElementById('installInstructions');
-    let deferredPrompt; 
-
-    // ตรวจสอบว่าเปิดผ่าน App หรือยัง
-    const isInStandaloneMode = () => {
-        return ('standalone' in window.navigator) && (window.navigator.standalone) || 
-               window.matchMedia('(display-mode: standalone)').matches;
-    };
-
-    // --- 1. การแสดงผลปุ่ม ---
-    if (!isInStandaloneMode()) {
-        // ถ้ายังไม่ติดตั้ง -> เพิ่ม Class 'visible'
-        // CSS จะจัดการเองว่าบน Desktop เป็น Inline, บน Mobile เป็น Fixed Bottom
-        if (installContainer) {
-            installContainer.classList.add('visible');
-        }
-    } else {
-        // ถ้าติดตั้งแล้ว -> ลบ Class (ซ่อนปุ่ม)
-        if (installContainer) {
-            installContainer.classList.remove('visible');
-        }
-    }
-
-    // --- 2. เก็บ Event (เฉพาะ Android/Chrome Desktop) ---
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        // ปุ่มแสดงอยู่แล้วจาก Logic ข้อ 1 ไม่ต้องทำอะไรเพิ่ม
-    });
-
-    // --- 3. เมื่อคลิกปุ่ม ---
-    if (installButton) {
-        installButton.addEventListener('click', () => {
-            if (deferredPrompt) {
-                // กรณี A: เครื่องรองรับ Auto Install (Android, Chrome Desktop)
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        installContainer.classList.remove('visible');
-                    }
-                    deferredPrompt = null;
-                });
-            } else {
-                // กรณี B: เครื่องไม่รองรับ Auto (iOS Safari, iOS Chrome, Firefox)
-                // ให้แสดง Popup คำแนะนำแทนเสมอ
-                if (popup) {
-                    popup.style.display = 'block';
-                }
-            }
+    // ถ้ายังไม่ได้ติดตั้ง (ไม่ว่า Android หรือ iOS)
+    if (!isStandalone) {
+        
+        // 1. Logic สำหรับ Android/Desktop Chrome
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // แสดงปุ่ม
+            showInstallButton();
         });
+
+        // 2. Logic สำหรับ iOS (บังคับโชว์ปุ่มเลย ไม่ต้องรอ Event)
+        if (isIOS) {
+            showInstallButton();
+        }
     }
 });
 
-// Global functions
-function closePopup() {
-    const popup = document.getElementById('installInstructions');
-    if (popup) popup.style.display = 'none';
+function showInstallButton() {
+    if (installContainer) {
+        // ใช้ Class 'show' เพื่อให้ CSS จัดการ (Desktop: Inline, Mobile: Bottom Fixed)
+        installContainer.classList.add('show');
+    }
 }
 
+function installApp() {
+    if (isIOS) {
+        // iOS: แสดง Popup แนะนำวิธีติดตั้ง
+        iosPrompt.style.display = 'flex';
+    } else if (deferredPrompt) {
+        // Android: เรียก Prompt ของระบบ
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                installContainer.classList.remove('show');
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // Fallback กรณีอื่นๆ (เช่น Desktop Safari หรือ Chrome เก่า)
+        alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "ติดตั้งแอป" หรือ "Add to Home Screen"');
+    }
+}
+
+function closeIosPrompt() {
+    iosPrompt.style.display = 'none';
+}
+
+// --- ฟังก์ชันอื่นๆ ของเว็บ ---
 function togglePassword(icon) {
+    /* ...โค้ดเดิม... */
     let input = document.getElementById('passwordInput');
     if (!input) {
         const wrapper = icon.parentElement;
