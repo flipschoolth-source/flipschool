@@ -1,34 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB) ---
-    let deferredPrompt;
     const installBtn = document.getElementById('installBtn');
     const iosPrompt = document.getElementById('iosPrompt');
+    let deferredPrompt;
 
-    // ตรวจสอบ Standalone และ iOS (Regex มาตรฐาน TAS-SPB)
+    // ตรวจสอบว่าเป็น Standalone หรือยัง
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
+    // ตรวจสอบ iOS
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-    // ถ้ายังไม่ได้ติดตั้ง
     if (!isStandalone) {
-        
-        // 1. Android / PC Chrome
+        // 1. Android / PC: รอ Event beforeinstallprompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             if(installBtn) installBtn.style.display = 'flex';
         });
 
-        // 2. iOS (TAS-SPB สั่งโชว์เลยถ้าเป็น iOS)
+        // 2. iOS: บังคับแสดงปุ่มเลย (เพราะไม่มี Event beforeinstallprompt)
         if (isIOS) {
             if(installBtn) installBtn.style.display = 'flex';
         }
     }
 
-    // ฟังก์ชันติดตั้ง (Global Scope เพื่อให้ onclick ใน HTML เรียกได้)
+    // ฟังก์ชันติดตั้ง (เรียกจากปุ่ม)
     window.installApp = function() {
         if (isIOS) {
-            // iOS: เปิด Popup Overlay
+            // iOS: เปิด Popup (เปลี่ยน display เป็น flex)
             if(iosPrompt) iosPrompt.style.display = 'flex';
         } else if (deferredPrompt) {
             // Android: เรียก Prompt ระบบ
@@ -40,8 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deferredPrompt = null;
             });
         } else {
-            // Fallback
-            alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "Add to Home Screen"');
+            alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"');
         }
     };
 
@@ -49,24 +47,24 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeIosPrompt = function() {
         if(iosPrompt) iosPrompt.style.display = 'none';
     };
-
-    // --- ฟังก์ชัน Toggle Password ---
-    window.togglePassword = function(icon) {
-        let input = document.getElementById('passwordInput');
-        if (!input) {
-            const wrapper = icon.parentElement;
-            input = wrapper.querySelector('input');
-        }
-        if (input) {
-            if (input.type === "password") {
-                input.type = "text";
-                icon.classList.remove("fa-eye");
-                icon.classList.add("fa-eye-slash");
-            } else {
-                input.type = "password";
-                icon.classList.remove("fa-eye-slash");
-                icon.classList.add("fa-eye");
-            }
-        }
-    };
 });
+
+// ฟังก์ชันอื่นๆ (Toggle Password)
+function togglePassword(icon) {
+    let input = document.getElementById('passwordInput');
+    if (!input) {
+        const wrapper = icon.parentElement;
+        input = wrapper.querySelector('input');
+    }
+    if (input) {
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+        }
+    }
+}
