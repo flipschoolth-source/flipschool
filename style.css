@@ -19,7 +19,7 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   animation: fadeIn 0.5s ease-in-out;
-  padding-bottom: 90px; /* เว้นที่ด้านล่างเผื่อปุ่ม */
+  /* padding-bottom จะถูกเติมด้วย JS หรือ Media Query ถ้าจำเป็น */
 }
 
 @keyframes fadeIn {
@@ -44,7 +44,6 @@ nav {
 .logo-text { font-weight: 700; color: var(--primary-dark); font-size: 1.2rem; }
 .logo-text span { color: var(--primary-color); }
 .nav-menu { display: flex; gap: 10px; }
-
 .nav-btn {
   padding: 8px 20px; border-radius: 50px; text-decoration: none; font-weight: 500;
   transition: all 0.3s ease; cursor: pointer; border: 2px solid var(--primary-color); display: inline-block;
@@ -53,21 +52,100 @@ nav {
 .btn-filled { background: var(--gradient); color: var(--white); border: none; box-shadow: 0 4px 15px rgba(0, 174, 239, 0.3); }
 .nav-btn:hover { transform: translateY(-2px); }
 
-.hero-section { background-color: var(--white); padding: 2rem 5%; min-height: 80vh; display: flex; align-items: center; }
+/* --- Hero Section --- */
+.hero-section { background-color: var(--white); padding: 2rem 5%; min-height: 85vh; display: flex; align-items: center; }
 .hero-container { display: flex; align-items: center; justify-content: space-between; gap: 4rem; max-width: 1200px; margin: 0 auto; width: 100%; }
 .hero-image-block { flex: 1; }
 .hero-image-block img { width: 100%; height: auto; border-radius: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); object-fit: cover; }
 .hero-text-block { flex: 1; text-align: left; }
 .hero-text-block h1 { font-size: 3.5rem; color: var(--primary-dark); margin-bottom: 1rem; line-height: 1.2; }
 .hero-text-block p { font-size: 1.2rem; color: #555; margin-bottom: 2rem; max-width: 600px; }
+
+.hero-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    margin-top: 2rem;
+}
+
+/* ปุ่มมาตรฐาน (ใช้ทั้ง Login และ Install บน PC) */
 .cta-btn {
   padding: 15px 40px; font-size: 1.2rem; border-radius: 50px; background: var(--gradient);
   color: var(--white); border: none; cursor: pointer; transition: 0.3s;
   box-shadow: 0 10px 20px rgba(0, 86, 179, 0.2); text-decoration: none; display: inline-block;
+  text-align: center;
 }
 .cta-btn:hover { transform: scale(1.05); box-shadow: 0 15px 25px rgba(0, 86, 179, 0.3); }
 
-/* --- Login / Register --- */
+/* ปุ่ม Install แบบ Outline (สำหรับ PC) */
+.cta-btn.btn-outline {
+    background: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    box-shadow: none;
+}
+.cta-btn.btn-outline:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* --- Responsive Install Button Logic --- */
+
+/* ค่าเริ่มต้น (PC/Desktop): แสดงแบบ Inline ธรรมดา */
+.install-container {
+    display: inline-block; /* เรียงต่อจากปุ่ม Login */
+}
+
+/* บนมือถือ (จอเล็กกว่า 768px): เปลี่ยนเป็น Fixed Bottom Bar */
+@media (max-width: 768px) {
+    body { padding-bottom: 90px; } /* เว้นที่ให้ปุ่มลอย */
+
+    .install-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        padding: 15px 20px;
+        z-index: 9999;
+        display: none; /* ซ่อนก่อน JS เปิด */
+        justify-content: center;
+        /* override การแสดงผลแบบ flex/inline */
+    }
+
+    /* ปรับปุ่มให้เต็มจอในโหมดมือถือ */
+    .install-btn {
+        width: 100%;
+        max-width: 500px;
+        background: var(--primary-color) !important; /* บังคับสีทึบให้เด่น */
+        color: white !important;
+        border: none !important;
+    }
+}
+
+/* --- Instruction Popup --- */
+.instruction-popup {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 90%; max-width: 400px;
+    background-color: white; padding: 25px; border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25); z-index: 10000;
+    text-align: center; border: 2px solid var(--primary-color);
+    animation: zoomIn 0.3s ease-out;
+}
+.instruction-popup p { font-size: 1rem; color: #333; margin-bottom: 20px; line-height: 1.8; }
+.instruction-popup i { color: var(--primary-color); margin: 0 5px; }
+.popup-close-btn {
+    background: var(--primary-color); color: white; border: none;
+    padding: 10px 30px; border-radius: 50px; font-size: 1rem;
+    cursor: pointer; font-weight: 500; font-family: 'Prompt', sans-serif;
+}
+@keyframes zoomIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+
+/* --- Login/Register Form Styles --- */
 .auth-container { display: flex; justify-content: center; align-items: center; padding: 2rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 90vh; }
 .auth-card { background: var(--white); padding: 2.5rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 100%; max-width: 450px; text-align: center; }
 .auth-header img { width: 80px; height: auto; margin-bottom: 1rem; }
@@ -82,71 +160,12 @@ nav {
 .toggle-password-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; z-index: 10; }
 .toggle-password-icon:hover { color: var(--primary-color); }
 
-/* --- Fixed Bottom Bar --- */
-.fixed-bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: white;
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-    padding: 15px 20px;
-    z-index: 9999; /* สูงสุดเพื่อให้ลอยทับทุกอย่าง */
-    display: none; /* เริ่มต้นซ่อนไว้ JS จะเปิด */
-    justify-content: center;
-}
-
-.install-btn-full {
-    width: 100%;
-    max-width: 500px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 50px;
-    font-size: 1.1rem;
-    font-family: 'Prompt', sans-serif;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 0 5px 15px rgba(0, 174, 239, 0.3);
-    transition: 0.3s;
-}
-.install-btn-full:hover { background: var(--primary-dark); transform: translateY(-2px); }
-
-/* --- Instruction Popup --- */
-.instruction-popup {
-    display: none; /* เริ่มต้นซ่อนไว้ */
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%; max-width: 400px;
-    background-color: white;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
-    z-index: 10000; /* สูงกว่า Bottom Bar */
-    text-align: center;
-    border: 2px solid var(--primary-color);
-    animation: zoomIn 0.3s ease-out;
-}
-.instruction-popup p { font-size: 1rem; color: #333; margin-bottom: 20px; line-height: 1.8; }
-.instruction-popup i { color: var(--primary-color); margin: 0 5px; }
-.popup-close-btn {
-    background: var(--primary-color); color: white; border: none;
-    padding: 10px 30px; border-radius: 50px; font-size: 1rem;
-    cursor: pointer; font-weight: 500; font-family: 'Prompt', sans-serif;
-}
-@keyframes zoomIn {
-    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
+/* Responsive General */
 @media (max-width: 992px) { .hero-text-block h1 { font-size: 3rem; } .hero-container { gap: 2rem; } }
 @media (max-width: 768px) {
   .nav-btn.btn-outline { display: none; }
   .hero-container { flex-direction: column; text-align: center; padding-top: 2rem; }
   .hero-image-block { order: 1; margin-bottom: 2rem; max-width: 80%; }
   .hero-text-block { order: 2; text-align: center; }
-  .hero-text-block h1 { font-size: 2.5rem; }
+  .hero-buttons { justify-content: center; } /* จัดปุ่มกลางบนมือถือ */
 }
-@media (max-width: 480px) { .hero-text-block h1 { font-size: 2rem; } .cta-btn { width: 100%; margin-right: 0;} }
