@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>02สมัครสมาชิกครู - FlipSchool</title>
+    <title>03สมัครสมาชิกครู - FlipSchool</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="img/favicon.png">
@@ -103,54 +103,59 @@
         </div>
     </div>
 
-    <script>
-        // ******************************************************
-        // ⚠️ จุดที่ต้องแก้ไข: ใส่ URL และ KEY ของคุณตรงนี้
-        // ******************************************************
-        const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
-        // ******************************************************
+  <script>
+        // -----------------------------------------------------------
+        // 1. ตัวดักจับ Error (ถ้าโค้ดพัง มันจะฟ้องทันที)
+        // -----------------------------------------------------------
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("❌ โค้ดมีปัญหา (Syntax Error)!\n\nอาการ: " + message + "\nตำแหน่ง: บรรทัดที่ " + lineno + "\n\n(ลองไปดูบรรทัดนั้น ว่าลืมใส่ ' หรือเผลอเคาะบรรทัดใหม่หรือเปล่าครับ)");
+            return true;
+        };
 
+        // -----------------------------------------------------------
+        // 2. ใส่ URL และ KEY (ระวัง! ต้องเป็นบรรทัดเดียว ห้ามกด Enter)
+        // -----------------------------------------------------------
+        const SUPABASE_URL = 'ใส่_SUPABASE_URL_ของคุณ';
+        const SUPABASE_KEY = 'ใส่_SUPABASE_ANON_KEY_ของคุณ'; 
+        // -----------------------------------------------------------
+
+        // 3. เริ่มต้น Supabase
         let supabase;
         try {
-            // สร้าง Client เฉพาะเมื่อ URL ถูกต้อง
-            if(!SUPABASE_URL.includes('ใส่_')) {
+            if (SUPABASE_URL.includes('ใส่_')) {
+                console.warn("ยังไม่ได้ใส่ Key");
+            } else {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }
-        } catch(e) { console.error(e); }
+        } catch (err) {
+            alert("Supabase Init Error: " + err.message);
+        }
 
-
-        // --- ฟังก์ชันเช็คระบบ (Debug Tool) ---
+        // --- ฟังก์ชันเช็คระบบ (กดปุ่มแดง) ---
         async function checkSystem() {
-            let msg = "🔍 ผลการตรวจสอบ:\n";
-            
-            // 1. เช็คว่าใส่ URL/Key หรือยัง
-            if (SUPABASE_URL.includes('ใส่_') || SUPABASE_KEY.includes('ใส่_')) {
-                alert("❌ ยังไม่ได้ใส่ Supabase URL หรือ Key ในโค้ดครับ \n(บรรทัดที่ 104-105)");
+            if (typeof supabase === 'undefined') {
+                alert("❌ ระบบยังไม่ทำงาน เพราะ URL/Key ผิดรูปแบบ หรือ Supabase โหลดไม่ติดครับ");
                 return;
             }
-            msg += "✅ Config: ใส่ URL/Key แล้ว\n";
 
-            // 2. เช็คการเชื่อมต่อ Database
+            if (SUPABASE_URL.includes('ใส่_')) {
+                alert("❌ คุณยังไม่ได้เปลี่ยน URL/Key ในโค้ดครับ (บรรทัดที่ 12-13)");
+                return;
+            }
+
             try {
+                alert("⏳ กำลังทดสอบเชื่อมต่อ...");
                 const { data, error } = await supabase.from('schools').select('*').limit(1);
                 
                 if (error) {
-                    msg += "❌ Database: เชื่อมต่อไม่ได้!\nสาเหตุ: " + error.message;
-                    if(error.code === '42P01') msg += "\n(อาจจะตั้งชื่อตารางผิด ไม่ใช่ 'schools')";
-                    if(error.code === '42501') msg += "\n(ยังไม่เปิด RLS Policy)";
-                } else if (data.length === 0) {
-                    msg += "⚠️ Database: เชื่อมต่อได้ แต่ไม่พบข้อมูลในตาราง schools";
+                    alert("❌ เชื่อมต่อไม่ได้: " + error.message);
                 } else {
-                    msg += "✅ Database: เชื่อมต่อสำเร็จ! \nเจอข้อมูลตัวอย่าง: " + data[0].school_name;
+                    alert("✅ สำเร็จ! ระบบพร้อมใช้งานแล้วครับ \n(เจอโรงเรียน: " + (data[0] ? data[0].school_name : 'ไม่มีข้อมูล') + ")");
                 }
-            } catch (err) {
-                msg += "❌ Error: " + err.message;
+            } catch (e) {
+                alert("❌ Error: " + e.message);
             }
-
-            alert(msg);
         }
-
 
         // --- ระบบค้นหาโรงเรียน ---
         const searchInput = document.getElementById('schoolSearch');
@@ -158,23 +163,19 @@
         const spinner = document.getElementById('searchSpinner');
         let debounceTimer;
 
-        searchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            const query = this.value.trim();
-            if (query.length < 2) { resultsBox.style.display = 'none'; return; }
-            
-            spinner.style.display = 'inline-block';
-            debounceTimer = setTimeout(() => searchSchools(query), 500);
-        });
+        if(searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+                if (query.length < 2) { resultsBox.style.display = 'none'; return; }
+                
+                spinner.style.display = 'inline-block';
+                debounceTimer = setTimeout(() => searchSchools(query), 500);
+            });
+        }
 
         async function searchSchools(keyword) {
-            if (!supabase) { 
-                alert("กรุณาใส่ Supabase Key ในโค้ดก่อนครับ");
-                spinner.style.display = 'none';
-                return; 
-            }
-
-            // ค้นหา (ใช้ ilike เพื่อไม่สนตัวพิมพ์ใหญ่เล็ก)
+            if (!supabase) return;
             const { data, error } = await supabase
                 .from('schools')
                 .select('*')
@@ -182,45 +183,29 @@
                 .limit(10);
 
             spinner.style.display = 'none';
-
-            if (error) {
-                console.error("Search Error:", error);
-                // ถ้าค้นหาไม่เจอ ลองแจ้งเตือนเบาๆ
-                if(keyword.length > 3) alert("เกิดข้อผิดพลาดในการค้นหา: " + error.message);
-                return;
-            }
-
-            displayResults(data);
+            if (!error) displayResults(data);
         }
 
         function displayResults(schools) {
             resultsBox.innerHTML = '';
-            
             if (!schools || schools.length === 0) {
                 resultsBox.innerHTML = '<div style="padding:15px; color:#999; text-align:center;">ไม่พบโรงเรียนนี้</div>';
-                resultsBox.style.display = 'block';
-                return;
+            } else {
+                schools.forEach(school => {
+                    const div = document.createElement('div');
+                    div.className = 'school-item';
+                    div.innerHTML = `<strong>${school.school_name}</strong><small> จ.${school.province}</small>`;
+                    div.onclick = () => selectSchool(school);
+                    resultsBox.appendChild(div);
+                });
             }
-
-            schools.forEach(school => {
-                const div = document.createElement('div');
-                div.className = 'school-item';
-                div.innerHTML = `
-                    <strong>${school.school_name}</strong>
-                    <small>ต.${school.sub_district || '-'} อ.${school.district || '-'} จ.${school.province || '-'}</small>
-                `;
-                div.onclick = () => selectSchool(school);
-                resultsBox.appendChild(div);
-            });
-
             resultsBox.style.display = 'block';
         }
 
         function selectSchool(school) {
             document.getElementById('schoolId').value = school.school_id;
             document.getElementById('selSchoolName').innerText = school.school_name;
-            document.getElementById('selSchoolLoc').innerText = `อ.${school.district} จ.${school.province}`;
-            
+            document.getElementById('selSchoolLoc').innerText = `จ.${school.province}`;
             document.getElementById('searchWrapper').style.display = 'none';
             document.getElementById('selectedSchoolDisplay').style.display = 'block';
             resultsBox.style.display = 'none';
@@ -234,35 +219,15 @@
             searchInput.focus();
         }
 
-        // --- จำลองการสมัคร (ยังไม่ต่อ Auth จริง) ---
         function handleRegister(e) {
             e.preventDefault();
-            const fullname = document.getElementById('fullname').value;
-            const schoolId = document.getElementById('schoolId').value;
-            
-            if (!schoolId) {
-                alert('กรุณาเลือกโรงเรียนก่อนครับ');
-                return;
-            }
-            
-            const btn = document.querySelector('button[type="submit"]');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
-            btn.disabled = true;
-            
-            setTimeout(() => {
-                alert(`ยินดีต้อนรับ "ครู${fullname}" \nเข้าสู่ระบบสำเร็จ!`);
-                
-                // บันทึกข้อมูลจำลองลงเครื่อง
-                localStorage.setItem('teacher_name', fullname);
-                localStorage.setItem('school_name', document.getElementById('selSchoolName').innerText);
-                
-                window.location.href = 'teacher-dashboard.html';
-            }, 1000);
+            alert("สมัครสมาชิกจำลองสำเร็จ!");
+            window.location.href = 'teacher-dashboard.html';
         }
 
-        // ปิด Dropdown เมื่อคลิกข้างนอก
+        // ปิด Dropdown
         document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            if (searchInput && !searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
                 resultsBox.style.display = 'none';
             }
         });
