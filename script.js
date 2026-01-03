@@ -1,89 +1,78 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- ส่วนจัดการ PWA (Progressive Web App) ---
-    let deferredPrompt; 
+    // ตัวแปรต่างๆ
+    const installContainer = document.getElementById('installContainer');
     const installButton = document.getElementById('installPWA');
-    const iosPopup = document.getElementById('iosInstallPopup');
+    const popup = document.getElementById('installInstructions');
+    let deferredPrompt; // เก็บ event สำหรับ Android
 
-    // ฟังก์ชันตรวจสอบว่าเป็น iOS หรือไม่ (อัปเดตใหม่ รองรับ iPadOS และ Mac ที่เป็นจอสัมผัส)
-    const isIos = () => {
-        const userAgent = window.navigator.userAgent.toLowerCase();
-        return /iphone|ipad|ipod/.test(userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    };
-
-    // ฟังก์ชันตรวจสอบว่าเปิดในโหมดแอปแล้วหรือยัง
+    // ฟังก์ชันตรวจสอบว่าเปิดผ่าน App แล้วหรือยัง (Standalone Mode)
     const isInStandaloneMode = () => {
         return ('standalone' in window.navigator) && (window.navigator.standalone) || 
                window.matchMedia('(display-mode: standalone)').matches;
     };
 
-    // --- LOGIC 1: สำหรับ iOS (แสดงปุ่มเสมอถ้ายังไม่ได้ติดตั้ง) ---
-    if (isIos() && !isInStandaloneMode()) {
-        if (installButton) {
-            // บังคับแสดงปุ่มทันที และใช้ !important ผ่าน JS เพื่อความชัวร์
-            installButton.style.setProperty('display', 'inline-block', 'important');
+    // --- LOGIC 1: การแสดงปุ่ม ---
+    // ถ้า "ยังไม่ได้เปิดผ่านแอป" ให้แสดงปุ่มเสมอ (ไม่ว่าจะ iOS หรือ Android)
+    if (!isInStandaloneMode()) {
+        if (installContainer) {
+            installContainer.style.display = 'flex';
+        }
+    } else {
+        // ถ้าเปิดผ่านแอปแล้ว ให้ซ่อนปุ่ม
+        if (installContainer) {
+            installContainer.style.display = 'none';
         }
     }
 
-    // --- LOGIC 2: สำหรับ Android (รอ event) ---
+    // --- LOGIC 2: เก็บ Event สำหรับ Android ---
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if (installButton) {
-            installButton.style.setProperty('display', 'inline-block', 'important');
-        }
+        // ปุ่มแสดงอยู่แล้วตาม Logic 1 ไม่ต้องทำอะไรเพิ่ม
     });
 
-    // --- LOGIC การกดปุ่ม ---
+    // --- LOGIC 3: การทำงานเมื่อกดปุ่ม ---
     if (installButton) {
-        installButton.addEventListener('click', (e) => {
-            if (isIos()) {
-                // iOS: เปิด Popup คำแนะนำ
-                if (iosPopup) {
-                    iosPopup.style.display = 'block';
-                }
-            } else if (deferredPrompt) {
-                // Android: เรียก Prompt ติดตั้ง
+        installButton.addEventListener('click', () => {
+            if (deferredPrompt) {
+                // CASE A: เครื่องรองรับการติดตั้งอัตโนมัติ (Android / Chrome Desktop)
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        // ถ้าผู้ใช้กดติดตั้ง ให้ซ่อนปุ่มไปเลย
+                        installContainer.style.display = 'none';
+                    }
                     deferredPrompt = null;
                 });
             } else {
-                // กรณีอื่นๆ
-                alert('คุณสามารถติดตั้งแอปนี้ได้ผ่านเมนูการตั้งค่าของเบราว์เซอร์');
+                // CASE B: เครื่องไม่รองรับ Auto (iOS / Safari / อื่นๆ)
+                // ให้แสดง Popup คำแนะนำแทน
+                if (popup) {
+                    popup.style.display = 'block';
+                }
             }
         });
-    }
-
-    // ซ่อนปุ่มถ้าติดตั้งแล้ว
-    if (isInStandaloneMode() && installButton) {
-        installButton.style.display = 'none';
     }
 });
 
 // --- ฟังก์ชัน Global ---
 
-// ปิด Popup iOS
-function closeIosPopup() {
-    const iosPopup = document.getElementById('iosInstallPopup');
-    if (iosPopup) {
-        iosPopup.style.display = 'none';
+// ปิด Popup คำแนะนำ
+function closePopup() {
+    const popup = document.getElementById('installInstructions');
+    if (popup) {
+        popup.style.display = 'none';
     }
 }
 
 // สลับการแสดงรหัสผ่าน (ใช้ได้ทุกหน้า)
 function togglePassword(icon) {
-    // หา input ในกล่องเดียวกัน (sibling) หรือใช้ ID
-    // ปรับปรุงให้รองรับ ID 'passwordInput' หรือ input ที่อยู่ข้างๆ
     let input = document.getElementById('passwordInput');
-    
-    // ถ้าไม่เจอด้วย ID ลองหา input ที่เป็น sibling ก่อนหน้า icon
     if (!input) {
         const wrapper = icon.parentElement;
         input = wrapper.querySelector('input');
     }
-
     if (input) {
         if (input.type === "password") {
             input.type = "text";
