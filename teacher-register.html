@@ -2,130 +2,150 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบทะเบียนครู (พร้อมตัวตรวจสอบ)</title>
+    <title>ระบบค้นหาโรงเรียน (Mock Data)</title>
     <style>
-        body { font-family: 'Sarabun', sans-serif; padding: 20px; background-color: #f4f4f4; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body { font-family: 'Sarabun', sans-serif; padding: 20px; background: #f4f4f4; }
         
+        /* สไตล์กล่องค้นหาแบบ Autocomplete */
+        .search-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+        }
+
         input[type="text"] {
             width: 100%;
             padding: 12px;
-            margin-bottom: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
             font-size: 16px;
-        }
-
-        /* ตกแต่งกล่องสถานะตรวจสอบระบบ */
-        #debugStatus {
-            font-size: 14px;
-            color: #333;
-            background-color: #fff3cd; /* สีเหลืองอ่อน */
-            border: 1px solid #ffeeba;
-            padding: 10px;
-            margin-bottom: 20px;
+            border: 1px solid #ccc;
             border-radius: 4px;
         }
-        .status-ok { color: green; font-weight: bold; }
-        .status-error { color: red; font-weight: bold; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
-        th { background-color: #007bff; color: white; }
-        tr:hover { background-color: #f1f1f1; }
+        /* รายการผลลัพธ์ที่จะเด้งขึ้นมา */
+        #schoolList {
+            position: absolute;
+            z-index: 1000;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* ซ่อนไว้ก่อน */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #schoolList div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        #schoolList div:hover {
+            background-color: #e9ecef;
+        }
+
+        /* กล่องแสดงสถานะ (Debug) */
+        .debug-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            font-size: 14px;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>ค้นหารายชื่อครู</h2>
+    <h3>เลือกโรงเรียนสังกัด</h3>
     
-    <input type="text" id="searchInput" placeholder="พิมพ์ชื่อครูเพื่อค้นหา...">
-    
-    <div id="debugStatus">⏳ รอการตรวจสอบระบบ...</div>
+    <div class="search-container">
+        <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียนเพื่อค้นหา..." autocomplete="off">
+        
+        <div id="schoolList"></div>
 
-    <table id="teacherTable">
-        <thead>
-            <tr>
-                <th style="width: 15%;">รหัส</th>
-                <th style="width: 35%;">ชื่อ-นามสกุล</th>
-                <th style="width: 25%;">วิชาที่สอน</th>
-                <th style="width: 25%;">สถานะ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td>T001</td><td>สมชาย ใจดี</td><td>คณิตศาสตร์</td><td>ปกติ</td></tr>
-            <tr><td>T002</td><td>สมหญิง รักเรียน</td><td>ภาษาไทย</td><td>ลาพัก</td></tr>
-            <tr><td>T003</td><td>john doe</td><td>ภาษาอังกฤษ</td><td>ปกติ</td></tr>
-            <tr><td>T004</td><td>มานี มีตา</td><td>วิทยาศาสตร์</td><td>ปกติ</td></tr>
-            <tr><td>T005</td><td>ปิติ พอใจ</td><td>พลศึกษา</td><td>ปกติ</td></tr>
-        </tbody>
-    </table>
-</div>
+        <input type="hidden" id="schoolIdHidden" name="school_id">
+    </div>
+
+    <div class="debug-box" id="debugStatus">
+        สถานะ: ยังไม่ได้เลือกโรงเรียน <br>
+        (ค่าที่จะส่งเข้า SQL: <span id="sqlValue">-</span>)
+    </div>
 
 <script>
-    // เริ่มทำงานเมื่อโหลดหน้าเว็บเสร็จ
-    document.addEventListener("DOMContentLoaded", function() {
-        const debugBox = document.getElementById('debugStatus');
-        const input = document.getElementById('searchInput');
-        const table = document.getElementById('teacherTable');
+    // จำลองข้อมูลจาก Database (ในของจริง Python จะเป็นคนส่งมาให้)
+    const schoolsDB = [
+        { id: 'SC001', name: 'โรงเรียนบ้านหนองฮี', province: 'ขอนแก่น' },
+        { id: 'SC002', name: 'โรงเรียนสตรีวิทยา', province: 'กรุงเทพฯ' },
+        { id: 'SC003', name: 'โรงเรียนหาดใหญ่วิทยาลัย', province: 'สงขลา' },
+        { id: 'SC004', name: 'โรงเรียนยุพราชวิทยาลัย', province: 'เชียงใหม่' },
+        { id: 'SC005', name: 'โรงเรียนอนุบาลสงขลา', province: 'สงขลา' }
+    ];
 
-        // 1. ตรวจสอบการเชื่อมต่อ ID (เช็คครั้งแรก)
-        if (!input) {
-            debugBox.innerHTML = "<span class='status-error'>❌ ERROR: หาช่องค้นหา (id='searchInput') ไม่เจอ!</span>";
-            alert("หาช่องค้นหาไม่เจอ กรุณาตรวจสอบ ID");
-            return; 
-        }
-        if (!table) {
-            debugBox.innerHTML = "<span class='status-error'>❌ ERROR: หาตาราง (id='teacherTable') ไม่เจอ!</span>";
-            alert("หาตารางไม่เจอ กรุณาตรวจสอบ ID");
+    const input = document.getElementById("schoolInput");
+    const list = document.getElementById("schoolList");
+    const hiddenId = document.getElementById("schoolIdHidden");
+    const debugText = document.getElementById("sqlValue");
+    const debugBox = document.getElementById("debugStatus");
+
+    // เมื่อพิมพ์ในช่องค้นหา
+    input.addEventListener("input", function() {
+        const val = this.value.toLowerCase();
+        
+        // ถ้าช่องว่าง ให้ปิดรายการและเคลียร์ค่า
+        if (!val) {
+            list.style.display = "none";
+            hiddenId.value = "";
+            debugText.innerText = "-";
             return;
         }
 
-        // ถ้าผ่าน จะขึ้นข้อความพร้อมใช้งาน
-        debugBox.innerHTML = "<span class='status-ok'>✅ ระบบพร้อม: เจอช่องค้นหาและตารางแล้ว (ลองพิมพ์ดูครับ)</span>";
+        // กรองข้อมูล (Search Logic)
+        const matches = schoolsDB.filter(school => 
+            school.name.toLowerCase().includes(val) || 
+            school.province.toLowerCase().includes(val)
+        );
 
-        // 2. ฟังก์ชั่นค้นหา
-        input.addEventListener('keyup', function() {
-            try {
-                let filter = input.value.toLowerCase();
-                let tr = table.getElementsByTagName('tr');
-                let foundCount = 0;
-
-                // อัปเดตสถานะว่ากำลังทำงาน
-                debugBox.innerHTML = "🔍 กำลังค้นหา: <b>" + (filter === "" ? "(แสดงทั้งหมด)" : filter) + "</b>";
-
-                // วนลูปตรวจสอบทุกแถว (เริ่มที่ 1 เพื่อข้ามหัวตาราง)
-                for (let i = 1; i < tr.length; i++) {
-                    // [1] คือคอลัมน์ที่ 2 (ชื่อ-นามสกุล) ถ้าจะหาคอลัมน์อื่นให้แก้เลขนี้
-                    let td = tr[i].getElementsByTagName('td')[1]; 
+        // แสดงผล
+        list.innerHTML = "";
+        if (matches.length > 0) {
+            list.style.display = "block";
+            matches.forEach(school => {
+                const item = document.createElement("div");
+                // แสดงชื่อโรงเรียน และ จังหวัด
+                item.innerHTML = `<strong>${school.name}</strong> <small>(${school.province})</small>`;
+                
+                // เมื่อคลิกเลือกโรงเรียน
+                item.addEventListener("click", function() {
+                    // 1. ใส่ชื่อในช่องให้คนเห็น
+                    input.value = school.name;
+                    // 2. แอบใส่ ID ลงในช่องลับ (เพื่อเตรียมส่ง SQL)
+                    hiddenId.value = school.id;
+                    // 3. ปิดรายการ
+                    list.style.display = "none";
                     
-                    if (td) {
-                        let txtValue = td.textContent || td.innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            tr[i].style.display = ""; // แสดง
-                            foundCount++;
-                        } else {
-                            tr[i].style.display = "none"; // ซ่อน
-                        }
-                    }
-                }
+                    // อัปเดต Debug
+                    debugText.innerText = school.id;
+                    debugBox.innerHTML = `✅ เลือกแล้ว: <b>${school.name}</b><br>(School ID: ${school.id})`;
+                    debugBox.style.backgroundColor = "#d4edda";
+                    debugBox.style.borderColor = "#c3e6cb";
+                    debugBox.style.color = "#155724";
+                });
+                list.appendChild(item);
+            });
+        } else {
+            list.style.display = "none";
+        }
+    });
 
-                // สรุปผลการค้นหา
-                if (foundCount === 0) {
-                    debugBox.innerHTML += " <span class='status-error'>(ไม่พบข้อมูล)</span>";
-                } else {
-                    debugBox.innerHTML += " <span class='status-ok'>(เจอ " + foundCount + " รายการ)</span>";
-                }
-
-            } catch (err) {
-                // ดักจับ Error ระหว่างค้นหา
-                console.error(err);
-                debugBox.innerHTML = "<span class='status-error'>💥 เกิดข้อผิดพลาด: " + err.message + "</span>";
-            }
-        });
+    // คลิกที่อื่นเพื่อปิดรายการ
+    document.addEventListener("click", function(e) {
+        if (e.target !== input) {
+            list.style.display = "none";
+        }
     });
 </script>
 
