@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Connection Tester</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background: #f4f4f9; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #00008B; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0000CD; }
+        #log { margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; border-radius: 5px; min-height: 100px; white-space: pre-wrap; }
+        .error { color: #ff4444; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2 style="margin-top:0; color:#00008B;">🛠️ ทดสอบเชื่อมต่อ Supabase</h2>
+        
+        <label>Supabase URL:</label>
+        <input type="text" id="url" placeholder="https://xyz.supabase.co">
+
+        <label>Supabase Anon Key:</label>
+        <input type="text" id="key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+
+        <button onclick="runTest()">เริ่มการทดสอบ</button>
+
+        <div id="log">รอการทดสอบ...</div>
+    </div>
+
+    <script>
+        async function runTest() {
+            const url = document.getElementById('url').value.trim();
+            const key = document.getElementById('key').value.trim();
+            const logDiv = document.getElementById('log');
+
+            logDiv.innerHTML = "⏳ กำลังเชื่อมต่อ...";
+            logDiv.style.color = "#fff";
+
+            if (!url || !key) {
+                logDiv.innerHTML += "\n❌ กรุณากรอก URL และ Key ให้ครบ";
+                logDiv.style.color = "#ff4444";
+                return;
+            }
+
+            try {
+                // 1. สร้าง Client
+                const supabase = window.supabase.createClient(url, key);
+                logDiv.innerHTML += "\n✅ Client created.";
+
+                // 2. ลองดึงข้อมูล
+                logDiv.innerHTML += "\n⏳ กำลังดึงข้อมูลจากตาราง 'schools'...";
+                
+                const { data, error } = await supabase
+                    .from('schools')
+                    .select('school_name')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.length === 0) {
+                    logDiv.innerHTML += "\n⚠️ เชื่อมต่อได้ แต่ไม่พบข้อมูลในตาราง (ตารางว่างเปล่า?)";
+                    logDiv.style.color = "yellow";
+                } else {
+                    logDiv.innerHTML += "\n🎉 สำเร็จ! พบข้อมูลตัวอย่าง:\n" + JSON.stringify(data[0], null, 2);
+                    logDiv.style.color = "#00ff00";
+                    logDiv.innerHTML += "\n\n👉 สรุป: URL และ Key ถูกต้องครับ!";
+                }
+
+            } catch (err) {
+                logDiv.innerHTML += "\n❌ เกิดข้อผิดพลาด:\n" + err.message;
+                
+                if(err.message.includes('URL')) {
+                    logDiv.innerHTML += "\n💡 คำแนะนำ: รูปแบบ URL ไม่ถูกต้อง";
+                } else if(err.message.includes('key')) {
+                    logDiv.innerHTML += "\n💡 คำแนะนำ: คีย์ผิด หรือสิทธิ์ไม่พอ";
+                } else if(err.message.includes('404')) {
+                     logDiv.innerHTML += "\n💡 คำแนะนำ: ใส่ URL ผิด (Project not found)";
+                } else if(err.message.includes('relation "schools" does not exist')) {
+                    logDiv.innerHTML += "\n💡 คำแนะนำ: เชื่อมต่อได้ แต่ไม่มีตารางชื่อ schools";
+                }
+                
+                logDiv.style.color = "#ff4444";
+            }
+        }
+    </script>
+</body>
+</html>
