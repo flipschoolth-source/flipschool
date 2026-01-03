@@ -1,69 +1,70 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- ส่วนจัดการ PWA (Progressive Web App) ---
+    let deferredPrompt; 
     const installButton = document.getElementById('installPWA');
     const iosPopup = document.getElementById('iosInstallPopup');
-    let deferredPrompt; // ตัวแปรเก็บ event สำหรับ Chrome/Android
 
-    // ฟังก์ชันตรวจสอบว่าเป็น iOS หรือไม่
+    // ฟังก์ชันตรวจสอบว่าเป็น iOS หรือไม่ (อัปเดตใหม่ รองรับ iPadOS และ Mac ที่เป็นจอสัมผัส)
     const isIos = () => {
         const userAgent = window.navigator.userAgent.toLowerCase();
-        return /iphone|ipad|ipod/.test(userAgent);
+        return /iphone|ipad|ipod/.test(userAgent) || 
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     };
 
-    // ฟังก์ชันตรวจสอบว่าเปิดในโหมดแอปแล้วหรือยัง (Standalone Mode)
+    // ฟังก์ชันตรวจสอบว่าเปิดในโหมดแอปแล้วหรือยัง
     const isInStandaloneMode = () => {
         return ('standalone' in window.navigator) && (window.navigator.standalone) || 
                window.matchMedia('(display-mode: standalone)').matches;
     };
 
-    // --- LOGIC การแสดงปุ่ม ---
-
-    // 1. ถ้าเป็น iOS และยังไม่ได้ติดตั้ง -> ให้โชว์ปุ่มเลย
+    // --- LOGIC 1: สำหรับ iOS (แสดงปุ่มเสมอถ้ายังไม่ได้ติดตั้ง) ---
     if (isIos() && !isInStandaloneMode()) {
-        if (installButton) installButton.style.display = 'inline-block';
+        if (installButton) {
+            // บังคับแสดงปุ่มทันที และใช้ !important ผ่าน JS เพื่อความชัวร์
+            installButton.style.setProperty('display', 'inline-block', 'important');
+        }
     }
 
-    // 2. ถ้าเป็น Android/Chrome (รอ event beforeinstallprompt)
+    // --- LOGIC 2: สำหรับ Android (รอ event) ---
     window.addEventListener('beforeinstallprompt', (e) => {
-        // ป้องกันแถบติดตั้งอัตโนมัติของ Chrome
         e.preventDefault();
         deferredPrompt = e;
-        // แสดงปุ่มติดตั้ง
-        if (installButton) installButton.style.display = 'inline-block';
+        if (installButton) {
+            installButton.style.setProperty('display', 'inline-block', 'important');
+        }
     });
 
-    // --- LOGIC เมื่อกดปุ่ม ---
+    // --- LOGIC การกดปุ่ม ---
     if (installButton) {
-        installButton.addEventListener('click', () => {
+        installButton.addEventListener('click', (e) => {
             if (isIos()) {
-                // ถ้าเป็น iOS -> เปิด Popup สอนวิธีติดตั้ง
+                // iOS: เปิด Popup คำแนะนำ
                 if (iosPopup) {
                     iosPopup.style.display = 'block';
                 }
             } else if (deferredPrompt) {
-                // ถ้าเป็น Android -> เรียก Prompt ของระบบ
+                // Android: เรียก Prompt ติดตั้ง
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    // เคลียร์ค่าเมื่อผู้ใช้เลือกแล้ว
                     deferredPrompt = null;
                 });
             } else {
-                // กรณีอื่นๆ (เช่นเปิดบนคอมพิวเตอร์ทั่วไป)
+                // กรณีอื่นๆ
                 alert('คุณสามารถติดตั้งแอปนี้ได้ผ่านเมนูการตั้งค่าของเบราว์เซอร์');
             }
         });
     }
 
-    // ซ่อนปุ่มติดตั้ง ถ้าเปิดผ่านแอปอยู่แล้ว
+    // ซ่อนปุ่มถ้าติดตั้งแล้ว
     if (isInStandaloneMode() && installButton) {
         installButton.style.display = 'none';
     }
 });
 
-// --- ฟังก์ชัน Global (เรียกใช้ผ่าน onclick ใน HTML) ---
+// --- ฟังก์ชัน Global ---
 
-// 1. ฟังก์ชันปิด Popup iOS
+// ปิด Popup iOS
 function closeIosPopup() {
     const iosPopup = document.getElementById('iosInstallPopup');
     if (iosPopup) {
@@ -71,19 +72,27 @@ function closeIosPopup() {
     }
 }
 
-// 2. ฟังก์ชันสลับการแสดงรหัสผ่าน (รองรับทุกช่องด้วย ID)
-function togglePassword(icon, inputId) {
-    const input = document.getElementById(inputId); 
+// สลับการแสดงรหัสผ่าน (ใช้ได้ทุกหน้า)
+function togglePassword(icon) {
+    // หา input ในกล่องเดียวกัน (sibling) หรือใช้ ID
+    // ปรับปรุงให้รองรับ ID 'passwordInput' หรือ input ที่อยู่ข้างๆ
+    let input = document.getElementById('passwordInput');
     
+    // ถ้าไม่เจอด้วย ID ลองหา input ที่เป็น sibling ก่อนหน้า icon
+    if (!input) {
+        const wrapper = icon.parentElement;
+        input = wrapper.querySelector('input');
+    }
+
     if (input) {
         if (input.type === "password") {
-            input.type = "text"; 
+            input.type = "text";
             icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash"); 
+            icon.classList.add("fa-eye-slash");
         } else {
-            input.type = "password"; 
+            input.type = "password";
             icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye"); 
+            icon.classList.add("fa-eye");
         }
     }
 }
