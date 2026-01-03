@@ -5,57 +5,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('installInstructions');
     let deferredPrompt; 
 
-    // ตรวจสอบว่าเปิดผ่านแอปหรือไม่
+    // ตรวจสอบว่าเปิดผ่าน App หรือยัง
     const isInStandaloneMode = () => {
         return ('standalone' in window.navigator) && (window.navigator.standalone) || 
                window.matchMedia('(display-mode: standalone)').matches;
     };
 
-    // --- 1. Logic แสดงปุ่ม ---
+    // --- 1. การแสดงผลปุ่ม ---
     if (!isInStandaloneMode()) {
+        // ถ้ายังไม่ติดตั้ง -> เพิ่ม Class 'visible'
+        // CSS จะจัดการเองว่าบน Desktop เป็น Inline, บน Mobile เป็น Fixed Bottom
         if (installContainer) {
-            // เช็คขนาดหน้าจอเพื่อเลือกวิธีแสดงผล (Flex สำหรับมือถือ, Inline สำหรับ PC)
-            if (window.innerWidth <= 768) {
-                installContainer.style.display = 'flex'; // แสดงแบบแถบล่าง (Mobile)
-            } else {
-                installContainer.style.display = 'inline-block'; // แสดงแบบปุ่มปกติ (PC)
-            }
+            installContainer.classList.add('visible');
         }
     } else {
-        if (installContainer) installContainer.style.display = 'none';
+        // ถ้าติดตั้งแล้ว -> ลบ Class (ซ่อนปุ่ม)
+        if (installContainer) {
+            installContainer.classList.remove('visible');
+        }
     }
 
-    // --- 2. Event Listener สำหรับ Resize (เพื่อให้เปลี่ยนโหมดได้ถ้าหมุนจอ/ย่อจอ) ---
-    window.addEventListener('resize', () => {
-        if (!isInStandaloneMode() && installContainer) {
-             if (window.innerWidth <= 768) {
-                installContainer.style.display = 'flex';
-            } else {
-                installContainer.style.display = 'inline-block';
-            }
-        }
-    });
-
-    // --- 3. เก็บ Event Android ---
+    // --- 2. เก็บ Event (เฉพาะ Android/Chrome Desktop) ---
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+        // ปุ่มแสดงอยู่แล้วจาก Logic ข้อ 1 ไม่ต้องทำอะไรเพิ่ม
     });
 
-    // --- 4. คลิกปุ่ม ---
+    // --- 3. เมื่อคลิกปุ่ม ---
     if (installButton) {
         installButton.addEventListener('click', () => {
             if (deferredPrompt) {
+                // กรณี A: เครื่องรองรับ Auto Install (Android, Chrome Desktop)
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        installContainer.style.display = 'none';
+                        installContainer.classList.remove('visible');
                     }
                     deferredPrompt = null;
                 });
             } else {
-                // iOS / PC
-                if (popup) popup.style.display = 'block';
+                // กรณี B: เครื่องไม่รองรับ Auto (iOS Safari, iOS Chrome, Firefox)
+                // ให้แสดง Popup คำแนะนำแทนเสมอ
+                if (popup) {
+                    popup.style.display = 'block';
+                }
             }
         });
     }
