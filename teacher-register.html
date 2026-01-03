@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สมัครสมาชิกครู - FlipSchool</title>
     
+    <link rel="icon" href="data:,">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
@@ -116,12 +118,13 @@
 </div>
 
 <script>
-    // -----------------------------------------------------------
-    // ⬇️ ใส่ KEY ของคุณที่นี่ (ห้ามลบ ' ' )
-    // -----------------------------------------------------------
+    // ===========================================================
+    // ⚠️ ล้างไฟล์เก่าให้หมดก่อนวางนะครับ ไม่งั้นจะ Error ซ้ำ
+    // ===========================================================
+    
+    // 1. ใส่ KEY ของคุณที่นี่ (ห้ามลบเครื่องหมาย ' ' )
     const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
-    // -----------------------------------------------------------
 
     let supabase = null;
     
@@ -134,7 +137,7 @@
         }
     });
 
-    // --- ส่วนที่ 1: ระบบค้นหาโรงเรียน (Logic เดิมที่คุณทำผ่านแล้ว) ---
+    // --- ส่วนที่ 1: ระบบค้นหาโรงเรียน ---
     const searchInput = document.getElementById('schoolInput');
     const resultsBox = document.getElementById('resultsBox');
     const searchSpinner = document.getElementById('searchSpinner');
@@ -212,7 +215,7 @@
         }
     });
 
-    // --- ส่วนที่ 2: ระบบสมัครสมาชิก (Register Logic) ---
+    // --- ส่วนที่ 2: ระบบสมัครสมาชิก ---
     async function handleRegister(e) {
         e.preventDefault();
         
@@ -224,18 +227,16 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
-        // ตรวจสอบข้อมูลก่อนส่ง
         if (!schoolId) { 
             alert('❌ กรุณาเลือกโรงเรียนก่อนครับ'); 
             return; 
         }
 
-        // เริ่มโหลด
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner" style="display:inline-block; border-color:white; border-top-color:transparent;"></div> กำลังบันทึก...';
 
         try {
-            // 1. สร้าง User ใน Supabase Auth
+            // 1. สร้าง User Auth
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email,
                 password: password
@@ -243,14 +244,14 @@
 
             if (authError) throw authError;
 
-            // 2. แยกชื่อ-นามสกุล (เพื่อเก็บลง DB)
+            // 2. แยกชื่อ-นามสกุล
             const names = fullname.trim().split(' ');
             const firstName = names[0];
             const lastName = names.slice(1).join(' ') || '-';
 
-            // 3. บันทึกข้อมูลครูลงตาราง teachers
+            // 3. บันทึกข้อมูลครู
             const { error: dbError } = await supabase.from('teachers').insert([{
-                teacher_id: authData.user.id, // ใช้ ID เดียวกับ Auth
+                teacher_id: authData.user.id,
                 school_id: schoolId,
                 first_name: firstName,
                 last_name: lastName,
@@ -260,9 +261,7 @@
 
             if (dbError) throw dbError;
 
-            // สำเร็จ!
             alert('✅ สมัครสมาชิกสำเร็จ! ยินดีต้อนรับครับ');
-            // ส่งไปหน้า Login หรือ Dashboard
             window.location.href = 'teacher-login.html'; 
 
         } catch (err) {
