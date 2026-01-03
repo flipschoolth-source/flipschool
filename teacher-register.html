@@ -3,171 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบค้นหาโรงเรียน (แก้ไขล่าสุด)</title>
+    <title>ค้นหาโรงเรียน - FlipSchool</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        h3 { color: #333; margin-top: 0; }
         
         /* ช่องค้นหา */
-        .search-box { position: relative; width: 100%; }
-        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .search-wrapper { position: relative; margin-top: 15px; }
+        input[type="text"] { width: 100%; padding: 12px 12px 12px 40px; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
         input[type="text"]:focus { border-color: #007bff; outline: none; }
+        .search-icon { position: absolute; left: 12px; top: 15px; color: #999; }
 
-        /* ผลลัพธ์ Dropdown */
-        #results {
+        /* ผลการค้นหา (Dropdown) */
+        #resultsBox {
             position: absolute; top: 100%; left: 0; right: 0;
             background: white; border: 1px solid #ddd; border-radius: 0 0 8px 8px;
-            max-height: 200px; overflow-y: auto; z-index: 100;
-            display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 250px; overflow-y: auto; z-index: 1000;
+            display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        .item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
-        .item:hover { background: #f0f7ff; color: #007bff; }
-        .item strong { display: block; font-size: 15px; }
-        .item small { color: #666; font-size: 13px; }
+        .result-item { padding: 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+        .result-item:hover { background-color: #f0f7ff; color: #007bff; }
+        .result-item strong { display: block; font-size: 15px; }
+        .result-item small { color: #666; font-size: 13px; }
 
-        /* สถานะ Debug */
-        #status { margin-top: 10px; font-size: 14px; color: #666; }
-        .spinner { display: none; color: #007bff; margin-left: 10px; }
+        /* การ์ดแสดงเมื่อเลือกแล้ว */
+        .selected-card {
+            display: none; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 8px;
+            padding: 15px; margin-top: 15px; position: relative;
+        }
+        .close-btn { position: absolute; top: 10px; right: 10px; color: #d32f2f; cursor: pointer; }
+
+        /* Status Bar */
+        #statusMsg { margin-top: 15px; font-size: 13px; color: #666; padding: 10px; background: #f8f9fa; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>ค้นหาโรงเรียนสังกัด</h3>
+    <h3><i class="fas fa-school"></i> เลือกโรงเรียนสังกัด</h3>
     
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="พิมพ์ชื่อโรงเรียน... (เช่น หาดใหญ่)" autocomplete="off">
-        <i class="fas fa-spinner fa-spin spinner" id="spinner"></i>
-        <div id="results"></div>
+    <div class="search-wrapper" id="searchSection">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียน... (เช่น หาดใหญ่)" autocomplete="off">
+        <div id="resultsBox"></div>
     </div>
 
-    <div id="selection" style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; display: none;">
-        <h4 style="margin:0; color: #2e7d32;" id="selName"></h4>
-        <p style="margin:5px 0 0; font-size: 14px;" id="selDetail"></p>
-        <p style="margin:5px 0 0; font-size: 12px; color: #555;">ID: <span id="selID"></span></p>
+    <div id="selectedCard" class="selected-card">
+        <i class="fas fa-times close-btn" onclick="resetSelection()"></i>
+        <h4 style="margin:0; color: #2e7d32;" id="showName"></h4>
+        <p style="margin:5px 0 0; color: #555;" id="showLoc"></p>
+        <small style="color: #999;">School ID: <span id="showId"></span></small>
     </div>
 
-    <div id="status">🔴 สถานะ: รอการเชื่อมต่อ...</div>
+    <div id="statusMsg">🔴 รอการโหลดระบบ...</div>
 </div>
 
 <script>
-    // --- 1. ใส่ KEY ของคุณตรงนี้ ---
-    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co'; // ใส่ URL ของคุณ
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE'; // ใส่ Key ของคุณ
+    // ----------------------------------------------------
+    // 1. ใส่ KEY ของคุณที่นี่ (ห้ามลบ ' ' ออกนะครับ)
+    // ----------------------------------------------------
+    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
+    // ----------------------------------------------------
 
-    // สร้าง Client
-    let supabase;
-    const statusDiv = document.getElementById('status');
-    
-    try {
-        if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-            statusDiv.innerHTML = "⚠️ <b>แจ้งเตือน:</b> กรุณาใส่ URL และ KEY ในโค้ดก่อนครับ";
-        } else {
-            supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            statusDiv.innerHTML = "🟢 สถานะ: เชื่อมต่อระบบแล้ว พร้อมค้นหา";
-        }
-    } catch (e) {
-        statusDiv.innerHTML = "❌ Error: " + e.message;
-    }
+    let dbClient = null; // เปลี่ยนชื่อตัวแปรเป็น dbClient เพื่อแก้ปัญหาชื่อซ้ำ
+    const statusDiv = document.getElementById('statusMsg');
+    const input = document.getElementById('schoolInput');
+    const resultsBox = document.getElementById('resultsBox');
+    let timer = null;
 
-    // --- 2. ฟังก์ชันค้นหา ---
-    const input = document.getElementById('searchInput');
-    const resultsDiv = document.getElementById('results');
-    const spinner = document.getElementById('spinner');
-    let timeout = null;
-
-    input.addEventListener('input', function() {
-        clearTimeout(timeout);
-        const query = this.value.trim();
+    // เริ่มทำงานเมื่อเปิดเว็บ
+    document.addEventListener('DOMContentLoaded', () => {
         
-        if(query.length === 0) {
-            resultsDiv.style.display = 'none';
+        // เช็คว่า User ใส่ Key หรือยัง
+        if (SUPABASE_URL.includes('ใส่_') || SUPABASE_URL.length < 10) {
+            statusDiv.innerHTML = "⚠️ <b>แจ้งเตือน:</b> คุณยังไม่ได้ใส่ Supabase Key ในโค้ดครับ";
+            statusDiv.style.color = 'red';
             return;
         }
 
-        spinner.style.display = 'inline-block';
-        statusDiv.innerHTML = "🔍 กำลังค้นหา: " + query;
-
-        // รอ 0.5 วินาทีหลังพิมพ์เสร็จค่อยยิง Database
-        timeout = setTimeout(() => performSearch(query), 500);
+        try {
+            // สร้างการเชื่อมต่อ
+            dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            statusDiv.innerHTML = "🟢 เชื่อมต่อ Supabase สำเร็จ พร้อมใช้งาน";
+            statusDiv.style.color = 'green';
+        } catch (err) {
+            statusDiv.innerHTML = "❌ Error: " + err.message;
+        }
     });
 
-    async function performSearch(keyword) {
-        if (!supabase) {
-            alert("ยังไม่ได้ตั้งค่า Supabase Key ครับ");
-            spinner.style.display = 'none';
+    // ดักจับการพิมพ์
+    input.addEventListener('input', function() {
+        clearTimeout(timer);
+        const text = this.value.trim();
+
+        if (text.length === 0) {
+            resultsBox.style.display = 'none';
             return;
         }
 
-        // ค้นหาในตาราง schools ที่คอลัมน์ school_name
-        const { data, error } = await supabase
-            .from('schools') // ชื่อตารางใน SQL
+        statusDiv.innerHTML = "⏳ กำลังพิมพ์...";
+        
+        // หน่วงเวลา 0.5 วินาที ก่อนค้นหา (Debounce)
+        timer = setTimeout(() => searchSchool(text), 500);
+    });
+
+    async function searchSchool(keyword) {
+        if (!dbClient) return;
+
+        statusDiv.innerHTML = "🔍 กำลังค้นหา: " + keyword;
+
+        // ค้นหาในตาราง schools
+        const { data, error } = await dbClient
+            .from('schools')
             .select('*')
             .ilike('school_name', `%${keyword}%`) // ค้นหาบางส่วนของคำ
             .limit(10);
 
-        spinner.style.display = 'none';
-
         if (error) {
             console.error(error);
-            statusDiv.innerHTML = "❌ ค้นหาล้มเหลว: " + error.message;
-            // เช็คว่าเป็นเพราะ RLS หรือไม่
-            if (error.code === '42501') { 
-                statusDiv.innerHTML += "<br>(ปัญหาน่าจะเกิดจากยังไม่เปิด Policy ใน SQL)";
-            }
+            statusDiv.innerHTML = "❌ เกิดข้อผิดพลาด: " + error.message;
+            if(error.code === '42501') statusDiv.innerHTML += " (ติดสิทธิ์ RLS ต้องรัน SQL ปลดล็อค)";
             return;
         }
 
-        displayResults(data);
+        renderResults(data);
     }
 
-    function displayResults(schools) {
-        resultsDiv.innerHTML = '';
-        
-        if (schools.length === 0) {
-            statusDiv.innerHTML = "⚠️ ค้นหาเสร็จสิ้น: ไม่พบข้อมูล";
-            resultsDiv.style.display = 'none';
+    function renderResults(schools) {
+        resultsBox.innerHTML = '';
+
+        if (!schools || schools.length === 0) {
+            statusDiv.innerHTML = "⚠️ ไม่พบโรงเรียนที่ค้นหา";
+            resultsBox.style.display = 'none';
             return;
         }
 
-        statusDiv.innerHTML = `✅ เจอทั้งหมด ${schools.length} โรงเรียน`;
-
+        statusDiv.innerHTML = `✅ พบข้อมูล ${schools.length} รายการ`;
+        
         schools.forEach(school => {
             const div = document.createElement('div');
-            div.className = 'item';
-            // ดึงค่าจาก SQL: school_name, district, province
+            div.className = 'result-item';
             div.innerHTML = `
                 <strong>${school.school_name}</strong>
-                <small>อ.${school.district || '-'} จ.${school.province || '-'}</small>
+                <small>จ.${school.province} (อ.${school.district})</small>
             `;
             
+            // เมื่อคลิกเลือก
             div.onclick = () => {
-                // เมื่อเลือก
-                input.value = school.school_name;
-                resultsDiv.style.display = 'none';
+                document.getElementById('searchSection').style.display = 'none';
+                document.getElementById('selectedCard').style.display = 'block';
                 
-                // แสดงผลลัพธ์
-                document.getElementById('selection').style.display = 'block';
-                document.getElementById('selName').innerText = school.school_name;
-                document.getElementById('selDetail').innerText = `ที่อยู่: อ.${school.district} จ.${school.province}`;
-                document.getElementById('selID').innerText = school.school_id;
+                document.getElementById('showName').innerText = school.school_name;
+                document.getElementById('showLoc').innerText = `อ.${school.district} จ.${school.province}`;
+                document.getElementById('showId').innerText = school.school_id;
+                
+                statusDiv.innerHTML = "🆗 เลือกเรียบร้อย (พร้อมบันทึก)";
+                resultsBox.style.display = 'none';
             };
-            
-            resultsDiv.appendChild(div);
+
+            resultsBox.appendChild(div);
         });
 
-        resultsDiv.style.display = 'block';
+        resultsBox.style.display = 'block';
     }
 
-    // คลิกข้างนอกเพื่อปิด
+    function resetSelection() {
+        document.getElementById('searchSection').style.display = 'block';
+        document.getElementById('selectedCard').style.display = 'none';
+        input.value = '';
+        input.focus();
+        statusDiv.innerHTML = "🟢 พร้อมค้นหาใหม่";
+    }
+
+    // คลิกพื้นที่ว่างเพื่อปิด Popup
     document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !resultsDiv.contains(e.target)) {
-            resultsDiv.style.display = 'none';
+        if (!input.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
         }
     });
 </script>
