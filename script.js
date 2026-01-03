@@ -1,67 +1,58 @@
-// --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB) ---
-let deferredPrompt;
-const installContainer = document.getElementById('installContainer');
-const iosPrompt = document.getElementById('iosPrompt');
-
-// ตรวจสอบว่าเป็น Standalone (ติดตั้งแล้ว) หรือไม่
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-// ตรวจสอบ iOS ด้วย Regex ง่ายๆ (ครอบคลุม Chrome/Safari บน iOS)
-const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB เป๊ะๆ) ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    const iosPrompt = document.getElementById('iosPrompt');
+
+    // ตรวจสอบว่าเป็น Standalone (ติดตั้งแล้ว) หรือไม่
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     
-    // ถ้ายังไม่ได้ติดตั้ง (ไม่ว่า Android หรือ iOS)
+    // ตรวจสอบ iOS แบบ TAS-SPB
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
     if (!isStandalone) {
-        
-        // 1. Logic สำหรับ Android/Desktop Chrome
+        // Logic สำหรับ Android / Desktop Chrome
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // แสดงปุ่ม
-            showInstallButton();
+            if(installBtn) installBtn.style.display = 'flex';
         });
 
-        // 2. Logic สำหรับ iOS (บังคับโชว์ปุ่มเลย ไม่ต้องรอ Event)
+        // Logic สำหรับ iOS (TAS-SPB บังคับโชว์เลย)
         if (isIOS) {
-            showInstallButton();
+            if(installBtn) installBtn.style.display = 'flex';
         }
     }
+
+    // ฟังก์ชันเรียกใช้งานเมื่อกดปุ่ม (Global function เพื่อให้ HTML เรียกได้)
+    window.installApp = function() {
+        if (isIOS) {
+            // iOS: เปิด Popup Overlay
+            if(iosPrompt) iosPrompt.style.display = 'flex';
+        } else if (deferredPrompt) {
+            // Android: เรียก Prompt ระบบ
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    if(installBtn) installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        } else {
+            // Fallback
+            alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)');
+        }
+    };
+
+    // ฟังก์ชันปิด Popup iOS
+    window.closeIosPrompt = function() {
+        if(iosPrompt) iosPrompt.style.display = 'none';
+    };
 });
 
-function showInstallButton() {
-    if (installContainer) {
-        // ใช้ Class 'show' เพื่อให้ CSS จัดการ (Desktop: Inline, Mobile: Bottom Fixed)
-        installContainer.classList.add('show');
-    }
-}
-
-function installApp() {
-    if (isIOS) {
-        // iOS: แสดง Popup แนะนำวิธีติดตั้ง
-        iosPrompt.style.display = 'flex';
-    } else if (deferredPrompt) {
-        // Android: เรียก Prompt ของระบบ
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-                installContainer.classList.remove('show');
-            }
-            deferredPrompt = null;
-        });
-    } else {
-        // Fallback กรณีอื่นๆ (เช่น Desktop Safari หรือ Chrome เก่า)
-        alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "ติดตั้งแอป" หรือ "Add to Home Screen"');
-    }
-}
-
-function closeIosPrompt() {
-    iosPrompt.style.display = 'none';
-}
-
-// --- ฟังก์ชันอื่นๆ ของเว็บ ---
+// --- ฟังก์ชันอื่นๆ ของ Flipschool (Toggle Password) ---
 function togglePassword(icon) {
-    /* ...โค้ดเดิม... */
     let input = document.getElementById('passwordInput');
     if (!input) {
         const wrapper = icon.parentElement;
