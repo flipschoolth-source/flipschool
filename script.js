@@ -1,57 +1,55 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB เป๊ะๆ) ---
+    // --- ส่วนจัดการปุ่มติดตั้ง (Logic จาก TAS-SPB) ---
     let deferredPrompt;
     const installBtn = document.getElementById('installBtn');
     const iosPrompt = document.getElementById('iosPrompt');
 
-    // ตรวจสอบว่าเป็น Standalone (ติดตั้งแล้ว) หรือไม่
+    // ตรวจสอบ Standalone และ iOS
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    
-    // ตรวจสอบ iOS แบบ TAS-SPB
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
     if (!isStandalone) {
-        // Logic สำหรับ Android / Desktop Chrome
+        // กรณี Android / Chrome Desktop
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if(installBtn) installBtn.style.display = 'flex';
+            if (installBtn) installBtn.style.display = 'flex';
         });
 
-        // Logic สำหรับ iOS (TAS-SPB บังคับโชว์เลย)
+        // กรณี iOS (TAS-SPB สั่งโชว์เลยถ้าเป็น iOS)
         if (isIOS) {
-            if(installBtn) installBtn.style.display = 'flex';
+            if (installBtn) installBtn.style.display = 'flex';
         }
     }
 
-    // ฟังก์ชันเรียกใช้งานเมื่อกดปุ่ม (Global function เพื่อให้ HTML เรียกได้)
+    // ฟังก์ชันติดตั้ง (เรียกจาก onclick ใน HTML)
     window.installApp = function() {
         if (isIOS) {
-            // iOS: เปิด Popup Overlay
-            if(iosPrompt) iosPrompt.style.display = 'flex';
+            // เปิด Popup iOS
+            if (iosPrompt) iosPrompt.style.display = 'flex';
         } else if (deferredPrompt) {
-            // Android: เรียก Prompt ระบบ
+            // Android Prompt
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
-                    if(installBtn) installBtn.style.display = 'none';
+                    if (installBtn) installBtn.style.display = 'none';
                 }
                 deferredPrompt = null;
             });
         } else {
             // Fallback
-            alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)');
+            alert('กรุณากดเมนูของเบราว์เซอร์แล้วเลือก "Add to Home Screen"');
         }
     };
 
-    // ฟังก์ชันปิด Popup iOS
+    // ฟังก์ชันปิด Popup
     window.closeIosPrompt = function() {
-        if(iosPrompt) iosPrompt.style.display = 'none';
+        if (iosPrompt) iosPrompt.style.display = 'none';
     };
 });
 
-// --- ฟังก์ชันอื่นๆ ของ Flipschool (Toggle Password) ---
+// --- ฟังก์ชัน Toggle Password เดิม ---
 function togglePassword(icon) {
     let input = document.getElementById('passwordInput');
     if (!input) {
