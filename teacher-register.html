@@ -25,10 +25,11 @@
         body {
             font-family: 'Sarabun', sans-serif;
             background: var(--bg-gradient);
-            margin: 0; padding: 0;
+            margin: 0; padding: 20px 0;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; color: var(--text-color);
             position: relative;
+            box-sizing: border-box;
         }
 
         /* Navbar */
@@ -53,7 +54,7 @@
         .back-link:hover { color: var(--primary-color); background: #eef2ff; transform: translateX(-3px); }
 
         /* Container & Card */
-        .container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; margin-top: 60px; }
+        .container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; margin-top: 80px; }
         .card-glass {
             background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             border-radius: 24px; border: var(--glass-border); box-shadow: var(--shadow);
@@ -64,17 +65,62 @@
         .card-header h2 { font-family: 'Kanit', sans-serif; font-weight: 600; color: var(--primary-color); margin: 0; font-size: 28px; }
         .card-header p { color: #8d99ae; font-size: 14px; margin-top: 5px; }
 
-        /* --- ✅ Avatar Selection Styles --- */
+        /* --- Avatar Styles --- */
         .avatar-section { text-align: center; margin-bottom: 25px; }
         .avatar-label { font-size: 14px; font-weight: 600; color: #4a4e69; margin-bottom: 10px; display: block; }
-        .avatar-grid { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .avatar-grid { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: center; }
+        
         .avatar-option {
-            width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+            width: 55px; height: 55px; border-radius: 50%; cursor: pointer;
             border: 3px solid transparent; transition: 0.2s;
-            background-color: #f0f0f0; object-fit: cover;
+            background-color: #f8f9fa; object-fit: cover;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .avatar-option:hover { transform: scale(1.1); }
         .avatar-option.selected { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2); transform: scale(1.1); }
+
+        /* ปุ่มเลือกเพิ่มเติม (+) */
+        .more-avatar-btn {
+            width: 55px; height: 55px; border-radius: 50%;
+            background: #fff; border: 2px dashed #bbb;
+            display: flex; justify-content: center; align-items: center;
+            color: #888; font-size: 20px; cursor: pointer;
+            position: relative; overflow: hidden; transition: 0.2s;
+        }
+        .more-avatar-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .more-avatar-btn.selected { border: 3px solid var(--primary-color); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2); transform: scale(1.1); }
+        
+        #selectedMoreImg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; display: none;
+        }
+
+        /* --- Avatar Modal --- */
+        .avatar-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .avatar-modal-box {
+            background: white; width: 90%; max-width: 500px;
+            border-radius: 20px; padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            max-height: 80vh; display: flex; flex-direction: column;
+        }
+        .avatar-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .avatar-modal-title { margin: 0; font-family: 'Kanit', sans-serif; font-size: 20px; color: #333; }
+        .avatar-modal-close { cursor: pointer; font-size: 24px; color: #999; }
+        
+        .avatar-gallery {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 15px; overflow-y: auto; padding: 10px;
+        }
+        .gallery-item {
+            width: 100%; aspect-ratio: 1/1; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent;
+            transition: 0.2s; background: #f8f9fa;
+        }
+        .gallery-item:hover { transform: scale(1.1); border-color: var(--secondary-color); }
 
         /* Inputs */
         .input-group { margin-bottom: 20px; }
@@ -127,11 +173,14 @@
                 <div class="avatar-section">
                     <span class="avatar-label">เลือกรูปโปรไฟล์</span>
                     <div class="avatar-grid">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="avatar-option selected" onclick="selectAvatar(this)">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" class="avatar-option" onclick="selectAvatar(this)">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob" class="avatar-option" onclick="selectAvatar(this)">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Callie" class="avatar-option" onclick="selectAvatar(this)">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Dweeb" class="avatar-option" onclick="selectAvatar(this)">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="avatar-option selected" onclick="selectPresetAvatar(this)">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" class="avatar-option" onclick="selectPresetAvatar(this)">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob" class="avatar-option" onclick="selectPresetAvatar(this)">
+                        
+                        <div class="more-avatar-btn" id="moreAvatarBtn" onclick="openAvatarModal()" title="ดูเพิ่มเติม">
+                            <i class="fas fa-plus" id="plusIcon"></i>
+                            <img id="selectedMoreImg" src="">
+                        </div>
                     </div>
                 </div>
 
@@ -194,21 +243,83 @@
         </div>
     </div>
 
+    <div id="avatarModal" class="avatar-modal-overlay">
+        <div class="avatar-modal-box">
+            <div class="avatar-modal-header">
+                <h3 class="avatar-modal-title"><i class="fas fa-images"></i> เลือกรูปโปรไฟล์</h3>
+                <i class="fas fa-times avatar-modal-close" onclick="closeAvatarModal()"></i>
+            </div>
+            <p style="margin-top:0; color:#666; font-size:14px;">เลือกรูปที่ชอบได้เลยครับ (ไม่เปลืองพื้นที่)</p>
+            
+            <div class="avatar-gallery" id="avatarGallery">
+                </div>
+        </div>
+    </div>
+
 <script>
     const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
     let sysDB = null;
+    
+    // State สำหรับเก็บรูป
     let selectedAvatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'; // ค่าเริ่มต้น
 
-    document.addEventListener('DOMContentLoaded', () => { if(window.supabase) sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); });
+    document.addEventListener('DOMContentLoaded', () => { 
+        if(window.supabase) sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        generateAvatarGallery(); // สร้างรูปใน Modal เตรียมไว้
+    });
 
-    // ✅ ฟังก์ชันเลือก Avatar
-    function selectAvatar(img) {
+    // --- Avatar Logic ---
+    function selectPresetAvatar(img) {
         document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById('moreAvatarBtn').classList.remove('selected');
+        document.getElementById('selectedMoreImg').style.display = 'none';
+        document.getElementById('plusIcon').style.display = 'block';
+
         img.classList.add('selected');
-        selectedAvatarUrl = img.src; // จำ URL ของรูปที่เลือก
+        selectedAvatarUrl = img.src;
     }
 
+    function openAvatarModal() { document.getElementById('avatarModal').style.display = 'flex'; }
+    function closeAvatarModal() { document.getElementById('avatarModal').style.display = 'none'; }
+
+    // เลือกรูปจากใน Modal
+    function selectFromModal(url) {
+        selectedAvatarUrl = url;
+        
+        // เคลียร์ preset ด้านนอก
+        document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+        
+        // อัปเดตปุ่ม (+) ให้เป็นรูปที่เลือก
+        const moreBtn = document.getElementById('moreAvatarBtn');
+        const showImg = document.getElementById('selectedMoreImg');
+        const plusIcon = document.getElementById('plusIcon');
+        
+        moreBtn.classList.add('selected');
+        showImg.src = url;
+        showImg.style.display = 'block';
+        plusIcon.style.display = 'none';
+
+        closeAvatarModal();
+    }
+
+    // สร้างรูปสุ่ม 30 รูปใน Modal
+    function generateAvatarGallery() {
+        const gallery = document.getElementById('avatarGallery');
+        // ชื่อ Seed สำหรับสร้างรูป (สุ่มชื่อ)
+        const seeds = ['Cookie', 'Milk', 'Coffee', 'Bella', 'Jack', 'Tiger', 'Leo', 'Mimi', 'Loki', 'Pepper', 'Simba', 'Lulu', 'Max', 'Luna', 'Charlie', 'Oliver', 'Lucy', 'Cooper', 'Bailey', 'Daisy', 'Sadie', 'Molly', 'Buddy', 'Rocky', 'Teddy', 'Bear', 'Duke', 'Coco', 'Jasper', 'Gizmo'];
+        
+        seeds.forEach(seed => {
+            const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'gallery-item';
+            img.onclick = () => selectFromModal(url);
+            gallery.appendChild(img);
+        });
+    }
+
+    // --- General Logic ---
     function togglePass(inputId, icon) {
         const input = document.getElementById(inputId);
         if (input.type === 'password') {
@@ -254,7 +365,7 @@
             const { data: ad, error: ae } = await sysDB.auth.signUp({ email: email, password: pass }); 
             if (ae) throw ae;
 
-            // 3. บันทึกข้อมูลครู (รวมรูปโปรไฟล์)
+            // 3. บันทึกข้อมูลครู (ใช้ URL ที่เลือกมาได้เลย ไม่ต้องอัปโหลด)
             const names = document.getElementById('fullname').value.trim().split(' ');
             const { error: de } = await sysDB.from('teachers').insert([{ 
                 teacher_id: ad.user.id, 
@@ -263,7 +374,7 @@
                 last_name: names.slice(1).join(' ') || '-', 
                 email: email, 
                 status: 'ปกติ',
-                profile_pic: selectedAvatarUrl // ✅ บันทึกรูปที่เลือก
+                profile_pic: selectedAvatarUrl 
             }]); 
             if (de) throw de;
 
