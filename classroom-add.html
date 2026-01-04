@@ -2,121 +2,66 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
     <link rel="icon" href="img/favicon.png">
 
+    <link rel="stylesheet" href="css/style.css">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root {
-            --primary-color: #4361ee;
-            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            --glass-bg: rgba(255, 255, 255, 0.95);
-        }
-
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background: var(--bg-gradient);
-            margin: 0; padding: 80px 20px 20px;
-            min-height: 100vh; color: #2b2d42;
-        }
-
-        /* Navbar */
-        nav {
-            position: fixed; top: 0; left: 0; width: 100%;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 30px; box-sizing: border-box; z-index: 1000;
-            background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .nav-brand {
-            display: flex; align-items: center; text-decoration: none; color: #333;
-            font-family: 'Kanit', sans-serif; font-size: 22px; font-weight: 600;
-        }
-        .nav-brand img { width: 32px; margin-right: 10px; }
-        .nav-brand span { color: var(--primary-color); }
-        .btn-close { font-size: 24px; color: #666; cursor: pointer; transition: 0.2s; }
-        .btn-close:hover { color: #d32f2f; transform: rotate(90deg); }
-
-        /* Container */
-        .container { max-width: 600px; margin: 0 auto; }
-        .card-glass {
-            background: var(--glass-bg); border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-            padding: 40px; border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        h2 { font-family: 'Kanit', sans-serif; margin-top: 0; color: var(--primary-color); }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .full-width { grid-column: span 2; }
-
-        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-        input[type="text"], input[type="number"], select {
-            width: 100%; padding: 12px; border: 2px solid #edf2f4;
-            border-radius: 10px; font-family: 'Sarabun', sans-serif; font-size: 16px;
-            box-sizing: border-box; transition: 0.3s;
-        }
-        input:focus, select:focus { border-color: var(--primary-color); outline: none; background: white; }
-
-        /* --- Color Picker Styles --- */
-        .color-options { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
-        
-        .color-option {
-            width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
-            border: 3px solid transparent; transition: 0.2s; position: relative;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .color-option.selected { border-color: #333; transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        
-        /* Presets */
+        /* CSS เฉพาะหน้านี้ (Gradient Presets) */
         .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
         .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
         .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
         .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
         .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
 
-        /* Custom Color Button (+) */
+        /* ปรับ Layout ฟอร์มให้เป็น Grid */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: span 2; }
+        
+        /* ปุ่มเลือกสีแบบกำหนดเอง (+) */
         .custom-color-btn {
             background: #fff; border: 2px dashed #bbb;
             display: flex; justify-content: center; align-items: center;
             color: #888; font-size: 18px; overflow: hidden;
+            width: 40px; height: 40px; border-radius: 50%; position: relative;
+            cursor: pointer; transition: 0.2s;
         }
         .custom-color-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .custom-color-btn.selected { border: 2px solid #333; }
         
-        /* ซ่อน input color ไว้ข้างในปุ่ม */
+        /* Input Color ซ่อนอยู่ข้างใน */
         .custom-color-btn input[type="color"] {
             position: absolute; top: -10px; left: -10px;
             width: 200%; height: 200%;
             opacity: 0; cursor: pointer;
         }
 
-        .btn-submit {
-            width: 100%; padding: 15px; border: none; border-radius: 12px;
-            background: var(--primary-color); color: white;
-            font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 600;
-            cursor: pointer; margin-top: 30px;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-        }
-        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4); }
-
         @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
     </style>
 </head>
-<body>
+<body class="dashboard-page">
 
     <nav>
         <a href="#" class="nav-brand">
             <img src="img/favicon.png" alt="Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjNDM2MWVlIiBkPSJNMCAyNTZDMCAxMTQuNiAxMTQuNiAwIDI1NiAwczI1NiAxMTQuNiAyNTYgMjU2LTExNC42IDI1Ni0yNTYgMjU2UzAgMzk3LjQgMCAyNTZ6Ii8+PC9zdmc+'">
             <div>Flip<span>School</span></div>
         </a>
-        <a href="teacher-dashboard.html" class="btn-close"><i class="fas fa-times"></i></a>
+        <a href="teacher-dashboard.html" class="nav-btn" style="background:none; color:#666; font-size:24px;">
+            <i class="fas fa-times"></i>
+        </a>
     </nav>
 
     <div class="container">
-        <div class="card-glass">
-            <h2><i class="fas fa-plus-circle"></i> สร้างห้องเรียนใหม่</h2>
+        <div class="card-glass" style="max-width: 600px;">
+            <div class="card-header">
+                <i class="fas fa-plus-circle"></i>
+                <h2>สร้างห้องเรียนใหม่</h2>
+            </div>
             
             <form onsubmit="createClassroom(event)">
                 <div class="form-grid">
@@ -153,7 +98,7 @@
                             <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
                             <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
                             
-                            <div class="color-option custom-color-btn" id="customColorBtn">
+                            <div class="custom-color-btn" id="customColorBtn">
                                 <i class="fas fa-plus" id="plusIcon"></i>
                                 <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
                             </div>
@@ -167,86 +112,76 @@
         </div>
     </div>
 
-<script>
-    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
-    let sysDB = null;
-    let selectedGradient = 'linear-gradient(45deg, #ff9a9e, #fad0c4)'; // ค่าเริ่มต้น
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        if (!window.supabase) return;
-        sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script>
+        let selectedGradient = 'linear-gradient(45deg, #ff9a9e, #fad0c4)'; // ค่าเริ่มต้น
 
-        const { data: { user } } = await sysDB.auth.getUser();
-        if (!user) window.location.href = 'teacher-login.html';
-    });
+        document.addEventListener('DOMContentLoaded', async () => {
+            // เช็ค Auth ก่อน
+            if (!sysDB) return;
+            await checkAuthRedirect(); // ฟังก์ชันนี้อยู่ใน supabase-db.js แล้ว
+        });
 
-    // 1. ฟังก์ชันเลือกสีแบบ Preset
-    function selectPreset(element, gradient) {
-        // ล้าง selection เก่า
-        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-        
-        // เลือกตัวใหม่
-        element.classList.add('selected');
-        selectedGradient = gradient;
+        // 1. ฟังก์ชันเลือกสีแบบ Preset
+        function selectPreset(element, gradient) {
+            document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedGradient = gradient;
 
-        // รีเซ็ตปุ่ม Custom ให้กลับเป็น (+)
-        const customBtn = document.getElementById('customColorBtn');
-        customBtn.style.background = '#fff';
-        customBtn.style.border = '2px dashed #bbb';
-        document.getElementById('plusIcon').style.display = 'block';
-    }
-
-    // 2. ฟังก์ชันเมื่อเลือกสีเอง (Custom Color)
-    function handleCustomColor(input) {
-        const color = input.value;
-        const customBtn = document.getElementById('customColorBtn');
-        const plusIcon = document.getElementById('plusIcon');
-
-        // สร้าง Gradient จากสีที่เลือก (ไล่สีจาก สีเข้ม -> สีเดียวกัน)
-        // เพื่อให้ Format ตรงกับ Database ที่เก็บเป็น text 'linear-gradient(...)'
-        selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
-
-        // ล้าง selection ของ Preset อื่น
-        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-
-        // ไฮไลท์ปุ่ม Custom
-        customBtn.classList.add('selected');
-        
-        // เปลี่ยนสีพื้นหลังปุ่ม Custom เป็นสีที่เลือก
-        customBtn.style.background = color;
-        customBtn.style.border = 'none';
-        plusIcon.style.display = 'none'; // ซ่อนเครื่องหมายบวก
-    }
-
-    async function createClassroom(e) {
-        e.preventDefault();
-        const btn = document.getElementById('btnSave');
-        btn.disabled = true; btn.innerText = 'กำลังสร้าง...';
-
-        try {
-            const { data: { user } } = await sysDB.auth.getUser();
-            
-            const newClass = {
-                teacher_id: user.id,
-                subject_name: document.getElementById('subject').value,
-                room_name: document.getElementById('room').value,
-                academic_year: document.getElementById('year').value,
-                semester: document.getElementById('semester').value,
-                color_code: selectedGradient // ส่งค่าสีที่เลือก (ไม่ว่าจะเป็น Preset หรือ Custom)
-            };
-
-            const { error } = await sysDB.from('classrooms').insert([newClass]);
-
-            if (error) throw error;
-            window.location.href = 'teacher-dashboard.html';
-
-        } catch (err) {
-            console.error(err);
-            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
-            btn.disabled = false; btn.innerText = 'สร้างห้องเรียน';
+            // รีเซ็ตปุ่ม Custom
+            const customBtn = document.getElementById('customColorBtn');
+            customBtn.style.background = '#fff';
+            document.getElementById('plusIcon').style.display = 'block';
         }
-    }
-</script>
+
+        // 2. ฟังก์ชันเมื่อเลือกสีเอง (Custom Color)
+        function handleCustomColor(input) {
+            const color = input.value;
+            selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
+
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            
+            const customBtn = document.getElementById('customColorBtn');
+            customBtn.classList.add('selected');
+            customBtn.style.background = color;
+            
+            // ซ่อนไอคอนบวก
+            document.getElementById('plusIcon').style.display = 'none';
+        }
+
+        // 3. ฟังก์ชันบันทึกข้อมูล
+        async function createClassroom(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true; btn.innerText = 'กำลังสร้าง...';
+
+            try {
+                const { data: { user } } = await sysDB.auth.getUser();
+                
+                const newClass = {
+                    teacher_id: user.id,
+                    subject_name: document.getElementById('subject').value,
+                    room_name: document.getElementById('room').value,
+                    academic_year: document.getElementById('year').value,
+                    semester: document.getElementById('semester').value,
+                    color_code: selectedGradient
+                };
+
+                const { error } = await sysDB.from('classrooms').insert([newClass]);
+
+                if (error) throw error;
+                
+                // สำเร็จ! กลับไป Dashboard
+                window.location.href = 'teacher-dashboard.html';
+
+            } catch (err) {
+                console.error(err);
+                alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+                btn.disabled = false; btn.innerText = 'สร้างห้องเรียน';
+            }
+        }
+    </script>
 </body>
 </html>
