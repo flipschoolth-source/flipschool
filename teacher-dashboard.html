@@ -3,94 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>แดชบอร์ดครู - FlipSchool</title>
+    <title>Dashboard ครูผู้สอน - FlipSchool</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4361ee">
-    <link rel="icon" href="img/favicon.png">
-
     <link rel="stylesheet" href="css/style.css">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Dashboard Specific Styles */
+        .dashboard-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px;
+        }
+        .welcome-text h2 { margin: 0; color: #333; }
+        .welcome-text p { margin: 5px 0 0; color: #666; font-size: 14px; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* Class Card */
+        .class-card {
+            background: white; border-radius: 16px; overflow: hidden;
+            box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer; position: relative; border: 1px solid #f0f0f0;
+        }
+        .class-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        
+        .card-banner { height: 100px; position: relative; }
+        .card-menu {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(255,255,255,0.9); width: 30px; height: 30px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; opacity: 0; transition: 0.2s;
+        }
+        .class-card:hover .card-menu { opacity: 1; }
+
+        .card-body { padding: 15px; }
+        .subject-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .room-info { font-size: 14px; color: #666; margin-bottom: 15px; }
+        
+        .card-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid #f0f0f0; padding-top: 10px; font-size: 13px; color: #888;
+        }
+        .student-count { display: flex; align-items: center; gap: 5px; }
+        .term-badge { background: #f0f2f5; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1; text-align: center; padding: 50px;
+            color: #999; background: #fff; border-radius: 10px; border: 2px dashed #eee;
+        }
+
+        /* FAB (Floating Action Button) */
+        .fab-add {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--primary-color); color: white;
+            border: none; box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+            font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .fab-add:hover { transform: scale(1.1); background: #304ffe; }
+
+        /* Color Picker in Modal */
+        .color-options { display: flex; gap: 10px; margin-top: 5px; }
+        .color-circle {
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: 0.2s;
+        }
+        .color-circle.selected { border-color: #333; transform: scale(1.1); }
+    </style>
 </head>
-<body class="dashboard-page"> <div id="loadingOverlay">
-        <div class="spinner-lg"></div>
-        <p style="margin-top: 15px; color: #666;">กำลังโหลดข้อมูล...</p>
-    </div>
+<body class="dashboard-page">
+
+    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
 
     <nav>
-        <a href="#" class="nav-brand">
+        <div class="nav-brand">
             <img src="img/favicon.png" alt="Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjNDM2MWVlIiBkPSJNMCAyNTZDMCAxMTQuNiAxMTQuNiAwIDI1NiAwczI1NiAxMTQuNiAyNTYgMjU2LTExNC42IDI1Ni0yNTYgMjU2UzAgMzk3LjQgMCAyNTZ6Ii8+PC9zdmc+'">
             <div>Flip<span>School</span></div>
-        </a>
-        
+        </div>
         <div class="nav-profile">
-            <button id="installBtn" class="btn-install"><i class="fas fa-download"></i> แอป</button>
-            
-            <span class="profile-name" id="teacherName">...</span>
-            
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" id="navProfileImg" class="profile-img-nav" onclick="openAvatarModal()" title="เปลี่ยนรูปโปรไฟล์">
-
-            <button class="nav-btn" onclick="openPasswordModal()" title="เปลี่ยนรหัสผ่าน" style="background:#eef2ff; color:#4361ee; margin-left:5px;">
-                <i class="fas fa-key"></i>
-            </button>
-            <button class="nav-btn" onclick="handleLogout()" title="ออกจากระบบ" style="background:#ffe5e5; color:#d32f2f;">
+            <span id="userEmail">Teacher</span>
+            <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
     </nav>
 
     <div class="container">
-        
-        <div class="welcome-section">
+        <div class="dashboard-header">
             <div class="welcome-text">
-                <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
-                <p>จัดการห้องเรียนและติดตามผลการเรียนนักเรียนได้ที่นี่</p>
+                <h2>ห้องเรียนของฉัน</h2>
+                <p>จัดการรายวิชาและข้อมูลนักเรียน</p>
             </div>
-            <i class="fas fa-chalkboard-teacher" style="font-size: 60px; opacity: 0.8;"></i>
+            <div style="font-size:10px; color:#aaa; text-align:right;">
+                School ID: <span id="currentSchoolIdDisplay">Checking...</span>
+            </div>
         </div>
 
-        <div style="font-family:'Kanit', sans-serif; font-size:20px; color:#333; margin-bottom:15px;">
-            <i class="fas fa-book"></i> ห้องเรียนของคุณ
-        </div>
-
-        <div class="class-grid" id="classGrid">
+        <div id="classroomGrid" class="grid-container">
             </div>
-
     </div>
 
-    <button class="fab-add" onclick="window.location.href='classroom-add.html'">
-        <i class="fas fa-plus"></i>
-    </button>
+    <button class="fab-add" onclick="openAddModal()"><i class="fas fa-plus"></i></button>
 
-    <div id="avatarModal" class="modal-overlay">
+    <div id="addModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">
-                <span><i class="fas fa-image"></i> เลือกรูปโปรไฟล์ใหม่</span>
-                <i class="fas fa-times" onclick="closeAvatarModal()" style="cursor:pointer;"></i>
+                <span><i class="fas fa-chalkboard"></i> สร้างห้องเรียนใหม่</span>
+                <i class="fas fa-times" onclick="closeAddModal()" style="cursor:pointer;"></i>
             </div>
             
-            <div style="text-align: right; margin-bottom: 10px;">
-                <button type="button" onclick="generateAvatarGallery()" style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-weight:600;">
-                    <i class="fas fa-sync-alt"></i> สุ่มรูปใหม่
-                </button>
-            </div>
-            
-            <div class="avatar-gallery" id="avatarGallery"></div>
-        </div>
-    </div>
+            <label class="modal-label">ชื่อวิชา</label>
+            <input type="text" id="subjectName" class="modal-input" placeholder="เช่น ภาษาไทย, คณิตศาสตร์">
 
-    <div id="passwordModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-title">
-                <span><i class="fas fa-lock"></i> เปลี่ยนรหัสผ่าน</span>
-                <i class="fas fa-times" onclick="closePasswordModal()" style="cursor:pointer;"></i>
+            <label class="modal-label">ระดับชั้น/ห้อง</label>
+            <input type="text" id="roomName" class="modal-input" placeholder="เช่น ป.1/1">
+
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1">
+                    <label class="modal-label">ปีการศึกษา</label>
+                    <input type="text" id="acadYear" class="modal-input" value="2567">
+                </div>
+                <div style="flex:1">
+                    <label class="modal-label">ภาคเรียน</label>
+                    <select id="semester" class="modal-input">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="summer">Summer</option>
+                    </select>
+                </div>
             </div>
-            <input type="password" id="oldPass" class="modal-input" placeholder="รหัสผ่านเดิม">
-            <input type="password" id="newPass" class="modal-input" placeholder="รหัสผ่านใหม่ (6 ตัวขึ้นไป)">
-            <input type="password" id="confPass" class="modal-input" placeholder="ยืนยันรหัสผ่านใหม่">
-            <button class="btn-confirm" onclick="changePassword()">บันทึกรหัสผ่าน</button>
+
+            <label class="modal-label">ธีมสี</label>
+            <div class="color-options" id="colorPicker">
+                </div>
+            <input type="hidden" id="selectedColor" value="linear-gradient(45deg, #ff9a9e, #fad0c4)">
+
+            <button class="btn-save" onclick="createClassroom()">สร้างห้องเรียน</button>
         </div>
     </div>
 
@@ -99,141 +155,187 @@
 
     <script>
         let currentUser = null;
+        let mySchoolId = '00000000-0000-0000-0000-000000000001'; // Default ID (จาก SQL ที่รันไป)
+        
+        // Color Gradients
+        const gradients = [
+            'linear-gradient(45deg, #ff9a9e, #fad0c4)',
+            'linear-gradient(120deg, #a1c4fd, #c2e9fb)',
+            'linear-gradient(120deg, #84fab0, #8fd3f4)',
+            'linear-gradient(120deg, #fccb90, #d57eeb)',
+            'linear-gradient(120deg, #e0c3fc, #8ec5fc)'
+        ];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. เช็ค DB และ Login
-            if (!sysDB) return;
+            if (!sysDB) { console.error("Supabase not init"); return; }
+            await checkAuth();
+            renderColorPicker();
+        });
+
+        async function checkAuth() {
             const { data: { user } } = await sysDB.auth.getUser();
-            
-            if (!user) { 
-                window.location.href = 'teacher-login.html'; 
-                return; 
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
             }
             currentUser = user;
+            document.getElementById('userEmail').innerText = user.email.split('@')[0];
+            await fetchClassrooms();
+        }
 
-            // 2. ดึงข้อมูลพร้อมกัน (Profile + Classrooms)
-            await Promise.all([ 
-                fetchTeacherProfile(user.id), 
-                fetchClassrooms(user.id) 
-            ]);
-            
-            // 3. ปิด Loading
-            document.getElementById('loadingOverlay').style.display = 'none';
-            
-            // 4. เตรียมรูป Avatar ไว้ล่วงหน้า
-            generateAvatarGallery();
-        });
-
-        // --- Profile Logic ---
-        async function fetchTeacherProfile(userId) {
+        async function fetchClassrooms() {
             try {
-                const { data } = await sysDB.from('teachers').select('first_name, last_name, profile_pic').eq('teacher_id', userId).single();
-                if (data) {
-                    document.getElementById('teacherName').innerText = `${data.first_name} ${data.last_name}`;
-                    document.getElementById('welcomeHeader').innerText = `สวัสดีครับ คุณครู${data.first_name}`;
-                    if (data.profile_pic) {
-                        document.getElementById('navProfileImg').src = data.profile_pic;
-                    }
+                // ดึงข้อมูลห้องเรียน + นับจำนวนนักเรียน (count)
+                // classroom_students เป็นตารางลูกที่เราสร้าง relation ไว้แล้ว
+                const { data, error } = await sysDB
+                    .from('classrooms')
+                    .select('*, classroom_students(count)') 
+                    .eq('teacher_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // **Logic หา School ID ของครูคนนี้**
+                // ถ้าครูเคยมีห้องอยู่แล้ว ให้ใช้ School ID ของห้องล่าสุด
+                if (data && data.length > 0 && data[0].school_id) {
+                    mySchoolId = data[0].school_id;
                 }
-            } catch (err) { console.error(err); }
-        }
-
-        async function updateProfilePic(url) {
-            if (!sysDB || !currentUser) return;
-            // เปลี่ยนรูปทันที (UX)
-            document.getElementById('navProfileImg').src = url;
-            closeAvatarModal();
-
-            // บันทึกเงียบๆ
-            await sysDB.from('teachers').update({ profile_pic: url }).eq('teacher_id', currentUser.id);
-        }
-
-        // --- Avatar Modal ---
-        function openAvatarModal() { document.getElementById('avatarModal').style.display = 'flex'; }
-        function closeAvatarModal() { document.getElementById('avatarModal').style.display = 'none'; }
-        
-        function generateAvatarGallery() {
-            const gallery = document.getElementById('avatarGallery');
-            gallery.innerHTML = '';
-            for (let i = 0; i < 20; i++) {
-                const seed = Math.random().toString(36).substring(7);
-                const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'gallery-item';
-                img.onclick = () => updateProfilePic(url);
-                gallery.appendChild(img);
+                
+                document.getElementById('currentSchoolIdDisplay').innerText = mySchoolId;
+                renderGrid(data);
+                
+            } catch (err) {
+                console.error(err);
+                alert('โหลดข้อมูลล้มเหลว: ' + err.message);
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
         }
 
-        // --- Classroom Logic ---
-        async function fetchClassrooms(userId) {
-            const grid = document.getElementById('classGrid');
-            try {
-                const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
-                
-                if (!data || data.length === 0) {
-                    grid.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open" style="font-size:40px;"></i><p>ยังไม่มีห้องเรียน</p></div>`;
-                    return;
+        function renderGrid(rooms) {
+            const grid = document.getElementById('classroomGrid');
+            grid.innerHTML = '';
+
+            if (!rooms || rooms.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-school" style="font-size:48px; margin-bottom:15px; color:#ddd;"></i>
+                        <h3>ยังไม่มีห้องเรียน</h3>
+                        <p>กดปุ่ม + เพื่อเริ่มสร้างห้องเรียนแรกของคุณ</p>
+                    </div>`;
+                return;
+            }
+
+            rooms.forEach(room => {
+                // ดึงจำนวนนักเรียนจาก count object ที่ Supabase ส่งกลับมา
+                // format: classroom_students: [{ count: 10 }] หรือ []
+                let stCount = 0;
+                if (room.classroom_students && room.classroom_students.length > 0) {
+                    stCount = room.classroom_students[0].count;
                 }
-                
-                grid.innerHTML = '';
-                data.forEach(room => {
-                    const card = document.createElement('div'); 
-                    card.className = 'class-card';
-                    // ลิงก์ไปหน้า Detail
-                    card.onclick = () => window.location.href = `classroom-detail.html?id=${room.classroom_id}`;
-                    
-                    card.innerHTML = `
-                        <div class="card-img" style="background: ${room.color_code}"></div>
-                        <div class="card-body">
-                            <h3>${room.subject_name}</h3>
-                            <p>${room.room_name} | ${room.academic_year}</p>
+
+                const card = document.createElement('div');
+                card.className = 'class-card';
+                card.onclick = (e) => {
+                    // ถ้ากดโดนปุ่มเมนู ไม่ต้องไปหน้าถัดไป
+                    if(e.target.closest('.card-menu')) return;
+                    // ลิงก์ไปหน้า student-list โดยส่ง classroom_id ไปด้วย
+                    window.location.href = `student-list.html?cid=${room.classroom_id}`;
+                };
+
+                card.innerHTML = `
+                    <div class="card-banner" style="background: ${room.color_code || gradients[0]}">
+                        <div class="card-menu" onclick="deleteClassroom('${room.classroom_id}')" title="ลบห้องเรียน">
+                            <i class="fas fa-trash-alt" style="color:#d32f2f; font-size:14px;"></i>
                         </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="subject-name">${room.subject_name}</div>
+                        <div class="room-info"><i class="fas fa-door-open"></i> ${room.room_name}</div>
                         <div class="card-footer">
-                            <span><i class="fas fa-user-graduate"></i> 0 คน</span>
+                            <div class="student-count"><i class="fas fa-user-graduate"></i> ${stCount} คน</div>
+                            <div class="term-badge">${room.semester}/${room.academic_year}</div>
                         </div>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (err) { console.error(err); }
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
         }
 
-        // --- Password Logic ---
-        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
-        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
-        
-        async function changePassword() {
-            const oldPass = document.getElementById('oldPass').value;
-            const newPass = document.getElementById('newPass').value;
-            const confPass = document.getElementById('confPass').value;
+        // --- Create Classroom ---
+        function renderColorPicker() {
+            const container = document.getElementById('colorPicker');
+            container.innerHTML = '';
+            gradients.forEach((grad, index) => {
+                const circle = document.createElement('div');
+                circle.className = `color-circle ${index===0 ? 'selected':''}`;
+                circle.style.background = grad;
+                circle.onclick = () => {
+                    document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
+                    circle.classList.add('selected');
+                    document.getElementById('selectedColor').value = grad;
+                };
+                container.appendChild(circle);
+            });
+        }
 
-            if (!oldPass || newPass.length < 6 || newPass !== confPass) {
-                alert("กรุณาตรวจสอบข้อมูลรหัสผ่าน"); return;
-            }
+        function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
+        function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
 
-            // เช็ครหัสเก่าก่อน
-            const { error: signInError } = await sysDB.auth.signInWithPassword({ email: currentUser.email, password: oldPass });
-            if (signInError) { alert("❌ รหัสผ่านเดิมไม่ถูกต้อง"); return; }
+        async function createClassroom() {
+            const btn = document.querySelector('.btn-save');
+            const subject = document.getElementById('subjectName').value;
+            const room = document.getElementById('roomName').value;
+            const year = document.getElementById('acadYear').value;
+            const sem = document.getElementById('semester').value;
+            const color = document.getElementById('selectedColor').value;
 
-            // เปลี่ยนรหัสใหม่
-            const { error: updateError } = await sysDB.auth.updateUser({ password: newPass });
-            if (updateError) { alert("❌ เปลี่ยนรหัสไม่สำเร็จ"); } 
-            else { 
-                alert("✅ เปลี่ยนรหัสสำเร็จ กรุณาเข้าสู่ระบบใหม่");
-                handleLogout();
+            if (!subject || !room) { alert('กรุณากรอกชื่อวิชาและห้อง'); return; }
+
+            btn.innerText = 'กำลังสร้าง...'; btn.disabled = true;
+
+            try {
+                const { error } = await sysDB.from('classrooms').insert([{
+                    teacher_id: currentUser.id,
+                    subject_name: subject,
+                    room_name: room,
+                    academic_year: year,
+                    semester: sem,
+                    color_code: color,
+                    school_id: mySchoolId // Auto-Assign School ID
+                }]);
+
+                if (error) throw error;
+
+                closeAddModal();
+                // Reset Form
+                document.getElementById('subjectName').value = '';
+                document.getElementById('roomName').value = '';
+                fetchClassrooms();
+
+            } catch (err) {
+                alert('สร้างห้องไม่สำเร็จ: ' + err.message);
+            } finally {
+                btn.innerText = 'สร้างห้องเรียน'; btn.disabled = false;
             }
         }
 
-        // --- System Logic ---
-        async function handleLogout() { await sysDB.auth.signOut(); window.location.href = 'teacher-login.html'; }
+        async function deleteClassroom(id) {
+            if (!confirm('ยืนยันลบห้องเรียนนี้? ข้อมูลนักเรียนในห้องจะถูกลบออก (แต่รายชื่อหลักยังอยู่)')) return;
+            
+            try {
+                const { error } = await sysDB.from('classrooms').delete().eq('classroom_id', id);
+                if (error) throw error;
+                fetchClassrooms();
+            } catch (err) {
+                alert('ลบไม่สำเร็จ: ' + err.message);
+            }
+        }
 
-        // PWA Install
-        let deferredPrompt; const installBtn = document.getElementById('installBtn');
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'flex'; });
-        installBtn.addEventListener('click', async () => { 
-            if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') installBtn.style.display = 'none'; deferredPrompt = null; } 
-        });
+        async function logout() {
+            await sysDB.auth.signOut();
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
 </html>
