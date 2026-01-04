@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>แดชบอร์ดครู - FlipSchool</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4361ee">
     <link rel="icon" href="img/favicon.png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -46,9 +48,22 @@
         .nav-brand img { width: 32px; height: 32px; margin-right: 10px; }
         .nav-brand span { color: var(--primary-color); }
 
-        .nav-profile { display: flex; align-items: center; gap: 15px; }
-        .profile-name { font-weight: 600; font-size: 14px; color: #555; }
+        .nav-profile { display: flex; align-items: center; gap: 10px; }
+        .profile-name { font-weight: 600; font-size: 14px; color: #555; margin-right: 10px; }
         
+        /* ✅ สไตล์ปุ่มติดตั้งแอป */
+        .btn-install {
+            background: linear-gradient(45deg, #00b09b, #96c93d); /* สีเขียวสดใส */
+            color: white; border: none; padding: 8px 15px;
+            border-radius: 20px; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 600; font-size: 14px;
+            display: none; /* ซ่อนก่อน */
+            align-items: center; gap: 5px;
+            box-shadow: 0 4px 10px rgba(0,176,155,0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
         .btn-password {
             background: #eef2ff; color: #4361ee;
             border: none; width: 36px; height: 36px; border-radius: 50%;
@@ -77,7 +92,6 @@
 
         .section-title { font-family: 'Kanit', sans-serif; font-size: 20px; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
         
-        /* Grid */
         .class-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -93,19 +107,15 @@
             position: relative;
         }
         .class-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        .card-img { height: 100px; position: relative; } /* ส่วนสีพื้นหลัง */
-        
+        .card-img { height: 100px; position: relative; }
         .card-body { padding: 15px; }
         .card-body h3 { margin: 0; font-size: 18px; color: #333; font-family: 'Kanit', sans-serif; }
         .card-body p { margin: 5px 0 0; color: #666; font-size: 14px; }
-        
         .card-footer { 
             padding: 10px 15px; border-top: 1px solid #f5f5f5; 
             display: flex; justify-content: space-between; color: #888; font-size: 12px;
         }
 
-        /* Empty State */
         .empty-state {
             grid-column: 1 / -1; text-align: center; padding: 40px;
             color: #999; background: white; border-radius: 20px;
@@ -131,7 +141,7 @@
             display: flex; justify-content: center; align-items: center; flex-direction: column;
         }
 
-        /* Modal Styles (Password) */
+        /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -162,6 +172,10 @@
         </a>
         
         <div class="nav-profile">
+            <button id="installBtn" class="btn-install">
+                <i class="fas fa-download"></i> ติดตั้งแอป
+            </button>
+
             <span class="profile-name" id="teacherName">...</span>
             <button class="btn-password" onclick="openPasswordModal()" title="เปลี่ยนรหัสผ่าน">
                 <i class="fas fa-key"></i>
@@ -201,22 +215,16 @@
             
             <div style="position: relative; margin-bottom: 15px;">
                 <input type="password" id="oldPass" class="modal-input" placeholder="รหัสผ่านเดิม (ปัจจุบัน)" style="margin-bottom: 0;">
-                <i class="fas fa-eye" onclick="toggleModalPass('oldPass', this)" 
-                   style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
+                <i class="fas fa-eye" onclick="toggleModalPass('oldPass', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
             </div>
-    
             <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
-    
             <div style="position: relative; margin-bottom: 15px;">
                 <input type="password" id="newPass" class="modal-input" placeholder="รหัสผ่านใหม่ (6 ตัวขึ้นไป)" style="margin-bottom: 0;">
-                <i class="fas fa-eye" onclick="toggleModalPass('newPass', this)" 
-                   style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
+                <i class="fas fa-eye" onclick="toggleModalPass('newPass', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
             </div>
-    
             <div style="position: relative; margin-bottom: 15px;">
                 <input type="password" id="confPass" class="modal-input" placeholder="ยืนยันรหัสผ่านใหม่" style="margin-bottom: 0;">
-                <i class="fas fa-eye" onclick="toggleModalPass('confPass', this)" 
-                   style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
+                <i class="fas fa-eye" onclick="toggleModalPass('confPass', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer;"></i>
             </div>
             
             <div class="modal-btns">
@@ -262,12 +270,10 @@
         try {
             const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
-
             if (data.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open" style="font-size:40px;"></i><p>ยังไม่มีห้องเรียน</p></div>`;
                 return;
             }
-
             data.forEach(room => {
                 const card = document.createElement('div');
                 card.className = 'class-card';
@@ -282,80 +288,79 @@
         } catch (err) { console.error(err); }
     }
 
-    // --- Modal Logic ---
+    // --- Modal Password ---
     function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
     function closePasswordModal() { 
         document.getElementById('passwordModal').style.display = 'none'; 
-        document.getElementById('oldPass').value = '';
-        document.getElementById('newPass').value = '';
-        document.getElementById('confPass').value = '';
+        document.getElementById('oldPass').value = ''; document.getElementById('newPass').value = ''; document.getElementById('confPass').value = '';
     }
     function toggleModalPass(id, icon) {
         const x = document.getElementById(id);
         if (x.type === "password") { x.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
         else { x.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
     }
-
-    // --- ✅ ฟังก์ชันเปลี่ยนรหัสผ่าน (แก้ไขใหม่) ---
     async function changePassword() {
         const oldPass = document.getElementById('oldPass').value;
         const newPass = document.getElementById('newPass').value;
         const confPass = document.getElementById('confPass').value;
 
-        // 1. ตรวจสอบข้อมูลนำเข้า
         if (!oldPass) { alert("⚠️ กรุณากรอกรหัสผ่านเดิม"); return; }
         if (newPass.length < 6) { alert("⚠️ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
         if (newPass !== confPass) { alert("⚠️ รหัสผ่านใหม่ไม่ตรงกัน"); return; }
         if (oldPass === newPass) { alert("⚠️ รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม"); return; }
 
         const btn = document.querySelector('.btn-confirm');
-        const oldText = btn.innerText;
-        btn.innerText = "กำลังตรวจสอบ...";
-        btn.disabled = true;
+        const oldText = btn.innerText; btn.innerText = "กำลังตรวจสอบ..."; btn.disabled = true;
 
         try {
-            // ดึงข้อมูล User ปัจจุบัน
             const { data: { user } } = await sysDB.auth.getUser();
+            const { error: signInError } = await sysDB.auth.signInWithPassword({ email: user.email, password: oldPass });
+            if (signInError) { alert("❌ รหัสผ่านเดิมไม่ถูกต้อง!"); btn.innerText = oldText; btn.disabled = false; return; }
 
-            // 2. 🔑 เช็ครหัสเก่า (สำคัญ: ใช้ signInWithPassword)
-            const { error: signInError } = await sysDB.auth.signInWithPassword({
-                email: user.email,
-                password: oldPass
-            });
-
-            // ❌ ถ้ารหัสเก่าผิด ให้หยุดทันที! ห้ามไปต่อ
-            if (signInError) {
-                alert("❌ รหัสผ่านเดิมไม่ถูกต้อง! (การเปลี่ยนรหัสถูกยกเลิก)");
-                btn.innerText = oldText;
-                btn.disabled = false;
-                return; // จบการทำงาน
-            }
-
-            // 3. ✅ ถ้ารหัสเก่าถูก ค่อยบันทึกรหัสใหม่
             btn.innerText = "กำลังบันทึก...";
-            const { error: updateError } = await sysDB.auth.updateUser({ 
-                password: newPass 
-            });
-
+            const { error: updateError } = await sysDB.auth.updateUser({ password: newPass });
             if (updateError) throw updateError;
 
-            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่");
-            
-            // Logout เพื่อให้เข้าใหม่ด้วยรหัสใหม่
-            await sysDB.auth.signOut();
-            window.location.href = 'teacher-login.html';
-
-        } catch (err) {
-            console.error(err);
-            alert("❌ เกิดข้อผิดพลาด: " + err.message);
-            btn.innerText = oldText;
-            btn.disabled = false;
-        }
+            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบใหม่");
+            await sysDB.auth.signOut(); window.location.href = 'teacher-login.html';
+        } catch (err) { alert("❌ " + err.message); btn.innerText = oldText; btn.disabled = false; }
     }
+    async function handleLogout() { await sysDB.auth.signOut(); window.location.href = 'teacher-login.html'; }
 
-    async function handleLogout() {
-        await sysDB.auth.signOut();
-        window.location.href = 'teacher-login.html';
+    // --- ✅ PWA Install Logic (เพิ่มใหม่) ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    // 1. ดักจับ event เมื่อ Browser พร้อมติดตั้ง
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // ป้องกัน Browser โชว์แถบติดตั้งเอง (เราจะทำปุ่มเอง)
+        e.preventDefault();
+        deferredPrompt = e;
+        // โชว์ปุ่มของเรา
+        installBtn.style.display = 'flex';
+    });
+
+    // 2. เมื่อกดปุ่มติดตั้ง
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none'; // ซ่อนปุ่มเมื่อติดตั้งแล้ว
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    // 3. เมื่อติดตั้งเสร็จเรียบร้อย (ซ่อนปุ่มถาวร)
+    window.addEventListener('appinstalled', () => {
+        installBtn.style.display = 'none';
+        console.log('PWA Installed');
+    });
+
+    // Register Service Worker (ถ้ามีไฟล์ sw.js)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Fail', err));
     }
 </script>
 
