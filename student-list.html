@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>รายชื่อนักเรียน - FlipSchool</title>
+    <link rel="icon" href="img/favicon.png">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* CSS เฉพาะหน้านี้ */
+        .student-list {
+            list-style: none; padding: 0; margin: 0;
+            background: white; border-radius: 16px;
+            box-shadow: var(--card-shadow); overflow: hidden;
+        }
+        .student-item {
+            display: flex; align-items: center; padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0; transition: 0.2s;
+        }
+        .student-item:last-child { border-bottom: none; }
+        .student-item:hover { background: #f9f9f9; }
+
+        .st-num {
+            width: 30px; height: 30px; background: #eee; color: #555;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-weight: 600; font-size: 14px; margin-right: 15px;
+        }
+        .st-avatar {
+            width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+            margin-right: 15px; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .st-info { flex: 1; }
+        .st-name { font-weight: 600; font-size: 16px; color: #333; margin: 0; }
+        .st-gender { font-size: 12px; color: #888; }
+        
+        .btn-del-st {
+            color: #ddd; background: none; border: none; cursor: pointer; font-size: 18px; transition: 0.2s;
+        }
+        .btn-del-st:hover { color: #ff4757; }
+
+        /* เลือกเพศใน Modal */
+        .gender-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .gender-opt {
+            flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 10px;
+            text-align: center; cursor: pointer; transition: 0.2s; color: #888;
+        }
+        .gender-opt.selected { border-color: var(--primary-color); color: var(--primary-color); background: #eef2ff; font-weight: 600; }
+    </style>
+</head>
+<body class="dashboard-page">
+
+    <div id="loadingOverlay">
+        <div class="spinner-lg"></div>
+    </div>
+
+    <nav>
+        <a href="#" id="backBtn" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
+        <div class="nav-brand" style="font-size:18px;">รายชื่อนักเรียน</div>
+        <div style="width:40px;"></div> </nav>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin:0; font-family:'Kanit';"><i class="fas fa-users"></i> สมาชิกในห้อง</h3>
+            <span style="background:#eef2ff; color:var(--primary-color); padding:5px 12px; border-radius:20px; font-size:14px; font-weight:600;">
+                <span id="totalCount">0</span> คน
+            </span>
+        </div>
+
+        <ul class="student-list" id="studentList">
+            </ul>
+    </div>
+
+    <button class="fab-add" onclick="openAddModal()">
+        <i class="fas fa-user-plus"></i>
+    </button>
+
+    <div id="addModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">
+                <span><i class="fas fa-user-plus"></i> เพิ่มนักเรียนใหม่</span>
+                <i class="fas fa-times" onclick="closeAddModal()" style="cursor:pointer;"></i>
+            </div>
+
+            <label class="modal-label">เลขที่</label>
+            <input type="number" id="newNumber" class="modal-input" placeholder="เช่น 1">
+
+            <label class="modal-label">ชื่อ-นามสกุล</label>
+            <input type="text" id="newName" class="modal-input" placeholder="เช่น ด.ช.รักดี มีวินัย">
+
+            <label class="modal-label">เพศ</label>
+            <div class="gender-selector">
+                <div class="gender-opt selected" onclick="selectGender('ชาย')" id="optMale">
+                    <i class="fas fa-mars"></i> ชาย
+                </div>
+                <div class="gender-opt" onclick="selectGender('หญิง')" id="optFemale">
+                    <i class="fas fa-venus"></i> หญิง
+                </div>
+            </div>
+
+            <button class="btn-save" onclick="addStudent()">บันทึกข้อมูล</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script>
+        let currentClassId = null;
+        let selectedGender = 'ชาย';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!sysDB) return;
+
+            // 1. ดึง Class ID
+            const params = new URLSearchParams(window.location.search);
+            currentClassId = params.get('cid'); // รับค่า cid มาจากหน้า detail
+            
+            if (!currentClassId) { 
+                alert('ไม่พบรหัสห้องเรียน'); 
+                window.location.href = 'teacher-dashboard.html'; 
+                return; 
+            }
+
+            // ตั้งค่าปุ่มย้อนกลับให้ถูกห้อง
+            document.getElementById('backBtn').href = `classroom-detail.html?id=${currentClassId}`;
+
+            // 2. เช็ค Auth
+            await checkAuthRedirect();
+
+            // 3. โหลดรายชื่อ
+            await fetchStudents();
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
+
+        // --- Fetch Data ---
+        async function fetchStudents() {
+            const list = document.getElementById('studentList');
+            const countSpan = document.getElementById('totalCount');
+            
+            try {
+                // ดึงข้อมูลเรียงตามเลขที่ (Ascending)
+                const { data, error } = await sysDB
+                    .from('students')
+                    .select('*')
+                    .eq('classroom_id', currentClassId)
+                    .order('student_number', { ascending: true });
+
+                if (error) throw error;
+
+                countSpan.innerText = data.length;
+                list.innerHTML = '';
+
+                if (data.length === 0) {
+                    list.innerHTML = `
+                        <div style="text-align:center; padding:40px; color:#999;">
+                            <i class="fas fa-user-slash" style="font-size:40px; margin-bottom:10px;"></i>
+                            <p>ยังไม่มีนักเรียนในห้องนี้</p>
+                        </div>`;
+                    return;
+                }
+
+                data.forEach(st => {
+                    // เลือก Seed รูปตามเพศและชื่อ (ให้หน้าตาไม่ซ้ำกัน)
+                    const avatarSeed = st.gender === 'หญิง' ? `Callie` : `Felix`; 
+                    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${st.student_name}&gender=${st.gender === 'หญิง' ? 'female' : 'male'}`;
+
+                    const li = document.createElement('li');
+                    li.className = 'student-item';
+                    li.innerHTML = `
+                        <div class="st-num">${st.student_number}</div>
+                        <img src="${avatarUrl}" class="st-avatar">
+                        <div class="st-info">
+                            <h4 class="st-name">${st.student_name}</h4>
+                            <span class="st-gender"><i class="fas ${st.gender==='ชาย'?'fa-mars':'fa-venus'}"></i> ${st.gender}</span>
+                        </div>
+                        <button class="btn-del-st" onclick="deleteStudent('${st.student_id}', '${st.student_name}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    list.appendChild(li);
+                });
+
+            } catch (err) {
+                console.error(err);
+                alert('โหลดรายชื่อไม่สำเร็จ');
+            }
+        }
+
+        // --- Add Logic ---
+        function openAddModal() {
+            // หาเลขที่ถัดไปให้อัตโนมัติ (นับจำนวนที่มี + 1)
+            const currentCount = parseInt(document.getElementById('totalCount').innerText) || 0;
+            document.getElementById('newNumber').value = currentCount + 1;
+            document.getElementById('newName').value = '';
+            document.getElementById('addModal').style.display = 'flex';
+            document.getElementById('newName').focus();
+        }
+        function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+        function selectGender(g) {
+            selectedGender = g;
+            document.querySelectorAll('.gender-opt').forEach(el => el.classList.remove('selected'));
+            if(g === 'ชาย') document.getElementById('optMale').classList.add('selected');
+            else document.getElementById('optFemale').classList.add('selected');
+        }
+
+        async function addStudent() {
+            const num = document.getElementById('newNumber').value;
+            const name = document.getElementById('newName').value;
+            const btn = document.querySelector('.btn-save');
+
+            if (!num || !name) { alert('กรุณากรอกข้อมูลให้ครบ'); return; }
+
+            btn.innerText = 'กำลังบันทึก...'; btn.disabled = true;
+
+            try {
+                const { error } = await sysDB.from('students').insert([{
+                    classroom_id: currentClassId,
+                    student_number: num,
+                    student_name: name,
+                    gender: selectedGender
+                }]);
+
+                if (error) throw error;
+
+                // รีเฟรชรายการ
+                await fetchStudents();
+                closeAddModal();
+
+            } catch (err) {
+                alert('❌ เพิ่มไม่สำเร็จ: ' + err.message);
+            } finally {
+                btn.innerText = 'บันทึกข้อมูล'; btn.disabled = false;
+            }
+        }
+
+        // --- Delete Logic ---
+        async function deleteStudent(id, name) {
+            if (!confirm(`ต้องการลบ "${name}" ออกจากห้องเรียนใช่ไหม?`)) return;
+
+            try {
+                const { error } = await sysDB.from('students').delete().eq('student_id', id);
+                if (error) throw error;
+                await fetchStudents();
+            } catch (err) {
+                alert('❌ ลบไม่สำเร็จ: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
