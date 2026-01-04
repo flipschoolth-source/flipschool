@@ -4,252 +4,450 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>รายชื่อนักเรียน - FlipSchool</title>
-    <link rel="icon" href="img/favicon.png">
-
+    
     <link rel="stylesheet" href="css/style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
-        /* CSS เฉพาะหน้านี้ */
-        .student-list {
-            list-style: none; padding: 0; margin: 0;
-            background: white; border-radius: 16px;
-            box-shadow: var(--card-shadow); overflow: hidden;
+        /* CSS เพิ่มเติมเฉพาะหน้านี้ */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .btn-tool {
+            padding: 8px 15px; border-radius: 20px; border: none; font-size: 14px;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600;
         }
-        .student-item {
-            display: flex; align-items: center; padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f0; transition: 0.2s;
-        }
-        .student-item:last-child { border-bottom: none; }
-        .student-item:hover { background: #f9f9f9; }
-
-        .st-num {
-            width: 30px; height: 30px; background: #eee; color: #555;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            font-weight: 600; font-size: 14px; margin-right: 15px;
-        }
-        .st-avatar {
-            width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
-            margin-right: 15px; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .st-info { flex: 1; }
-        .st-name { font-weight: 600; font-size: 16px; color: #333; margin: 0; }
-        .st-gender { font-size: 12px; color: #888; }
+        .btn-import { background: #e0f2f1; color: #00695c; }
+        .btn-print { background: #e3f2fd; color: #1565c0; }
         
-        .btn-del-st {
-            color: #ddd; background: none; border: none; cursor: pointer; font-size: 18px; transition: 0.2s;
-        }
-        .btn-del-st:hover { color: #ff4757; }
+        .student-list { list-style: none; padding: 0; margin: 0; background: white; border-radius: 16px; box-shadow: var(--card-shadow); }
+        .student-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #f0f0f0; }
+        .st-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .st-info { flex: 1; }
+        .st-code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #555; margin-left: 5px; }
 
-        /* เลือกเพศใน Modal */
-        .gender-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .gender-opt {
-            flex: 1; padding: 10px; border: 2px solid #eee; border-radius: 10px;
-            text-align: center; cursor: pointer; transition: 0.2s; color: #888;
+        /* Import Wizard Styles */
+        .step-container { display: none; }
+        .step-container.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .map-row { display: flex; align-items: center; margin-bottom: 10px; justify-content: space-between; }
+        .map-label { font-weight: 600; color: #555; width: 40%; }
+        .map-select { width: 55%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+
+        .conflict-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 10px; margin-bottom: 15px; color: #856404; }
+        .conflict-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-action { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-weight: 600; }
+        .btn-overwrite { background: #fff; border-color: #d32f2f; color: #d32f2f; }
+        .btn-skip { background: #fff; border-color: #555; color: #555; }
+        .btn-overwrite.selected { background: #d32f2f; color: white; }
+        .btn-skip.selected { background: #555; color: white; }
+
+        /* ID Card for PDF Generation (Hidden on screen) */
+        #printArea { position: absolute; top: -9999px; left: -9999px; width: 210mm; }
+        .id-card {
+            width: 8.5cm; height: 5.4cm; border: 1px solid #ddd; border-radius: 8px; 
+            padding: 10px; box-sizing: border-box; display: inline-block; margin: 5px;
+            background: white; position: relative; overflow: hidden; page-break-inside: avoid;
         }
-        .gender-opt.selected { border-color: var(--primary-color); color: var(--primary-color); background: #eef2ff; font-weight: 600; }
+        .card-header-bg { position: absolute; top:0; left:0; width: 100%; height: 25px; background: var(--primary-color); }
+        .card-content { display: flex; margin-top: 15px; align-items: center; }
+        .card-qr { width: 80px; height: 80px; }
+        .card-details { margin-left: 15px; font-family: 'Sarabun'; font-size: 12px; }
+        .card-name { font-weight: bold; font-size: 14px; color: #333; }
+        .card-code { color: #666; margin-top: 2px; }
     </style>
 </head>
 <body class="dashboard-page">
 
-    <div id="loadingOverlay">
-        <div class="spinner-lg"></div>
-    </div>
+    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
 
     <nav>
         <a href="#" id="backBtn" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
         <div class="nav-brand" style="font-size:18px;">รายชื่อนักเรียน</div>
-        <div style="width:40px;"></div> </nav>
+        <div style="width:40px;"></div>
+    </nav>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin:0; font-family:'Kanit';"><i class="fas fa-users"></i> สมาชิกในห้อง</h3>
-            <span style="background:#eef2ff; color:var(--primary-color); padding:5px 12px; border-radius:20px; font-size:14px; font-weight:600;">
-                <span id="totalCount">0</span> คน
-            </span>
+        <div class="toolbar">
+            <button class="btn-tool btn-import" onclick="openImportModal()">
+                <i class="fas fa-file-excel"></i> นำเข้า Excel
+            </button>
+            <button class="btn-tool btn-print" onclick="printIDCards()">
+                <i class="fas fa-id-card"></i> พิมพ์บัตร QR
+            </button>
+            <a href="template_student.xlsx" class="btn-tool" style="background:#f5f5f5; color:#666; text-decoration:none;" download>
+                <i class="fas fa-download"></i> โหลดฟอร์ม
+            </a>
         </div>
 
-        <ul class="student-list" id="studentList">
-            </ul>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin:0;"><i class="fas fa-users"></i> สมาชิก (<span id="totalCount">0</span>)</h3>
+        </div>
+
+        <ul class="student-list" id="studentList"></ul>
     </div>
 
-    <button class="fab-add" onclick="openAddModal()">
-        <i class="fas fa-user-plus"></i>
-    </button>
+    <button class="fab-add" onclick="openAddModal()"><i class="fas fa-user-plus"></i></button>
 
-    <div id="addModal" class="modal-overlay">
+    <div id="importModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">
-                <span><i class="fas fa-user-plus"></i> เพิ่มนักเรียนใหม่</span>
-                <i class="fas fa-times" onclick="closeAddModal()" style="cursor:pointer;"></i>
+                <span><i class="fas fa-file-import"></i> นำเข้ารายชื่อ</span>
+                <i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i>
             </div>
 
-            <label class="modal-label">เลขที่</label>
-            <input type="number" id="newNumber" class="modal-input" placeholder="เช่น 1">
+            <div id="step1" class="step-container active">
+                <p>เลือกไฟล์ Excel (.xlsx) ที่ต้องการนำเข้า</p>
+                <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="modal-input" style="padding:10px;">
+                <button class="btn-confirm" onclick="processFile()">ต่อไป <i class="fas fa-arrow-right"></i></button>
+            </div>
 
-            <label class="modal-label">ชื่อ-นามสกุล</label>
-            <input type="text" id="newName" class="modal-input" placeholder="เช่น ด.ช.รักดี มีวินัย">
-
-            <label class="modal-label">เพศ</label>
-            <div class="gender-selector">
-                <div class="gender-opt selected" onclick="selectGender('ชาย')" id="optMale">
-                    <i class="fas fa-mars"></i> ชาย
-                </div>
-                <div class="gender-opt" onclick="selectGender('หญิง')" id="optFemale">
-                    <i class="fas fa-venus"></i> หญิง
+            <div id="step2" class="step-container">
+                <p>จับคู่หัวตารางให้ตรงกัน</p>
+                <div id="mappingArea"></div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-cancel" onclick="goToStep(1)">ย้อนกลับ</button>
+                    <button class="btn-confirm" onclick="analyzeData()">ต่อไป</button>
                 </div>
             </div>
 
-            <button class="btn-save" onclick="addStudent()">บันทึกข้อมูล</button>
+            <div id="step3" class="step-container">
+                <p>ตรวจสอบข้อมูล</p>
+                <div id="analysisResult" style="margin-bottom:15px; font-size:14px;"></div>
+                
+                <div id="conflictSection" class="conflict-box" style="display:none;">
+                    <strong>⚠️ พบข้อมูลซ้ำ <span id="dupCount">0</span> รายการ</strong><br>
+                    <small>มีรหัสประจำตัวนี้ในห้องแล้ว ต้องการทำอย่างไร?</small>
+                    <div class="conflict-actions">
+                        <button class="btn-action btn-overwrite" id="actOverwrite" onclick="setConflictAction('overwrite')">
+                            <i class="fas fa-sync"></i> อัปเดตทับ
+                        </button>
+                        <button class="btn-action btn-skip selected" id="actSkip" onclick="setConflictAction('skip')">
+                            <i class="fas fa-forward"></i> ข้ามไป
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-cancel" onclick="goToStep(2)">ย้อนกลับ</button>
+                    <button class="btn-confirm" onclick="saveImportData()">ยืนยันนำเข้า</button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div id="printArea"></div>
 
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
 
     <script>
         let currentClassId = null;
-        let selectedGender = 'ชาย';
+        let excelRows = []; // ข้อมูลดิบจาก Excel
+        let excelHeaders = []; // หัวตาราง
+        let finalData = []; // ข้อมูลพร้อมบันทึก
+        let conflictAction = 'skip'; // default action
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!sysDB) return;
-
-            // 1. ดึง Class ID
             const params = new URLSearchParams(window.location.search);
-            currentClassId = params.get('cid'); // รับค่า cid มาจากหน้า detail
+            currentClassId = params.get('cid');
             
-            if (!currentClassId) { 
-                alert('ไม่พบรหัสห้องเรียน'); 
-                window.location.href = 'teacher-dashboard.html'; 
-                return; 
-            }
-
-            // ตั้งค่าปุ่มย้อนกลับให้ถูกห้อง
+            if (!currentClassId) { alert('ไม่พบรหัสห้องเรียน'); return; }
             document.getElementById('backBtn').href = `classroom-detail.html?id=${currentClassId}`;
 
-            // 2. เช็ค Auth
             await checkAuthRedirect();
-
-            // 3. โหลดรายชื่อ
             await fetchStudents();
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        // --- Fetch Data ---
+        // --- Fetch Students ---
         async function fetchStudents() {
             const list = document.getElementById('studentList');
-            const countSpan = document.getElementById('totalCount');
-            
             try {
-                // ดึงข้อมูลเรียงตามเลขที่ (Ascending)
-                const { data, error } = await sysDB
-                    .from('students')
-                    .select('*')
-                    .eq('classroom_id', currentClassId)
-                    .order('student_number', { ascending: true });
-
+                const { data, error } = await sysDB.from('students').select('*').eq('classroom_id', currentClassId).order('student_number', { ascending: true });
                 if (error) throw error;
-
-                countSpan.innerText = data.length;
+                
+                document.getElementById('totalCount').innerText = data.length;
                 list.innerHTML = '';
-
-                if (data.length === 0) {
-                    list.innerHTML = `
-                        <div style="text-align:center; padding:40px; color:#999;">
-                            <i class="fas fa-user-slash" style="font-size:40px; margin-bottom:10px;"></i>
-                            <p>ยังไม่มีนักเรียนในห้องนี้</p>
-                        </div>`;
-                    return;
-                }
+                
+                if (data.length === 0) { list.innerHTML = `<div class="empty-state">ยังไม่มีนักเรียน</div>`; return; }
 
                 data.forEach(st => {
-                    // เลือก Seed รูปตามเพศและชื่อ (ให้หน้าตาไม่ซ้ำกัน)
-                    const avatarSeed = st.gender === 'หญิง' ? `Callie` : `Felix`; 
-                    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${st.student_name}&gender=${st.gender === 'หญิง' ? 'female' : 'male'}`;
-
-                    const li = document.createElement('li');
-                    li.className = 'student-item';
-                    li.innerHTML = `
-                        <div class="st-num">${st.student_number}</div>
-                        <img src="${avatarUrl}" class="st-avatar">
-                        <div class="st-info">
-                            <h4 class="st-name">${st.student_name}</h4>
-                            <span class="st-gender"><i class="fas ${st.gender==='ชาย'?'fa-mars':'fa-venus'}"></i> ${st.gender}</span>
-                        </div>
-                        <button class="btn-del-st" onclick="deleteStudent('${st.student_id}', '${st.student_name}')">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    `;
-                    list.appendChild(li);
+                    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${st.student_name}&gender=${st.gender==='หญิง'?'female':'male'}`;
+                    list.innerHTML += `
+                        <li class="student-item">
+                            <div style="text-align:center; margin-right:15px; width:30px; font-weight:bold; color:#888;">${st.student_number}</div>
+                            <img src="${avatarUrl}" class="st-avatar">
+                            <div class="st-info">
+                                <h4 style="margin:0;">${st.student_name} <span class="st-code">${st.student_code || '-'}</span></h4>
+                                <span style="font-size:12px; color:#888;">${st.gender} | ${st.birth_date ? formatDate(st.birth_date) : '-'}</span>
+                            </div>
+                            <i class="fas fa-trash-alt" style="color:#ddd; cursor:pointer;" onclick="deleteStudent('${st.student_id}')"></i>
+                        </li>`;
                 });
+            } catch (err) { console.error(err); }
+        }
 
+        // --- Import Logic ---
+        function openImportModal() { document.getElementById('importModal').style.display = 'flex'; goToStep(1); }
+        function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+        
+        function goToStep(step) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+        }
+
+        async function processFile() {
+            const fileInput = document.getElementById('excelFile');
+            if(!fileInput.files[0]) { alert('กรุณาเลือกไฟล์'); return; }
+            
+            try {
+                // อ่านไฟล์ Excel
+                const rows = await readXlsxFile(fileInput.files[0]);
+                if(rows.length < 2) { alert('ไฟล์ไม่มีข้อมูล'); return; }
+                
+                excelHeaders = rows[0]; // แถวแรกเป็นหัวตาราง
+                excelRows = rows.slice(1); // ที่เหลือเป็นข้อมูล
+                
+                renderMapping();
+                goToStep(2);
             } catch (err) {
-                console.error(err);
-                alert('โหลดรายชื่อไม่สำเร็จ');
+                alert('อ่านไฟล์ล้มเหลว กรุณาใช้ไฟล์ .xlsx');
             }
         }
 
-        // --- Add Logic ---
-        function openAddModal() {
-            // หาเลขที่ถัดไปให้อัตโนมัติ (นับจำนวนที่มี + 1)
-            const currentCount = parseInt(document.getElementById('totalCount').innerText) || 0;
-            document.getElementById('newNumber').value = currentCount + 1;
-            document.getElementById('newName').value = '';
-            document.getElementById('addModal').style.display = 'flex';
-            document.getElementById('newName').focus();
+        function renderMapping() {
+            const mapArea = document.getElementById('mappingArea');
+            mapArea.innerHTML = '';
+            
+            // ฟิลด์ที่เราต้องการ
+            const requiredFields = [
+                { key: 'code', label: 'รหัสประจำตัว (Student Code)' },
+                { key: 'name', label: 'ชื่อ-นามสกุล' },
+                { key: 'gender', label: 'เพศ' },
+                { key: 'dob', label: 'วันเกิด (วว/ดด/ปปปป)' }
+            ];
+
+            // สร้าง Dropdown ให้เลือก
+            requiredFields.forEach(field => {
+                let options = `<option value="">-- ไม่ระบุ --</option>`;
+                excelHeaders.forEach((h, index) => {
+                    // เดาใจ: ถ้าชื่อหัวตารางคล้ายกัน ให้เลือกให้อัตโนมัติ
+                    const selected = (h.toString().includes(field.label.split(' ')[0])) ? 'selected' : '';
+                    options += `<option value="${index}" ${selected}>${h}</option>`;
+                });
+
+                mapArea.innerHTML += `
+                    <div class="map-row">
+                        <div class="map-label">${field.label}</div>
+                        <select id="map_${field.key}" class="map-select">${options}</select>
+                    </div>`;
+            });
         }
-        function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
 
-        function selectGender(g) {
-            selectedGender = g;
-            document.querySelectorAll('.gender-opt').forEach(el => el.classList.remove('selected'));
-            if(g === 'ชาย') document.getElementById('optMale').classList.add('selected');
-            else document.getElementById('optFemale').classList.add('selected');
+        async function analyzeData() {
+            // ดึงค่าการจับคู่
+            const map = {
+                code: document.getElementById('map_code').value,
+                name: document.getElementById('map_name').value,
+                gender: document.getElementById('map_gender').value,
+                dob: document.getElementById('map_dob').value
+            };
+
+            if(!map.name) { alert('จำเป็นต้องระบุคอลัมน์ "ชื่อ-นามสกุล"'); return; }
+
+            // แปลงข้อมูลเป็น Object
+            finalData = excelRows.map(row => {
+                return {
+                    student_code: map.code ? row[map.code] : '',
+                    student_name: map.name ? row[map.name] : '',
+                    gender: map.gender ? row[map.gender] : 'ชาย',
+                    birth_date: map.dob ? parseDate(row[map.dob]) : null,
+                    classroom_id: currentClassId,
+                    student_number: 0 // เดี๋ยวรันใหม่
+                };
+            }).filter(d => d.student_name); // ตัดแถวว่าง
+
+            // เช็คข้อมูลซ้ำใน DB
+            const codes = finalData.map(d => d.student_code).filter(c => c);
+            if(codes.length > 0) {
+                const { data: duplicates } = await sysDB.from('students')
+                    .select('student_code')
+                    .eq('classroom_id', currentClassId)
+                    .in('student_code', codes);
+                
+                const dupCount = duplicates ? duplicates.length : 0;
+                document.getElementById('dupCount').innerText = dupCount;
+                
+                if(dupCount > 0) {
+                    document.getElementById('conflictSection').style.display = 'block';
+                    document.getElementById('analysisResult').innerText = `พบข้อมูลทั้งหมด ${finalData.length} รายการ (ซ้ำ ${dupCount})`;
+                } else {
+                    document.getElementById('conflictSection').style.display = 'none';
+                    document.getElementById('analysisResult').innerText = `พร้อมนำเข้า ${finalData.length} รายการ (ไม่พบข้อมูลซ้ำ)`;
+                }
+            }
+            
+            goToStep(3);
         }
 
-        async function addStudent() {
-            const num = document.getElementById('newNumber').value;
-            const name = document.getElementById('newName').value;
-            const btn = document.querySelector('.btn-save');
+        function setConflictAction(action) {
+            conflictAction = action;
+            document.querySelectorAll('.btn-action').forEach(b => b.classList.remove('selected'));
+            document.getElementById(action === 'overwrite' ? 'actOverwrite' : 'actSkip').classList.add('selected');
+        }
 
-            if (!num || !name) { alert('กรุณากรอกข้อมูลให้ครบ'); return; }
-
+        async function saveImportData() {
+            const btn = document.querySelector('#step3 .btn-confirm');
             btn.innerText = 'กำลังบันทึก...'; btn.disabled = true;
 
             try {
-                const { error } = await sysDB.from('students').insert([{
-                    classroom_id: currentClassId,
-                    student_number: num,
-                    student_name: name,
-                    gender: selectedGender
-                }]);
+                // 1. จัดการข้อมูลซ้ำตามที่เลือก
+                let dataToInsert = [...finalData];
+                
+                // หาเลขที่ล่าสุดในห้อง
+                const { data: existing } = await sysDB.from('students').select('student_number').eq('classroom_id', currentClassId).order('student_number', {ascending:false}).limit(1);
+                let startNum = existing.length > 0 ? existing[0].student_number + 1 : 1;
 
-                if (error) throw error;
+                // รันเลขที่ให้คนใหม่
+                dataToInsert.forEach((d, i) => { d.student_number = startNum + i; });
 
-                // รีเฟรชรายการ
-                await fetchStudents();
-                closeAddModal();
+                if (conflictAction === 'overwrite') {
+                     // แบบ Upsert (ต้องมี unique key, ในที่นี้เราใช้ logic ง่ายๆคือ ลบแล้วลงใหม่ หรือ insert เฉพาะตัวใหม่)
+                     // เพื่อความง่าย: เราจะ insert เฉพาะคนที่ไม่ซ้ำ ส่วนคนซ้ำเราข้ามไปก่อนในเวอร์ชั่นนี้ (Upsert ซับซ้อนถ้าไม่มี Unique Constraint)
+                     // *User Request*: Update Duplicate. 
+                     // ทำจริง: วนลูปเช็คหรือใช้ upsert. เพื่อความชัวร์และง่ายสำหรับโค้ด client-side:
+                     
+                     for (let st of dataToInsert) {
+                         if(st.student_code) {
+                             const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
+                             if(data) {
+                                 // อัปเดตคนเดิม
+                                 await sysDB.from('students').update({ 
+                                     student_name: st.student_name, 
+                                     gender: st.gender, 
+                                     birth_date: st.birth_date 
+                                 }).eq('student_id', data.student_id);
+                             } else {
+                                 // เพิ่มคนใหม่
+                                 await sysDB.from('students').insert([st]);
+                             }
+                         } else {
+                             // ไม่มีรหัส เพิ่มเลย
+                             await sysDB.from('students').insert([st]);
+                         }
+                     }
+                } else {
+                    // แบบ Skip (Insert เฉพาะคนที่ไม่ซ้ำ)
+                    // เนื่องจาก Supabase ไม่มี insert ignore แบบง่ายๆ ถ้าไม่มี constraint
+                    // เราจะกรองเบื้องต้น แล้ว insert เลย (ยอมให้ซ้ำได้ ถ้า user ไม่ซีเรียส หรือ DB ไม่ได้ตั้ง Unique)
+                    // แต่ถ้าจะ skip จริงๆ ต้องเช็คก่อน
+                    for (let st of dataToInsert) {
+                        const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
+                         if(!data) {
+                             await sysDB.from('students').insert([st]);
+                         }
+                    }
+                }
+
+                alert('✅ นำเข้าข้อมูลสำเร็จ');
+                closeImportModal();
+                fetchStudents();
 
             } catch (err) {
-                alert('❌ เพิ่มไม่สำเร็จ: ' + err.message);
+                alert('เกิดข้อผิดพลาด: ' + err.message);
             } finally {
-                btn.innerText = 'บันทึกข้อมูล'; btn.disabled = false;
+                btn.innerText = 'ยืนยันนำเข้า'; btn.disabled = false;
             }
         }
 
-        // --- Delete Logic ---
-        async function deleteStudent(id, name) {
-            if (!confirm(`ต้องการลบ "${name}" ออกจากห้องเรียนใช่ไหม?`)) return;
-
-            try {
-                const { error } = await sysDB.from('students').delete().eq('student_id', id);
-                if (error) throw error;
-                await fetchStudents();
-            } catch (err) {
-                alert('❌ ลบไม่สำเร็จ: ' + err.message);
+        // --- Helper: Date Parser ---
+        function parseDate(val) {
+            if (!val) return null;
+            // รองรับทั้ง Date Object และ String
+            if (val instanceof Date) return val.toISOString().split('T')[0];
+            // เดา Format: พ.ศ. หรือ ค.ศ.
+            return val; // ถ้าเป็น string ให้ส่งไปก่อน (ควรปรับปรุง logic นี้ตามข้อมูลจริง)
+        }
+        function formatDate(dateStr) {
+            if(!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+        }
+        async function deleteStudent(id) {
+            if(confirm('ลบนักเรียนคนนี้?')) {
+                await sysDB.from('students').delete().eq('student_id', id);
+                fetchStudents();
             }
+        }
+
+        // --- PDF & QR Generation ---
+        async function printIDCards() {
+            const { data: students } = await sysDB.from('students').select('*').eq('classroom_id', currentClassId);
+            if (!students || students.length === 0) { alert('ไม่มีข้อมูลนักเรียน'); return; }
+
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+            
+            // สร้าง HTML ของบัตรแต่ละใบ
+            students.forEach(st => {
+                // QR Data: เก็บเป็น JSON เพื่อความยืดหยุ่น {i: ID, d: DOB}
+                const qrData = JSON.stringify({ i: st.student_code, d: st.birth_date });
+                const cardId = `card_${st.student_id}`;
+                
+                const cardHtml = `
+                    <div class="id-card" id="${cardId}">
+                        <div class="card-header-bg"></div>
+                        <div style="text-align:right; font-size:10px; color:white; position:relative; z-index:2; padding-right:5px; padding-top:5px;">FlipSchool Student ID</div>
+                        <div class="card-content">
+                            <div id="qr_${st.student_id}" class="card-qr"></div>
+                            <div class="card-details">
+                                <div class="card-name">${st.student_name}</div>
+                                <div class="card-code">ID: ${st.student_code || '-'}</div>
+                                <div class="card-code">Class: ${st.student_number ? 'No.'+st.student_number : ''}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                printArea.insertAdjacentHTML('beforeend', cardHtml);
+                
+                // สร้าง QR Code
+                new QRCode(document.getElementById(`qr_${st.student_id}`), {
+                    text: qrData,
+                    width: 70,
+                    height: 70
+                });
+            });
+
+            // รอให้ QR render เสร็จ แล้วแปลงเป็น PDF
+            setTimeout(async () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const cards = document.querySelectorAll('.id-card');
+                
+                let x = 10, y = 10;
+                for (let i = 0; i < cards.length; i++) {
+                    const canvas = await html2canvas(cards[i], { scale: 2 }); // Scale 2 เพื่อความชัด
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    doc.addImage(imgData, 'PNG', x, y, 85, 54); // ขนาดบัตรมาตรฐาน
+                    
+                    // จัดวางแบบ Grid 2 คอลัมน์
+                    x += 95;
+                    if (x > 110) { x = 10; y += 60; }
+                    if (y > 250) { doc.addPage(); y = 10; } // ขึ้นหน้าใหม่
+                }
+                
+                doc.save('Student_ID_Cards.pdf');
+                alert('✅ ดาวน์โหลด PDF เรียบร้อย');
+            }, 1000);
         }
     </script>
 </body>
