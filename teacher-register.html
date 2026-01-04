@@ -69,10 +69,7 @@
         .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #4a4e69; }
         .input-wrapper { position: relative; }
         
-        /* ไอคอนด้านซ้าย (User, Email, Lock) */
         .input-wrapper i.icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #a8dadc; transition: 0.3s; z-index: 2; }
-        
-        /* ไอคอนด้านขวา (Eye Toggle) - เพิ่มใหม่ ✅ */
         .input-wrapper i.toggle-password { 
             position: absolute; right: 15px; top: 50%; transform: translateY(-50%); 
             color: #a8dadc; cursor: pointer; transition: 0.3s; z-index: 2; 
@@ -80,8 +77,7 @@
         .input-wrapper i.toggle-password:hover { color: var(--primary-color); }
 
         input { 
-            width: 100%; 
-            padding: 14px 45px 14px 45px; /* เว้นซ้ายขวาให้ไอคอน */
+            width: 100%; padding: 14px 45px 14px 45px; 
             border: 2px solid #edf2f4; background: #f8f9fa; border-radius: 12px; 
             font-family: 'Sarabun', sans-serif; font-size: 16px; box-sizing: border-box; 
             transition: all 0.3s ease; 
@@ -100,7 +96,6 @@
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 10px; vertical-align: middle; display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Button */
         .btn-submit { width: 100%; padding: 16px; border: none; border-radius: 12px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3); transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px; }
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4); }
         .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; }
@@ -137,7 +132,7 @@
                 </div>
 
                 <div class="input-group">
-                    <label>สังกัดโรงเรียน<div class="spinner" id="searchSpinner"></div></label>
+                    <label>สังกัดโรงเรียน <div class="spinner" id="searchSpinner"></div></label>
                     <div class="input-wrapper search-wrapper" id="searchSection">
                         <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียน... (เช่น หาดใหญ่)" autocomplete="off">
                         <i class="fas fa-school icon"></i>
@@ -193,7 +188,6 @@
     let sysDB = null;
     document.addEventListener('DOMContentLoaded', () => { if(window.supabase) sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); });
 
-    // ฟังก์ชันเปิด-ปิดตา (ใช้ได้กับทั้ง 2 ช่อง)
     function togglePass(inputId, icon) {
         const input = document.getElementById(inputId);
         if (input.type === 'password') {
@@ -222,17 +216,69 @@
         const sid = document.getElementById('schoolId').value;
         const pass = document.getElementById('password').value;
         const confPass = document.getElementById('confirmPassword').value;
+        const email = document.getElementById('email').value;
 
+        // Validation พื้นฐาน
         if (pass !== confPass) { alert('❌ รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง'); return; }
         if (!sid) { alert('⚠️ กรุณาเลือกโรงเรียนก่อนครับ'); return; }
         
-        const btn = document.getElementById('btnSubmit'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+        const btn = document.getElementById('btnSubmit'); 
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบข้อมูล...';
+
         try {
-            const { data: ad, error: ae } = await sysDB.auth.signUp({ email: document.getElementById('email').value, password: pass }); if (ae) throw ae;
+            // ✅ 1. ตรวจสอบอีเมลซ้ำในฐานข้อมูล (Teachers Table) ก่อน
+            const { data: existingUser, error: checkError } = await sysDB
+                .from('teachers')
+                .select('email')
+                .eq('email', email)
+                .maybeSingle();
+
+            if (checkError) {
+                console.warn("Check duplicate error (ignored):", checkError);
+            }
+
+            if (existingUser) {
+                alert('⚠️ อีเมลนี้มีผู้ใช้งานแล้วในระบบ กรุณาใช้อีเมลอื่น หรือเข้าสู่ระบบ');
+                btn.disabled = false;
+                btn.innerHTML = 'ยืนยันการสมัคร <i class="fas fa-check-circle"></i>';
+                return; // 🛑 หยุดทันทีถ้าเจอซ้ำ
+            }
+
+            // ✅ 2. ถ้าไม่ซ้ำ ให้ดำเนินการสมัครต่อ
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
+            
+            const { data: ad, error: ae } = await sysDB.auth.signUp({ 
+                email: email, 
+                password: pass 
+            }); 
+            if (ae) throw ae;
+
             const names = document.getElementById('fullname').value.trim().split(' ');
-            const { error: de } = await sysDB.from('teachers').insert([{ teacher_id: ad.user.id, school_id: sid, first_name: names[0], last_name: names.slice(1).join(' ') || '-', email: document.getElementById('email').value, status: 'ปกติ' }]); if (de) throw de;
-            alert('✅ สมัครสำเร็จ!'); window.location.href = 'teacher-login.html'; 
-        } catch (err) { alert('❌ ' + err.message); btn.disabled = false; btn.innerHTML = 'ยืนยันการสมัคร'; }
+            const { error: de } = await sysDB.from('teachers').insert([{ 
+                teacher_id: ad.user.id, 
+                school_id: sid, 
+                first_name: names[0], 
+                last_name: names.slice(1).join(' ') || '-', 
+                email: email, 
+                status: 'ปกติ' 
+            }]); 
+            if (de) throw de;
+
+            alert('✅ สมัครสำเร็จ!'); 
+            window.location.href = 'teacher-login.html'; 
+
+        } catch (err) { 
+            console.error(err);
+            // ถ้า Error มาจาก Supabase Auth ว่าซ้ำ (กันเหนียวอีกชั้น)
+            if (err.message.includes("User already registered")) {
+                alert("⚠️ อีเมลนี้ถูกลงทะเบียนไปแล้ว");
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + err.message); 
+            }
+            btn.disabled = false; 
+            btn.innerHTML = 'ยืนยันการสมัคร <i class="fas fa-check-circle"></i>'; 
+        }
     }
 </script>
 </body>
