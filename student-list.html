@@ -10,7 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script src="https://unpkg.com/read-excel-file@5.x/bundle/read-excel-file.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -138,7 +139,7 @@
             </div>
 
             <div id="step1" class="step-container active">
-                <p>เลือกไฟล์ Excel (.xlsx) ที่ต้องการนำเข้า</p>
+                <p>เลือกไฟล์ Excel (.xlsx หรือ .xls)</p>
                 <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="modal-input" style="padding:10px;">
                 <button class="btn-confirm" onclick="processFile()">ต่อไป <i class="fas fa-arrow-right"></i></button>
             </div>
@@ -284,23 +285,39 @@
             document.getElementById(`step${step}`).classList.add('active');
         }
 
+        // ✅ Updated: ใช้ SheetJS อ่านไฟล์แทน read-excel-file
         async function processFile() {
             const fileInput = document.getElementById('excelFile');
             if(!fileInput.files[0]) { alert('กรุณาเลือกไฟล์'); return; }
             
-            try {
-                // อ่านไฟล์ Excel
-                const rows = await readXlsxFile(fileInput.files[0]);
-                if(rows.length < 2) { alert('ไฟล์ไม่มีข้อมูล'); return; }
-                
-                excelHeaders = rows[0]; // แถวแรกเป็นหัวตาราง
-                excelRows = rows.slice(1); // ที่เหลือเป็นข้อมูล
-                
-                renderMapping();
-                goToStep(2);
-            } catch (err) {
-                alert('อ่านไฟล์ล้มเหลว กรุณาใช้ไฟล์ .xlsx');
-            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    // cellDates: true จะช่วยแปลงวันที่จาก Excel serial number เป็น Date object ให้อัตโนมัติ
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true}); 
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // แปลงเป็น JSON แบบ Array of Arrays (header: 1)
+                    const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
+
+                    if(!rows || rows.length < 2) { alert('ไฟล์ไม่มีข้อมูล'); return; }
+                    
+                    excelHeaders = rows[0]; // แถวแรกเป็นหัวตาราง
+                    excelRows = rows.slice(1); // ที่เหลือเป็นข้อมูล
+                    
+                    renderMapping();
+                    goToStep(2);
+                } catch (err) {
+                    console.error(err);
+                    alert('อ่านไฟล์ล้มเหลว: ' + err.message);
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
         }
 
         function renderMapping() {
@@ -317,8 +334,10 @@
             requiredFields.forEach(field => {
                 let options = `<option value="">-- ไม่ระบุ --</option>`;
                 excelHeaders.forEach((h, index) => {
-                    const selected = (h.toString().includes(field.label.split(' ')[0])) ? 'selected' : '';
-                    options += `<option value="${index}" ${selected}>${h}</option>`;
+                    const headerStr = String(h);
+                    // ตรวจจับชื่อคอลัมน์แบบง่ายๆ
+                    const selected = (headerStr.includes(field.label.split(' ')[0])) ? 'selected' : '';
+                    options += `<option value="${index}" ${selected}>${headerStr}</option>`;
                 });
 
                 mapArea.innerHTML += `
@@ -340,15 +359,18 @@
             if(!map.name) { alert('จำเป็นต้องระบุคอลัมน์ "ชื่อ-นามสกุล"'); return; }
 
             finalData = excelRows.map(row => {
+                // row เป็น array ตาม index
+                const rawDate = map.dob ? row[map.dob] : null;
+                
                 return {
-                    student_code: map.code ? row[map.code] : '',
-                    student_name: map.name ? row[map.name] : '',
-                    gender: map.gender ? row[map.gender] : 'ชาย',
-                    birth_date: map.dob ? parseDate(row[map.dob]) : null,
+                    student_code: map.code ? String(row[map.code]).trim() : '',
+                    student_name: map.name ? String(row[map.name]).trim() : '',
+                    gender: map.gender ? String(row[map.gender]).trim() : 'ชาย',
+                    birth_date: parseDate(rawDate),
                     classroom_id: currentClassId,
                     student_number: 0 // เดี๋ยวรันใหม่
                 };
-            }).filter(d => d.student_name);
+            }).filter(d => d.student_name); // กรองแถวที่ไม่มีชื่อออก
 
             const codes = finalData.map(d => d.student_code).filter(c => c);
             if(codes.length > 0) {
@@ -390,18 +412,18 @@
                 dataToInsert.forEach((d, i) => { d.student_number = startNum + i; });
 
                 if (conflictAction === 'overwrite') {
-                     for (let st of dataToInsert) {
-                         if(st.student_code) {
-                             const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
-                             if(data) {
-                                 await sysDB.from('students').update({ student_name: st.student_name, gender: st.gender, birth_date: st.birth_date }).eq('student_id', data.student_id);
-                             } else {
-                                 await sysDB.from('students').insert([st]);
-                             }
-                         } else {
-                             await sysDB.from('students').insert([st]);
-                         }
-                     }
+                      for (let st of dataToInsert) {
+                          if(st.student_code) {
+                              const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
+                              if(data) {
+                                  await sysDB.from('students').update({ student_name: st.student_name, gender: st.gender, birth_date: st.birth_date }).eq('student_id', data.student_id);
+                              } else {
+                                  await sysDB.from('students').insert([st]);
+                              }
+                          } else {
+                              await sysDB.from('students').insert([st]);
+                          }
+                      }
                 } else {
                     for (let st of dataToInsert) {
                         const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
@@ -425,9 +447,14 @@
         // --- Helper: Date Parser ---
         function parseDate(val) {
             if (!val) return null;
+            // กรณี SheetJS ส่งมาเป็น Date Object แล้ว
             if (val instanceof Date) return val.toISOString().split('T')[0];
-            return val; 
+            // กรณีเป็น String (พยายาม parse)
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+            return null; 
         }
+
         function formatDate(dateStr) {
             if(!dateStr) return '-';
             const d = new Date(dateStr);
