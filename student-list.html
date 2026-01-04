@@ -120,12 +120,25 @@
                 <span><i class="fas fa-user-plus"></i> เพิ่มนักเรียนใหม่</span>
                 <i class="fas fa-times" onclick="closeAddModal()" style="cursor:pointer;"></i>
             </div>
+            
             <label class="modal-label">เลขที่</label>
             <input type="number" id="newNumber" class="modal-input" placeholder="เช่น 1">
+            
             <label class="modal-label">รหัสนักเรียน</label>
             <input type="text" id="newCode" class="modal-input" placeholder="เช่น 15401">
+            
+            <label class="modal-label">คำนำหน้า (เช่น ด.ช., นาย)</label>
+            <input type="text" id="newTitle" class="modal-input" list="titleList" placeholder="เลือกหรือพิมพ์เอง">
+            <datalist id="titleList">
+                <option value="เด็กชาย">
+                <option value="เด็กหญิง">
+                <option value="นาย">
+                <option value="นางสาว">
+            </datalist>
+
             <label class="modal-label">ชื่อ-นามสกุล</label>
-            <input type="text" id="newName" class="modal-input" placeholder="เช่น ด.ช.รักดี มีวินัย">
+            <input type="text" id="newName" class="modal-input" placeholder="เช่น รักดี มีวินัย">
+            
             <label class="modal-label">เพศ</label>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
                 <div class="gender-opt selected" onclick="selectGender('ชาย')" id="optMale" style="flex:1; padding:10px; border:2px solid #eee; border-radius:10px; text-align:center; cursor:pointer;">
@@ -140,7 +153,8 @@
     </div>
 
     <div id="importModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 800px;"> <div class="modal-title">
+        <div class="modal-box" style="max-width: 800px;">
+            <div class="modal-title">
                 <span><i class="fas fa-robot"></i> ระบบนำเข้าอัจฉริยะ</span>
                 <i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i>
             </div>
@@ -158,18 +172,17 @@
             </div>
 
             <div id="step2" class="step-container">
-                
                 <div class="config-panel">
                     <div class="config-item">
                         <label><i class="fas fa-heading"></i> แถวหัวตาราง (Header)</label>
-                        <input type="number" id="headerRowIndex" value="1" min="0" onchange="updateTableConfig()">
+                        <input type="number" id="headerRowIndex" value="2" min="0" onchange="updateTableConfig()">
                     </div>
                     <div class="config-item">
                         <label><i class="fas fa-database"></i> เริ่มข้อมูลแถวที่ (Data)</label>
-                        <input type="number" id="startRowIndex" value="2" min="1" onchange="updateTableConfig()">
+                        <input type="number" id="startRowIndex" value="3" min="1" onchange="updateTableConfig()">
                     </div>
                     <div style="flex:1; text-align:right; font-size:12px; color:#666;">
-                        *ใส่ 0 หากไม่มีหัวตาราง (ระบบจะตั้งเป็น Column A, B...)
+                        *ใส่ 0 หากไม่มีหัวตาราง
                     </div>
                 </div>
 
@@ -224,14 +237,14 @@
 
     <script>
         let currentClassId = null;
-        let allSheetRows = []; // เก็บข้อมูลดิบทั้งหมดจากไฟล์
-        let dataRows = [];     // ข้อมูลที่จะนำเข้า (ตัดหัวแล้ว)
-        let headers = [];      // รายชื่อหัวตาราง
+        let allSheetRows = [];
+        let dataRows = [];
+        let headers = [];
         let finalData = [];
         let conflictAction = 'skip';
         let selectedGender = 'ชาย';
 
-        // --- Configuration for Auto Mapping ---
+        // --- เพิ่ม Mapping สำหรับ "คำนำหน้า" (Prefix) ---
         const MAPPING_CONFIG = [
             { 
                 key: 'student_code', 
@@ -239,6 +252,13 @@
                 required: false,
                 keywords: ['รหัส', 'id', 'code', 'student_id', 'no', 'ประจำตัว'], 
                 checkContent: (val) => /^\d+$/.test(val) && val.length >= 4 
+            },
+            { 
+                key: 'prefix', 
+                label: 'คำนำหน้า (Prefix)', 
+                required: false,
+                keywords: ['คำนำหน้า', 'prefix', 'title', 'หน้าชื่อ'],
+                checkContent: (val) => ['เด็กชาย','เด็กหญิง','นาย','นาง','ด.ช.','ด.ญ.'].some(k => String(val).includes(k))
             },
             { 
                 key: 'firstname', 
@@ -249,7 +269,7 @@
             },
             { 
                 key: 'lastname', 
-                label: 'นามสกุล (Optional)', 
+                label: 'นามสกุล (Surname)', 
                 required: false,
                 keywords: ['สกุล', 'last', 'sur', 'sname'],
                 checkContent: (val) => isNaN(val) && val.length > 2
@@ -259,7 +279,7 @@
                 label: 'เพศ', 
                 required: false,
                 keywords: ['เพศ', 'gender', 'sex'],
-                checkContent: (val) => ['ชาย','หญิง','male','female','m','f','ด.ช.','ด.ญ.'].some(k => String(val).includes(k))
+                checkContent: (val) => ['ชาย','หญิง','male','female'].some(k => String(val).toLowerCase().includes(k))
             },
             { 
                 key: 'birth_date', 
@@ -283,7 +303,7 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        // --- Fetch & Basic Functions ---
+        // --- Fetch Students (Display Title + Name) ---
         async function fetchStudents() {
             const list = document.getElementById('studentList');
             const { data, error } = await sysDB.from('students').select('*').eq('classroom_id', currentClassId).order('student_number', { ascending: true });
@@ -295,13 +315,15 @@
             if (data.length === 0) { list.innerHTML = `<div class="empty-state">ยังไม่มีนักเรียน</div>`; return; }
 
             data.forEach(st => {
+                const fullName = `${st.student_title || ''}${st.student_name}`; // รวมคำนำหน้า+ชื่อเพื่อแสดง
                 const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${st.student_name}&gender=${st.gender==='หญิง'?'female':'male'}`;
+                
                 list.innerHTML += `
                     <li class="student-item">
                         <div style="text-align:center; margin-right:15px; width:30px; font-weight:bold; color:#888;">${st.student_number}</div>
                         <img src="${avatarUrl}" class="st-avatar">
                         <div class="st-info">
-                            <h4 style="margin:0;">${st.student_name} <span class="st-code">${st.student_code || '-'}</span></h4>
+                            <h4 style="margin:0;">${fullName} <span class="st-code">${st.student_code || '-'}</span></h4>
                             <span style="font-size:12px; color:#888;">${st.gender} | ${st.birth_date ? formatDate(st.birth_date) : '-'}</span>
                         </div>
                         <i class="fas fa-trash-alt" style="color:#ddd; cursor:pointer;" onclick="deleteStudent('${st.student_id}')"></i>
@@ -309,9 +331,12 @@
             });
         }
 
+        // --- Manual Add Logic ---
         function openAddModal() {
             const currentCount = parseInt(document.getElementById('totalCount').innerText) || 0;
             document.getElementById('newNumber').value = currentCount + 1;
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newName').value = '';
             document.getElementById('addModal').style.display = 'flex';
         }
         function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
@@ -326,14 +351,22 @@
         async function addStudent() {
             const num = document.getElementById('newNumber').value;
             const code = document.getElementById('newCode').value;
+            const title = document.getElementById('newTitle').value; // รับค่าคำนำหน้า
             const name = document.getElementById('newName').value;
-            if (!num || !name) { alert('กรุณากรอกข้อมูลให้ครบ'); return; }
+            
+            if (!num || !name) { alert('กรุณากรอกข้อมูล เลขที่ และ ชื่อ-นามสกุล'); return; }
             
             try {
                 await sysDB.from('students').insert([{
-                    classroom_id: currentClassId, student_number: num, student_code: code, student_name: name, gender: selectedGender
+                    classroom_id: currentClassId, 
+                    student_number: num, 
+                    student_code: code, 
+                    student_title: title, // บันทึกคำนำหน้า
+                    student_name: name, 
+                    gender: selectedGender
                 }]);
-                closeAddModal(); fetchStudents();
+                closeAddModal(); 
+                fetchStudents();
             } catch (err) { alert('Error: ' + err.message); }
         }
 
@@ -345,7 +378,7 @@
         }
 
         // ==========================================
-        //  ADVANCED IMPORT LOGIC
+        //  ADVANCED IMPORT LOGIC (Updated)
         // ==========================================
         
         function openImportModal() { 
@@ -376,14 +409,13 @@
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     
-                    // อ่านข้อมูลดิบทั้งหมด (Array of Arrays)
                     allSheetRows = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
 
                     if(!allSheetRows || allSheetRows.length === 0) { alert('ไฟล์ไม่มีข้อมูล'); return; }
                     
-                    // ตั้งค่า Default: Header บรรทัด 1, Data บรรทัด 2
-                    document.getElementById('headerRowIndex').value = 1;
-                    document.getElementById('startRowIndex').value = 2;
+                    // ตั้งค่า Default ใหม่: Header บรรทัด 2, Data บรรทัด 3 (ตามไฟล์ตัวอย่างของคุณ)
+                    document.getElementById('headerRowIndex').value = 2;
+                    document.getElementById('startRowIndex').value = 3;
 
                     updateTableConfig();
                     goToStep(2);
@@ -395,28 +427,22 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ฟังก์ชันอัปเดตการตั้งค่าเมื่อเปลี่ยนเลขแถว
         function updateTableConfig() {
             const hIndex = parseInt(document.getElementById('headerRowIndex').value) || 0;
             const dIndex = parseInt(document.getElementById('startRowIndex').value) || (hIndex + 1);
 
-            // 1. จัดการ Header
             if (hIndex <= 0) {
-                // กรณีไม่มี Header (Column A, B, C...)
                 const maxCols = allSheetRows[0] ? allSheetRows[0].length : 0;
                 headers = [];
                 for(let i=0; i<maxCols; i++) headers.push(`Column ${XLSX.utils.encode_col(i)}`);
             } else {
-                // ดึง Text จากแถวที่เลือก
                 const row = allSheetRows[hIndex - 1] || [];
                 headers = row.map(cell => String(cell).trim() || "(ว่าง)");
             }
 
-            // 2. จัดการ Data Rows
             const start = Math.max(0, dIndex - 1);
             dataRows = allSheetRows.slice(start);
 
-            // 3. Render Table & Run AI
             renderPreviewTable(hIndex - 1, start);
             autoMapColumns();
         }
@@ -425,17 +451,11 @@
             const table = document.getElementById('previewTable');
             table.innerHTML = '';
             
-            // แสดงแค่ 5 แถวแรกของไฟล์ + แถวที่เลือกเป็น Header/Data (ถ้าอยู่ไกล)
             const maxShow = 6;
             let rowsToShow = [];
             
-            // เพิ่มแถวช่วงต้น
             for(let i=0; i<Math.min(allSheetRows.length, maxShow); i++) rowsToShow.push(i);
-            
-            // เพิ่มแถว Header ถ้ายังไม่มี
             if(headerIdx >= 0 && !rowsToShow.includes(headerIdx) && headerIdx < allSheetRows.length) rowsToShow.push(headerIdx);
-            
-            // เพิ่มแถว Data Start ถ้ายังไม่มี
             if(dataStartIdx >= 0 && !rowsToShow.includes(dataStartIdx) && dataStartIdx < allSheetRows.length) rowsToShow.push(dataStartIdx);
 
             rowsToShow.sort((a,b) => a-b);
@@ -444,17 +464,14 @@
                 const tr = document.createElement('tr');
                 const rowData = allSheetRows[idx];
 
-                // Check Classes
                 if (idx === headerIdx) tr.classList.add('is-header');
                 if (idx === dataStartIdx) tr.classList.add('is-data-start');
 
-                // Row Number Column
                 const tdNum = document.createElement('td');
                 tdNum.className = 'row-num';
                 tdNum.innerText = idx + 1;
                 tr.appendChild(tdNum);
 
-                // Data Columns
                 rowData.forEach(cell => {
                     const td = document.createElement('td');
                     let val = cell;
@@ -467,18 +484,15 @@
             });
         }
 
-        // --- AI Auto Mapping ---
         function calculateColumnScore(headerName, sampleData, config) {
             let score = 0;
             const h = String(headerName).toLowerCase();
             
-            // 1. Header Match
             config.keywords.forEach(kw => {
                 if (h.includes(kw)) score += 10;
                 if (h === kw) score += 5;
             });
 
-            // 2. Content Match (ตรวจสอบจากข้อมูลจริง 3 แถวแรก)
             let validCount = 0;
             const checkLimit = Math.min(dataRows.length, 3);
             for(let i=0; i<checkLimit; i++) {
@@ -494,11 +508,10 @@
             const mapArea = document.getElementById('mappingArea');
             mapArea.innerHTML = '';
 
-            // เตรียมข้อมูลแต่ละคอลัมน์เพื่อส่งไปวิเคราะห์
             const columnData = [];
             const numCols = headers.length;
             for(let c=0; c<numCols; c++) {
-                columnData[c] = dataRows.map(r => r[c]); // ดึงข้อมูลทั้งคอลัมน์มา
+                columnData[c] = dataRows.map(r => r[c]);
             }
 
             MAPPING_CONFIG.forEach(field => {
@@ -513,7 +526,6 @@
                     }
                 });
 
-                // สร้าง Dropdown Option
                 let options = `<option value="-1">-- ไม่ระบุ --</option>`;
                 headers.forEach((h, index) => {
                     const selected = (index === bestMatchIndex) ? 'selected' : '';
@@ -547,38 +559,34 @@
             return String(val).substring(0, 20);
         }
 
-        // --- Processing & Saving ---
         async function analyzeData() {
             const mapping = {};
-            let hasName = false;
-
             MAPPING_CONFIG.forEach(field => {
                 mapping[field.key] = parseInt(document.getElementById(`map_${field.key}`).value);
             });
 
-            // ตรวจสอบขั้นต่ำ
             if (mapping.firstname === -1) { alert('กรุณาเลือกคอลัมน์ "ชื่อ"'); return; }
 
             finalData = dataRows.map(row => {
+                const prefix = mapping.prefix !== -1 ? row[mapping.prefix] : '';
                 const fname = mapping.firstname !== -1 ? row[mapping.firstname] : '';
                 const lname = mapping.lastname !== -1 ? row[mapping.lastname] : '';
                 
-                if (!fname) return null; // ไม่มีชื่อ ข้าม
+                if (!fname) return null;
 
-                // รวมชื่อ-นามสกุล
                 let fullName = String(fname).trim();
                 if(lname) fullName += ' ' + String(lname).trim();
 
                 return {
                     student_code: mapping.student_code !== -1 ? String(row[mapping.student_code]).trim() : '',
-                    student_name: fullName,
+                    student_title: String(prefix).trim(), // เก็บคำนำหน้าแยก
+                    student_name: fullName, // ชื่อ+สกุล รวมกัน
                     gender: mapping.gender !== -1 ? normalizeGender(row[mapping.gender]) : 'ชาย',
                     birth_date: mapping.birth_date !== -1 ? parseDate(row[mapping.birth_date]) : null,
                     classroom_id: currentClassId
                 };
             }).filter(d => d !== null);
 
-            // Check Duplicates
             const codes = finalData.map(d => d.student_code).filter(c => c);
             let dupCount = 0;
             if (codes.length > 0) {
@@ -596,22 +604,19 @@
         function normalizeGender(val) {
             if (!val) return 'ชาย';
             const s = String(val).toLowerCase();
-            if (s.includes('หญิง') || s.includes('female') || s.includes('f') || s.includes('ด.ญ.')) return 'หญิง';
+            if (s.includes('หญิง') || s.includes('female') || s.includes('ด.ญ.')) return 'หญิง';
             return 'ชาย';
         }
 
         function parseDate(val) {
             if (!val) return null;
             if (val instanceof Date) return val.toISOString().split('T')[0];
-            
-            // รองรับรูปแบบไทย เช่น 15/08/2556
             if (String(val).match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
                 const parts = val.split('/');
                 let year = parseInt(parts[2]);
-                if(year > 2400) year -= 543; // แปลง พ.ศ. -> ค.ศ.
+                if(year > 2400) year -= 543;
                 return `${year}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
             }
-
             const d = new Date(val);
             if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
             return null;
@@ -639,7 +644,12 @@
                         if(st.student_code) {
                             const { data } = await sysDB.from('students').select('student_id').eq('classroom_id', currentClassId).eq('student_code', st.student_code).maybeSingle();
                             if(data) {
-                                await sysDB.from('students').update({ student_name: st.student_name, gender: st.gender, birth_date: st.birth_date }).eq('student_id', data.student_id);
+                                await sysDB.from('students').update({ 
+                                    student_title: st.student_title, 
+                                    student_name: st.student_name, 
+                                    gender: st.gender, 
+                                    birth_date: st.birth_date 
+                                }).eq('student_id', data.student_id);
                             } else {
                                 await sysDB.from('students').insert([st]);
                             }
@@ -665,7 +675,6 @@
             }
         }
         
-        // (Function printIDCards และ Helper format เหมือนเดิม)
         function formatDate(dateStr) {
             if(!dateStr) return '-';
             const d = new Date(dateStr);
@@ -682,6 +691,7 @@
             students.forEach(st => {
                 const qrContent = `FS|${st.student_id}`; 
                 let dobText = st.birth_date ? formatDate(st.birth_date) : '-';
+                const fullName = `${st.student_title || ''}${st.student_name}`;
                 
                 const cardHtml = `
                     <div class="id-card" id="card_${st.student_id}">
@@ -690,7 +700,7 @@
                         <div class="card-content">
                             <div id="qr_${st.student_id}" class="card-qr"></div>
                             <div class="card-details">
-                                <div class="card-name">${st.student_name}</div>
+                                <div class="card-name">${fullName}</div>
                                 <div class="card-code" style="font-size:16px; font-weight:bold; color:#4361ee;">${st.student_code || '-'}</div>
                                 <div class="card-code" style="font-size:10px;">DOB: ${dobText}</div>
                             </div>
