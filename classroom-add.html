@@ -20,9 +20,8 @@
         body {
             font-family: 'Sarabun', sans-serif;
             background: var(--bg-gradient);
-            margin: 0; padding: 80px 20px 20px; /* เว้นบนให้ Navbar */
-            min-height: 100vh;
-            color: #2b2d42;
+            margin: 0; padding: 80px 20px 20px;
+            min-height: 100vh; color: #2b2d42;
         }
 
         /* Navbar */
@@ -41,9 +40,8 @@
         .btn-close { font-size: 24px; color: #666; cursor: pointer; transition: 0.2s; }
         .btn-close:hover { color: #d32f2f; transform: rotate(90deg); }
 
-        /* Form Container */
+        /* Container */
         .container { max-width: 600px; margin: 0 auto; }
-        
         .card-glass {
             background: var(--glass-bg); border-radius: 24px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
@@ -51,32 +49,48 @@
         }
 
         h2 { font-family: 'Kanit', sans-serif; margin-top: 0; color: var(--primary-color); }
-
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .full-width { grid-column: span 2; }
 
         .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-        input, select {
+        input[type="text"], input[type="number"], select {
             width: 100%; padding: 12px; border: 2px solid #edf2f4;
             border-radius: 10px; font-family: 'Sarabun', sans-serif; font-size: 16px;
             box-sizing: border-box; transition: 0.3s;
         }
         input:focus, select:focus { border-color: var(--primary-color); outline: none; background: white; }
 
-        /* Color Picker Styles */
+        /* --- Color Picker Styles --- */
         .color-options { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+        
         .color-option {
             width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
             border: 3px solid transparent; transition: 0.2s; position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .color-option.selected { border-color: #333; transform: scale(1.1); }
+        .color-option.selected { border-color: #333; transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         
-        /* Gradient Presets */
+        /* Presets */
         .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
         .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
         .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
         .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
         .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
+
+        /* Custom Color Button (+) */
+        .custom-color-btn {
+            background: #fff; border: 2px dashed #bbb;
+            display: flex; justify-content: center; align-items: center;
+            color: #888; font-size: 18px; overflow: hidden;
+        }
+        .custom-color-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        
+        /* ซ่อน input color ไว้ข้างในปุ่ม */
+        .custom-color-btn input[type="color"] {
+            position: absolute; top: -10px; left: -10px;
+            width: 200%; height: 200%;
+            opacity: 0; cursor: pointer;
+        }
 
         .btn-submit {
             width: 100%; padding: 15px; border: none; border-radius: 12px;
@@ -134,11 +148,15 @@
                     <div class="input-group full-width">
                         <label>เลือกธีมสีการ์ด</label>
                         <div class="color-options">
-                            <div class="color-option g-1 selected" onclick="selectColor(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
-                            <div class="color-option g-2" onclick="selectColor(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
-                            <div class="color-option g-3" onclick="selectColor(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
-                            <div class="color-option g-4" onclick="selectColor(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
-                            <div class="color-option g-5" onclick="selectColor(this, 'linear-gradient(45deg, #e0c3fc, #8ec5fc)')"></div>
+                            <div class="color-option g-1 selected" onclick="selectPreset(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
+                            <div class="color-option g-2" onclick="selectPreset(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
+                            <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
+                            <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
+                            
+                            <div class="color-option custom-color-btn" id="customColorBtn">
+                                <i class="fas fa-plus" id="plusIcon"></i>
+                                <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
+                            </div>
                         </div>
                     </div>
 
@@ -159,19 +177,48 @@
         if (!window.supabase) return;
         sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // เช็ค Login
         const { data: { user } } = await sysDB.auth.getUser();
         if (!user) window.location.href = 'teacher-login.html';
     });
 
-    // ฟังก์ชันเลือกสี
-    function selectColor(element, gradient) {
+    // 1. ฟังก์ชันเลือกสีแบบ Preset
+    function selectPreset(element, gradient) {
+        // ล้าง selection เก่า
         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+        
+        // เลือกตัวใหม่
         element.classList.add('selected');
         selectedGradient = gradient;
+
+        // รีเซ็ตปุ่ม Custom ให้กลับเป็น (+)
+        const customBtn = document.getElementById('customColorBtn');
+        customBtn.style.background = '#fff';
+        customBtn.style.border = '2px dashed #bbb';
+        document.getElementById('plusIcon').style.display = 'block';
     }
 
-    // ฟังก์ชันบันทึกข้อมูล
+    // 2. ฟังก์ชันเมื่อเลือกสีเอง (Custom Color)
+    function handleCustomColor(input) {
+        const color = input.value;
+        const customBtn = document.getElementById('customColorBtn');
+        const plusIcon = document.getElementById('plusIcon');
+
+        // สร้าง Gradient จากสีที่เลือก (ไล่สีจาก สีเข้ม -> สีเดียวกัน)
+        // เพื่อให้ Format ตรงกับ Database ที่เก็บเป็น text 'linear-gradient(...)'
+        selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
+
+        // ล้าง selection ของ Preset อื่น
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+
+        // ไฮไลท์ปุ่ม Custom
+        customBtn.classList.add('selected');
+        
+        // เปลี่ยนสีพื้นหลังปุ่ม Custom เป็นสีที่เลือก
+        customBtn.style.background = color;
+        customBtn.style.border = 'none';
+        plusIcon.style.display = 'none'; // ซ่อนเครื่องหมายบวก
+    }
+
     async function createClassroom(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSave');
@@ -186,14 +233,12 @@
                 room_name: document.getElementById('room').value,
                 academic_year: document.getElementById('year').value,
                 semester: document.getElementById('semester').value,
-                color_code: selectedGradient
+                color_code: selectedGradient // ส่งค่าสีที่เลือก (ไม่ว่าจะเป็น Preset หรือ Custom)
             };
 
             const { error } = await sysDB.from('classrooms').insert([newClass]);
 
             if (error) throw error;
-
-            // สำเร็จ! กลับไปหน้า Dashboard
             window.location.href = 'teacher-dashboard.html';
 
         } catch (err) {
