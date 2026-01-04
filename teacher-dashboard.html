@@ -235,14 +235,12 @@
         if (!window.supabase) return;
         sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 1. ตรวจสอบ Login
         const { data: { user } } = await sysDB.auth.getUser();
         if (!user) { window.location.href = 'teacher-login.html'; return; }
 
-        // 2. ดึงชื่อครู + ดึงข้อมูลห้องเรียน
         await Promise.all([
             fetchTeacherProfile(user.id),
-            fetchClassrooms(user.id) // ✅ เรียกใช้ฟังก์ชันดึงห้องเรียน
+            fetchClassrooms(user.id)
         ]);
         
         document.getElementById('loadingOverlay').style.display = 'none';
@@ -252,90 +250,112 @@
         try {
             const { data } = await sysDB.from('teachers').select('first_name, last_name').eq('teacher_id', userId).single();
             if (data) {
-                const fullName = `${data.first_name} ${data.last_name}`;
-                document.getElementById('teacherName').innerText = fullName;
+                document.getElementById('teacherName').innerText = `${data.first_name} ${data.last_name}`;
                 document.getElementById('welcomeHeader').innerText = `สวัสดีครับ คุณครู${data.first_name}`;
             }
-        } catch (err) { console.error("Profile Error:", err); }
+        } catch (err) { console.error(err); }
     }
 
-    // ✅ ฟังก์ชันดึงห้องเรียนจาก Database
     async function fetchClassrooms(userId) {
         const grid = document.getElementById('classGrid');
-        grid.innerHTML = ''; // ล้าง Mockup เดิมทิ้ง
-
+        grid.innerHTML = '';
         try {
-            const { data, error } = await sysDB
-                .from('classrooms')
-                .select('*')
-                .eq('teacher_id', userId)
-                .order('created_at', { ascending: false }); // เรียงจากใหม่ไปเก่า
-
+            const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
 
             if (data.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-folder-open" style="font-size: 40px; margin-bottom: 10px;"></i>
-                        <p>คุณยังไม่ได้สร้างห้องเรียน</p>
-                        <small>กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนแรก</small>
-                    </div>
-                `;
+                grid.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open" style="font-size:40px;"></i><p>ยังไม่มีห้องเรียน</p></div>`;
                 return;
             }
 
-            // Loop สร้างการ์ด
             data.forEach(room => {
                 const card = document.createElement('div');
                 card.className = 'class-card';
-                // เมื่อคลิกการ์ด ให้ไปหน้า class-detail (ไฟล์ถัดไปที่จะทำ)
-                card.onclick = () => alert(`กำลังไปที่ห้อง: ${room.subject_name}`); 
-
+                card.onclick = () => alert(`ไปที่ห้อง: ${room.subject_name}`);
                 card.innerHTML = `
                     <div class="card-img" style="background: ${room.color_code}"></div>
-                    <div class="card-body">
-                        <h3>${room.subject_name}</h3>
-                        <p><i class="fas fa-door-open"></i> ${room.room_name} &nbsp;|&nbsp; <i class="fas fa-calendar-alt"></i> ${room.academic_year}</p>
-                    </div>
-                    <div class="card-footer">
-                        <span><i class="fas fa-user-graduate"></i> 0 คน</span>
-                        <span><i class="fas fa-ellipsis-h"></i></span>
-                    </div>
+                    <div class="card-body"><h3>${room.subject_name}</h3><p>${room.room_name} | ${room.academic_year}</p></div>
+                    <div class="card-footer"><span><i class="fas fa-user-graduate"></i> 0 คน</span></div>
                 `;
                 grid.appendChild(card);
             });
+        } catch (err) { console.error(err); }
+    }
+
+    // --- Modal Logic ---
+    function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+    function closePasswordModal() { 
+        document.getElementById('passwordModal').style.display = 'none'; 
+        document.getElementById('oldPass').value = '';
+        document.getElementById('newPass').value = '';
+        document.getElementById('confPass').value = '';
+    }
+    function toggleModalPass(id, icon) {
+        const x = document.getElementById(id);
+        if (x.type === "password") { x.type = "text"; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
+        else { x.type = "password"; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+    }
+
+    // --- ✅ ฟังก์ชันเปลี่ยนรหัสผ่าน (แก้ไขใหม่) ---
+    async function changePassword() {
+        const oldPass = document.getElementById('oldPass').value;
+        const newPass = document.getElementById('newPass').value;
+        const confPass = document.getElementById('confPass').value;
+
+        // 1. ตรวจสอบข้อมูลนำเข้า
+        if (!oldPass) { alert("⚠️ กรุณากรอกรหัสผ่านเดิม"); return; }
+        if (newPass.length < 6) { alert("⚠️ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
+        if (newPass !== confPass) { alert("⚠️ รหัสผ่านใหม่ไม่ตรงกัน"); return; }
+        if (oldPass === newPass) { alert("⚠️ รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม"); return; }
+
+        const btn = document.querySelector('.btn-confirm');
+        const oldText = btn.innerText;
+        btn.innerText = "กำลังตรวจสอบ...";
+        btn.disabled = true;
+
+        try {
+            // ดึงข้อมูล User ปัจจุบัน
+            const { data: { user } } = await sysDB.auth.getUser();
+
+            // 2. 🔑 เช็ครหัสเก่า (สำคัญ: ใช้ signInWithPassword)
+            const { error: signInError } = await sysDB.auth.signInWithPassword({
+                email: user.email,
+                password: oldPass
+            });
+
+            // ❌ ถ้ารหัสเก่าผิด ให้หยุดทันที! ห้ามไปต่อ
+            if (signInError) {
+                alert("❌ รหัสผ่านเดิมไม่ถูกต้อง! (การเปลี่ยนรหัสถูกยกเลิก)");
+                btn.innerText = oldText;
+                btn.disabled = false;
+                return; // จบการทำงาน
+            }
+
+            // 3. ✅ ถ้ารหัสเก่าถูก ค่อยบันทึกรหัสใหม่
+            btn.innerText = "กำลังบันทึก...";
+            const { error: updateError } = await sysDB.auth.updateUser({ 
+                password: newPass 
+            });
+
+            if (updateError) throw updateError;
+
+            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่");
+            
+            // Logout เพื่อให้เข้าใหม่ด้วยรหัสใหม่
+            await sysDB.auth.signOut();
+            window.location.href = 'teacher-login.html';
 
         } catch (err) {
-            console.error("Classroom Error:", err);
-            grid.innerHTML = `<p style="color:red">โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
+            console.error(err);
+            alert("❌ เกิดข้อผิดพลาด: " + err.message);
+            btn.innerText = oldText;
+            btn.disabled = false;
         }
     }
 
     async function handleLogout() {
-        if (!sysDB) return;
         await sysDB.auth.signOut();
         window.location.href = 'teacher-login.html';
-    }
-
-    // Password Modal Logic
-    function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
-    function closePasswordModal() { 
-        document.getElementById('passwordModal').style.display = 'none'; 
-        document.getElementById('newPass').value = ''; document.getElementById('confPass').value = '';
-    }
-    async function changePassword() {
-        const newPass = document.getElementById('newPass').value;
-        const confPass = document.getElementById('confPass').value;
-        if (newPass.length < 6) { alert("⚠️ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
-        if (newPass !== confPass) { alert("⚠️ รหัสผ่านไม่ตรงกัน"); return; }
-        if(!sysDB) return;
-        const btn = document.querySelector('.btn-confirm'); btn.innerText = "บันทึก..."; btn.disabled = true;
-        try {
-            const { error } = await sysDB.auth.updateUser({ password: newPass });
-            if (error) throw error;
-            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ!"); closePasswordModal();
-        } catch (err) { alert("❌ " + err.message); } 
-        finally { btn.innerText = "ยืนยัน"; btn.disabled = false; }
     }
 </script>
 
