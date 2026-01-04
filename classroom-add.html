@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>01สร้างห้องเรียนใหม่ - FlipSchool</title>
+    <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
     <link rel="icon" href="img/favicon.png">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* CSS เดิม */
+        /* CSS Presets & Layout */
         .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
         .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
         .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
         .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
-        .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
 
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .full-width { grid-column: span 2; }
@@ -27,14 +26,11 @@
             width: 40px; height: 40px; border-radius: 50%; position: relative;
             cursor: pointer; transition: 0.2s;
         }
-        .custom-color-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
         .custom-color-btn.selected { border: 2px solid #333; }
-        
         .custom-color-btn input[type="color"] {
             position: absolute; top: -10px; left: -10px;
             width: 200%; height: 200%; opacity: 0; cursor: pointer;
         }
-
         @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
     </style>
 </head>
@@ -63,17 +59,14 @@
                         <label>ชื่อวิชา</label>
                         <input type="text" id="subject" placeholder="เช่น ภาษาไทย, คณิตศาสตร์" required>
                     </div>
-
                     <div class="input-group">
                         <label>ระดับชั้น/ห้อง</label>
                         <input type="text" id="room" placeholder="เช่น ป.1/1, ม.3/2" required>
                     </div>
-
                     <div class="input-group">
                         <label>ปีการศึกษา</label>
                         <input type="number" id="year" value="2569" required>
                     </div>
-
                     <div class="input-group full-width">
                         <label>ภาคเรียน</label>
                         <select id="semester">
@@ -82,7 +75,6 @@
                             <option value="ฤดูร้อน">ภาคฤดูร้อน</option>
                         </select>
                     </div>
-
                     <div class="input-group full-width">
                         <label>เลือกธีมสีการ์ด</label>
                         <div class="color-options">
@@ -103,7 +95,6 @@
     </div>
 
     <script>
-        // Config
         const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
         let sysDB = null;
@@ -135,12 +126,12 @@
             document.getElementById('plusIcon').style.display = 'none';
         }
 
-        // --- ฟังก์ชันหลักที่แก้ไข ---
         async function createClassroom(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSave');
-            btn.disabled = true; btn.innerText = 'กำลังตรวจสอบ...';
+            btn.disabled = true; btn.innerText = 'กำลังบันทึก...';
 
+            // 1. ดึงค่าและ Trim ช่องว่างหัวท้ายออก ป้องกันปัญหา "Math" vs "Math "
             const subject = document.getElementById('subject').value.trim();
             const room = document.getElementById('room').value.trim();
             const year = document.getElementById('year').value;
@@ -150,35 +141,12 @@
                 const { data: { user } } = await sysDB.auth.getUser();
                 if (!user) throw new Error("กรุณาเข้าสู่ระบบ");
 
-                // 1. เช็คว่ามีห้องเรียนซ้ำหรือไม่?
-                const { data: existingClass, error: checkError } = await sysDB
-                    .from('classrooms')
-                    .select('classroom_id')
-                    .eq('teacher_id', user.id)
-                    .eq('subject_name', subject)
-                    .eq('room_name', room)
-                    .eq('academic_year', year)
-                    .eq('semester', semester);
-
-                if (checkError) throw checkError;
-
-                // ถ้าเจอข้อมูลซ้ำ (Length > 0) ให้แจ้งเตือนและหยุด
-                if (existingClass && existingClass.length > 0) {
-                    alert(`⚠️ มีห้องเรียน "${subject}" (${room}) ปี ${year} เทอม ${semester} อยู่แล้ว!`);
-                    btn.disabled = false; 
-                    btn.innerText = 'สร้างห้องเรียน';
-                    return; // หยุดการทำงานตรงนี้ ไม่บันทึก
-                }
-
-                // 2. ถ้าไม่ซ้ำ ให้บันทึกตามปกติ
-                btn.innerText = 'กำลังบันทึก...';
-
-                // (Optional) ดึง school_id ถ้าจำเป็น
+                // ดึง School ID
                 const { data: teacherData } = await sysDB.from('teachers').select('school_id').eq('teacher_id', user.id).single();
-                
+
                 const newClass = {
                     teacher_id: user.id,
-                    school_id: teacherData ? teacherData.school_id : null,
+                    school_id: teacherData?.school_id,
                     subject_name: subject,
                     room_name: room,
                     academic_year: year,
@@ -186,9 +154,22 @@
                     color_code: selectedGradient
                 };
 
-                const { error: insertError } = await sysDB.from('classrooms').insert([newClass]);
-                if (insertError) throw insertError;
+                // 2. สั่ง Insert เลย แล้วรอจับ Error จาก Database (แม่นยำที่สุด)
+                const { error } = await sysDB.from('classrooms').insert([newClass]);
 
+                if (error) {
+                    // รหัส 23505 คือ Unique Violation (ข้อมูลซ้ำ)
+                    if (error.code === '23505') {
+                        alert(`⚠️ ห้องเรียนวิชา "${subject}" ห้อง ${room} (ปี ${year} เทอม ${semester}) มีอยู่แล้วครับ`);
+                        btn.disabled = false;
+                        btn.innerText = 'สร้างห้องเรียน';
+                        return; // จบการทำงาน ไม่ไปต่อ
+                    } else {
+                        throw error; // ถ้าเป็น Error อื่น ให้โยนไป catch
+                    }
+                }
+
+                // 3. ถ้าไม่ซ้ำ ก็ไปต่อ
                 window.location.href = 'teacher-dashboard.html';
 
             } catch (err) {
