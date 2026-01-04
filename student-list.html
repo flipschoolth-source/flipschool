@@ -388,67 +388,79 @@
             }
         }
 
-        // --- PDF & QR Generation ---
-        async function printIDCards() {
-            const { data: students } = await sysDB.from('students').select('*').eq('classroom_id', currentClassId);
-            if (!students || students.length === 0) { alert('ไม่มีข้อมูลนักเรียน'); return; }
 
-            const printArea = document.getElementById('printArea');
-            printArea.innerHTML = '';
+
+    // --- PDF & QR Generation (Updated for Unique ID) ---
+    async function printIDCards() {
+        // ดึงข้อมูลโรงเรียนด้วย (ถ้ามี) เพื่อเอามาโชว์บนบัตร
+        const { data: students } = await sysDB.from('students').select('*').eq('classroom_id', currentClassId);
+        if (!students || students.length === 0) { alert('ไม่มีข้อมูลนักเรียน'); return; }
+    
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = '';
+        
+        // สร้าง HTML ของบัตรแต่ละใบ
+        students.forEach(st => {
+            // ✅ แก้ไขตรงนี้: ใช้ UUID เพื่อความ Unique 100%
+            // Format: FS|UUID (FS ย่อมาจาก FlipSchool เอาไว้เช็คตอนสแกนว่าใช่ QR ของแอพเราไหม)
+            const qrContent = `FS|${st.student_id}`;
             
-            // สร้าง HTML ของบัตรแต่ละใบ
-            students.forEach(st => {
-                // QR Data: เก็บเป็น JSON เพื่อความยืดหยุ่น {i: ID, d: DOB}
-                const qrData = JSON.stringify({ i: st.student_code, d: st.birth_date });
-                const cardId = `card_${st.student_id}`;
-                
-                const cardHtml = `
-                    <div class="id-card" id="${cardId}">
-                        <div class="card-header-bg"></div>
-                        <div style="text-align:right; font-size:10px; color:white; position:relative; z-index:2; padding-right:5px; padding-top:5px;">FlipSchool Student ID</div>
-                        <div class="card-content">
-                            <div id="qr_${st.student_id}" class="card-qr"></div>
-                            <div class="card-details">
-                                <div class="card-name">${st.student_name}</div>
-                                <div class="card-code">ID: ${st.student_code || '-'}</div>
-                                <div class="card-code">Class: ${st.student_number ? 'No.'+st.student_number : ''}</div>
-                            </div>
+            const cardId = `card_${st.student_id}`;
+            
+            // จัด Format วันเกิดให้สวยงาม (ถ้ามี)
+            let dobText = '-';
+            if (st.birth_date) {
+                const d = new Date(st.birth_date);
+                dobText = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+            }
+    
+            const cardHtml = `
+                <div class="id-card" id="${cardId}">
+                    <div class="card-header-bg"></div>
+                    <div style="text-align:right; font-size:10px; color:white; position:relative; z-index:2; padding-right:5px; padding-top:5px;">FlipSchool ID Card</div>
+                    <div class="card-content">
+                        <div id="qr_${st.student_id}" class="card-qr"></div>
+                        <div class="card-details">
+                            <div class="card-name">${st.student_name}</div>
+                            <div class="card-code" style="font-size:16px; font-weight:bold; color:#4361ee;">${st.student_code || '-'}</div>
+                            <div class="card-code" style="font-size:10px;">DOB: ${dobText}</div>
                         </div>
                     </div>
-                `;
-                printArea.insertAdjacentHTML('beforeend', cardHtml);
-                
-                // สร้าง QR Code
-                new QRCode(document.getElementById(`qr_${st.student_id}`), {
-                    text: qrData,
-                    width: 70,
-                    height: 70
-                });
+                </div>
+            `;
+            printArea.insertAdjacentHTML('beforeend', cardHtml);
+            
+            // สร้าง QR Code
+            new QRCode(document.getElementById(`qr_${st.student_id}`), {
+                text: qrContent,
+                width: 70,
+                height: 70,
+                correctLevel: QRCode.CorrectLevel.L // ใช้ L เพื่อให้ QR ลายไม่ละเอียดมาก สแกนง่ายสำหรับเด็ก
             });
-
-            // รอให้ QR render เสร็จ แล้วแปลงเป็น PDF
-            setTimeout(async () => {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const cards = document.querySelectorAll('.id-card');
+        });
+    
+        // รอ render แล้วทำ PDF (เหมือนเดิม)
+        setTimeout(async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const cards = document.querySelectorAll('.id-card');
+            
+            let x = 10, y = 10;
+            for (let i = 0; i < cards.length; i++) {
+                const canvas = await html2canvas(cards[i], { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
                 
-                let x = 10, y = 10;
-                for (let i = 0; i < cards.length; i++) {
-                    const canvas = await html2canvas(cards[i], { scale: 2 }); // Scale 2 เพื่อความชัด
-                    const imgData = canvas.toDataURL('image/png');
-                    
-                    doc.addImage(imgData, 'PNG', x, y, 85, 54); // ขนาดบัตรมาตรฐาน
-                    
-                    // จัดวางแบบ Grid 2 คอลัมน์
-                    x += 95;
-                    if (x > 110) { x = 10; y += 60; }
-                    if (y > 250) { doc.addPage(); y = 10; } // ขึ้นหน้าใหม่
-                }
+                doc.addImage(imgData, 'PNG', x, y, 85, 54);
                 
-                doc.save('Student_ID_Cards.pdf');
-                alert('✅ ดาวน์โหลด PDF เรียบร้อย');
-            }, 1000);
-        }
+                x += 95;
+                if (x > 110) { x = 10; y += 60; }
+                if (y > 250) { doc.addPage(); y = 10; }
+            }
+            
+            doc.save('Student_ID_Cards.pdf');
+            alert('✅ ดาวน์โหลด PDF เรียบร้อย');
+        }, 1000);
+    }
     </script>
 </body>
 </html>
