@@ -7,10 +7,12 @@
     <link rel="icon" href="img/favicon.png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* --- CSS เดิม (ไม่เปลี่ยน) --- */
         :root {
             --primary-color: #4361ee;
             --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -27,8 +29,7 @@
 
         /* --- Navbar --- */
         nav {
-            position: fixed; top: 0; left: 0; width: 100%;
-            height: 70px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 70px;
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 20px; box-sizing: border-box; z-index: 1000;
             background: rgba(255, 255, 255, 0.95);
@@ -43,14 +44,13 @@
         .nav-brand span { color: var(--primary-color); }
 
         .nav-profile { display: flex; align-items: center; gap: 15px; }
-        .profile-info { text-align: right; display: none; } /* ซ่อนในมือถือ */
+        .profile-info { text-align: right; display: none; }
         .profile-name { font-weight: 600; font-size: 14px; display: block; }
         .profile-role { font-size: 12px; color: #666; }
         
         .profile-img {
             width: 40px; height: 40px; border-radius: 50%;
-            border: 2px solid var(--primary-color);
-            object-fit: cover;
+            border: 2px solid var(--primary-color); object-fit: cover;
         }
 
         .btn-logout {
@@ -65,7 +65,7 @@
 
         /* --- Content --- */
         .container {
-            padding: 90px 20px 80px; /* เว้นที่ให้ Nav และ FAB */
+            padding: 90px 20px 80px;
             max-width: 1200px; margin: 0 auto;
         }
 
@@ -73,14 +73,10 @@
         .welcome-section h1 { font-family: 'Kanit', sans-serif; margin: 0; color: #333; }
         .welcome-section p { margin: 5px 0 0; color: #666; }
 
-        /* --- Grid Layout --- */
         .class-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
         }
 
-        /* --- Card Style --- */
         .class-card {
             background: white; border-radius: 20px;
             overflow: hidden; cursor: pointer;
@@ -88,15 +84,10 @@
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
         }
-        .class-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
+        .class-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
 
         .card-header {
-            height: 100px;
-            padding: 20px;
-            color: white;
+            height: 100px; padding: 20px; color: white;
             display: flex; flex-direction: column; justify-content: flex-end;
         }
         .card-header h3 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
@@ -105,15 +96,9 @@
         .card-body { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; color: #555; }
         .student-count { font-size: 14px; display: flex; align-items: center; gap: 5px; }
 
-        /* --- Empty State --- */
-        .empty-state {
-            text-align: center; padding: 50px 20px;
-            grid-column: 1 / -1; color: #888;
-        }
+        .empty-state { text-align: center; padding: 50px 20px; grid-column: 1 / -1; color: #888; }
         .empty-state i { font-size: 60px; margin-bottom: 20px; color: #ccc; }
-        .empty-state p { font-size: 18px; }
 
-        /* --- FAB (Add Button) --- */
         .fab-add {
             position: fixed; bottom: 30px; right: 30px;
             width: 60px; height: 60px; border-radius: 50%;
@@ -136,7 +121,6 @@
             border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
     </style>
 </head>
 <body>
@@ -144,6 +128,7 @@
     <div id="loadingOverlay">
         <div class="spinner"></div>
         <p style="margin-top:15px; font-family:'Kanit',sans-serif;">กำลังโหลดข้อมูล...</p>
+        <button onclick="forceCloseLoading()" style="margin-top:20px; border:none; background:none; color:#999; cursor:pointer; text-decoration:underline; font-size:12px;">(หากรอนานเกินไป กดตรงนี้)</button>
     </div>
 
     <nav>
@@ -170,125 +155,103 @@
             <p>จัดการห้องเรียนและติดตามผลการเรียนได้ที่นี่</p>
         </div>
 
-        <div class="class-grid" id="classroomGrid">
-            </div>
+        <div class="class-grid" id="classroomGrid"></div>
     </div>
 
     <button class="fab-add" onclick="window.location.href='classroom-add.html'">
         <i class="fas fa-plus"></i>
     </button>
 
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
-    
     <script>
-        // Config Supabase (หากยังไม่ได้แยกไฟล์ js/config.js ให้ใช้ตรงนี้)
+        // --- ส่วน Config (รวมไว้ที่นี่ที่เดียว) ---
+        // ไม่ต้องมี <script src="js/config.js"> แล้ว เพื่อป้องกัน Error ตัวแปรซ้ำ
         const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
         let sysDB = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Init Database
-            if (window.supabase) {
-                sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            } else {
-                alert("Supabase Library Error"); return;
-            }
-
-            // 1. Check Auth
-            const { data: { user } } = await sysDB.auth.getUser();
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
-
-            // 2. Load Data (Profile & Classrooms)
-            await Promise.all([
-                loadProfile(user.id),
-                loadClassrooms(user.id)
-            ]);
-
-            // 3. Hide Loading
+        // ฟังก์ชันปิด Loading แบบ Manual
+        function forceCloseLoading() {
             document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 1. Init Database
+                if (!window.supabase) {
+                    throw new Error("Supabase Library not loaded");
+                }
+                sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+                // 2. Check Auth
+                const { data: { user }, error: authError } = await sysDB.auth.getUser();
+                
+                if (authError || !user) {
+                    console.log("No User Found, Redirecting...");
+                    window.location.href = 'teacher-login.html';
+                    return;
+                }
+
+                // 3. Load Data (ใช้ try-catch แยกเพื่อไม่ให้พังทั้งหมด)
+                await Promise.allSettled([
+                    loadProfile(user.id),
+                    loadClassrooms(user.id)
+                ]);
+
+            } catch (err) {
+                console.error("Critical Error:", err);
+                alert("เกิดข้อผิดพลาดในการโหลดระบบ: " + err.message);
+            } finally {
+                // 4. ปิด Loading เสมอ ไม่ว่าจะ Error หรือไม่
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
         });
 
         async function loadProfile(userId) {
             try {
-                const { data, error } = await sysDB
-                    .from('teachers')
-                    .select('first_name, last_name, profile_pic')
-                    .eq('teacher_id', userId)
-                    .single();
-
+                const { data } = await sysDB.from('teachers').select('first_name, last_name, profile_pic').eq('teacher_id', userId).single();
                 if (data) {
-                    const fullName = `${data.first_name} ${data.last_name}`;
-                    document.getElementById('navName').innerText = fullName;
+                    document.getElementById('navName').innerText = `${data.first_name} ${data.last_name}`;
                     document.getElementById('welcomeTitle').innerText = `สวัสดีครับ คุณครู${data.first_name}`;
-                    if (data.profile_pic) {
-                        document.getElementById('navImg').src = data.profile_pic;
-                    }
+                    if (data.profile_pic) document.getElementById('navImg').src = data.profile_pic;
                 }
-            } catch (err) {
-                console.error("Profile Error:", err);
-            }
+            } catch (e) { console.error("Load Profile Error", e); }
         }
 
         async function loadClassrooms(userId) {
             const grid = document.getElementById('classroomGrid');
             try {
-                // ดึงข้อมูล เรียงตามปีการศึกษาล่าสุด และวันที่สร้าง
-                const { data, error } = await sysDB
-                    .from('classrooms')
-                    .select('*')
-                    .eq('teacher_id', userId)
-                    .order('created_at', { ascending: false });
-
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
+                
                 if (error) throw error;
-
-                // กรณีไม่มีข้อมูล (Empty State)
                 if (!data || data.length === 0) {
-                    grid.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                            <p>คุณยังไม่มีห้องเรียน</p>
-                            <p style="font-size:14px;">กดปุ่ม + ด้านล่างเพื่อสร้างห้องเรียนใหม่</p>
-                        </div>
-                    `;
+                    grid.innerHTML = `<div class="empty-state"><i class="fas fa-chalkboard-teacher"></i><p>คุณยังไม่มีห้องเรียน</p><p style="font-size:14px;">กดปุ่ม + เพื่อสร้างใหม่</p></div>`;
                     return;
                 }
 
-                // Render Cards
                 grid.innerHTML = '';
                 data.forEach(room => {
                     const card = document.createElement('div');
                     card.className = 'class-card';
-                    // ลิงก์ไปหน้า Detail (ส่ง ID ไป)
                     card.onclick = () => window.location.href = `classroom-detail.html?id=${room.classroom_id}`;
-
-                    // ใช้สี Gradient จาก DB หรือใช้ค่า Default
-                    const bgStyle = room.color_code || 'linear-gradient(45deg, #4361ee, #3a0ca3)';
+                    
+                    // ใช้สี Gradient Default ถ้าไม่มีข้อมูล
+                    const bg = room.color_code || 'linear-gradient(45deg, #4361ee, #3a0ca3)';
 
                     card.innerHTML = `
-                        <div class="card-header" style="background: ${bgStyle};">
+                        <div class="card-header" style="background: ${bg};">
                             <h3>${room.subject_name}</h3>
-                            <p>${room.room_name} (เทอม ${room.semester}/${room.academic_year})</p>
+                            <p>${room.room_name} (เทอม ${room.semester || 1}/${room.academic_year || 2568})</p>
                         </div>
                         <div class="card-body">
-                            <div class="student-count">
-                                <i class="fas fa-users" style="color:var(--primary-color);"></i>
-                                <span>0 คน</span>
-                            </div>
-                            <div style="font-size:12px; color:#999;">
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
+                            <div class="student-count"><i class="fas fa-users" style="color:#4361ee;"></i><span>0 คน</span></div>
+                            <div style="color:#999;"><i class="fas fa-chevron-right"></i></div>
                         </div>
                     `;
                     grid.appendChild(card);
                 });
-
-            } catch (err) {
-                console.error("Classroom Error:", err);
-                grid.innerHTML = `<p style="color:red; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+            } catch (e) { 
+                console.error("Load Classrooms Error", e); 
+                grid.innerHTML = `<p style="color:red; text-align:center;">โหลดข้อมูลห้องเรียนไม่สำเร็จ</p>`;
             }
         }
 
