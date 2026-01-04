@@ -6,25 +6,15 @@
     <title>จัดการห้องเรียน - FlipSchool</title>
     <link rel="icon" href="img/favicon.png">
 
+    <link rel="stylesheet" href="css/style.css">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --primary-color: #4361ee; --text-color: #2b2d42; --bg-color: #f4f7f6; }
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg-color); margin: 0; padding: 0; padding-bottom: 80px; }
-
-        /* Navbar แบบใส */
-        nav {
-            position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 1000; box-sizing: border-box; color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .nav-btn { color: white; font-size: 20px; cursor: pointer; background: rgba(0,0,0,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); text-decoration: none; border: none; transition: 0.2s; }
-        .nav-btn:hover { background: rgba(0,0,0,0.4); transform: scale(1.1); }
-
-        /* Header */
+        /* CSS เฉพาะหน้านี้ (ส่วน Header และ Menu) */
+        
+        /* Header แสดงสีธีมห้อง */
         .class-header {
             height: 220px; padding: 80px 20px 20px; box-sizing: border-box;
             color: white; display: flex; flex-direction: column; justify-content: flex-end;
@@ -41,8 +31,8 @@
         }
 
         /* Menu Grid */
-        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
         .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: -40px; }
+        
         .menu-card {
             background: white; border-radius: 20px; padding: 25px 15px;
             text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.08);
@@ -58,64 +48,36 @@
         .menu-title { font-weight: 600; color: #333; font-size: 16px; font-family: 'Kanit', sans-serif; }
         .menu-desc { font-size: 12px; color: #888; margin-top: 3px; }
 
+        /* สีไอคอนเมนู */
         .bg-check { background: linear-gradient(135deg, #43e97b, #38f9d7); }
         .bg-student { background: linear-gradient(135deg, #4facfe, #00f2fe); }
         .bg-score { background: linear-gradient(135deg, #fa709a, #fee140); }
         .bg-setting { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #555 !important; }
 
-        /* Loading */
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: flex; justify-content: center; align-items: center; }
-
-        /* --- Modal Styles --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 3000; display: none;
-            justify-content: center; align-items: center; backdrop-filter: blur(5px);
-        }
-        .modal-box {
-            background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .modal-title { font-family: 'Kanit', sans-serif; font-size: 20px; margin: 0 0 15px 0; color: #333; display: flex; justify-content: space-between; align-items: center; }
-        .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
-        .modal-label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #555; }
-        
-        .btn-save { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--primary-color); color: white; font-weight: 600; cursor: pointer; }
+        /* ปุ่มลบห้องเรียน (แดง) */
         .btn-delete { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #ffe5e5; color: #d32f2f; font-weight: 600; cursor: pointer; margin-top: 10px; }
 
-        /* Color Picker ใน Modal */
-        .color-options { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        .color-option {
-            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-            border: 3px solid transparent; transition: 0.2s; position: relative;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .color-option.selected { border-color: #333; transform: scale(1.1); }
-        
+        /* Gradient Presets สำหรับ Modal */
         .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
         .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
         .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
         .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
         .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
 
+        /* Custom Color Picker */
         .custom-color-btn {
             background: #fff; border: 2px dashed #bbb; display: flex; justify-content: center; align-items: center;
             color: #888; font-size: 16px; overflow: hidden; width: 40px; height: 40px; border-radius: 50%; position: relative;
         }
         .custom-color-btn input[type="color"] { position: absolute; width: 200%; height: 200%; opacity: 0; cursor: pointer; top:-50%; left:-50%; }
         .custom-color-btn.selected { border: 2px solid #333; background: var(--custom-bg, white); color: transparent; }
-
     </style>
 </head>
-<body>
-
-    <div id="loadingOverlay">
-        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4361ee; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+<body class="dashboard-page" style="padding-top: 0;"> <div id="loadingOverlay">
+        <div class="spinner-lg"></div>
     </div>
 
-    <nav>
+    <nav style="background: transparent; box-shadow: none; padding: 15px 20px; color: white;">
         <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
         <button class="nav-btn" onclick="openEditModal()"><i class="fas fa-ellipsis-v"></i></button>
     </nav>
@@ -133,16 +95,19 @@
                 <div class="menu-title">เช็คชื่อ</div>
                 <div class="menu-desc">เข้าเรียน / ขาดลา</div>
             </div>
+            
             <div class="menu-card" onclick="goToStudents()">
                 <div class="menu-icon bg-student"><i class="fas fa-users"></i></div>
                 <div class="menu-title">รายชื่อนักเรียน</div>
                 <div class="menu-desc">เพิ่ม/ลบ ข้อมูล</div>
             </div>
+            
             <div class="menu-card" onclick="alert('ระบบคะแนน (Coming Soon)')">
                 <div class="menu-icon bg-score"><i class="fas fa-star"></i></div>
                 <div class="menu-title">คะแนน</div>
                 <div class="menu-desc">เก็บคะแนน / สอบ</div>
             </div>
+            
             <div class="menu-card" onclick="openEditModal()">
                 <div class="menu-icon bg-setting"><i class="fas fa-cog"></i></div>
                 <div class="menu-title">ตั้งค่า</div>
@@ -158,13 +123,13 @@
                 <i class="fas fa-times" style="cursor:pointer;" onclick="closeEditModal()"></i>
             </div>
 
-            <label class="modal-label">ชื่อวิชา</label>
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">ชื่อวิชา</label>
             <input type="text" id="editSubject" class="modal-input">
 
-            <label class="modal-label">ห้อง / ชั้นเรียน</label>
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">ห้อง / ชั้นเรียน</label>
             <input type="text" id="editRoom" class="modal-input">
 
-            <label class="modal-label">เลือกสีธีม</label>
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">เลือกสีธีม</label>
             <div class="color-options">
                 <div class="color-option g-1" onclick="selectColor(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
                 <div class="color-option g-2" onclick="selectColor(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
@@ -183,140 +148,113 @@
         </div>
     </div>
 
-<script>
-    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
-    let sysDB = null;
-    let currentClassId = null;
-    let currentClassData = null; // เก็บข้อมูลห้องไว้ใช้ตอน Edit
-    let selectedGradient = ''; // เก็บค่าสีที่เลือกใหม่
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        if (!window.supabase) return;
-        sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script>
+        let currentClassId = null;
+        let currentClassData = null; 
+        let selectedGradient = ''; 
 
-        const params = new URLSearchParams(window.location.search);
-        currentClassId = params.get('id');
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!sysDB) return;
 
-        if (!currentClassId) { alert('ไม่พบรหัสห้องเรียน'); window.location.href = 'teacher-dashboard.html'; return; }
+            // 1. ดึง ID
+            const params = new URLSearchParams(window.location.search);
+            currentClassId = params.get('id');
+            if (!currentClassId) { window.location.href = 'teacher-dashboard.html'; return; }
 
-        const { data: { user } } = await sysDB.auth.getUser();
-        if (!user) { window.location.href = 'teacher-login.html'; return; }
+            // 2. เช็ค Auth
+            await checkAuthRedirect();
 
-        await fetchClassroomData(currentClassId);
-        document.getElementById('loadingOverlay').style.display = 'none';
-    });
+            // 3. โหลดข้อมูลห้อง
+            await fetchClassroomData(currentClassId);
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
 
-    async function fetchClassroomData(classId) {
-        try {
-            const { data, error } = await sysDB.from('classrooms').select('*').eq('classroom_id', classId).single();
-            if (error) throw error;
-            
-            currentClassData = data; // เก็บลงตัวแปร Global
-            renderClassInfo(data);
+        async function fetchClassroomData(classId) {
+            try {
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('classroom_id', classId).single();
+                if (error) throw error;
+                
+                currentClassData = data; 
+                renderClassInfo(data);
 
-        } catch (err) {
-            console.error(err);
-            alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+            } catch (err) {
+                console.error(err);
+                alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+            }
         }
-    }
 
-    function renderClassInfo(data) {
-        document.getElementById('subjectName').innerText = data.subject_name;
-        document.getElementById('roomName').innerText = data.room_name;
-        document.getElementById('termText').innerText = `${data.semester}/${data.academic_year}`;
-        document.getElementById('headerBg').style.background = data.color_code;
-    }
-
-    function goToStudents() {
-        window.location.href = `student-list.html?cid=${currentClassId}`;
-    }
-
-    // --- Edit Logic ---
-    function openEditModal() {
-        if(!currentClassData) return;
-        
-        // เติมข้อมูลเก่าลง Input
-        document.getElementById('editSubject').value = currentClassData.subject_name;
-        document.getElementById('editRoom').value = currentClassData.room_name;
-        selectedGradient = currentClassData.color_code; // ตั้งค่าสีเริ่มต้น
-
-        // Reset Selection สี
-        document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
-        
-        document.getElementById('editModal').style.display = 'flex';
-    }
-
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-
-    // เลือกสี Preset
-    function selectColor(element, gradient) {
-        document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
-        element.classList.add('selected');
-        selectedGradient = gradient;
-    }
-
-    // เลือกสี Custom (+)
-    function handleCustomColor(input) {
-        const color = input.value;
-        selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
-        
-        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-        const btn = document.getElementById('customColorBtn');
-        btn.classList.add('selected');
-        btn.style.setProperty('--custom-bg', color);
-    }
-
-    // บันทึกการแก้ไข
-    async function saveChanges() {
-        const newSubject = document.getElementById('editSubject').value;
-        const newRoom = document.getElementById('editRoom').value;
-        const btn = document.querySelector('.btn-save');
-        
-        btn.innerText = 'กำลังบันทึก...'; btn.disabled = true;
-
-        try {
-            const { error } = await sysDB.from('classrooms')
-                .update({ 
-                    subject_name: newSubject, 
-                    room_name: newRoom, 
-                    color_code: selectedGradient 
-                })
-                .eq('classroom_id', currentClassId);
-
-            if(error) throw error;
-
-            // อัปเดตหน้าจอทันทีโดยไม่ต้องโหลดใหม่
-            currentClassData.subject_name = newSubject;
-            currentClassData.room_name = newRoom;
-            currentClassData.color_code = selectedGradient;
-            renderClassInfo(currentClassData);
-            
-            closeEditModal();
-            // alert('บันทึกสำเร็จ!');
-
-        } catch (err) {
-            alert('❌ แก้ไขไม่สำเร็จ: ' + err.message);
-        } finally {
-            btn.innerText = 'บันทึกการแก้ไข'; btn.disabled = false;
+        function renderClassInfo(data) {
+            document.getElementById('subjectName').innerText = data.subject_name;
+            document.getElementById('roomName').innerText = data.room_name;
+            document.getElementById('termText').innerText = `${data.semester}/${data.academic_year}`;
+            document.getElementById('headerBg').style.background = data.color_code;
         }
-    }
 
-    // ลบห้องเรียน
-    async function deleteClassroom() {
-        if(!confirm('⚠️ คุณแน่ใจหรือไม่ที่จะลบห้องเรียนนี้?\nข้อมูลนักเรียนและคะแนนทั้งหมดจะหายไปและกู้คืนไม่ได้!')) return;
-
-        try {
-            const { error } = await sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
-            if(error) throw error;
-            
-            alert('ลบห้องเรียนเรียบร้อยแล้ว');
-            window.location.href = 'teacher-dashboard.html';
-        } catch (err) {
-            alert('❌ ลบไม่สำเร็จ: ' + err.message);
+        function goToStudents() {
+            window.location.href = `student-list.html?cid=${currentClassId}`;
         }
-    }
-</script>
 
+        // --- Edit Logic ---
+        function openEditModal() {
+            if(!currentClassData) return;
+            document.getElementById('editSubject').value = currentClassData.subject_name;
+            document.getElementById('editRoom').value = currentClassData.room_name;
+            selectedGradient = currentClassData.color_code; 
+
+            document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        function selectColor(element, gradient) {
+            document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedGradient = gradient;
+        }
+
+        function handleCustomColor(input) {
+            const color = input.value;
+            selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            const btn = document.getElementById('customColorBtn');
+            btn.classList.add('selected');
+            btn.style.setProperty('--custom-bg', color);
+        }
+
+        async function saveChanges() {
+            const newSubject = document.getElementById('editSubject').value;
+            const newRoom = document.getElementById('editRoom').value;
+            const btn = document.querySelector('.btn-save');
+            btn.innerText = 'กำลังบันทึก...'; btn.disabled = true;
+
+            try {
+                const { error } = await sysDB.from('classrooms')
+                    .update({ subject_name: newSubject, room_name: newRoom, color_code: selectedGradient })
+                    .eq('classroom_id', currentClassId);
+                if(error) throw error;
+
+                currentClassData.subject_name = newSubject;
+                currentClassData.room_name = newRoom;
+                currentClassData.color_code = selectedGradient;
+                renderClassInfo(currentClassData);
+                closeEditModal();
+            } catch (err) { alert('❌ แก้ไขไม่สำเร็จ: ' + err.message); } 
+            finally { btn.innerText = 'บันทึกการแก้ไข'; btn.disabled = false; }
+        }
+
+        async function deleteClassroom() {
+            if(!confirm('⚠️ ลบห้องเรียนนี้? ข้อมูลทั้งหมดจะหายไป!')) return;
+            try {
+                const { error } = await sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
+                if(error) throw error;
+                alert('ลบเรียบร้อย');
+                window.location.href = 'teacher-dashboard.html';
+            } catch (err) { alert('❌ ลบไม่สำเร็จ: ' + err.message); }
+        }
+    </script>
 </body>
 </html>
