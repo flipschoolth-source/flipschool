@@ -5,25 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
     <link rel="icon" href="img/favicon.png">
-
     <link rel="stylesheet" href="css/style.css">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* CSS เฉพาะหน้านี้ (Gradient Presets) */
+        /* CSS เดิม */
         .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
         .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
         .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
         .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
         .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
 
-        /* ปรับ Layout ฟอร์มให้เป็น Grid */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .full-width { grid-column: span 2; }
         
-        /* ปุ่มเลือกสีแบบกำหนดเอง (+) */
         .custom-color-btn {
             background: #fff; border: 2px dashed #bbb;
             display: flex; justify-content: center; align-items: center;
@@ -36,8 +32,7 @@
         
         .custom-color-btn input[type="color"] {
             position: absolute; top: -10px; left: -10px;
-            width: 200%; height: 200%;
-            opacity: 0; cursor: pointer;
+            width: 200%; height: 200%; opacity: 0; cursor: pointer;
         }
 
         @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
@@ -107,15 +102,19 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
-
     <script>
+        // Config
+        const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
+        let sysDB = null;
         let selectedGradient = 'linear-gradient(45deg, #ff9a9e, #fad0c4)';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!sysDB) return;
-            await checkAuthRedirect();
+            if(window.supabase) {
+                sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const { data: { user } } = await sysDB.auth.getUser();
+                if (!user) window.location.href = 'teacher-login.html';
+            }
         });
 
         function selectPreset(element, gradient) {
@@ -136,24 +135,62 @@
             document.getElementById('plusIcon').style.display = 'none';
         }
 
+        // --- ฟังก์ชันหลักที่แก้ไข ---
         async function createClassroom(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSave');
-            btn.disabled = true; btn.innerText = 'กำลังสร้าง...';
+            btn.disabled = true; btn.innerText = 'กำลังตรวจสอบ...';
+
+            const subject = document.getElementById('subject').value.trim();
+            const room = document.getElementById('room').value.trim();
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
 
             try {
                 const { data: { user } } = await sysDB.auth.getUser();
+                if (!user) throw new Error("กรุณาเข้าสู่ระบบ");
+
+                // 1. เช็คว่ามีห้องเรียนซ้ำหรือไม่?
+                const { data: existingClass, error: checkError } = await sysDB
+                    .from('classrooms')
+                    .select('classroom_id')
+                    .eq('teacher_id', user.id)
+                    .eq('subject_name', subject)
+                    .eq('room_name', room)
+                    .eq('academic_year', year)
+                    .eq('semester', semester);
+
+                if (checkError) throw checkError;
+
+                // ถ้าเจอข้อมูลซ้ำ (Length > 0) ให้แจ้งเตือนและหยุด
+                if (existingClass && existingClass.length > 0) {
+                    alert(`⚠️ มีห้องเรียน "${subject}" (${room}) ปี ${year} เทอม ${semester} อยู่แล้ว!`);
+                    btn.disabled = false; 
+                    btn.innerText = 'สร้างห้องเรียน';
+                    return; // หยุดการทำงานตรงนี้ ไม่บันทึก
+                }
+
+                // 2. ถ้าไม่ซ้ำ ให้บันทึกตามปกติ
+                btn.innerText = 'กำลังบันทึก...';
+
+                // (Optional) ดึง school_id ถ้าจำเป็น
+                const { data: teacherData } = await sysDB.from('teachers').select('school_id').eq('teacher_id', user.id).single();
+                
                 const newClass = {
                     teacher_id: user.id,
-                    subject_name: document.getElementById('subject').value,
-                    room_name: document.getElementById('room').value,
-                    academic_year: document.getElementById('year').value,
-                    semester: document.getElementById('semester').value,
+                    school_id: teacherData ? teacherData.school_id : null,
+                    subject_name: subject,
+                    room_name: room,
+                    academic_year: year,
+                    semester: semester,
                     color_code: selectedGradient
                 };
-                const { error } = await sysDB.from('classrooms').insert([newClass]);
-                if (error) throw error;
+
+                const { error: insertError } = await sysDB.from('classrooms').insert([newClass]);
+                if (insertError) throw insertError;
+
                 window.location.href = 'teacher-dashboard.html';
+
             } catch (err) {
                 console.error(err);
                 alert('❌ เกิดข้อผิดพลาด: ' + err.message);
