@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>จัดการห้องเรียน - FlipSchool</title>
+    <link rel="icon" href="img/favicon.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root { --primary-color: #4361ee; --text-color: #2b2d42; --bg-color: #f4f7f6; }
+        body { font-family: 'Sarabun', sans-serif; background: var(--bg-color); margin: 0; padding: 0; padding-bottom: 80px; }
+
+        /* Navbar แบบใส (ซ้อนทับ Header) */
+        nav {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; box-sizing: border-box; color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .nav-btn { color: white; font-size: 20px; cursor: pointer; background: rgba(0,0,0,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); text-decoration: none; border: none; }
+
+        /* Header (แสดงสีธีมห้อง) */
+        .class-header {
+            height: 220px; padding: 80px 20px 20px; box-sizing: border-box;
+            color: white; display: flex; flex-direction: column; justify-content: flex-end;
+            background: linear-gradient(45deg, #bbb, #999); /* สีเริ่มต้น */
+            border-radius: 0 0 30px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .class-header h1 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 28px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .class-header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
+        .student-count {
+            position: absolute; right: 20px; bottom: 20px;
+            background: rgba(255,255,255,0.2); padding: 5px 12px;
+            border-radius: 20px; backdrop-filter: blur(5px); font-size: 14px;
+        }
+
+        /* Menu Grid */
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: -40px; }
+        
+        .menu-card {
+            background: white; border-radius: 20px; padding: 25px 15px;
+            text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            cursor: pointer; transition: transform 0.2s; border: 1px solid white;
+        }
+        .menu-card:hover { transform: translateY(-5px); }
+        .menu-icon {
+            width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 28px; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .menu-title { font-weight: 600; color: #333; font-size: 16px; font-family: 'Kanit', sans-serif; }
+        .menu-desc { font-size: 12px; color: #888; margin-top: 3px; }
+
+        /* สีไอคอนเมนู */
+        .bg-check { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .bg-student { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .bg-score { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .bg-setting { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #555 !important; }
+
+        /* Loading */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: flex; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4361ee; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <nav>
+        <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
+        <button class="nav-btn" onclick="alert('เมนูตั้งค่ากำลังมาครับ')"><i class="fas fa-ellipsis-v"></i></button>
+    </nav>
+
+    <div class="class-header" id="headerBg">
+        <h1 id="subjectName">กำลังโหลด...</h1>
+        <p><i class="fas fa-door-open"></i> <span id="roomName">...</span> | <span id="termText">...</span></p>
+        <div class="student-count"><i class="fas fa-user-graduate"></i> <span id="studentCount">0</span> คน</div>
+    </div>
+
+    <div class="container">
+        <div class="menu-grid">
+            
+            <div class="menu-card" onclick="alert('หน้านี้ไว้สำหรับเช็คชื่อ (ยังไม่สร้าง)')">
+                <div class="menu-icon bg-check"><i class="fas fa-user-check"></i></div>
+                <div class="menu-title">เช็คชื่อเข้าเรียน</div>
+                <div class="menu-desc">สแกน QR หรือเช็ครายชื่อ</div>
+            </div>
+
+            <div class="menu-card" onclick="goToStudents()">
+                <div class="menu-icon bg-student"><i class="fas fa-users"></i></div>
+                <div class="menu-title">รายชื่อนักเรียน</div>
+                <div class="menu-desc">เพิ่ม/ลบ ข้อมูลนักเรียน</div>
+            </div>
+
+            <div class="menu-card" onclick="alert('ระบบคะแนนจะมาเร็วๆ นี้')">
+                <div class="menu-icon bg-score"><i class="fas fa-star"></i></div>
+                <div class="menu-title">สมุดคะแนน</div>
+                <div class="menu-desc">บันทึกคะแนนเก็บ/สอบ</div>
+            </div>
+
+            <div class="menu-card" onclick="alert('ระบบตั้งค่าจะมาเร็วๆ นี้')">
+                <div class="menu-icon bg-setting"><i class="fas fa-cog"></i></div>
+                <div class="menu-title">ตั้งค่าห้องเรียน</div>
+                <div class="menu-desc">แก้ไขชื่อ/ลบห้องเรียน</div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    const SUPABASE_URL = 'https://hznmvaxjlgjnrvtjosdt.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE';
+    let sysDB = null;
+    let currentClassId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!window.supabase) return;
+        sysDB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 1. ดึง ID จาก URL
+        const params = new URLSearchParams(window.location.search);
+        currentClassId = params.get('id');
+
+        if (!currentClassId) { alert('ไม่พบรหัสห้องเรียน'); window.location.href = 'teacher-dashboard.html'; return; }
+
+        // 2. ตรวจสอบ Login และ ดึงข้อมูลห้อง
+        const { data: { user } } = await sysDB.auth.getUser();
+        if (!user) { window.location.href = 'teacher-login.html'; return; }
+
+        await fetchClassroomData(currentClassId);
+        document.getElementById('loadingOverlay').style.display = 'none';
+    });
+
+    async function fetchClassroomData(classId) {
+        try {
+            const { data, error } = await sysDB.from('classrooms').select('*').eq('classroom_id', classId).single();
+            if (error) throw error;
+
+            // แสดงข้อมูลบนหน้าเว็บ
+            document.getElementById('subjectName').innerText = data.subject_name;
+            document.getElementById('roomName').innerText = data.room_name;
+            document.getElementById('termText').innerText = `${data.semester}/${data.academic_year}`;
+            
+            // เปลี่ยนสีพื้นหลัง Header ตามที่ตั้งไว้
+            document.getElementById('headerBg').style.background = data.color_code;
+
+        } catch (err) {
+            console.error(err);
+            alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+        }
+    }
+
+    function goToStudents() {
+        // ลิงก์ไปหน้าจัดการนักเรียน (จะสร้างในขั้นตอนถัดไป)
+        window.location.href = `student-list.html?cid=${currentClassId}`;
+    }
+</script>
+
+</body>
+</html>
