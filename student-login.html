@@ -3,197 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าห้องเรียน - FlipSchool</title>
+    <title>เข้าสู่ระบบนักเรียน - FlipSchool</title>
+    <link rel="icon" href="img/favicon.png">
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="img/favicon.png">
-
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css"> <style>
-        /* --- Styles เฉพาะหน้า Login นักเรียน --- */
-        body {
-            background-color: #FFF8E1; /* พื้นหลังสีเหลืองอ่อนๆ ให้ดูสดใสต่างจากหน้าครู */
+    
+    <style>
+        body.auth-page { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        .student-login-card {
+            background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 400px; width: 90%; text-align: center;
         }
-
-        .login-card {
-            background: white;
-            border-radius: 30px; /* มุมมนกว่าปกติ */
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(255, 140, 0, 0.15); /* เงาสีส้มจางๆ */
-            position: relative;
-            margin-top: 20px;
+        .school-badge {
+            background: #eef2ff; color: #4361ee; padding: 8px 15px; border-radius: 12px;
+            font-size: 14px; font-weight: 600; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 8px;
+            border: 1px solid #c7d2fe; cursor: pointer;
         }
-
-        .mascot-icon {
-            font-size: 80px;
-            margin-bottom: 10px;
-            animation: bounce 2s infinite;
-        }
-
-        .input-group {
-            position: relative;
-            margin: 30px 0;
-        }
-
-        .class-code-input {
-            width: 100%;
-            height: 70px;
-            font-size: 32px;
-            font-family: 'Kanit', sans-serif;
-            text-align: center;
-            letter-spacing: 8px;
-            border: 3px solid #eee;
-            border-radius: 20px;
-            background-color: #f9f9f9;
-            color: var(--primary);
-            text-transform: uppercase; /* บังคับตัวพิมพ์ใหญ่ */
-            transition: all 0.3s;
-        }
-
-        .class-code-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background-color: #fff;
-            box-shadow: 0 0 0 5px rgba(255, 140, 0, 0.2);
-        }
-
-        .class-code-input::placeholder {
-            color: #ddd;
-            letter-spacing: 2px;
-            font-size: 24px;
-        }
-
-        .hint-text {
-            font-size: 14px;
-            color: #888;
-            margin-top: 10px;
-        }
-
-        /* ปุ่มสแกน QR */
-        .btn-qr {
-            background-color: white;
-            color: #555;
-            border: 2px dashed #ccc;
-            padding: 12px;
-            border-radius: 15px;
-            width: 100%;
-            margin-top: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-qr:active { background-color: #f0f0f0; }
-
-        /* Animation */
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        /* ปุ่มย้อนกลับ */
-        .back-nav {
-            position: absolute; top: 20px; left: 20px;
-            background: white; width: 40px; height: 40px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            color: var(--primary); text-decoration: none; font-size: 18px;
-            z-index: 10;
-        }
+        .school-badge:hover { background: #e0e7ff; }
+        
+        /* Search Box Styles (ย่อมาจากหน้า Register) */
+        #searchSection { position: relative; margin-bottom: 20px; text-align: left; }
+        #resultsBox { position: absolute; top: 105%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 100; display: none; border: 1px solid #eee; }
+        .result-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 14px; text-align: left; }
+        .result-item:hover { background-color: #f0f7ff; }
     </style>
 </head>
-<body>
+<body class="auth-page">
 
-    <a href="login.html" class="back-nav">
-        <i class="fas fa-arrow-left"></i>
-    </a>
+    <div class="student-login-card">
+        <img src="img/favicon.png" style="width:50px; margin-bottom:5px;">
+        <h2 style="margin:0 0 15px 0; color:#333; font-family:'Kanit';">เข้าห้องเรียน</h2>
 
-    <div class="app-container">
-        
-        <div class="login-card">
-            <div class="mascot-icon">🚀</div>
-            
-            <h1 style="margin-bottom: 5px;">เข้าห้องเรียน</h1>
-            <p style="color: #666;">ใส่รหัสที่คุณครูให้มาตรงนี้เลย</p>
-
-            <div class="input-group">
-                <input type="text" id="classCode" class="class-code-input" placeholder="A1B2" maxlength="6" autocomplete="off">
-                <div class="hint-text">รหัสภาษาอังกฤษ 4-6 ตัวอักษร</div>
+        <div id="selectedSchoolDisplay" style="display:none;">
+            <div class="school-badge" onclick="resetSchool()">
+                <i class="fas fa-school"></i> <span id="schoolNameText">โรงเรียน...</span> <i class="fas fa-times" style="color:#ff4757; margin-left:5px;"></i>
             </div>
-
-            <button class="btn-main" onclick="joinClass()">
-                ไปลุยกันเลย! <i class="fas fa-arrow-right"></i>
-            </button>
-
-            <button class="btn-qr" onclick="alert('ระบบสแกน QR Code กำลังมาเร็วๆ นี้จ้า!')">
-                <i class="fas fa-qrcode"></i> สแกน QR Code
-            </button>
         </div>
 
+        <div id="searchSection">
+            <label style="font-size:14px; font-weight:600; color:#555; display:block; margin-bottom:5px;">เลือกโรงเรียนก่อนครับ</label>
+            <div class="input-wrapper">
+                <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียน..." autocomplete="off">
+                <i class="fas fa-search icon"></i>
+            </div>
+            <div id="resultsBox"></div>
+        </div>
+
+        <form onsubmit="handleStudentLogin(event)" id="loginForm" style="display:none; animation: fadeIn 0.5s;">
+            <div class="input-group">
+                <label style="text-align:left;">เลขประจำตัวนักเรียน</label>
+                <div class="input-wrapper">
+                    <input type="tel" id="stCode" placeholder="เลขประจำตัว" required autocomplete="off">
+                    <i class="fas fa-id-card icon"></i>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label style="text-align:left;">รหัสผ่าน (วันเกิด)</label>
+                <div class="input-wrapper">
+                    <input type="tel" id="stDob" placeholder="05012012 (ค.ศ.)" required maxlength="8" autocomplete="off">
+                    <i class="fas fa-birthday-cake icon"></i>
+                    <i class="fas fa-eye toggle-password" onclick="togglePass()"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btnLogin">เข้าสู่ระบบ</button>
+        </form>
     </div>
 
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
+    
     <script>
-        const input = document.getElementById('classCode');
+        let selectedSchoolId = null;
 
-        // 1. บังคับให้เป็นตัวพิมพ์ใหญ่อัตโนมัติขณะพิมพ์
-        input.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
+        document.addEventListener('DOMContentLoaded', () => {
+            // ✅ เช็คว่าเคยเลือกโรงเรียนไว้ไหม? (จำค่าในเครื่อง)
+            const savedSchool = localStorage.getItem('flip_school_data');
+            if (savedSchool) {
+                const school = JSON.parse(savedSchool);
+                selectSchool(school, false); // false = ไม่ต้องบันทึกซ้ำ
+            }
         });
 
-        // 2. ฟังก์ชันตรวจสอบรหัส
-        function joinClass() {
-            const code = input.value.trim();
+        // --- School Search Logic ---
+        const searchInput = document.getElementById('schoolInput');
+        const resultsBox = document.getElementById('resultsBox');
+        let debounceTimer;
 
-            // เช็คว่ากรอกรหัสหรือยัง
-            if (code.length < 4) {
-                // เขย่าหน้าจอเตือน (Shake Effect แบบบ้านๆ)
-                input.style.borderColor = 'red';
-                input.classList.add('shake');
-                setTimeout(() => {
-                    input.style.borderColor = '#eee';
-                    input.classList.remove('shake');
-                }, 500);
-                
-                alert('หนูๆ ลืมใส่รหัสหรือเปล่าจ๊ะ? 😅');
-                return;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const q = this.value.trim();
+            if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+            debounceTimer = setTimeout(() => searchSchool(q), 500);
+        });
+
+        async function searchSchool(k) {
+            if (!sysDB) return;
+            const { data } = await sysDB.from('schools').select('*').ilike('school_name', `%${k}%`).limit(5);
+            resultsBox.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(s => {
+                    const d = document.createElement('div');
+                    d.className = 'result-item';
+                    d.innerHTML = `<strong>${s.school_name}</strong><br><small style="color:#888;">${s.province}</small>`;
+                    d.onclick = () => selectSchool(s, true);
+                    resultsBox.appendChild(d);
+                });
+                resultsBox.style.display = 'block';
             }
-
-            // --- จำลองการเชื่อมต่อ (ในอนาคตจะต่อ Supabase ตรงนี้) ---
-            
-            // แสดงสถานะกำลังโหลด
-            const btn = document.querySelector('.btn-main');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังเข้าห้อง...';
-            btn.disabled = true;
-
-            setTimeout(() => {
-                // จำลองว่ารหัสถูกต้อง -> ไปหน้า Dashboard
-                // (ในอนาคตต้องเช็คว่า code มีจริงใน DB ไหม)
-                alert('ยินดีต้อนรับเข้าสู่ห้องเรียน! 🎉');
-                
-                // บันทึก Session จำลอง
-                localStorage.setItem('student_class_code', code);
-                
-                // ไปหน้าถัดไป (Step 3.5: Student Dashboard)
-                window.location.href = 'student-dashboard.html'; 
-            }, 1500);
         }
 
-        // เพิ่ม CSS Shake ตอน Error
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes shake {
-                0% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                50% { transform: translateX(5px); }
-                75% { transform: translateX(-5px); }
-                100% { transform: translateX(0); }
-            }
-            .shake { animation: shake 0.3s; border-color: #ff4444 !important; }
-        `;
-        document.head.appendChild(style);
-    </script>
+        function selectSchool(s, saveToLocal) {
+            selectedSchoolId = s.school_id;
+            
+            // แสดง UI ว่าเลือกแล้ว
+            document.getElementById('searchSection').style.display = 'none';
+            document.getElementById('selectedSchoolDisplay').style.display = 'block';
+            document.getElementById('schoolNameText').innerText = s.school_name;
+            document.getElementById('loginForm').style.display = 'block';
 
+            // บันทึกจำไว้ในเครื่อง (เด็กเข้าครั้งหน้าไม่ต้องเลือกใหม่)
+            if (saveToLocal) {
+                localStorage.setItem('flip_school_data', JSON.stringify(s));
+            }
+        }
+
+        function resetSchool() {
+            selectedSchoolId = null;
+            localStorage.removeItem('flip_school_data'); // ล้างความจำ
+            
+            document.getElementById('searchSection').style.display = 'block';
+            document.getElementById('selectedSchoolDisplay').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'none';
+            searchInput.value = '';
+            resultsBox.style.display = 'none';
+        }
+
+        // --- Login Logic ---
+        function togglePass() {
+            const input = document.getElementById('stDob');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        async function handleStudentLogin(e) {
+            e.preventDefault();
+            const code = document.getElementById('stCode').value.trim();
+            let dobInput = document.getElementById('stDob').value.trim();
+            const btn = document.getElementById('btnLogin');
+
+            if (dobInput.length !== 8) { alert('กรุณากรอกวันเกิด 8 หลัก'); return; }
+
+            // แปลงวันที่ (DDMMYYYY -> YYYY-MM-DD)
+            const day = dobInput.substring(0, 2);
+            const month = dobInput.substring(2, 4);
+            const year = dobInput.substring(4, 8);
+            const dbDate = `${year}-${month}-${day}`;
+
+            btn.disabled = true; btn.innerText = 'กำลังตรวจสอบ...';
+
+            try {
+                // ✅ Query ที่ถูกต้อง: ต้องเช็คทั้ง Student Code และ School ID
+                // เนื่องจากตาราง students เชื่อมกับ classrooms และ classrooms เชื่อมกับ schools
+                // เราใช้ Supabase Join Table (Query ข้ามตาราง)
+                
+                const { data, error } = await sysDB
+                    .from('students')
+                    .select('*, classrooms!inner(school_id, schools(school_name))') 
+                    .eq('student_code', code)
+                    .eq('birth_date', dbDate)
+                    .eq('classrooms.school_id', selectedSchoolId) // 🔥 ต้องตรงกับโรงเรียนที่เลือก
+                    .maybeSingle();
+
+                if (error || !data) throw new Error('ไม่พบข้อมูล หรือ ผิดโรงเรียน');
+
+                // สำเร็จ
+                alert(`ยินดีต้อนรับ ${data.student_name} 🎉`);
+                // window.location.href = 'student-dashboard.html';
+
+            } catch (err) {
+                alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + err.message);
+                btn.disabled = false; btn.innerText = 'เข้าสู่ระบบ';
+            }
+        }
+    </script>
 </body>
 </html>
