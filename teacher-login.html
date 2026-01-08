@@ -1,320 +1,76 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบครู - FlipSchool</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="img/favicon.png">
+<script src="js/config.js"></script>
+<script src="js/supabase-db.js"></script> 
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. เรียกใช้ UI พื้นฐานจาก config.js
+        if (typeof initAppUI === 'function') initAppUI();
 
-    <link rel="stylesheet" href="css/style.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
-
-    <style>
-        /* --- ปรับแต่งธีมหลัก --- */
-        :root { 
-            --primary: #00008B; 
-            --primary-light: #0000cd;
-            --accent: #FF8C00; 
-            --school-bg: #E6F7FF; 
-            --text-main: #333; 
-            --text-muted: #555; 
-        }
-
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
-        body { 
-            font-family: 'Sarabun', sans-serif; 
-            background-color: #f9f9f9; 
-            display: flex; 
-            flex-direction: column;
-        }
-
-        /* --- Navbar ชิดขอบบน ยาวตลอดแนว --- */
-        nav {
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            padding: 15px 40px; 
-            background-color: #ffffff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            position: sticky; 
-            top: 0; 
-            z-index: 1000;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        .logo-container { display: flex; align-items: center; gap: 15px; cursor: pointer; text-decoration: none; }
-        .logo-container img { height: 45px; width: auto; }
-        .logo-text-group { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-name { font-size: 22px; font-weight: 600; color: #333; font-family: 'Kanit', sans-serif; }
-        .brand-name span { color: var(--primary); }
-        .slogan { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #666; }
-        
-        .back-link {
-            color: var(--text-muted); 
-            text-decoration: none; 
-            font-size: 14px;
-            display: flex; 
-            align-items: center; 
-            gap: 5px; 
-            transition: color 0.2s;
-            font-family: 'Kanit', sans-serif;
-        }
-        .back-link:hover { color: var(--primary); }
-
-        /* --- Content Area --- */
-        .container {
-            flex: 1;
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            padding: 40px 20px;
-        }
-
-        .card-glass {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
-            border: 1px solid #eee;
-        }
-        
-        .card-header { text-align: center; margin-bottom: 30px; }
-        .card-header i { font-size: 60px; color: var(--primary); margin-bottom: 15px; }
-        .card-header h2 { font-family: 'Kanit', sans-serif; color: var(--primary); font-weight: 700; margin-bottom: 5px; }
-        
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-main); }
-        .input-wrapper { position: relative; }
-        .input-wrapper input {
-            width: 100%;
-            padding: 12px 15px 12px 45px;
-            border: 1.5px solid #eee;
-            border-radius: 12px;
-            font-family: 'Sarabun', sans-serif;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: 0.3s;
-        }
-        .input-wrapper input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(0, 0, 139, 0.1); }
-        .input-wrapper .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
-        .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #aaa; }
-
-        /* --- Remember Me Switch --- */
-        .remember-wrapper {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding: 0 5px;
-        }
-        .remember-text { font-size: 14px; color: var(--text-muted); font-weight: 500; }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px; width: 18px;
-            left: 3px; bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(20px); }
-
-        .btn-submit {
-            background-color: var(--primary);
-            border-radius: 50px;
-            padding: 14px;
-            font-family: 'Kanit', sans-serif;
-            font-weight: 500;
-            font-size: 18px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: 0.3s;
-        }
-        .btn-submit:hover {
-            background-color: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 139, 0.3);
-        }
-
-        /* --- Footer ชิดขอบล่าง ยาวตลอดแนว --- */
-        .footer { 
-            width: 100%;
-            padding: 25px; 
-            font-size: 0.9rem; 
-            color: #888; 
-            text-align: center; 
-            background: #fff; 
-            border-top: 1px solid #eee;
-            box-sizing: border-box;
-            margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-            nav { padding: 12px 20px; }
-            .slogan { display: none; }
-            .card-glass { padding: 30px 20px; }
-        }
-    </style>
-</head>
-<body> 
-    
-    <nav>
-        <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo">
-            <div class="logo-text-group">
-                <div class="brand-name">...</div> 
-                <div class="slogan">...</div> 
-            </div>
-        </a>
-        <a href="login.html" class="back-link"><i class="fas fa-arrow-left"></i> ย้อนกลับ</a>
-    </nav>
-
-    <div class="container">
-        <div class="card-glass">
-            <div class="card-header">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <h2>เข้าสู่ระบบครู</h2>
-                <p>ยินดีต้อนรับกลับเข้าสู่ระบบ FlipSchool</p>
-            </div>
-            
-            <form onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label style="font-family: 'Kanit';">อีเมล</label>
-                    <div class="input-wrapper">
-                        <input type="email" id="email" placeholder="กรอกอีเมลของคุณ" required>
-                        <i class="fas fa-envelope icon"></i>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label style="font-family: 'Kanit';">รหัสผ่าน</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="password" placeholder="กรอกรหัสผ่าน" required>
-                        <i class="fas fa-lock icon"></i>
-                        <i class="fas fa-eye toggle-password" onclick="togglePass()"></i>
-                    </div>
-                </div>
-
-                <div class="remember-wrapper">
-                    <span class="remember-text">จดจำอีเมลในเครื่องนี้</span>
-                    <label class="switch">
-                        <input type="checkbox" id="rememberMe">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-
-                <button type="submit" class="btn-submit" id="btnLogin">
-                    เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>
-                </button>
-                
-                <div style="text-align: center; margin-top: 25px; font-size: 14px;">
-                    <span style="color: #6c757d;">ยังไม่มีบัญชีครู?</span>
-                    <a href="teacher-register.html" style="color: var(--primary); font-weight: 600; text-decoration: none; margin-left: 5px;">ลงทะเบียนใหม่ที่นี่</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="footer">...</div> 
-
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script> 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof initAppUI === 'function') initAppUI();
-
-            // ตรวจสอบข้อมูลใน localStorage
-            const savedEmail = localStorage.getItem('teacher_remember_email');
-            if (savedEmail) {
-                document.getElementById('email').value = savedEmail;
-                document.getElementById('rememberMe').checked = true;
-            }
-        });
-
-        function togglePass() {
-            const input = document.getElementById('password');
-            const icon = document.querySelector('.toggle-password');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            if (!sysDB) { alert("ไม่สามารถเชื่อมต่อระบบได้ กรุณารีเฟรชหน้าเว็บ"); return; }
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-            const btn = document.getElementById('btnLogin');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
-
-            try {
-                const { data, error } = await sysDB.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                // จัดการ Remember Me
-                if (rememberMe) {
-                    localStorage.setItem('teacher_remember_email', email);
-                } else {
-                    localStorage.removeItem('teacher_remember_email');
-                }
-
+        // 2. ตรวจสอบ Session (ถ้าล็อกอินค้างไว้ให้ไป Dashboard ทันที)
+        // เพิ่มส่วนนี้เพื่อทำ Auto-Redirect
+        if (sysDB) {
+            const { data: { session } } = await sysDB.auth.getSession();
+            if (session) {
+                // หากมีเซสชันอยู่แล้ว ให้ข้ามไปหน้าแดชบอร์ด
                 window.location.href = 'teacher-dashboard.html';
-
-            } catch (err) {
-                console.error(err);
-                alert('❌ เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-                btn.disabled = false;
-                btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>';
+                return; // หยุดการทำงานด้านล่าง
             }
         }
-    </script>
-</body>
-</html>
+
+        // 3. ตรวจสอบข้อมูลอีเมลใน localStorage (สำหรับ Remember Me)
+        const savedEmail = localStorage.getItem('teacher_remember_email');
+        if (savedEmail) {
+            document.getElementById('email').value = savedEmail;
+            document.getElementById('rememberMe').checked = true;
+        }
+    });
+
+    // --- ฟังก์ชัน handleLogin อื่นๆ คงเดิม ---
+    async function handleLogin(e) {
+        e.preventDefault();
+        if (!sysDB) { alert("ไม่สามารถเชื่อมต่อระบบได้ กรุณารีเฟรชหน้าเว็บ"); return; }
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('rememberMe').checked;
+        const btn = document.getElementById('btnLogin');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+
+        try {
+            const { data, error } = await sysDB.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+
+            // จัดการ Remember Me (จำแค่อีเมลเพื่อให้การล็อกอินครั้งหน้าเร็วขึ้น)
+            if (rememberMe) {
+                localStorage.setItem('teacher_remember_email', email);
+            } else {
+                localStorage.removeItem('teacher_remember_email');
+            }
+
+            window.location.href = 'teacher-dashboard.html';
+
+        } catch (err) {
+            console.error(err);
+            alert('❌ เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+            btn.disabled = false;
+            btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>';
+        }
+    }
+
+    function togglePass() {
+        const input = document.getElementById('password');
+        const icon = document.querySelector('.toggle-password');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    }
+</script>
