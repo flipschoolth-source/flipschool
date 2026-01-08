@@ -24,7 +24,7 @@
         html, body { height: 100%; margin: 0; padding: 0; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- Navbar --- */
+        /* --- Navbar (Premium) --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 50px; height: 90px; background: var(--white);
@@ -39,7 +39,7 @@
         .slogan { font-size: 13px; color: #636e72; font-weight: 400; }
         .nav-profile-trigger { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; transition: 0.3s ease; }
 
-        /* --- Sidebar --- */
+        /* --- Sidebar & Profile Edit --- */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; z-index: 1999; }
         .sidebar { 
             position: fixed; top: 0; right: calc(var(--sidebar-width) * -1.1); width: var(--sidebar-width); height: 100%; 
@@ -139,10 +139,12 @@
             </div>
 
             <div id="changePasswordForm">
+                <label class="form-label">รหัสผ่านเดิม</label>
+                <input type="password" id="oldPassword" class="form-input" placeholder="กรอกรหัสผ่านปัจจุบัน">
                 <label class="form-label">รหัสผ่านใหม่</label>
                 <input type="password" id="newPassword" class="form-input" placeholder="อย่างน้อย 6 ตัวอักษร">
                 <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
-                <input type="password" id="confirmPassword" class="form-input" placeholder="ระบุรหัสผ่านอีกครั้ง">
+                <input type="password" id="confirmPassword" class="form-input" placeholder="ระบุรหัสผ่านใหม่อีกครั้ง">
                 <button class="btn-save" onclick="updatePassword()">อัปเดตรหัสผ่าน</button>
                 <button class="btn-link" onclick="toggleEditForm()">กลับไปแก้ไขโปรไฟล์</button>
             </div>
@@ -175,8 +177,6 @@
 
     <a href="classroom-add.html" class="fab-add"><i class="fas fa-plus"></i></a>
     <footer class="footer"></footer>
-
-    
 
     <script>
         let currentUser = null;
@@ -250,7 +250,7 @@
             const resultBox = document.getElementById('schoolResults');
             if (query.trim().length < 2) { resultBox.style.display = 'none'; return; }
             
-            const { data, error } = await sysDB
+            const { data } = await sysDB
                 .from('schools')
                 .select('school_id, school_name')
                 .ilike('school_name', `%${query}%`)
@@ -297,21 +297,33 @@
         }
 
         async function updatePassword() {
-            const pwd = document.getElementById('newPassword').value;
+            const oldPwd = document.getElementById('oldPassword').value;
+            const newPwd = document.getElementById('newPassword').value;
             const confirm = document.getElementById('confirmPassword').value;
 
-            if (pwd.length < 6) return alert('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
-            if (pwd !== confirm) return alert('รหัสผ่านไม่ตรงกัน');
+            if (!oldPwd) return alert('กรุณากรอกรหัสผ่านเดิม');
+            if (newPwd.length < 6) return alert('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+            if (newPwd !== confirm) return alert('รหัสผ่านใหม่ไม่ตรงกัน');
 
-            const { error } = await sysDB.auth.updateUser({ password: pwd });
+            // 1. ตรวจสอบรหัสผ่านเดิมโดยการลอง Login ใหม่ (Re-authentication)
+            const { error: authError } = await sysDB.auth.signInWithPassword({
+                email: currentUser.email,
+                password: oldPwd
+            });
 
-            if (!error) {
+            if (authError) return alert('รหัสผ่านเดิมไม่ถูกต้อง');
+
+            // 2. อัปเดตรหัสผ่านใหม่
+            const { error: updateError } = await sysDB.auth.updateUser({ password: newPwd });
+
+            if (!updateError) {
                 alert('เปลี่ยนรหัสผ่านสำเร็จแล้ว');
+                document.getElementById('oldPassword').value = "";
                 document.getElementById('newPassword').value = "";
                 document.getElementById('confirmPassword').value = "";
                 toggleEditForm();
             } else {
-                alert('เกิดข้อผิดพลาด: ' + error.message);
+                alert('เกิดข้อผิดพลาดในการอัปเดต: ' + updateError.message);
             }
         }
 
@@ -339,7 +351,6 @@
             const ov = document.getElementById('sidebarOverlay');
             const isActive = sb.classList.toggle('active');
             ov.style.display = isActive ? 'block' : 'none';
-            // Reset to display mode when opening/closing
             if(!isActive) {
                 document.getElementById('infoDisplay').style.display = 'block';
                 document.getElementById('editProfileForm').style.display = 'none';
