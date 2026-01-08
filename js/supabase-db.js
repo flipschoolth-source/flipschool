@@ -8,14 +8,13 @@ let sysDB = null;
 (function initSupabase() {
     // 1. ตรวจสอบว่าโหลด Library มาหรือยัง
     if (typeof supabase === 'undefined') {
-        console.error('❌ Critical Error: Supabase SDK not found. Please add the CDN script in your HTML head.');
-        alert('ระบบไม่สามารถโหลดฐานข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+        console.error('❌ Critical Error: Supabase SDK not found.');
         return;
     }
 
     // 2. ตรวจสอบ Config
     if (typeof APP_CONFIG === 'undefined') {
-        console.error('❌ Critical Error: Config not found. Please load js/config.js before this file.');
+        console.error('❌ Critical Error: Config not found.');
         return;
     }
 
@@ -28,13 +27,16 @@ let sysDB = null;
     }
 })();
 
-// ฟังก์ชันช่วยเหลือ: ตรวจสอบว่า Login อยู่ไหม? (ใช้บ่อย)
+// ฟังก์ชันช่วยเหลือ: ตรวจสอบสถานะ Login (ถ้าไม่ได้ Login ให้ไปหน้าเข้าสู่ระบบ)
 async function checkAuthRedirect() {
-    if (!sysDB) return;
-    const { data: { user } } = await sysDB.auth.getUser();
-    if (!user) {
-        // ถ้าไม่มี User ให้เด้งไปหน้า Login ทันที
-        window.location.href = 'teacher-login.html';
+    if (!sysDB) return null;
+    try {
+        const { data: { user } } = await sysDB.auth.getUser();
+        if (!user) {
+            window.location.href = 'teacher-login.html';
+        }
+        return user;
+    } catch (e) {
+        return null;
     }
-    return user;
 }
