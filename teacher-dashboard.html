@@ -7,6 +7,7 @@
     
     <link rel="icon" type="image/png" href="img/favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
 
@@ -23,7 +24,7 @@
         html, body { height: 100%; margin: 0; padding: 0; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- Navbar (ดึงข้อมูลจาก config.js) --- */
+        /* --- Navbar ยาวตลอดแนวระนาบ --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 40px; height: 85px; background: var(--white);
@@ -39,17 +40,17 @@
 
         .nav-profile-trigger { width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--primary); cursor: pointer; object-fit: cover; }
 
-        /* --- Content Area --- */
         .main-container { flex: 1; padding: 40px 20px; max-width: 1240px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        /* --- Footer (เหลือเฉพาะ Copyright) --- */
+        /* --- Footer ยาวตลอดแนวระนาบ (ปรับปรุงใหม่ตามสั่ง) --- */
         .footer { 
-            width: 100%; padding: 25px 20px; text-align: center; 
+            width: 100%; padding: 30px 20px; text-align: center; 
             background: var(--white); border-top: 1px solid #edf2f7; 
-            color: #b2bec3; font-size: 13px; box-sizing: border-box; margin-top: auto; 
+            color: #636e72; font-size: 14px; box-sizing: border-box; margin-top: auto; 
         }
+        .footer-copyright { font-size: 13px; color: #b2bec3; max-width: 800px; margin: 0 auto; }
 
-        /* Sidebar, Card, FAB (คงเดิม) */
+        /* Sidebar, Card, FAB Style อื่นๆ (คงเดิม) */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); display: none; z-index: 1999; }
         .sidebar { position: fixed; top: 0; right: -360px; width: 360px; height: 100%; background: var(--white); box-shadow: -10px 0 40px rgba(0,0,0,0.1); transition: 0.4s; z-index: 2000; padding: 50px 30px; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar.active { right: 0; }
@@ -58,14 +59,14 @@
 </head>
 <body>
 
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="sidebar" id="profileSidebar">
-        <button onclick="handleLogout()" style="margin-top:auto; padding:15px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer; font-family:'Kanit'; font-weight:600;">ออกจากระบบ</button>
+        <button onclick="handleLogout()" style="margin-top:auto; padding:15px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer;">ออกจากระบบ</button>
     </div>
 
     <nav>
         <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo">
+            <img src="img/favicon.png" id="navLogo" alt="Logo">
             <div class="logo-text-group">
                 <div class="brand-name" id="navBrandName">...</div>
                 <div class="brand-slogan" id="navSlogan">...</div>
@@ -81,31 +82,33 @@
     <a href="classroom-add.html" class="fab-add"><i class="fas fa-plus"></i></a>
 
     <footer class="footer">
-        <div id="footerCopyright">...</div>
+        <div class="footer-copyright" id="footerCopyright">...</div>
     </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. ดึงข้อมูลจาก config.js มาแสดง
+            // 1. ดึงข้อมูลจาก config.js
             if (typeof APP_CONFIG !== 'undefined') {
                 const brandHTML = `${APP_CONFIG.brandName}<span>${APP_CONFIG.brandExtension || ''}</span>`;
                 
-                // Navbar: แสดงชื่อแบรนด์และสโลแกน
+                // Navbar ยังคงแสดงข้อมูลครบถ้วน
                 document.getElementById('navBrandName').innerHTML = brandHTML;
                 document.getElementById('navSlogan').innerText = APP_CONFIG.slogan;
                 
-                // Footer: แสดงเฉพาะข้อความ Copyright
+                // Footer แสดงเฉพาะ Copyright (นำ Brand และ Slogan ออกแล้ว)
                 document.getElementById('footerCopyright').innerHTML = APP_CONFIG.copyright;
             }
 
-            // 2. ระบบตรวจสอบการล็อกอิน (Supabase)
+            // 2. ตรวจสอบการล็อกอินและดึงข้อมูลโปรไฟล์ (คงเดิม)
             if (typeof sysDB !== 'undefined') {
                 const { data: { user } } = await sysDB.auth.getUser();
                 if (!user) { window.location.href = 'teacher-login.html'; return; }
-                // เรียกฟังก์ชันโหลดข้อมูลห้องเรียนที่นี่
+                
+                // fetchProfile(user.id); // สมมติว่ามีฟังก์ชันนี้
+                // fetchClassrooms(user.id); // สมมติว่ามีฟังก์ชันนี้
             }
 
-            // 3. ระบบ Sidebar (ปิดเมื่อเมาส์ออก)
+            // 3. ระบบ Sidebar Mouseleave (คงเดิม)
             const sidebar = document.getElementById('profileSidebar');
             sidebar.addEventListener('mouseleave', () => {
                 if (sidebar.classList.contains('active')) toggleSidebar();
