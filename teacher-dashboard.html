@@ -7,7 +7,6 @@
     
     <link rel="icon" type="image/png" href="img/favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
 
@@ -24,7 +23,7 @@
         html, body { height: 100%; margin: 0; padding: 0; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- Navbar ยาวตลอดแนวระนาบ --- */
+        /* --- Navbar --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 40px; height: 85px; background: var(--white);
@@ -37,39 +36,66 @@
         .brand-name { font-size: 24px; font-weight: 700; color: #333; font-family: 'Kanit'; }
         .brand-name span { color: var(--primary); }
         .brand-slogan { font-size: 12px; color: #666; font-weight: 400; }
-
         .nav-profile-trigger { width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--primary); cursor: pointer; object-fit: cover; }
 
+        /* --- Main Content --- */
         .main-container { flex: 1; padding: 40px 20px; max-width: 1240px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-
-        /* --- Footer ยาวตลอดแนวระนาบ --- */
-        .footer { 
-            width: 100%; padding: 40px 20px; text-align: center; 
-            background: var(--white); border-top: 1px solid #edf2f7; 
-            color: #636e72; font-size: 14px; box-sizing: border-box; margin-top: auto; 
+        .welcome-hero {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
+            border-radius: 30px; padding: 50px; color: white; margin-bottom: 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 15px 35px rgba(0, 74, 173, 0.2);
         }
-        .footer-brand { font-family: 'Kanit'; font-size: 22px; font-weight: 700; color: #333; margin-bottom: 5px; }
-        .footer-brand span { color: var(--primary); }
-        .footer-slogan { font-size: 14px; color: #666; margin-bottom: 15px; }
-        .footer-copyright { font-size: 13px; color: #b2bec3; border-top: 1px solid #f1f3f5; padding-top: 15px; max-width: 800px; margin: 0 auto; }
 
-        /* Sidebar, Card, FAB Style อื่นๆ (คงเดิม) */
+        /* --- Class Card --- */
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .class-card { background: var(--white); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); transition: 0.4s; cursor: pointer; border: 1px solid rgba(0,0,0,0.02); }
+        .class-card:hover { transform: translateY(-10px); }
+        .card-banner { height: 120px; width: 100%; display: flex; align-items: center; justify-content: center; }
+        .card-body { padding: 25px; }
+        .room-badge { display: inline-block; padding: 4px 12px; background: #f0f4ff; color: var(--primary); border-radius: 50px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+        .subject-title { font-family: 'Kanit'; font-size: 20px; font-weight: 600; color: var(--primary); margin: 0 0 10px 0; }
+
+        /* --- Sidebar --- */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); display: none; z-index: 1999; }
         .sidebar { position: fixed; top: 0; right: -360px; width: 360px; height: 100%; background: var(--white); box-shadow: -10px 0 40px rgba(0,0,0,0.1); transition: 0.4s; z-index: 2000; padding: 50px 30px; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar.active { right: 0; }
-        .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border:none; font-size: 28px; cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+        .profile-img-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 20px; }
+        .profile-img-wrap img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover; }
+
+        /* --- Footer (Clean Copyright) --- */
+        .footer { width: 100%; padding: 30px 20px; text-align: center; background: var(--white); border-top: 1px solid #edf2f7; color: #b2bec3; font-size: 13px; box-sizing: border-box; margin-top: auto; }
+
+        .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border:none; font-size: 28px; cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: 0.3s; }
+        .fab-add:hover { transform: scale(1.1) rotate(90deg); }
     </style>
 </head>
 <body>
 
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="profileSidebar">
-        <button onclick="handleLogout()" style="margin-top:auto; padding:15px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer;">ออกจากระบบ</button>
+        <div class="profile-img-wrap">
+            <img src="" id="sidebarImg">
+        </div>
+        <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary); margin:0;">...</h3>
+        
+        <div style="background: #f8faff; padding: 20px; border-radius: 18px; margin: 20px 0;">
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase;">ชื่อ-นามสกุล</label>
+                <span id="dispFullName" style="display: block; color: #333; font-weight: 600;">...</span>
+            </div>
+            <div>
+                <label style="font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase;">โรงเรียน</label>
+                <span id="dispSchoolName" style="display: block; color: #333; font-weight: 600;">...</span>
+            </div>
+        </div>
+
+        <button onclick="handleLogout()" style="margin-top:auto; padding:15px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer; font-family:'Kanit'; font-weight:600;">ออกจากระบบ</button>
     </div>
 
     <nav>
         <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" id="navLogo" alt="Logo">
+            <img src="img/favicon.png" alt="Logo">
             <div class="logo-text-group">
                 <div class="brand-name" id="navBrandName">...</div>
                 <div class="brand-slogan" id="navSlogan">...</div>
@@ -79,48 +105,83 @@
     </nav>
 
     <main class="main-container">
-        <div id="classGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:25px;"></div>
+        <div class="welcome-hero">
+            <div>
+                <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
+                <p>นวัตกรรมการจัดการเรียนรู้แบบ GLORY Model</p>
+            </div>
+            <i class="fas fa-rocket" style="font-size:70px; opacity:0.2;"></i>
+        </div>
+        <div class="class-grid" id="classGrid"></div>
     </main>
 
     <a href="classroom-add.html" class="fab-add"><i class="fas fa-plus"></i></a>
 
     <footer class="footer">
-        <div class="footer-brand" id="footerBrandName">...</div>
-        <div class="footer-slogan" id="footerSlogan">...</div>
-        <div class="footer-copyright" id="footerCopyright">...</div>
+        <div id="footerCopyright">...</div>
     </footer>
 
     <script>
+        let currentUser = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. ดึงข้อมูลจาก config.js มาแสดงใน Navbar และ Footer
+            // 1. โหลดข้อมูลจาก config.js
             if (typeof APP_CONFIG !== 'undefined') {
                 const brandHTML = `${APP_CONFIG.brandName}<span>${APP_CONFIG.brandExtension || ''}</span>`;
-                
-                // Navbar
                 document.getElementById('navBrandName').innerHTML = brandHTML;
                 document.getElementById('navSlogan').innerText = APP_CONFIG.slogan;
-                
-                // Footer
-                document.getElementById('footerBrandName').innerHTML = brandHTML;
-                document.getElementById('footerSlogan').innerText = APP_CONFIG.slogan;
                 document.getElementById('footerCopyright').innerHTML = APP_CONFIG.copyright;
             }
 
-            // 2. ตรวจสอบการล็อกอินและดึงข้อมูลโปรไฟล์ (คงเดิม)
-            const { data: { user } } = await sysDB.auth.getUser();
-            if (!user) { window.location.href = 'teacher-login.html'; return; }
-            
-            fetchProfile(user.id);
-            fetchClassrooms(user.id);
+            // 2. ตรวจสอบการเชื่อมต่อ Supabase
+            if (typeof sysDB !== 'undefined') {
+                const { data: { user } } = await sysDB.auth.getUser();
+                if (!user) { window.location.href = 'teacher-login.html'; return; }
+                currentUser = user;
+                
+                // เรียกฟังก์ชันที่เคย Error
+                await fetchProfile();
+                await fetchClassrooms();
+            }
 
-            // 3. ระบบ Sidebar Mouseleave (คงเดิม)
+            // 3. ระบบ Sidebar
             const sidebar = document.getElementById('profileSidebar');
             sidebar.addEventListener('mouseleave', () => {
                 if (sidebar.classList.contains('active')) toggleSidebar();
             });
         });
 
-        // ฟังก์ชัน toggleSidebar และอื่นๆ คงเดิม
+        // --- แก้ไขปัญหา ReferenceError โดยการประกาศฟังก์ชัน ---
+        async function fetchProfile() {
+            const { data } = await sysDB.from('teachers').select('*, schools:school_id(school_name)').eq('teacher_id', currentUser.id).single();
+            if (data) {
+                const img = data.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
+                document.getElementById('navProfileImg').src = img;
+                document.getElementById('sidebarImg').src = img;
+                document.getElementById('welcomeHeader').innerText = `สวัสดีครับ ครู${data.first_name}`;
+                document.getElementById('sideDisplayName').innerText = `ครู${data.first_name}`;
+                document.getElementById('dispFullName').innerText = `${data.first_name} ${data.last_name}`;
+                document.getElementById('dispSchoolName').innerText = data.schools?.school_name || `รหัส:${data.school_id}`;
+            }
+        }
+
+        async function fetchClassrooms() {
+            const { data } = await sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id).order('created_at', {ascending:false});
+            const grid = document.getElementById('classGrid');
+            if(data && data.length > 0) {
+                grid.innerHTML = data.map(room => `
+                    <div class="class-card" onclick="location.href='classroom-detail.html?id=${room.classroom_id}'">
+                        <div style="height:120px; background:${room.color_code || 'var(--primary)'}"></div>
+                        <div style="padding:25px;">
+                            <div class="room-badge">ห้อง ${room.room_name}</div>
+                            <h3 class="subject-title">${room.subject_name}</h3>
+                            <div style="color:#636e72; font-size:13px;">ปีการศึกษา ${room.academic_year} | เทอม ${room.semester}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
         window.toggleSidebar = function() {
             const sb = document.getElementById('profileSidebar');
             const ov = document.getElementById('sidebarOverlay');
