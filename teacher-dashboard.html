@@ -4,103 +4,181 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>แดชบอร์ดครู - FlipSchool</title>
-    <link rel="icon" type="image/png" href="img/favicon.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-light: #f9f9f9; }
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #004aad;
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe;
+            --white: #ffffff;
+            --text-dark: #2d3436;
+            --text-gray: #636e72;
+            --shadow: 0 10px 30px rgba(0, 0, 139, 0.08);
+        }
+
         html, body { height: 100%; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-light); display: flex; flex-direction: column; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; color: var(--text-dark); }
 
-        /* --- Navbar & Footer ยาวชิดขอบ --- */
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
-        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; }
-        .logo-container img { height: 45px; }
-        .brand-name { font-size: 22px; font-weight: 600; color: #333; font-family: 'Kanit'; }
+        /* --- Navbar --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; height: 80px; background: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        }
+        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .logo-container img { height: 48px; }
+        .brand-name { font-size: 24px; font-weight: 700; color: #333; font-family: 'Kanit'; }
         .brand-name span { color: var(--primary); }
-        .nav-profile-trigger { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; object-fit: cover; }
-
-        /* --- Sidebar & Edit UI --- */
-        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px); display: none; z-index: 1999; }
-        .sidebar { position: fixed; top: 0; right: -340px; width: 340px; height: 100%; background: white; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; padding: 40px 25px; display: flex; flex-direction: column; box-sizing: border-box; }
-        .sidebar.active { right: 0; }
-
-        .profile-img-box { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
-        .profile-img-box img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover; }
-        .btn-edit-avatar { position: absolute; bottom: 0; right: 0; background: var(--primary); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; cursor: pointer; transition: 0.3s; }
-
-        .info-card { background: #f8f9fa; padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid #eee; position: relative; }
-        .btn-edit-info { position: absolute; top: 15px; right: 15px; color: var(--primary); cursor: pointer; font-size: 14px; transition: 0.2s; }
-        .btn-edit-info:hover { transform: scale(1.2); color: var(--accent); }
-
-        .info-label { font-size: 11px; color: #999; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
-        .info-value { font-size: 15px; color: #333; font-weight: 500; display: block; margin-bottom: 12px; }
-
-        /* --- Edit Form ใน Sidebar --- */
-        .edit-form { display: none; background: #fff; padding: 15px; border: 1.5px solid #eee; border-radius: 15px; margin-bottom: 20px; }
-        .edit-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Sarabun'; box-sizing: border-box; }
-        .btn-save { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Kanit'; }
-
-        .footer { width: 100%; padding: 25px; font-size: 0.9rem; color: #888; text-align: center; background: #fff; border-top: 1px solid #eee; box-sizing: border-box; margin-top: auto; }
         
-        /* Modal for Avatar */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center; }
-        .modal-box { background: white; width: 90%; max-width: 450px; border-radius: 28px; padding: 30px; }
-        .avatar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; max-height: 300px; overflow-y: auto; }
-        .avatar-item { width: 100%; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
-        .avatar-item:hover { border-color: var(--primary); transform: scale(1.05); }
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        .nav-profile-trigger {
+            width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--primary);
+            cursor: pointer; object-fit: cover; transition: 0.3s; background: #eee;
+        }
+        .nav-profile-trigger:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(0,74,173,0.2); }
+
+        /* --- Main Content --- */
+        .container { flex: 1; padding: 40px 20px; max-width: 1240px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+
+        /* Welcome Header */
+        .welcome-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 30px; padding: 40px; color: white; margin-bottom: 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 15px 35px rgba(0, 74, 173, 0.2); position: relative; overflow: hidden;
+        }
+        .welcome-hero::after {
+            content: ''; position: absolute; right: -50px; top: -50px; width: 200px; height: 200px;
+            background: rgba(255,255,255,0.1); border-radius: 50%;
+        }
+        .welcome-hero h1 { font-family: 'Kanit'; font-size: 32px; margin: 0 0 10px 0; font-weight: 600; }
+        .welcome-hero p { margin: 0; opacity: 0.9; font-size: 18px; font-weight: 300; }
+        .hero-icon { font-size: 80px; opacity: 0.2; }
+
+        /* Classroom Grid */
+        .section-title {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; font-family: 'Kanit';
+        }
+        .section-title h2 { font-size: 22px; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 10px; }
+
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        
+        .class-card {
+            background: var(--white); border-radius: 24px; overflow: hidden;
+            box-shadow: var(--shadow); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer; border: 1px solid rgba(0,0,0,0.02);
+        }
+        .class-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0, 0, 139, 0.12); }
+        .card-banner { height: 120px; position: relative; }
+        .card-banner::before { content: ''; position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.05); }
+        .card-content { padding: 25px; position: relative; }
+        .card-content h3 { font-family: 'Kanit'; font-size: 20px; margin: 0 0 8px 0; color: var(--text-dark); }
+        .card-content p { margin: 0; color: var(--text-gray); font-size: 15px; }
+        .card-footer { padding: 15px 25px; border-top: 1px dashed #eee; display: flex; align-items: center; gap: 10px; color: var(--primary); font-size: 13px; font-weight: 600; }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            position: fixed; top: 0; right: -360px; width: 360px; height: 100%;
+            background: var(--white); box-shadow: -10px 0 40px rgba(0,0,0,0.1);
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000;
+            padding: 50px 30px; display: flex; flex-direction: column; box-sizing: border-box;
+        }
+        .sidebar.active { right: 0; }
+        .sidebar-profile { text-align: center; margin-bottom: 30px; }
+        .sidebar-profile .img-wrap {
+            position: relative; width: 120px; height: 120px; margin: 0 auto 15px;
+        }
+        .sidebar-profile img { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #f0f4ff; object-fit: cover; }
+        .edit-avatar-btn {
+            position: absolute; bottom: 5px; right: 5px; background: var(--accent);
+            color: white; width: 35px; height: 35px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; border: 3px solid white; cursor: pointer;
+        }
+
+        .info-group { background: #f8faff; padding: 20px; border-radius: 20px; margin-bottom: 20px; position: relative; }
+        .info-item { margin-bottom: 15px; }
+        .info-item:last-child { margin-bottom: 0; }
+        .info-item label { font-size: 11px; font-weight: 700; color: #b2bec3; text-transform: uppercase; display: block; }
+        .info-item span { font-size: 15px; color: var(--text-dark); font-weight: 600; }
+
+        /* --- Buttons --- */
+        .fab-add {
+            position: fixed; bottom: 40px; right: 40px; width: 65px; height: 65px;
+            background: var(--accent); color: white; border: none; border-radius: 50%;
+            font-size: 28px; cursor: pointer; box-shadow: 0 10px 25px rgba(255, 140, 0, 0.3);
+            z-index: 900; transition: 0.3s;
+        }
+        .fab-add:hover { transform: rotate(90deg) scale(1.1); }
+
+        .btn-logout {
+            margin-top: auto; padding: 15px; border-radius: 15px; border: none;
+            background: #fff0f0; color: #ff7675; font-weight: 700; font-family: 'Kanit';
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-logout:hover { background: #ffebeb; color: #d63031; }
+
+        /* --- Footer --- */
+        .footer {
+            background: var(--white); padding: 30px; text-align: center;
+            border-top: 1px solid #edf2f7; color: var(--text-gray); font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            nav { padding: 0 20px; }
+            .welcome-hero { padding: 30px; flex-direction: column; text-align: center; gap: 20px; }
+            .hero-icon { display: none; }
+        }
     </style>
 </head>
 <body>
 
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    
     <div class="sidebar" id="profileSidebar">
-        <div class="profile-img-box">
-            <img src="" id="sidebarImg">
-            <div class="btn-edit-avatar" onclick="openAvatarModal()" title="เปลี่ยนรูป">
-                <i class="fas fa-camera"></i>
+        <div class="sidebar-profile">
+            <div class="img-wrap">
+                <img src="" id="sidebarImg">
+                <div class="edit-avatar-btn" onclick="openAvatarModal()"><i class="fas fa-sync-alt"></i></div>
+            </div>
+            <h3 id="sideDisplayName" style="font-family:'Kanit'; color:var(--primary); margin:0;">ครู...</h3>
+            <p id="dispEmail" style="color:var(--text-gray); font-size:13px; margin:5px 0 0 0;">...</p>
+        </div>
+
+        <div class="info-group">
+            <i class="fas fa-edit" onclick="toggleEditForm()" style="position:absolute; top:15px; right:15px; color:var(--accent); cursor:pointer;"></i>
+            <div class="info-item">
+                <label>ชื่อ-นามสกุล</label>
+                <span id="dispFullName">...</span>
+            </div>
+            <div class="info-item">
+                <label>โรงเรียน</label>
+                <span id="dispSchoolName">...</span>
+            </div>
+            <div class="info-item">
+                <label>ระยะเวลาสมาชิก</label>
+                <span id="dispMemberAge">0</span> วัน
             </div>
         </div>
-        <h3 id="sideDisplayName" style="text-align:center; margin:0 0 20px 0; font-family:'Kanit'; color:var(--primary);">ครู...</h3>
 
-        <div class="info-card" id="infoBox">
-            <i class="fas fa-user-edit btn-edit-info" onclick="toggleEditForm()" title="แก้ไขข้อมูล"></i>
-            <span class="info-label">ชื่อ-นามสกุล</span>
-            <span class="info-value" id="dispFullName">...</span>
-
-            <span class="info-label">สังกัดโรงเรียน</span>
-            <span class="info-value" id="dispSchoolName">...</span>
-
-            <span class="info-label">อีเมล</span>
-            <span class="info-value" id="dispEmail">...</span>
+        <div id="editForm" style="display:none; background:#fff; padding:15px; border:1.5px solid #eee; border-radius:20px; margin-bottom:20px;">
+            <input type="text" id="inputFName" placeholder="ชื่อจริง" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+            <input type="text" id="inputLName" placeholder="นามสกุล" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+            <button onclick="updateName()" style="width:100%; padding:10px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer;">บันทึก</button>
         </div>
 
-        <div class="edit-form" id="editForm">
-            <span class="info-label">ชื่อจริง</span>
-            <input type="text" id="inputFName" class="edit-input">
-            <span class="info-label">นามสกุล</span>
-            <input type="text" id="inputLName" class="edit-input">
-            <button class="btn-save" onclick="updateName()">บันทึกข้อมูล</button>
-            <button onclick="toggleEditForm()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer;">ยกเลิก</button>
-        </div>
-
-        <button class="btn-logout" onclick="handleLogout()" style="margin-top: auto; padding: 12px; border: none; border-radius: 12px; background: #ffe5e5; color: #d32f2f; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+        <button class="btn-logout" onclick="handleLogout()">
+            <i class="fas fa-power-off"></i> ออกจากระบบ
         </button>
-    </div>
-
-    <div id="avatarModal" class="modal-overlay" onclick="closeAvatarModal()">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-family:'Kanit'; color:var(--primary);">เลือกอิโมจิ</h3>
-                <button onclick="generateAvatars()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-weight:600;"><i class="fas fa-sync-alt"></i> สุ่มใหม่</button>
-            </div>
-            <div class="avatar-grid" id="avatarGallery"></div>
-        </div>
     </div>
 
     <nav>
@@ -108,26 +186,50 @@
             <img src="img/favicon.png" alt="Logo">
             <div class="logo-text-group">
                 <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                <div class="slogan">GLORY Model Platform</div>
             </div>
         </a>
-        <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
+        <div class="nav-right">
+            <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
+        </div>
     </nav>
 
-    <main class="main-wrapper" style="flex:1; padding: 40px 20px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box;">
-        <div class="welcome-card">
+    <main class="container">
+        <div class="welcome-hero">
             <div class="welcome-text">
                 <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
-                <p>จัดการห้องเรียนและติดตามผลด้วย GLORY Model</p>
+                <p>พร้อมสำหรับการสร้างสรรค์การเรียนรู้แบบ GLORY Model แล้วหรือยัง?</p>
             </div>
-            <i class="fas fa-chalkboard-teacher" style="font-size: 50px; color: var(--primary); opacity: 0.1;"></i>
+            <i class="fas fa-rocket hero-icon"></i>
         </div>
-        <div id="classGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
+
+        <div class="section-title">
+            <h2><i class="fas fa-chalkboard"></i> ห้องเรียนที่ดูแล</h2>
+            <span style="font-size:14px; color:var(--text-gray);">ทั้งหมด <span id="classCount">0</span> ห้อง</span>
+        </div>
+
+        <div class="class-grid" id="classGrid">
+            </div>
     </main>
 
+    <button class="fab-add" onclick="window.location.href='classroom-add.html'" title="สร้างห้องเรียนใหม่">
+        <i class="fas fa-plus"></i>
+    </button>
+
     <footer class="footer">
-        &copy; 2026 FlipSchool. วิจัยและพัฒนานวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model
+        &copy; 2026 <strong>FlipSchool</strong> - Research & Development by <strong>ครูไพรัช อินควรชุม</strong>
     </footer>
+
+    <div id="avatarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:3000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+        <div style="background:white; width:90%; max-width:400px; border-radius:30px; padding:30px; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-family:'Kanit'; margin:0; color:var(--primary);">สุ่มอิโมจิใหม่</h3>
+                <i class="fas fa-times" onclick="closeAvatarModal()" style="cursor:pointer; color:#ccc;"></i>
+            </div>
+            <div id="avatarGallery" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-bottom:20px;"></div>
+            <button onclick="generateAvatars()" style="width:100%; padding:12px; background:var(--bg-body); border:none; border-radius:15px; color:var(--primary); font-weight:600; cursor:pointer;"><i class="fas fa-sync"></i> ชุดใหม่</button>
+        </div>
+    </div>
 
     <script>
         let currentUser = null;
@@ -143,7 +245,12 @@
         });
 
         async function fetchProfile() {
-            const { data, error } = await sysDB.from('teachers').select('*, schools(school_name)').eq('teacher_id', currentUser.id).single();
+            const { data, error } = await sysDB
+                .from('teachers')
+                .select('*, schools:school_id ( school_name )')
+                .eq('teacher_id', currentUser.id)
+                .single();
+
             if (data) {
                 const img = data.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
                 document.getElementById('navProfileImg').src = img;
@@ -154,73 +261,74 @@
                 document.getElementById('dispEmail').innerText = data.email;
                 document.getElementById('dispSchoolName').innerText = data.schools?.school_name || `รหัสโรงเรียน: ${data.school_id}`;
                 
-                // เตรียมค่าในฟอร์มแก้ไข
                 document.getElementById('inputFName').value = data.first_name;
                 document.getElementById('inputLName').value = data.last_name;
+
+                const diffDays = Math.ceil(Math.abs(new Date() - new Date(data.created_at)) / (1000 * 60 * 60 * 24));
+                document.getElementById('dispMemberAge').innerText = diffDays;
             }
-        }
-
-        // --- ระบบแก้ไขชื่อ ---
-        function toggleEditForm() {
-            const box = document.getElementById('infoBox');
-            const form = document.getElementById('editForm');
-            if (form.style.display === 'block') {
-                form.style.display = 'none'; box.style.display = 'block';
-            } else {
-                form.style.display = 'block'; box.style.display = 'none';
-            }
-        }
-
-        async function updateName() {
-            const fName = document.getElementById('inputFName').value.trim();
-            const lName = document.getElementById('inputLName').value.trim();
-            if (!fName) return alert("กรุณากรอกชื่อ");
-
-            const { error } = await sysDB.from('teachers').update({ first_name: fName, last_name: lName }).eq('teacher_id', currentUser.id);
-            if (!error) {
-                alert("บันทึกข้อมูลเรียบร้อย");
-                toggleEditForm();
-                fetchProfile();
-            }
-        }
-
-        // --- ระบบเปลี่ยนรูปโปรไฟล์ ---
-        function openAvatarModal() { document.getElementById('avatarModal').style.display = 'flex'; generateAvatars(); }
-        function closeAvatarModal() { document.getElementById('avatarModal').style.display = 'none'; }
-        
-        function generateAvatars() {
-            const gallery = document.getElementById('avatarGallery');
-            gallery.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`;
-                const img = document.createElement('img');
-                img.src = url; img.className = 'avatar-item';
-                img.onclick = () => updateAvatar(url);
-                gallery.appendChild(img);
-            }
-        }
-
-        async function updateAvatar(url) {
-            const { error } = await sysDB.from('teachers').update({ profile_pic: url }).eq('teacher_id', currentUser.id);
-            if (!error) { document.getElementById('navProfileImg').src = url; document.getElementById('sidebarImg').src = url; closeAvatarModal(); }
         }
 
         async function fetchClassrooms() {
             const { data } = await sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id).order('created_at', { ascending: false });
             const grid = document.getElementById('classGrid');
+            document.getElementById('classCount').innerText = data ? data.length : 0;
+            
             if (data && data.length > 0) {
-                grid.innerHTML = data.map(room => `<div style="background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.05); cursor:pointer;" onclick="location.href='classroom-detail.html?id=${room.classroom_id}'"><div style="height:100px; background:${room.color_code || '#00008B'}"></div><div style="padding:20px;"><h3>${room.subject_name}</h3><p>${room.room_name}</p></div></div>`).join('');
-            } else { grid.innerHTML = '<p style="color:#999; text-align:center; grid-column:1/-1;">ยังไม่มีห้องเรียน</p>'; }
+                grid.innerHTML = data.map(room => `
+                    <div class="class-card" onclick="location.href='classroom-detail.html?id=${room.classroom_id}'">
+                        <div class="card-banner" style="background:${room.color_code || 'var(--primary)'}"></div>
+                        <div class="card-content">
+                            <h3>${room.subject_name}</h3>
+                            <p><i class="fas fa-door-open"></i> ${room.room_name}</p>
+                        </div>
+                        <div class="card-footer">
+                            <i class="fas fa-users"></i> เข้าสู่ห้องเรียน <i class="fas fa-arrow-right" style="margin-left:auto;"></i>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; background:#fff; border-radius:24px; color:#999;">ยังไม่มีห้องเรียนในระบบ <br> คลิกปุ่ม + เพื่อเพิ่มห้องเรียนแรกของคุณ</div>`;
+            }
         }
 
         function toggleSidebar() {
             const sb = document.getElementById('profileSidebar');
-            const ov = document.getElementById('sidebarOverlay');
             sb.classList.toggle('active');
-            ov.style.display = sb.classList.contains('active') ? 'block' : 'none';
+            document.getElementById('sidebarOverlay').style.display = sb.classList.contains('active') ? 'block' : 'none';
         }
 
-        async function handleLogout() { if (confirm('ออกจากระบบ?')) { await sysDB.auth.signOut(); location.href = 'teacher-login.html'; } }
+        function toggleEditForm() {
+            const f = document.getElementById('editForm');
+            f.style.display = f.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function updateName() {
+            const f = document.getElementById('inputFName').value;
+            const l = document.getElementById('inputLName').value;
+            const { error } = await sysDB.from('teachers').update({ first_name: f, last_name: l }).eq('teacher_id', currentUser.id);
+            if (!error) { alert("บันทึกข้อมูลแล้ว"); toggleEditForm(); fetchProfile(); }
+        }
+
+        function openAvatarModal() { document.getElementById('avatarModal').style.display = 'flex'; generateAvatars(); }
+        function closeAvatarModal() { document.getElementById('avatarModal').style.display = 'none'; }
+        
+        function generateAvatars() {
+            const g = document.getElementById('avatarGallery');
+            g.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`;
+                const img = document.createElement('img');
+                img.src = url; img.style.width='100%'; img.style.borderRadius='50%'; img.style.cursor='pointer';
+                img.onclick = async () => {
+                    await sysDB.from('teachers').update({ profile_pic: url }).eq('teacher_id', currentUser.id);
+                    fetchProfile(); closeAvatarModal();
+                };
+                g.appendChild(img);
+            }
+        }
+
+        async function handleLogout() { if(confirm('ต้องการออกจากระบบ?')) { await sysDB.auth.signOut(); location.href='teacher-login.html'; } }
     </script>
 </body>
 </html>
