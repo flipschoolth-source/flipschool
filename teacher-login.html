@@ -2,32 +2,36 @@
 <script src="js/supabase-db.js"></script> 
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. เรียกใช้ UI พื้นฐานจาก config.js
+        // 1. อัปเดตข้อมูลจาก config.js (ชื่อแอป, สโลแกน, ฟุตเตอร์)
         if (typeof initAppUI === 'function') initAppUI();
 
-        // 2. ตรวจสอบ Session (ถ้าล็อกอินค้างไว้ให้ไป Dashboard ทันที)
-        // เพิ่มส่วนนี้เพื่อทำ Auto-Redirect
+        // 2. เช็ค Session ทันที (ถ้า Login ค้างไว้ ให้ไป Dashboard เลย)
         if (sysDB) {
             const { data: { session } } = await sysDB.auth.getSession();
             if (session) {
-                // หากมีเซสชันอยู่แล้ว ให้ข้ามไปหน้าแดชบอร์ด
                 window.location.href = 'teacher-dashboard.html';
-                return; // หยุดการทำงานด้านล่าง
+                return;
             }
         }
 
-        // 3. ตรวจสอบข้อมูลอีเมลใน localStorage (สำหรับ Remember Me)
+        // 3. ตรวจสอบ "จำอีเมล" (Remember Me)
+        // ใช้ "if (emailInput)" เพื่อป้องกันกรณีหาช่องกรอกไม่เจอแล้วเกิด Error
+        const emailInput = document.getElementById('email');
+        const rememberSwitch = document.getElementById('rememberMe');
         const savedEmail = localStorage.getItem('teacher_remember_email');
-        if (savedEmail) {
-            document.getElementById('email').value = savedEmail;
-            document.getElementById('rememberMe').checked = true;
+
+        if (savedEmail && emailInput) {
+            emailInput.value = savedEmail;
+            if (rememberSwitch) rememberSwitch.checked = true;
         }
     });
 
-    // --- ฟังก์ชัน handleLogin อื่นๆ คงเดิม ---
     async function handleLogin(e) {
         e.preventDefault();
-        if (!sysDB) { alert("ไม่สามารถเชื่อมต่อระบบได้ กรุณารีเฟรชหน้าเว็บ"); return; }
+        if (!sysDB) { 
+            alert("ระบบฐานข้อมูลยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง"); 
+            return; 
+        }
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -45,7 +49,7 @@
 
             if (error) throw error;
 
-            // จัดการ Remember Me (จำแค่อีเมลเพื่อให้การล็อกอินครั้งหน้าเร็วขึ้น)
+            // บันทึกการจดจำอีเมล
             if (rememberMe) {
                 localStorage.setItem('teacher_remember_email', email);
             } else {
@@ -59,18 +63,6 @@
             alert('❌ เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง');
             btn.disabled = false;
             btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>';
-        }
-    }
-
-    function togglePass() {
-        const input = document.getElementById('password');
-        const icon = document.querySelector('.toggle-password');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
         }
     }
 </script>
