@@ -8,36 +8,14 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4361ee">
     <link rel="icon" href="img/favicon.png">
+
     <link rel="stylesheet" href="css/style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Sidebar - ซ่อนมิดชิดด้านขวา */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            right: -100%; 
-            width: 320px;
-            height: 100%;
-            background: white;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 2000;
-            padding: 40px 25px;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        .sidebar.active { right: 0; }
-        .sidebar-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);
-            display: none; z-index: 1999;
-        }
-
-        /* Navbar - รูปแบบเดียวกับ index.html แต่เพิ่มโปรไฟล์มุมขวาบน */
+        /* ปรับแต่ง Navbar ให้เหมือน index.html */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 40px; background-color: #ffffff;
@@ -45,140 +23,247 @@
             font-family: 'Kanit', sans-serif;
             position: sticky; top: 0; z-index: 1000;
         }
-        .logo-container { display: flex; align-items: center; gap: 15px; cursor: pointer; }
-        .logo-container img { height: 40px; width: auto; }
+        .logo-container {
+            display: flex; align-items: center; gap: 15px;
+            cursor: pointer; text-decoration: none;
+        }
+        .logo-container img { height: 50px; width: auto; }
         .logo-text-group { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-name { font-size: 20px; font-weight: 600; color: #333; }
+        .brand-name { font-size: 24px; font-weight: 600; color: #333; }
         .brand-name span { color: #00008B; }
+        .slogan { font-family: 'Sarabun', sans-serif; font-size: 14px; color: #666; font-weight: 400; letter-spacing: 0.5px; }
 
-        /* รูปโปรไฟล์บน Navbar มุมขวาบน */
-        .nav-profile-trigger {
-            width: 45px; height: 45px;
-            border-radius: 50%; border: 2px solid var(--primary-color);
-            cursor: pointer; object-fit: cover;
-            background: #f8f9fa; transition: 0.3s;
+        /* ส่วนโปรไฟล์ที่มุมขวาบน */
+        .nav-profile-group {
+            display: flex; align-items: center; gap: 15px;
         }
-        .nav-profile-trigger:hover { transform: scale(1.05); }
+        .profile-img-trigger {
+            width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; border: 2px solid #00008B;
+            transition: transform 0.2s;
+        }
+        .profile-img-trigger:hover { transform: scale(1.1); }
 
-        /* ข้อมูลใน Sidebar */
-        .info-box { background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 15px; }
-        .info-group { margin-bottom: 15px; }
-        .info-label { font-size: 11px; color: #999; font-weight: bold; text-transform: uppercase; }
-        .info-value { font-size: 15px; color: #333; display: block; margin-top: 3px; font-weight: 500; }
-        
-        .edit-link {
-            display: block; text-align: center; color: var(--primary-color);
-            font-size: 13px; cursor: pointer; margin-bottom: 20px; font-weight: 600; text-decoration: underline;
+        /* ปุ่มลอยเพิ่มห้องเรียน (ขวาล่าง) */
+        .fab-add {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background-color: #4361ee;
+            color: white; border: none; border-radius: 50%;
+            font-size: 24px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+            z-index: 999; transition: all 0.3s;
         }
-
-        /* ปุ่มออกจากระบบ (ย้ายมาไว้ใต้ข้อมูลส่วนตัว) */
-        .btn-logout-sidebar {
-            width: 100%; padding: 12px; border-radius: 10px; border: none;
-            background: #ffe5e5; color: #d32f2f; font-weight: 600;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-            margin-top: 10px;
-        }
+        .fab-add:hover { transform: scale(1.1); background-color: #304fd0; }
 
         @media (max-width: 768px) {
-            nav { padding: 10px 20px; }
+            nav { padding: 12px 20px; }
+            .slogan { display: none; }
+            .brand-name { font-size: 20px; }
+            .logo-container img { height: 40px; }
         }
     </style>
 </head>
-<body>
-    <div id="loadingOverlay"><div class="spinner-lg"></div><p style="margin-top:15px; color:#666;">กำลังโหลดข้อมูล...</p></div>
-
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-    
-    <div class="sidebar" id="profileSidebar">
-        <div class="sidebar-header" style="text-align: center; margin-bottom: 25px;">
-            <img src="" id="sidebarImg" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary-color); cursor: pointer;" onclick="openAvatarModal()" title="คลิกเปลี่ยนอิโมจิ">
-            <h3 id="sideDisplayName" style="margin: 10px 0; font-family: 'Kanit'; color: var(--primary-color);">คุณครู...</h3>
-        </div>
-
-        <div class="info-box">
-            <div class="info-group">
-                <span class="info-label">ชื่อ - นามสกุล</span>
-                <span class="info-value" id="dispFullName">...</span>
-            </div>
-            <div class="info-group">
-                <span class="info-label">อีเมล</span>
-                <span class="info-value" id="dispEmail">...</span>
-            </div>
-            <div class="info-group">
-                <span class="info-label">สถานะ / อายุสมาชิก</span>
-                <span class="info-value"><span id="dispStatus">ปกติ</span> | <span id="dispMemberAge">0</span> วัน</span>
-            </div>
-            <div class="info-group">
-                <span class="info-label">สังกัด / School ID</span>
-                <span class="info-value" id="dispSchoolName">...</span>
-                <small id="dispSchoolId" style="color:#999;">ID: ...</small>
-            </div>
-            
-            <button class="btn-logout-sidebar" onclick="handleLogout()">
-                <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
-            </button>
-        </div>
-
-        <span class="edit-link" onclick="toggleEditMode()">แก้ไขข้อมูลส่วนตัว</span>
-        
-        <div style="margin-top: auto;">
-            <button style="background: #eef2ff; color: #4361ee; width:100%; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:600;" onclick="openPasswordModal()">
-                <i class="fas fa-key"></i> เปลี่ยนรหัสผ่าน
-            </button>
-        </div>
+<body class="dashboard-page"> 
+    <div id="loadingOverlay">
+        <div class="spinner-lg"></div>
+        <p style="margin-top: 15px; color: #666;">กำลังโหลดข้อมูล...</p>
     </div>
 
     <nav>
-        <div class="logo-container" onclick="window.location.href='index.html'">
+        <a href="index.html" class="logo-container">
             <img src="img/favicon.png" alt="Logo">
             <div class="logo-text-group">
                 <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan" style="font-size: 12px; color: #666;">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
             </div>
+        </a>
+        
+        <div class="nav-profile-group">
+            <button id="installBtn" class="btn-install" style="display:none;"><i class="fas fa-download"></i> แอป</button>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" id="navProfileImg" class="profile-img-trigger" onclick="openAvatarModal()" title="จัดการโปรไฟล์">
         </div>
-        <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()" title="จัดการโปรไฟล์">
     </nav>
 
     <div class="container">
         <div class="welcome-section">
             <div class="welcome-text">
                 <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
-                <p>จัดการห้องเรียนและติดตามภารกิจ GLORY Model</p>
+                <p>จัดการห้องเรียนและติดตามผลการเรียนนักเรียนได้ที่นี่</p>
             </div>
             <i class="fas fa-chalkboard-teacher" style="font-size: 60px; opacity: 0.8;"></i>
         </div>
+
+        <div style="font-family:'Kanit', sans-serif; font-size:20px; color:#333; margin-bottom:15px;">
+            <i class="fas fa-book"></i> ห้องเรียนของคุณ
+        </div>
+
         <div class="class-grid" id="classGrid"></div>
     </div>
 
-    <button class="fab-add" onclick="window.location.href='classroom-add.html'" style="position: fixed; bottom: 30px; right: 30px;">
+    <button class="fab-add" onclick="window.location.href='classroom-add.html'">
         <i class="fas fa-plus"></i>
     </button>
 
+    <div id="avatarModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">
+                <span><i class="fas fa-user-circle"></i> จัดการโปรไฟล์</span>
+                <i class="fas fa-times" onclick="closeAvatarModal()" style="cursor:pointer;"></i>
+            </div>
+            
+            <div style="padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 15px; text-align: left;">
+                <p><strong>ชื่อ-นามสกุล:</strong> <span id="teacherFullName">...</span></p>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button onclick="openPasswordModal()" style="font-size: 12px; padding: 5px 10px; cursor: pointer;"><i class="fas fa-key"></i> เปลี่ยนรหัสผ่าน</button>
+                    <button onclick="handleLogout()" style="font-size: 12px; padding: 5px 10px; cursor: pointer; color: red;"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
+                </div>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 10px; font-weight: bold;">เลือกรูปโปรไฟล์ใหม่:</div>
+            <div style="text-align: right; margin-bottom: 10px;">
+                <button type="button" onclick="generateAvatarGallery()" style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-weight:600;">
+                    <i class="fas fa-sync-alt"></i> สุ่มรูปใหม่
+                </button>
+            </div>
+            <div class="avatar-gallery" id="avatarGallery"></div>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">
+                <span><i class="fas fa-lock"></i> เปลี่ยนรหัสผ่าน</span>
+                <i class="fas fa-times" onclick="closePasswordModal()" style="cursor:pointer;"></i>
+            </div>
+            <input type="password" id="oldPass" class="modal-input" placeholder="รหัสผ่านเดิม">
+            <input type="password" id="newPass" class="modal-input" placeholder="รหัสผ่านใหม่ (6 ตัวขึ้นไป)">
+            <input type="password" id="confPass" class="modal-input" placeholder="ยืนยันรหัสผ่านใหม่">
+            <button class="btn-confirm" onclick="changePassword()">บันทึกรหัสผ่าน</button>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
+
     <script>
-        // ฟังก์ชันหลักในการดึงข้อมูลและจัดการ UI เหมือนเดิม
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!sysDB) return;
+            const { data: { user } } = await sysDB.auth.getUser();
+            
+            if (!user) { 
+                window.location.href = 'teacher-login.html'; 
+                return; 
+            }
+            currentUser = user;
+
+            await Promise.all([ 
+                fetchTeacherProfile(user.id), 
+                fetchClassrooms(user.id) 
+            ]);
+            
+            document.getElementById('loadingOverlay').style.display = 'none';
+            generateAvatarGallery();
+        });
+
         async function fetchTeacherProfile(userId) {
-            const { data } = await sysDB.from('teachers').select('*, schools(school_name)').eq('teacher_id', userId).single();
-            if (data) {
-                const pImg = data.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
-                document.getElementById('navProfileImg').src = pImg;
-                document.getElementById('sidebarImg').src = pImg;
-                document.getElementById('dispFullName').innerText = `${data.first_name} ${data.last_name}`;
-                document.getElementById('dispEmail').innerText = data.email || '-';
-                document.getElementById('dispSchoolName').innerText = data.schools?.school_name || 'ไม่ระบุโรงเรียน';
-                document.getElementById('dispSchoolId').innerText = `ID: ${data.school_id}`;
-                // คำนวณอายุสมาชิก
-                const diffDays = Math.ceil(Math.abs(new Date() - new Date(data.created_at)) / (1000 * 60 * 60 * 24));
-                document.getElementById('dispMemberAge').innerText = diffDays;
+            try {
+                const { data } = await sysDB.from('teachers').select('first_name, last_name, profile_pic').eq('teacher_id', userId).single();
+                if (data) {
+                    document.getElementById('teacherFullName').innerText = `${data.first_name} ${data.last_name}`;
+                    document.getElementById('welcomeHeader').innerText = `สวัสดีครับ คุณครู${data.first_name}`;
+                    if (data.profile_pic) {
+                        document.getElementById('navProfileImg').src = data.profile_pic;
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function updateProfilePic(url) {
+            if (!sysDB || !currentUser) return;
+            document.getElementById('navProfileImg').src = url;
+            closeAvatarModal();
+            await sysDB.from('teachers').update({ profile_pic: url }).eq('teacher_id', currentUser.id);
+        }
+
+        function openAvatarModal() { document.getElementById('avatarModal').style.display = 'flex'; }
+        function closeAvatarModal() { document.getElementById('avatarModal').style.display = 'none'; }
+        function openPasswordModal() { 
+            closeAvatarModal();
+            document.getElementById('passwordModal').style.display = 'flex'; 
+        }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+        
+        function generateAvatarGallery() {
+            const gallery = document.getElementById('avatarGallery');
+            gallery.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const seed = Math.random().toString(36).substring(7);
+                const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'gallery-item';
+                img.onclick = () => updateProfilePic(url);
+                gallery.appendChild(img);
             }
         }
-        function toggleSidebar() {
-            const sb = document.getElementById('profileSidebar');
-            sb.classList.toggle('active');
-            document.getElementById('sidebarOverlay').style.display = sb.classList.contains('active') ? 'block' : 'none';
+
+        async function fetchClassrooms(userId) {
+            const grid = document.getElementById('classGrid');
+            try {
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
+                
+                if (!data || data.length === 0) {
+                    grid.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open" style="font-size:40px;"></i><p>ยังไม่มีห้องเรียน</p></div>`;
+                    return;
+                }
+                
+                grid.innerHTML = '';
+                data.forEach(room => {
+                    const card = document.createElement('div'); 
+                    card.className = 'class-card';
+                    card.onclick = () => window.location.href = `classroom-detail.html?id=${room.classroom_id}`;
+                    
+                    card.innerHTML = `
+                        <div class="card-img" style="background: ${room.color_code}"></div>
+                        <div class="card-body">
+                            <h3>${room.subject_name}</h3>
+                            <p>${room.room_name} | ${room.academic_year}</p>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (err) { console.error(err); }
         }
+
+        async function changePassword() {
+            const oldPass = document.getElementById('oldPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const confPass = document.getElementById('confPass').value;
+
+            if (!oldPass || newPass.length < 6 || newPass !== confPass) {
+                alert("กรุณาตรวจสอบข้อมูลรหัสผ่าน"); return;
+            }
+
+            const { error: signInError } = await sysDB.auth.signInWithPassword({ email: currentUser.email, password: oldPass });
+            if (signInError) { alert("❌ รหัสผ่านเดิมไม่ถูกต้อง"); return; }
+
+            const { error: updateError } = await sysDB.auth.updateUser({ password: newPass });
+            if (updateError) { alert("❌ เปลี่ยนรหัสไม่สำเร็จ"); } 
+            else { 
+                alert("✅ เปลี่ยนรหัสสำเร็จ กรุณาเข้าสู่ระบบใหม่");
+                handleLogout();
+            }
+        }
+
         async function handleLogout() { await sysDB.auth.signOut(); window.location.href = 'teacher-login.html'; }
+
+        let deferredPrompt; const installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'flex'; });
+        installBtn.addEventListener('click', async () => { 
+            if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') installBtn.style.display = 'none'; deferredPrompt = null; } 
+        });
     </script>
 </body>
 </html>
