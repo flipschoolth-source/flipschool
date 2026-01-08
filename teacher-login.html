@@ -25,7 +25,6 @@
             --text-muted: #555; 
         }
 
-        /* แก้ไขเพื่อให้ Footer อยู่ล่างสุดเสมอ */
         html, body {
             height: 100%;
             margin: 0;
@@ -39,7 +38,7 @@
             flex-direction: column;
         }
 
-        /* --- Navbar ชิดขอบบนสุดและยาวตลอดแนว --- */
+        /* --- Navbar ชิดขอบบน ยาวตลอดแนว --- */
         nav {
             display: flex; 
             justify-content: space-between; 
@@ -51,7 +50,7 @@
             top: 0; 
             z-index: 1000;
             width: 100%;
-            box-sizing: border-box; /* สำคัญ: เพื่อให้ padding ไม่ดันความกว้างเกิน 100% */
+            box-sizing: border-box;
         }
         
         .logo-container { display: flex; align-items: center; gap: 15px; cursor: pointer; text-decoration: none; }
@@ -75,7 +74,7 @@
 
         /* --- Content Area --- */
         .container {
-            flex: 1; /* ดันเนื้อหาให้ขยายเต็มพื้นที่ที่เหลือเพื่อให้ footer อยู่ล่างสุด */
+            flex: 1;
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -96,7 +95,6 @@
         .card-header i { font-size: 60px; color: var(--primary); margin-bottom: 15px; }
         .card-header h2 { font-family: 'Kanit', sans-serif; color: var(--primary); font-weight: 700; margin-bottom: 5px; }
         
-        /* Form styling */
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-main); }
         .input-wrapper { position: relative; }
@@ -107,12 +105,49 @@
             border-radius: 12px;
             font-family: 'Sarabun', sans-serif;
             font-size: 16px;
-            transition: all 0.3s;
             box-sizing: border-box;
+            transition: 0.3s;
         }
         .input-wrapper input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(0, 0, 139, 0.1); }
         .input-wrapper .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
         .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #aaa; }
+
+        /* --- Remember Me Switch --- */
+        .remember-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 0 5px;
+        }
+        .remember-text { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
         .btn-submit {
             background-color: var(--primary);
@@ -121,7 +156,6 @@
             font-family: 'Kanit', sans-serif;
             font-weight: 500;
             font-size: 18px;
-            transition: all 0.3s;
             color: white;
             border: none;
             cursor: pointer;
@@ -130,6 +164,7 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
+            transition: 0.3s;
         }
         .btn-submit:hover {
             background-color: var(--primary-light);
@@ -147,6 +182,7 @@
             background: #fff; 
             border-top: 1px solid #eee;
             box-sizing: border-box;
+            margin-top: auto;
         }
 
         @media (max-width: 768px) {
@@ -195,6 +231,14 @@
                     </div>
                 </div>
 
+                <div class="remember-wrapper">
+                    <span class="remember-text">จดจำอีเมลในเครื่องนี้</span>
+                    <label class="switch">
+                        <input type="checkbox" id="rememberMe">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
                 <button type="submit" class="btn-submit" id="btnLogin">
                     เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>
                 </button>
@@ -212,9 +256,15 @@
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script> 
     <script>
-        // เรียกใช้ UI พื้นฐานจาก config.js
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof initAppUI === 'function') initAppUI();
+
+            // ตรวจสอบข้อมูลใน localStorage
+            const savedEmail = localStorage.getItem('teacher_remember_email');
+            if (savedEmail) {
+                document.getElementById('email').value = savedEmail;
+                document.getElementById('rememberMe').checked = true;
+            }
         });
 
         function togglePass() {
@@ -235,6 +285,7 @@
 
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('btnLogin');
 
             btn.disabled = true;
@@ -247,6 +298,14 @@
                 });
 
                 if (error) throw error;
+
+                // จัดการ Remember Me
+                if (rememberMe) {
+                    localStorage.setItem('teacher_remember_email', email);
+                } else {
+                    localStorage.removeItem('teacher_remember_email');
+                }
+
                 window.location.href = 'teacher-dashboard.html';
 
             } catch (err) {
