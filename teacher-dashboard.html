@@ -14,11 +14,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- Sidebar Style --- */
+        /* --- การจัดการ Sidebar --- */
         .sidebar {
             position: fixed;
             top: 0;
-            right: -100%; 
+            right: -100%; /* ซ่อนมิดชิด */
             width: 340px;
             height: 100%;
             background: white;
@@ -37,7 +37,7 @@
             display: none; z-index: 1999;
         }
 
-        /* --- Navbar (Same as index.html) --- */
+        /* --- Navbar รูปแบบเดียวกับ index.html --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 40px; background-color: #ffffff;
@@ -51,7 +51,7 @@
         .brand-name { font-size: 20px; font-weight: 600; color: #333; }
         .brand-name span { color: #00008B; }
 
-        /* Emoji โปรไฟล์มุมขวาบน Navbar */
+        /* Emoji โปรไฟล์บน Navbar */
         .nav-profile-trigger {
             width: 45px; height: 45px;
             border-radius: 50%; border: 2px solid #00008B;
@@ -59,7 +59,7 @@
             background: #f8f9fa; transition: 0.3s;
         }
 
-        /* --- Sidebar UI Elements --- */
+        /* --- ส่วนประกอบภายใน Sidebar --- */
         .sidebar-header { text-align: center; margin-bottom: 25px; }
         .sidebar-profile-img {
             width: 100px; height: 100px;
@@ -100,14 +100,14 @@
     
     <div class="sidebar" id="profileSidebar">
         <div class="sidebar-header">
-            <img src="" id="sidebarImg" class="sidebar-profile-img" onclick="openAvatarModal()" title="คลิกเปลี่ยนอิโมจิ">
+            <img src="" id="sidebarImg" class="sidebar-profile-img" onclick="openAvatarModal()" title="คลิกเพื่อเปลี่ยนอิโมจิ">
             <h3 id="sideDisplayName" style="margin: 5px 0; font-family: 'Kanit'; color: var(--primary-color);">คุณครู...</h3>
         </div>
 
         <div class="info-box" id="infoDisplay">
             <div class="info-group">
                 <span class="info-label">ชื่อ - นามสกุล</span>
-                <span class="info-value" id="dispFullName">...</span>
+                <span class="info-value" id="dispFullName">กำลังโหลด...</span>
             </div>
             <div class="info-group">
                 <span class="info-label">อีเมลสำรอง</span>
@@ -135,7 +135,7 @@
             <input type="text" id="editFirstName" class="sidebar-input">
             <label class="info-label">นามสกุล</label>
             <input type="text" id="editLastName" class="sidebar-input">
-            <button class="btn-confirm" onclick="updateProfileData()" style="width:100%;">บันทึกข้อมูล</button>
+            <button class="btn-confirm" onclick="updateProfileData()" style="width:100%;">บันทึกการเปลี่ยนแปลง</button>
             <button onclick="toggleEditMode()" style="width:100%; margin-top:8px; background:none; border:none; color:#888; cursor:pointer;">ยกเลิก</button>
         </div>
 
@@ -160,7 +160,7 @@
         <div class="welcome-section">
             <div class="welcome-text">
                 <h1 id="welcomeHeader">สวัสดีครับ คุณครู</h1>
-                <p>จัดการห้องเรียนและติดตามผลการเรียนนักเรียนได้ที่นี่</p>
+                <p>จัดการห้องเรียนและติดตามภารกิจ GLORY Model</p>
             </div>
             <i class="fas fa-chalkboard-teacher" style="font-size: 60px; opacity: 0.8;"></i>
         </div>
@@ -185,7 +185,7 @@
             <input type="password" id="oldPass" class="modal-input" placeholder="รหัสผ่านเดิม">
             <input type="password" id="newPass" class="modal-input" placeholder="รหัสผ่านใหม่ (6 ตัวขึ้นไป)">
             <input type="password" id="confPass" class="modal-input" placeholder="ยืนยันรหัสผ่านใหม่">
-            <button class="btn-confirm" onclick="changePassword()">บันทึกรหัสผ่าน</button>
+            <button class="btn-confirm" onclick="changePassword()">บันทึกรหัสผ่านใหม่</button>
         </div>
     </div>
 
@@ -204,6 +204,7 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
+        // เปิด-ปิด Sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('profileSidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -211,6 +212,7 @@
             overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
         }
 
+        // สลับโหมดแก้ไขข้อมูล
         function toggleEditMode() {
             const form = document.getElementById('editForm');
             const trigger = document.getElementById('editTrigger');
@@ -219,6 +221,7 @@
             trigger.style.display = isEditing ? 'block' : 'none';
         }
 
+        // ดึงข้อมูลโปรไฟล์มาแสดงผลทั้งหมด
         async function fetchTeacherProfile(userId) {
             try {
                 // ดึงข้อมูลครูพร้อม Join กับตาราง schools เพื่อเอาชื่อโรงเรียน
@@ -238,24 +241,29 @@
                     document.getElementById('dispSchoolName').innerText = data.schools?.school_name || 'ไม่ระบุโรงเรียน';
                     document.getElementById('dispSchoolId').innerText = `ID: ${data.school_id}`;
                     
-                    // คำนวณอายุสมาชิก
-                    const diffDays = Math.ceil(Math.abs(new Date() - new Date(data.created_at)) / (1000 * 60 * 60 * 24));
+                    // คำนวณอายุสมาชิก (จำนวนวัน)
+                    const createdDate = new Date(data.created_at);
+                    const diffDays = Math.ceil(Math.abs(new Date() - createdDate) / (1000 * 60 * 60 * 24));
                     document.getElementById('dispMemberAge').innerText = diffDays;
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Error fetching profile:', err); }
         }
 
+        // บันทึกการแก้ไขข้อมูลส่วนตัว
         async function updateProfileData() {
             const fName = document.getElementById('editFirstName').value;
             const lName = document.getElementById('editLastName').value;
             const { error } = await sysDB.from('teachers').update({ first_name: fName, last_name: lName }).eq('teacher_id', currentUser.id);
             if (!error) { 
-                alert("บันทึกข้อมูลเรียบร้อย"); 
+                alert("บันทึกข้อมูลเรียบร้อยแล้ว"); 
                 toggleEditMode();
                 fetchTeacherProfile(currentUser.id); 
+            } else {
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
             }
         }
 
+        // อัปเดตรูปโปรไฟล์เงียบๆ หลังการเลือก
         async function updateProfilePic(url) {
             document.getElementById('navProfileImg').src = url;
             document.getElementById('sidebarImg').src = url;
@@ -268,6 +276,7 @@
         function openPasswordModal() { closeAvatarModal(); document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
 
+        // สุ่มรูปอิโมจิจากไลบรารี
         function generateAvatarGallery() {
             const gallery = document.getElementById('avatarGallery');
             gallery.innerHTML = '';
@@ -281,10 +290,14 @@
             }
         }
 
+        // ดึงรายการห้องเรียนของครู
         async function fetchClassrooms(userId) {
             const grid = document.getElementById('classGrid');
             const { data } = await sysDB.from('classrooms').select('*').eq('teacher_id', userId).order('created_at', { ascending: false });
-            if (!data || data.length === 0) { grid.innerHTML = `<div class="empty-state">ยังไม่มีห้องเรียน</div>`; return; }
+            if (!data || data.length === 0) { 
+                grid.innerHTML = `<div class="empty-state">ยังไม่มีห้องเรียนที่สร้างไว้</div>`; 
+                return; 
+            }
             grid.innerHTML = '';
             data.forEach(room => {
                 const card = document.createElement('div');
@@ -295,17 +308,27 @@
             });
         }
 
+        // ระบบเปลี่ยนรหัสผ่าน
         async function changePassword() {
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
             const confPass = document.getElementById('confPass').value;
-            if (newPass !== confPass) { alert("รหัสผ่านใหม่ไม่ตรงกัน"); return; }
+            if (newPass !== confPass) { alert("รหัสผ่านใหม่ที่ระบุไม่ตรงกัน"); return; }
+            if (newPass.length < 6) { alert("รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร"); return; }
+            
             const { error: signInError } = await sysDB.auth.signInWithPassword({ email: currentUser.email, password: oldPass });
             if (signInError) { alert("รหัสผ่านเดิมไม่ถูกต้อง"); return; }
+            
             const { error: updateError } = await sysDB.auth.updateUser({ password: newPass });
-            if (!updateError) { alert("สำเร็จ กรุณาล็อกอินใหม่"); handleLogout(); }
+            if (!updateError) { 
+                alert("เปลี่ยนรหัสผ่านสำเร็จแล้ว กรุณาเข้าสู่ระบบใหม่อีกครั้ง"); 
+                handleLogout(); 
+            } else {
+                alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน");
+            }
         }
 
+        // ออกจากระบบ
         async function handleLogout() { await sysDB.auth.signOut(); window.location.href = 'teacher-login.html'; }
     </script>
 </body>
