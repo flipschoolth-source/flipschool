@@ -37,15 +37,29 @@
         .slogan { font-size: 12px; color: #666; font-weight: 400; }
         .nav-profile-trigger { width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--primary); cursor: pointer; object-fit: cover; }
 
-        /* --- Sidebar & Overlay --- */
+        /* --- Sidebar & Profile Edit --- */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); display: none; z-index: 1999; }
         .sidebar { position: fixed; top: 0; right: -360px; width: 360px; height: 100%; background: var(--white); box-shadow: -10px 0 40px rgba(0,0,0,0.1); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; padding: 50px 30px; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar.active { right: 0; }
         
-        .profile-img-box { position: relative; width: 110px; height: 110px; margin: 0 auto 20px; }
-        .sidebar-profile-img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover; display: block; }
-        .btn-random-avatar { position: absolute; bottom: 0; right: 0; background: var(--accent); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; transition: 0.3s; }
-        .btn-random-avatar:hover { transform: rotate(180deg); }
+        .profile-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 15px; }
+        .sidebar-profile-img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover; }
+        .edit-avatar-icon { position: absolute; bottom: 5px; right: 5px; background: var(--accent); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; transition: 0.3s; }
+        .edit-avatar-icon:hover { transform: scale(1.1); background: var(--primary); }
+
+        .info-card { background: #f8faff; padding: 20px; border-radius: 20px; margin: 25px 0; position: relative; border: 1px solid #edf2f7; }
+        .edit-info-btn { position: absolute; top: 15px; right: 15px; color: var(--accent); cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .edit-info-btn:hover { color: var(--primary); transform: scale(1.1); }
+        
+        .info-item { margin-bottom: 15px; }
+        .info-item:last-child { margin-bottom: 0; }
+        .info-item label { font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 2px; }
+        .info-item span { display: block; color: #333; font-weight: 600; font-size: 15px; }
+
+        /* --- Edit Form (Hidden by default) --- */
+        #editProfileForm { display: none; margin-top: 10px; }
+        .form-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; font-family: 'Sarabun'; }
+        .btn-save { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Kanit'; }
 
         .main-container { flex: 1; padding: 40px 20px; max-width: 1240px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         .footer { width: 100%; padding: 25px 20px; text-align: center; background: var(--white); border-top: 1px solid #edf2f7; color: #b2bec3; font-size: 13px; box-sizing: border-box; margin-top: auto; }
@@ -57,26 +71,41 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     
     <div class="sidebar" id="profileSidebar">
-        <div class="profile-img-box">
+        <div class="profile-wrapper">
             <img src="" id="sidebarImg" class="sidebar-profile-img">
-            <div class="btn-random-avatar" onclick="randomAvatar()" title="สุ่มรูปใหม่">
+            <div class="edit-avatar-icon" onclick="randomAvatar()" title="เปลี่ยนอิโมจิ">
                 <i class="fas fa-sync-alt"></i>
             </div>
         </div>
-        <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary); margin:0;">...</h3>
         
-        <div style="background: #f8faff; padding: 20px; border-radius: 20px; margin: 25px 0;">
-            <div style="margin-bottom: 15px;">
-                <label style="font-size: 11px; color: #999; font-weight: 700; text-transform: uppercase;">ชื่อผู้ใช้งาน</label>
-                <span id="dispFullName" style="display: block; color: #333; font-weight: 600;">...</span>
+        <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary); margin:0;">...</h3>
+
+        <div class="info-card">
+            <div class="edit-info-btn" onclick="toggleEditForm()" title="แก้ไขข้อมูล">
+                <i class="fas fa-user-edit"></i> แก้ไข
             </div>
-            <div>
-                <label style="font-size: 11px; color: #999; font-weight: 700; text-transform: uppercase;">สถานศึกษา</label>
-                <span id="dispSchoolName" style="display: block; color: #333; font-weight: 600;">...</span>
+            
+            <div id="infoDisplay">
+                <div class="info-item">
+                    <label>ชื่อ-นามสกุล</label>
+                    <span id="dispFullName">...</span>
+                </div>
+                <div class="info-item">
+                    <label>สถานศึกษา</label>
+                    <span id="dispSchoolName">...</span>
+                </div>
+            </div>
+
+            <div id="editProfileForm">
+                <input type="text" id="editFirstName" class="form-input" placeholder="ชื่อ">
+                <input type="text" id="editLastName" class="form-input" placeholder="นามสกุล">
+                <button class="btn-save" onclick="saveProfileInfo()">บันทึกข้อมูล</button>
             </div>
         </div>
         
-        <button onclick="handleLogout()" style="margin-top:auto; padding:16px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer; font-family:'Kanit'; font-weight:600;">ออกจากระบบ</button>
+        <button onclick="handleLogout()" style="margin-top:auto; padding:16px; border-radius:15px; background:#FFF5F5; color:#F56565; border:none; cursor:pointer; font-family:'Kanit'; font-weight:600;">
+            <i class="fas fa-power-off"></i> ออกจากระบบ
+        </button>
     </div>
 
     <nav>
@@ -112,39 +141,74 @@
                 await fetchClassrooms();
             }
 
-            // ระบบ Sidebar ปิดเมื่อเมาส์ออก
             const sidebar = document.getElementById('profileSidebar');
             sidebar.addEventListener('mouseleave', () => {
-                if (sidebar.classList.contains('active')) toggleSidebar();
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    document.getElementById('sidebarOverlay').style.display = 'none';
+                    // ปิดฟอร์มแก้ไขเวลาปิด sidebar
+                    document.getElementById('editProfileForm').style.display = 'none';
+                    document.getElementById('infoDisplay').style.display = 'block';
+                }
             });
         });
 
         async function fetchProfile() {
             const { data } = await sysDB.from('teachers').select('*, schools:school_id(school_name)').eq('teacher_id', currentUser.id).single();
             if (data) {
-                updateUIProfile(data);
+                const img = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
+                document.getElementById('navProfileImg').src = img;
+                document.getElementById('sidebarImg').src = img;
+                document.getElementById('sideDisplayName').innerText = `ครู${data.first_name}`;
+                document.getElementById('dispFullName').innerText = `${data.first_name} ${data.last_name}`;
+                document.getElementById('dispSchoolName').innerText = data.schools?.school_name || `รหัส:${data.school_id}`;
+                
+                // ใส่ค่าในฟอร์มแก้ไข
+                document.getElementById('editFirstName').value = data.first_name;
+                document.getElementById('editLastName').value = data.last_name;
             }
         }
 
-        function updateUIProfile(data) {
-            const img = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
-            document.getElementById('navProfileImg').src = img;
-            document.getElementById('sidebarImg').src = img;
-            document.getElementById('sideDisplayName').innerText = `ครู${data.first_name}`;
-            document.getElementById('dispFullName').innerText = `${data.first_name} ${data.last_name}`;
-            document.getElementById('dispSchoolName').innerText = data.schools?.school_name || `รหัส:${data.school_id}`;
-        }
-
+        // --- ฟังก์ชันแก้ไขรูป (Avatar) ---
         async function randomAvatar() {
             const newSeed = Math.random().toString(36).substring(7);
             const newImg = `https://api.dicebear.com/7.x/avataaars/svg?seed=${newSeed}`;
-            
-            // อัปเดตที่ UI ทันที
             document.getElementById('navProfileImg').src = newImg;
             document.getElementById('sidebarImg').src = newImg;
-
-            // บันทึกลง Database
             await sysDB.from('teachers').update({ profile_pic: newImg }).eq('teacher_id', currentUser.id);
+        }
+
+        // --- ฟังก์ชันสลับหน้าจอแก้ไขข้อมูล ---
+        function toggleEditForm() {
+            const display = document.getElementById('infoDisplay');
+            const form = document.getElementById('editProfileForm');
+            if (form.style.display === 'none' || form.style.display === '') {
+                display.style.display = 'none';
+                form.style.display = 'block';
+            } else {
+                display.style.display = 'block';
+                form.style.display = 'none';
+            }
+        }
+
+        // --- ฟังก์ชันบันทึกข้อมูลชื่อ-นามสกุล ---
+        async function saveProfileInfo() {
+            const fName = document.getElementById('editFirstName').value;
+            const lName = document.getElementById('editLastName').value;
+            
+            if(!fName || !lName) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+            const { error } = await sysDB.from('teachers').update({ 
+                first_name: fName, 
+                last_name: lName 
+            }).eq('teacher_id', currentUser.id);
+
+            if (!error) {
+                await fetchProfile(); // โหลดข้อมูลใหม่มาแสดง
+                toggleEditForm(); // สลับกลับหน้าแสดงผล
+            } else {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            }
         }
 
         async function fetchClassrooms() {
