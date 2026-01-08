@@ -14,6 +14,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* --- Reset & Base --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
         /* --- Sidebar Style (ซ่อนมิดชิด) --- */
         .sidebar {
             position: fixed;
@@ -39,24 +46,35 @@
 
         /* --- Navbar (ชิดขอบบน เหมือน index.html) --- */
         nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 40px; background-color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background-color: #ffffff;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            position: sticky; top: 0; z-index: 1000;
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
         }
         .logo-container { display: flex; align-items: center; gap: 15px; cursor: pointer; }
-        .logo-container img { height: 40px; width: auto; }
+        .logo-container img { height: 45px; width: auto; }
         .logo-text-group { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-name { font-family: 'Kanit', sans-serif; font-size: 20px; font-weight: 600; color: #333; }
+        .brand-name { font-family: 'Kanit', sans-serif; font-size: 22px; font-weight: 600; color: #333; }
         .brand-name span { color: #00008B; }
         .slogan { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #666; }
 
         /* Emoji โปรไฟล์มุมขวาบน Navbar */
         .nav-profile-trigger {
-            width: 45px; height: 45px;
-            border-radius: 50%; border: 2px solid #00008B;
-            cursor: pointer; object-fit: cover;
-            background: #f8f9fa; transition: 0.3s;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #00008B;
+            cursor: pointer;
+            object-fit: cover;
+            background: #f8f9fa;
+            transition: 0.3s;
         }
         .nav-profile-trigger:hover { transform: scale(1.05); }
 
@@ -88,24 +106,33 @@
             margin-top: 5px;
         }
 
-        /* --- Floating Button (เพิ่มห้องเรียน) --- */
+        /* --- Floating Button (ขวาล่าง) --- */
         .fab-add {
-            position: fixed; bottom: 30px; right: 30px;
-            width: 60px; height: 60px; background-color: #4361ee;
-            color: white; border: none; border-radius: 50%;
-            font-size: 24px; cursor: pointer;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background-color: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
             box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
-            z-index: 999; transition: all 0.3s;
+            z-index: 999;
+            transition: all 0.3s;
         }
         .fab-add:hover { transform: scale(1.1); }
 
         @media (max-width: 768px) {
             nav { padding: 12px 20px; }
             .slogan { display: none; }
+            .brand-name { font-size: 18px; }
         }
     </style>
 </head>
-<body class="dashboard-page">
+<body>
     <div id="loadingOverlay"><div class="spinner-lg"></div><p style="margin-top:15px; color:#666;">กำลังโหลดข้อมูล...</p></div>
 
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -119,10 +146,10 @@
         <div class="info-box" id="infoDisplay">
             <div class="info-group">
                 <span class="info-label">ชื่อ - นามสกุล</span>
-                <span class="info-value" id="dispFullName">...</span>
+                <span class="info-value" id="dispFullName">กำลังโหลด...</span>
             </div>
             <div class="info-group">
-                <span class="info-label">อีเมลสำรอง</span>
+                <span class="info-label">อีเมล</span>
                 <span class="info-value" id="dispEmail">...</span>
             </div>
             <div class="info-group">
@@ -180,7 +207,7 @@
         <div class="class-grid" id="classGrid"></div>
     </div>
 
-    <button class="fab-add" onclick="window.location.href='classroom-add.html'">
+    <button class="fab-add" onclick="window.location.href='classroom-add.html'" title="สร้างห้องเรียนใหม่">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -260,7 +287,7 @@
             const fName = document.getElementById('editFirstName').value;
             const lName = document.getElementById('editLastName').value;
             const { error } = await sysDB.from('teachers').update({ first_name: fName, last_name: lName }).eq('teacher_id', currentUser.id);
-            if (!error) { alert("บันทึกเรียบร้อย"); toggleEditMode(); fetchTeacherProfile(currentUser.id); }
+            if (!error) { alert("บันทึกข้อมูลเรียบร้อย"); toggleEditMode(); fetchTeacherProfile(currentUser.id); }
         }
 
         async function updateProfilePic(url) {
@@ -303,12 +330,14 @@
         }
 
         async function handleLogout() { await sysDB.auth.signOut(); window.location.href = 'teacher-login.html'; }
-        
+
         async function changePassword() {
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
             const confPass = document.getElementById('confPass').value;
             if (newPass !== confPass) { alert("รหัสผ่านใหม่ไม่ตรงกัน"); return; }
+            const { error: signInError } = await sysDB.auth.signInWithPassword({ email: currentUser.email, password: oldPass });
+            if (signInError) { alert("รหัสผ่านเดิมไม่ถูกต้อง"); return; }
             const { error: updateError } = await sysDB.auth.updateUser({ password: newPass });
             if (!updateError) { alert("สำเร็จ กรุณาล็อกอินใหม่"); handleLogout(); }
         }
