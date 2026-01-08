@@ -5,7 +5,7 @@
 const APP_CONFIG = {
     // 1. Supabase Settings
     SUPABASE_URL: 'https://hznmvaxjlgjnrvtjosdt.supabase.co',
-    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE',
 
     // 2. ข้อมูลแอปพลิเคชัน
     APP_NAME: 'FlipSchool',
@@ -27,6 +27,19 @@ const APP_CONFIG = {
     THEME: {
         PRIMARY: '#00008B',
         ACCENT: '#FF8C00'
+    },
+
+    // 5. รายละเอียด GLORY Model (สำหรับ Modal)
+    GLORY_DETAILS: {
+        HOME: [
+            { letter: 'G', title: 'Gamified Mission', desc: 'เรียนรู้ผ่านการทำภารกิจบนเว็บแอปพลิเคชัน สะสมแต้มและระดับคะแนนอย่างสนุกสนาน' }
+        ],
+        SCHOOL: [
+            { letter: 'L', title: 'Lively Brain Boost', desc: 'ขยับกายขยายสมอง เตรียมความพร้อมก่อนเรียน' },
+            { letter: 'O', title: 'Operational Learning', desc: 'ลงมือปฏิบัติจริง เน้นกิจกรรมเชิงรุก (Active Learning)' },
+            { letter: 'R', title: 'Reflective Summary', desc: 'สะท้อนคิด สรุปองค์ความรู้ด้วยตนเอง' },
+            { letter: 'Y', title: 'Yielding Pride', desc: 'สร้างความภาคภูมิใจในผลงานความสำเร็จ' }
+        ]
     }
 };
 
