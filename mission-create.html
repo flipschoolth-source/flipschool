@@ -33,14 +33,17 @@
         .status-dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
         
         .status-text { font-size: 14px; color: #7f8c8d; font-weight: 600; }
-        .ai-status-bar.connected .status-text { color: var(--ai-glow); }
+
+        /* Model Selector Styling */
+        .model-selector { display: flex; gap: 10px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 15px; }
+        .model-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; cursor: pointer; font-family: Kanit; transition: 0.3s; background: transparent; color: #666; }
+        .model-btn.active { background: white; color: var(--ai-glow); box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-weight: bold; }
 
         .prompt-box textarea { width: 100%; border-radius: 15px; border: 2px solid #eee; padding: 15px; font-family: inherit; resize: none; transition: 0.3s; box-sizing: border-box; }
         .prompt-box textarea:focus { border-color: var(--ai-glow); outline: none; }
         
         .template-item { padding: 15px; border: 2px solid #eee; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; }
         .template-item.active { border-color: var(--ai-glow); background: #f8f0ff; }
-        .template-item span { font-size: 24px; display: block; }
 
         .phone-mockup { background: #1a1a1a; width: 100%; height: 650px; border-radius: 40px; border: 12px solid #333; position: sticky; top: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         .phone-screen { background: white; height: 100%; display: flex; flex-direction: column; }
@@ -62,7 +65,7 @@
 
     <header class="page-header">
         <h1 style="font-family:Kanit; margin:0;">AI Mission Designer 🚀</h1>
-        <p>สร้างบทเรียนและเกมด้วยพลัง Gemini 2.0 AI</p>
+        <p>สลับใช้ Gemini Pro หรือ Flash ได้ตามใจคุณ</p>
     </header>
 
     <main class="main-container">
@@ -82,17 +85,23 @@
                     <label style="font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                         Gemini API Key ของคุณ:
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ai-glow); text-decoration:none; font-size:13px;">
-                            <i class="fas fa-external-link-alt"></i> รับคีย์ที่นี่
+                            <i class="fas fa-external-link-alt"></i> วิธีสร้าง Key
                         </a>
                     </label>
                     <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="วาง API Key ที่นี่..." onchange="updateKeyStatus()">
                 </div>
 
+                <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">🤖 เลือกความฉลาดของ AI</label>
+                <div class="model-selector">
+                    <button class="model-btn active" id="btn-flash" onclick="setModel('gemini-1.5-flash')">Flash (เร็ว/โควตาเยอะ)</button>
+                    <button class="model-btn" id="btn-pro" onclick="setModel('gemini-1.5-pro')">Pro (ฉลาด/โควตาน้อย)</button>
+                </div>
+
                 <div class="prompt-box">
-                    <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">💡 บอกหัวข้อหรือเนื้อหาที่คุณต้องการ</label>
-                    <textarea id="aiPrompt" rows="3" placeholder="เช่น: ขอคำศัพท์ภาษาไทยเรื่องสัตว์ป่า 5 คำ พร้อมคำอ่านและคำถาม Quiz"></textarea>
+                    <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">💡 บอกเนื้อหาที่ต้องการสร้าง</label>
+                    <textarea id="aiPrompt" rows="3" placeholder="เช่น: วิทยาศาสตร์ ป.4 เรื่องระบบสุริยะ พร้อม Quiz 3 ข้อ"></textarea>
                     <button class="btn btn-ai" onclick="generateByAI()">
-                        <i class="fas fa-wand-magic-sparkles"></i> ให้ AI ช่วยออกแบบเนื้อหา
+                        <i class="fas fa-wand-magic-sparkles"></i> <span id="btnText">ให้ AI (Flash) ช่วยออกแบบ</span>
                     </button>
                 </div>
             </div>
@@ -109,7 +118,7 @@
             <div class="card">
                 <label style="font-family:Kanit; font-weight:500;">📝 ข้อมูลเนื้อหา (แก้ไขได้)</label>
                 <div id="dataEditor" style="margin-top:15px; border: 1px solid #eee; border-radius:15px; padding:15px; background:#fafafa;">
-                    <p style="text-align:center; color:#999; font-size:14px;">เนื้อหาที่ AI สร้างจะปรากฏที่นี่เพื่อให้คุณแก้ไข</p>
+                    <p style="text-align:center; color:#999; font-size:14px;">เนื้อหาจะปรากฏที่นี่</p>
                 </div>
             </div>
         </div>
@@ -117,60 +126,84 @@
         <div class="preview-panel">
             <div class="phone-mockup">
                 <div class="phone-screen">
-                    <div class="screen-header">ภารกิจ: <span id="p-title">รอกำหนดชื่อ...</span></div>
+                    <div class="screen-header">Preview</div>
                     <div class="screen-content" id="previewContent">
                         <i class="fas fa-play-circle" style="font-size:60px; color:#eee;"></i>
-                        <p style="color:#bbb; margin-top:15px; text-align:center;">Live Preview<br>จะแสดงหน้าตาเกมจริงที่นี่</p>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-save" onclick="saveMission()">
-                <i class="fas fa-cloud-upload-alt"></i> บันทึกและเปิดใช้งาน
-            </button>
+            <button class="btn btn-save" onclick="saveMission()">บันทึกภารกิจ</button>
         </div>
     </main>
 
     <script>
         let currentType = 'quiz';
+        let currentModel = 'gemini-1.5-flash';
         let generatedData = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const { data: { user } } = await sysDB.auth.getUser();
-            if(!user) { location.href = 'teacher-login.html'; return; }
-            checkAndFillKey(user.id);
-            document.getElementById('loadingOverlay').style.display = 'none';
-        });
-
-        async function checkAndFillKey(userId) {
-            const keyInput = document.getElementById('geminiKey');
-            let savedKey = localStorage.getItem('gemini_api_key');
-            if (!savedKey) {
-                const { data: profile } = await sysDB.from('teachers').select('gemini_key').eq('teacher_id', userId).single();
-                if (profile?.gemini_key) savedKey = profile.gemini_key;
-            }
-            if (savedKey) {
-                keyInput.value = savedKey;
-                updateKeyStatus(true);
+        function setModel(model) {
+            currentModel = model;
+            document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active'));
+            if(model.includes('pro')) {
+                document.getElementById('btn-pro').classList.add('active');
+                document.getElementById('btnText').innerText = 'ให้ AI (Pro) ช่วยออกแบบ';
             } else {
-                updateKeyStatus(false);
+                document.getElementById('btn-flash').classList.add('active');
+                document.getElementById('btnText').innerText = 'ให้ AI (Flash) ช่วยออกแบบ';
             }
         }
 
-        function updateKeyStatus(isConnected = null) {
-            const box = document.getElementById('aiStatusBox');
-            const dot = document.getElementById('statusDot');
-            const txt = document.getElementById('aiStatusText');
-            const keyVal = document.getElementById('geminiKey').value;
-            const finalStatus = (isConnected !== null) ? isConnected : (keyVal.trim().length > 10);
-            if (finalStatus && keyVal) {
-                box.classList.add('connected');
-                dot.classList.add('on');
-                const maskedKey = keyVal.substring(0, 4) + "..." + keyVal.substring(keyVal.length - 4);
-                txt.innerText = `เชื่อมต่อ Gemini 2.0 แล้ว (${maskedKey})`;
-            } else {
-                box.classList.remove('connected');
-                dot.classList.remove('on');
-                txt.innerText = "ยังไม่ได้เชื่อมต่อระบบ AI (กรุณาใส่ Key)";
+        async function generateByAI() {
+            const prompt = document.getElementById('aiPrompt').value;
+            const key = document.getElementById('geminiKey').value;
+            if(!prompt || !key) return alert('ระบุเนื้อหาและใส่ API Key ก่อนครับ');
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${key}`;
+                const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format เท่านั้น ห้ามมีคำอธิบายอื่น ห้ามใส่ Markdown code blocks: 
+                quiz: [{"q":"คำถาม", "ok":"ถูก", "no":"ผิด"}] 
+                speech: ["คำ1", "คำ2"]`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
+                });
+
+                const json = await response.json();
+                if (json.error) throw new Error(json.error.message);
+
+                let rawText = json.candidates[0].content.parts[0].text;
+                generatedData = JSON.parse(rawText.replace(/```json|```/g, "").trim());
+                
+                document.getElementById('dataEditor').innerHTML = `<pre style="font-size:12px;">${JSON.stringify(generatedData, null, 2)}</pre>`;
+                renderPreview();
+            } catch (e) {
+                alert('AI ขัดข้อง: ' + e.message + '\n(ถ้าใช้รุ่น Pro โควตาอาจเต็ม ให้ลองรอ 1 นาทีหรือสลับใช้ Flash)');
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function renderPreview() {
+            const canvas = document.getElementById('previewContent');
+            canvas.innerHTML = (currentType === 'quiz') ? `<h3>${generatedData[0].q}</h3>` : `<h2>${generatedData[0]}</h2>`;
+        }
+
+        function selectTpl(t) {
+            currentType = t;
+            document.querySelectorAll('.template-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('t-'+t).classList.add('active');
+        }
+
+        function updateKeyStatus() {
+            const key = document.getElementById('geminiKey').value;
+            if(key.length > 10) {
+                document.getElementById('statusDot').classList.add('on');
+                document.getElementById('aiStatusText').innerText = 'เชื่อมต่อแล้ว';
+                localStorage.setItem('gemini_api_key', key);
             }
         }
 
@@ -179,98 +212,7 @@
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
-        async function generateByAI() {
-            const prompt = document.getElementById('aiPrompt').value;
-            const key = document.getElementById('geminiKey').value;
-
-            if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการสร้างครับ');
-            if(!key) {
-                toggleKeySettings();
-                return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนครับ');
-            }
-
-            localStorage.setItem('gemini_api_key', key);
-            updateKeyStatus(true);
-            document.getElementById('loadingOverlay').style.display = 'flex';
-
-            try {
-                // ✅ แก้ไข URL ให้เป็นรุ่น gemini-2.0-flash ตาม curl ของคุณ
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-
-                const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
-                ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
-                ถ้า speech: ["word1", "word2"]
-                ตอบเฉพาะ JSON บริสุทธิ์เท่านั้น ห้ามมีคำอธิบายอื่น และห้ามใส่ Markdown code blocks`;
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: instruction }]
-                        }]
-                    })
-                });
-
-                const json = await response.json();
-                if (json.error) throw new Error(json.error.message);
-
-                let rawText = json.candidates[0].content.parts[0].text;
-                const cleanText = rawText.replace(/```json|```/g, "").trim();
-                
-                generatedData = JSON.parse(cleanText);
-                renderEditor();
-                renderPreview();
-
-            } catch (e) {
-                console.error(e);
-                alert('AI ขัดข้อง (2.0 Flash): ' + e.message);
-            } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
-        }
-
-        function renderPreview() {
-            const canvas = document.getElementById('previewContent');
-            canvas.innerHTML = '';
-            if(!generatedData) return;
-            
-            if(currentType === 'quiz') {
-                const item = generatedData[0];
-                canvas.innerHTML = `
-                    <div style="background:var(--primary-light); color:white; padding:20px; border-radius:20px; width:90%; text-align:center;">
-                        <h3>${item.q}</h3>
-                    </div>
-                    <div style="width:90%; margin-top:20px;">
-                        <button class="btn" style="width:100%; background:white; border:2px solid #ddd; margin-bottom:10px;">${item.ok}</button>
-                        <button class="btn" style="width:100%; background:white; border:2px solid #ddd;">${item.no}</button>
-                    </div>
-                `;
-            } else if(currentType === 'speech') {
-                canvas.innerHTML = `<div style="font-size:80px;">🎤</div><h2 style="font-family:Kanit;">"${generatedData[0]}"</h2><p>กดเพื่อฝึกพูด</p>`;
-            }
-        }
-
-        function renderEditor() {
-            document.getElementById('dataEditor').innerHTML = `
-                <div style="font-family:monospace; font-size:12px; line-height:1.5; background:white; padding:10px; border-radius:10px; border:1px solid #eee;">
-                    <pre style="white-space: pre-wrap;">${JSON.stringify(generatedData, null, 2)}</pre>
-                </div>
-            `;
-        }
-
-        function selectTpl(type) {
-            currentType = type;
-            document.querySelectorAll('.template-item').forEach(el => el.classList.remove('active'));
-            document.getElementById('t-'+type).classList.add('active');
-        }
-
-        async function saveMission() {
-            if(!generatedData) return alert('โปรดให้ AI สร้างเนื้อหาก่อนบันทึก');
-            alert('บันทึกภารกิจสำเร็จ! 🎉');
-            const cid = new URLSearchParams(window.location.search).get('cid');
-            location.href = 'classroom-detail.html?id=' + (cid || '');
-        }
+        function saveMission() { alert('บันทึกสำเร็จ!'); }
     </script>
 </body>
 </html>
