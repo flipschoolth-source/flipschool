@@ -20,35 +20,33 @@
         }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); margin: 0; }
         
-        /* Header */
         .page-header { background: linear-gradient(135deg, #000046, var(--primary-light)); padding: 40px 20px; color: white; text-align: center; border-radius: 0 0 40px 40px; }
-        
-        /* Layout */
         .main-container { display: grid; grid-template-columns: 1fr 420px; gap: 25px; max-width: 1300px; margin: -30px auto 50px; padding: 0 20px; }
         @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; } }
 
         .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.03); }
 
-        /* AI Section */
-        .ai-status-bar { display: flex; align-items: center; justify-content: space-between; background: #f8f0ff; padding: 12px 20px; border-radius: 15px; border: 1px solid var(--ai-glow); margin-bottom: 20px; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .status-on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        .ai-status-bar { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 12px 20px; border-radius: 15px; border: 1px solid #ddd; margin-bottom: 20px; transition: 0.3s; }
+        .ai-status-bar.connected { background: #f8f0ff; border-color: var(--ai-glow); }
         
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #bbb; }
+        .status-dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        
+        .status-text { font-size: 14px; color: #7f8c8d; font-weight: 600; }
+        .ai-status-bar.connected .status-text { color: var(--ai-glow); }
+
         .prompt-box textarea { width: 100%; border-radius: 15px; border: 2px solid #eee; padding: 15px; font-family: inherit; resize: none; transition: 0.3s; box-sizing: border-box; }
         .prompt-box textarea:focus { border-color: var(--ai-glow); outline: none; }
         
-        /* Template Items */
         .template-item { padding: 15px; border: 2px solid #eee; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; }
         .template-item.active { border-color: var(--ai-glow); background: #f8f0ff; }
         .template-item span { font-size: 24px; display: block; }
 
-        /* Phone Mockup */
         .phone-mockup { background: #1a1a1a; width: 100%; height: 650px; border-radius: 40px; border: 12px solid #333; position: sticky; top: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         .phone-screen { background: white; height: 100%; display: flex; flex-direction: column; }
         .screen-header { background: var(--primary); color: white; padding: 20px 10px 10px; text-align: center; font-size: 14px; font-family: Kanit; }
         .screen-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fdfdfd; }
 
-        /* Buttons */
         .btn { border: none; padding: 12px 20px; border-radius: 12px; font-family: Kanit; cursor: pointer; transition: 0.3s; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-ai { background: var(--ai-glow); color: white; width: 100%; margin-top: 10px; }
         .btn-save { background: var(--primary); color: white; width: 100%; font-size: 18px; padding: 18px; margin-top: 20px; }
@@ -70,17 +68,20 @@
     <main class="main-container">
         <div class="designer-panel">
             <div class="card">
-                <div class="ai-status-bar">
+                <div class="ai-status-bar" id="aiStatusBox">
                     <div>
-                        <span class="status-dot status-on" id="statusDot"></span>
-                        <span id="aiStatusText" style="font-size:14px; color:var(--ai-glow); font-weight:600;">เชื่อมต่อระบบ AI แล้ว (บัญชีของคุณ)</span>
+                        <span class="status-dot" id="statusDot"></span>
+                        <span class="status-text" id="aiStatusText">ยังไม่ได้เชื่อมต่อระบบ AI</span>
                     </div>
-                    <button onclick="toggleKeySettings()" style="background:none; border:none; color:var(--ai-glow); cursor:pointer; font-size:12px;"><i class="fas fa-cog"></i> ตั้งค่า API</button>
+                    <button onclick="toggleKeySettings()" style="background:none; border:none; color:var(--ai-glow); cursor:pointer; font-size:12px; font-weight:bold;">
+                        <i class="fas fa-key"></i> ตั้งค่า API Key
+                    </button>
                 </div>
 
-                <div id="keySettings" style="display:none; margin-bottom:20px;">
-                    <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="กรอก Gemini API Key เพื่อบันทึกลงโปรไฟล์">
-                    <small style="color:#666;">* Key จะถูกบันทึกไว้อย่างปลอดภัยในบัญชีและเบราว์เซอร์ของคุณ</small>
+                <div id="keySettings" style="display:none; margin-bottom:20px; background:#fcfaff; padding:15px; border-radius:15px;">
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:5px;">Gemini API Key ของคุณ:</label>
+                    <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="วาง API Key ที่นี่..." onchange="updateKeyStatus()">
+                    <small style="color:#666; display:block; margin-top:5px;">* คีย์จะถูกจำไว้ในเบราว์เซอร์เพื่อความสะดวกในการใช้งานครั้งถัดไป</small>
                 </div>
 
                 <div class="prompt-box">
@@ -128,46 +129,49 @@
     <script>
         let currentType = 'quiz';
         let generatedData = null;
-        let currentUserKey = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { user } } = await sysDB.auth.getUser();
             if(!user) { location.href = 'teacher-login.html'; return; }
-
-            const keyInput = document.getElementById('geminiKey');
-
-            // 1. ตรวจสอบจาก Local Storage ก่อน
-            const localKey = localStorage.getItem('gemini_api_key');
-            if (localKey) {
-                currentUserKey = localKey;
-                keyInput.value = localKey;
-                updateStatusUI(true);
-            }
-
-            // 2. ดึงจาก Database มาทับ (กรณีเครื่องใหม่)
-            const { data: profile } = await sysDB.from('teachers').select('gemini_key').eq('teacher_id', user.id).single();
-            if(profile?.gemini_key) {
-                currentUserKey = profile.gemini_key;
-                keyInput.value = currentUserKey;
-                localStorage.setItem('gemini_api_key', currentUserKey);
-                updateStatusUI(true);
-            } else if (!localKey) {
-                updateStatusUI(false);
-            }
-            
+            checkAndFillKey(user.id);
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        function updateStatusUI(isConnected) {
+        async function checkAndFillKey(userId) {
+            const keyInput = document.getElementById('geminiKey');
+            let savedKey = localStorage.getItem('gemini_api_key');
+            
+            if (!savedKey) {
+                const { data: profile } = await sysDB.from('teachers').select('gemini_key').eq('teacher_id', userId).single();
+                if (profile?.gemini_key) savedKey = profile.gemini_key;
+            }
+
+            if (savedKey) {
+                keyInput.value = savedKey;
+                updateKeyStatus(true);
+            } else {
+                updateKeyStatus(false);
+            }
+        }
+
+        function updateKeyStatus(isConnected = null) {
+            const box = document.getElementById('aiStatusBox');
             const dot = document.getElementById('statusDot');
             const txt = document.getElementById('aiStatusText');
-            if (isConnected) {
-                dot.className = "status-dot status-on";
-                txt.innerText = "เชื่อมต่อระบบ AI แล้ว (บัญชีของคุณ)";
+            const keyVal = document.getElementById('geminiKey').value;
+
+            const finalStatus = (isConnected !== null) ? isConnected : (keyVal.trim().length > 10);
+
+            if (finalStatus && keyVal) {
+                box.classList.add('connected');
+                dot.classList.add('on');
+                // แสดง Key 4 ตัวหน้าและ 4 ตัวหลังเพื่อความปลอดภัย
+                const maskedKey = keyVal.substring(0, 4) + "..." + keyVal.substring(keyVal.length - 4);
+                txt.innerText = `เชื่อมต่อแล้ว (${maskedKey})`;
             } else {
-                dot.className = "status-dot";
-                dot.style.background = "#ddd";
-                txt.innerText = "ยังไม่ได้เชื่อมต่อระบบ AI";
+                box.classList.remove('connected');
+                dot.classList.remove('on');
+                txt.innerText = "ยังไม่ได้เชื่อมต่อระบบ AI (กรุณาใส่ Key)";
             }
         }
 
@@ -178,22 +182,20 @@
 
         async function generateByAI() {
             const prompt = document.getElementById('aiPrompt').value;
-            const key = document.getElementById('geminiKey').value || currentUserKey;
+            const key = document.getElementById('geminiKey').value;
 
-            if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการ');
-            if(!key) return alert('กรุณาตรวจสอบและตั้งค่า API Key');
+            if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการสร้างครับ');
+            if(!key || key.length < 10) {
+                toggleKeySettings();
+                return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนเริ่มใช้งานครับ');
+            }
 
-            // บันทึก Key ไว้ใช้ครั้งหน้า
             localStorage.setItem('gemini_api_key', key);
+            updateKeyStatus(true);
+
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
-                // บันทึกลง Database ถ้า Key เปลี่ยน
-                if(key !== currentUserKey) {
-                    const { data: { user } } = await sysDB.auth.getUser();
-                    await sysDB.from('teachers').update({ gemini_key: key }).eq('teacher_id', user.id);
-                }
-
                 const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
                 ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
                 ถ้า speech: ["word1", "word2"]
@@ -213,9 +215,8 @@
                 
                 renderEditor();
                 renderPreview();
-                updateStatusUI(true);
             } catch (e) {
-                alert('AI ไม่สามารถประมวลผลได้: ' + e.message);
+                alert('AI ขัดข้อง: โปรดตรวจสอบว่า API Key ถูกต้องหรือไม่ (' + e.message + ')');
             }
             document.getElementById('loadingOverlay').style.display = 'none';
         }
@@ -256,7 +257,7 @@
 
         async function saveMission() {
             if(!generatedData) return alert('โปรดให้ AI สร้างเนื้อหาก่อนบันทึก');
-            alert('บันทึกภารกิจสำเร็จ! พร้อมให้นักเรียนเล่นแล้ว 🎉');
+            alert('บันทึกภารกิจสำเร็จ! 🎉');
             const cid = new URLSearchParams(window.location.search).get('cid');
             location.href = 'classroom-detail.html?id=' + (cid || '');
         }
