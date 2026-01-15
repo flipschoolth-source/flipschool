@@ -4,91 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการห้องเรียน - FlipSchool</title>
-    <link rel="icon" href="img/favicon.png">
+    
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        /* --- สไตล์ดั้งเดิมของคุณ --- */
-        .class-header {
-            height: 220px; padding: 80px 20px 20px; box-sizing: border-box;
-            color: white; display: flex; flex-direction: column; justify-content: flex-end;
-            background: linear-gradient(45deg, #bbb, #999);
-            border-radius: 0 0 30px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: relative; transition: background 0.5s ease;
-        }
-        .class-header h1 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 28px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .class-header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
-        .student-count {
-            position: absolute; right: 20px; bottom: 20px;
-            background: rgba(255,255,255,0.2); padding: 5px 12px;
-            border-radius: 20px; backdrop-filter: blur(5px); font-size: 14px;
+        :root { 
+            --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4;
+            --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff;
+            --sidebar-width: 380px;
+            --drawer-width: 280px;
         }
 
-        /* --- Sidebar (Drawer) ที่เพิ่มเข้ามาใหม่ --- */
-        .side-drawer {
-            position: fixed; left: -280px; top: 0; width: 280px; height: 100%;
-            background: white; z-index: 2000; transition: 0.3s ease;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin:0; }
+
+        /* --- Navbar (ดึงมาจาก Dashboard) --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 50px; height: 90px; background: var(--white);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        }
+        .nav-left-group { display: flex; align-items: center; gap: 20px; }
+        .menu-toggle-btn { background: none; border: none; font-size: 24px; color: var(--primary-dark); cursor: pointer; padding: 5px; }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit; }
+        .logo-container img { height: 50px; }
+        .brand-name { font-size: 24px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; }
+        .nav-profile-trigger { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; }
+
+        /* --- Side Drawer (เมนูจัดการห้องเรียน) --- */
+        .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1990; }
+        .side-drawer { 
+            position: fixed; top: 0; left: calc(var(--drawer-width) * -1); width: var(--drawer-width); height: 100%; 
+            background: white; z-index: 2000; transition: 0.4s ease; box-shadow: 5px 0 20px rgba(0,0,0,0.1); padding: 30px 20px; box-sizing: border-box;
         }
         .side-drawer.active { left: 0; }
-        .drawer-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); z-index: 1999; display: none;
+        .drawer-brand { font-family: 'Kanit'; font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .drawer-menu-item { 
+            padding: 15px; border-radius: 15px; display: flex; align-items: center; gap: 15px; 
+            cursor: pointer; transition: 0.2s; color: #444; font-weight: 500; margin-bottom: 5px;
         }
-        .drawer-overlay.active { display: block; }
-        .drawer-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .drawer-logo { font-family: 'Kanit'; font-weight: 600; font-size: 20px; color: #333; }
-        .drawer-menu { padding: 10px 0; }
-        .menu-item { padding: 15px 25px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #444; }
-        .menu-item:hover { background: #f5f5f5; color: #1a73e8; }
-        .menu-item i { width: 20px; text-align: center; font-size: 18px; }
+        .drawer-menu-item:hover { background: #f0f4ff; color: var(--primary); }
+        .drawer-menu-item i { width: 20px; font-size: 18px; }
 
-        /* --- ปุ่มลบห้องเรียน (แดง) --- */
-        .btn-delete { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #ffe5e5; color: #d32f2f; font-weight: 600; cursor: pointer; margin-top: 10px; }
-
-        /* Color Picker */
-        .custom-color-btn {
-            background: #fff; border: 2px dashed #bbb; display: flex; justify-content: center; align-items: center;
-            color: #888; font-size: 16px; overflow: hidden; width: 40px; height: 40px; border-radius: 50%; position: relative;
+        /* --- Profile Sidebar (ขวา) --- */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 1999; backdrop-filter: blur(5px); }
+        .sidebar { 
+            position: fixed; top: 0; right: calc(var(--sidebar-width) * -1.1); width: var(--sidebar-width); height: 100%; 
+            background: white; box-shadow: -15px 0 45px rgba(0,0,0,0.1); transition: 0.5s ease; z-index: 2000; padding: 40px 30px; box-sizing: border-box; border-radius: 40px 0 0 40px;
         }
-        .custom-color-btn input[type="color"] { position: absolute; width: 200%; height: 200%; opacity: 0; cursor: pointer; top:-50%; left:-50%; }
-        .custom-color-btn.selected { border: 2px solid #333; background: var(--custom-bg, white); color: transparent; }
+        .sidebar.active { right: 0; }
+
+        /* --- Class Header (คงเดิมแต่ปรับให้เข้ากับธีมใหม่) --- */
+        .class-header {
+            height: 220px; padding: 40px 50px 30px; box-sizing: border-box;
+            color: white; display: flex; flex-direction: column; justify-content: flex-end;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            border-radius: 0 0 40px 40px; box-shadow: 0 10px 30px rgba(0,0,70,0.1);
+            position: relative; transition: background 0.5s ease;
+        }
+        .class-header h1 { margin: 0; font-family: 'Kanit'; font-size: 32px; }
+        .student-count {
+            position: absolute; right: 50px; bottom: 30px;
+            background: rgba(255,255,255,0.2); padding: 8px 18px;
+            border-radius: 50px; backdrop-filter: blur(5px); font-size: 14px; font-weight: 600;
+        }
+
+        .main-content { padding: 40px 50px; max-width: 1400px; margin: 0 auto; }
+        .empty-state { text-align: center; color: #b2bec3; padding: 100px 0; }
+        
+        /* Modal & Form */
+        .btn-delete { width: 100%; padding: 14px; border: none; border-radius: 15px; background: #fff5f5; color: #ff4757; font-weight: 600; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
-<body class="dashboard-page" style="padding-top: 0;"> 
+<body>
+
     <div id="loadingOverlay">
         <div class="spinner-lg"></div>
     </div>
 
-    <div id="sideDrawer" class="side-drawer">
-        <div class="drawer-header">
-            <span class="drawer-logo">เมนูจัดการ</span>
-            <i class="fas fa-times" style="cursor:pointer;" onclick="toggleDrawer()"></i>
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+    <div class="side-drawer" id="sideDrawer">
+        <div class="drawer-brand">
+            <img src="img/favicon.png" height="35"> FlipSchool
         </div>
-        <div class="drawer-menu">
-            <div class="menu-item" onclick="alert('ระบบเช็คชื่อ (Coming Soon)')">
-                <i class="fas fa-user-check" style="color: #43e97b;"></i> เช็คชื่อ
-            </div>
-            <div class="menu-item" onclick="goToStudents()">
-                <i class="fas fa-users" style="color: #4facfe;"></i> รายชื่อนักเรียน
-            </div>
-            <div class="menu-item" onclick="alert('ระบบคะแนน (Coming Soon)')">
-                <i class="fas fa-star" style="color: #fa709a;"></i> คะแนน
-            </div>
-            <hr style="border:none; border-top:1px solid #eee; margin:10px 0;">
-            <div class="menu-item" onclick="openEditModal()">
-                <i class="fas fa-cog" style="color: #666;"></i> ตั้งค่าห้องเรียน
-            </div>
+        <div class="drawer-menu-item" onclick="location.href='teacher-dashboard.html'">
+            <i class="fas fa-home"></i> หน้าหลักครู
+        </div>
+        <hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
+        <div class="drawer-menu-item" onclick="alert('Coming Soon')">
+            <i class="fas fa-user-check" style="color:#43e97b"></i> เช็คชื่อ
+        </div>
+        <div class="drawer-menu-item" onclick="goToStudents()">
+            <i class="fas fa-users" style="color:#4facfe"></i> รายชื่อนักเรียน
+        </div>
+        <div class="drawer-menu-item" onclick="alert('Coming Soon')">
+            <i class="fas fa-star" style="color:#fa709a"></i> คะแนน
+        </div>
+        <div class="drawer-menu-item" onclick="openEditModal()">
+            <i class="fas fa-cog"></i> ตั้งค่าห้องเรียน
         </div>
     </div>
-    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleDrawer()"></div>
 
-    <nav style="background: transparent; box-shadow: none; padding: 15px 20px; color: white;">
-        <button class="nav-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button> <button class="nav-btn" onclick="openEditModal()"><i class="fas fa-ellipsis-v"></i></button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="profileSidebar">
+        <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary-dark); margin-bottom:20px;">...</h3>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="" id="sidebarImg" style="width:120px; height:120px; border-radius:50%; border:5px solid #f0f4ff;">
+        </div>
+        <button class="btn-save" style="background:#f8f9fa; color:#333;" onclick="location.href='teacher-dashboard.html'"><i class="fas fa-arrow-left"></i> กลับไป Dashboard</button>
+        <button class="btn-delete" style="margin-top:20px;" onclick="handleLogout()"><i class="fas fa-power-off"></i> ออกจากระบบ</button>
+    </div>
+
+    <nav>
+        <div class="nav-left-group">
+            <button class="menu-toggle-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+            <div class="logo-container" onclick="location.href='teacher-dashboard.html'">
+                <img src="img/favicon.png" alt="Logo">
+                <div class="brand-name">Flip<span>School</span></div>
+            </div>
+        </div>
+        <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
     </nav>
 
     <div class="class-header" id="headerBg">
@@ -97,13 +139,13 @@
         <div class="student-count"><i class="fas fa-user-graduate"></i> <span id="studentCount">0</span> คน</div>
     </div>
 
-    <div class="container" style="margin-top: 20px;">
-        <div style="text-align: center; color: #888; padding: 40px 0;">
-            <i class="fas fa-chalkboard" style="font-size: 50px; opacity: 0.2; margin-bottom: 10px;"></i>
-            <p>หน้าหลักห้องเรียน</p>
-            <small>คลิกที่เมนู 3 ขีดมุมบนซ้าย เพื่อใช้งานเครื่องมือ</small>
+    <main class="main-content">
+        <div class="empty-state">
+            <i class="fas fa-chalkboard-teacher" style="font-size: 60px; opacity: 0.1; margin-bottom: 20px;"></i>
+            <h3>ยินดีต้อนรับสู่หน้ารายละเอียดห้องเรียน</h3>
+            <p>คลิกที่ปุ่มเมนู 3 ขีด (มุมบนซ้าย) เพื่อเริ่มการจัดการข้อมูล</p>
         </div>
-    </div>
+    </main>
 
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
@@ -111,134 +153,85 @@
                 <span><i class="fas fa-edit"></i> แก้ไขห้องเรียน</span>
                 <i class="fas fa-times" style="cursor:pointer;" onclick="closeEditModal()"></i>
             </div>
-
-            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">ชื่อวิชา</label>
+            <label class="form-label">ชื่อวิชา</label>
             <input type="text" id="editSubject" class="modal-input">
-
-            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">ห้อง / ชั้นเรียน</label>
+            <label class="form-label">ห้อง / ชั้นเรียน</label>
             <input type="text" id="editRoom" class="modal-input">
-
-            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">เลือกสีธีม</label>
-            <div class="color-options" style="display:flex; gap:10px; margin-bottom:15px;">
-                <div class="color-option" style="width:30px; height:30px; border-radius:50%; background: linear-gradient(45deg, #ff9a9e, #fad0c4)" onclick="selectColor(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
-                <div class="color-option" style="width:30px; height:30px; border-radius:50%; background: linear-gradient(45deg, #a18cd1, #fbc2eb)" onclick="selectColor(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
-                <div class="color-option" style="width:30px; height:30px; border-radius:50%; background: linear-gradient(45deg, #84fab0, #8fd3f4)" onclick="selectColor(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
-                <div class="color-option" style="width:30px; height:30px; border-radius:50%; background: linear-gradient(45deg, #fccb90, #d57eeb)" onclick="selectColor(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
-                <div class="color-option" style="width:30px; height:30px; border-radius:50%; background: linear-gradient(45deg, #e0c3fc, #8ec5fc)" onclick="selectColor(this, 'linear-gradient(45deg, #e0c3fc, #8ec5fc)')"></div>
-                
-                <div class="custom-color-btn" id="customColorBtn">
-                    <i class="fas fa-plus"></i>
-                    <input type="color" oninput="handleCustomColor(this)">
-                </div>
-            </div>
-
-            <button class="btn-save" onclick="saveChanges()">บันทึกการแก้ไข</button>
+            <button class="btn-save" style="background:var(--primary)" onclick="saveChanges()">บันทึกการแก้ไข</button>
             <button class="btn-delete" onclick="deleteClassroom()">ลบห้องเรียนนี้</button>
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
-
     <script>
+        let currentUser = null;
         let currentClassId = null;
-        let currentClassData = null; 
-        let selectedGradient = ''; 
+        let currentClassData = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!sysDB) return;
-
             const params = new URLSearchParams(window.location.search);
             currentClassId = params.get('id');
-            if (!currentClassId) { window.location.href = 'teacher-dashboard.html'; return; }
+            if (!currentClassId) { location.href = 'teacher-dashboard.html'; return; }
 
-            await checkAuthRedirect();
-            await fetchClassroomData(currentClassId);
+            if (typeof sysDB !== 'undefined') {
+                const { data: { user } } = await sysDB.auth.getUser();
+                if (!user) { location.href = 'teacher-login.html'; return; }
+                currentUser = user;
+                await fetchProfile();
+                await fetchClassroomData();
+            }
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        // --- Sidebar Logic ---
+        // --- Navigation & UI Logic ---
         function toggleDrawer() {
-            document.getElementById('sideDrawer').classList.toggle('active');
-            document.getElementById('drawerOverlay').classList.toggle('active');
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('active');
+            ov.style.display = dr.classList.contains('active') ? 'block' : 'none';
         }
 
-        async function fetchClassroomData(classId) {
-            try {
-                const { data, error } = await sysDB.from('classrooms').select('*').eq('classroom_id', classId).single();
-                if (error) throw error;
-                currentClassData = data; 
-                renderClassInfo(data);
-            } catch (err) { console.error(err); }
+        function toggleSidebar() {
+            const sb = document.getElementById('profileSidebar');
+            const ov = document.getElementById('sidebarOverlay');
+            sb.classList.toggle('active');
+            ov.style.display = sb.classList.contains('active') ? 'block' : 'none';
         }
 
-        function renderClassInfo(data) {
-            document.getElementById('subjectName').innerText = data.subject_name;
-            document.getElementById('roomName').innerText = data.room_name;
-            document.getElementById('termText').innerText = `${data.semester}/${data.academic_year}`;
-            document.getElementById('headerBg').style.background = data.color_code;
+        async function fetchProfile() {
+            const { data } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
+            if (data) {
+                const img = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
+                document.getElementById('navProfileImg').src = img;
+                document.getElementById('sidebarImg').src = img;
+                document.getElementById('sideDisplayName').innerText = `ครู${data.first_name}`;
+            }
+        }
+
+        async function fetchClassroomData() {
+            const { data, error } = await sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+            if (data) {
+                currentClassData = data;
+                document.getElementById('subjectName').innerText = data.subject_name;
+                document.getElementById('roomName').innerText = data.room_name;
+                document.getElementById('termText').innerText = `ปี ${data.academic_year} | เทอม ${data.semester}`;
+                document.getElementById('headerBg').style.background = data.color_code || 'var(--primary-dark)';
+            }
         }
 
         function goToStudents() {
-            toggleDrawer();
-            window.location.href = `student-list.html?cid=${currentClassId}`;
+            location.href = `student-list.html?cid=${currentClassId}`;
         }
 
-        // --- Edit Logic ---
         function openEditModal() {
             if(document.getElementById('sideDrawer').classList.contains('active')) toggleDrawer();
-            if(!currentClassData) return;
             document.getElementById('editSubject').value = currentClassData.subject_name;
             document.getElementById('editRoom').value = currentClassData.room_name;
-            selectedGradient = currentClassData.color_code; 
             document.getElementById('editModal').style.display = 'flex';
         }
 
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
 
-        function selectColor(element, gradient) {
-            document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-            selectedGradient = gradient;
-        }
-
-        function handleCustomColor(input) {
-            const color = input.value;
-            selectedGradient = `linear-gradient(45deg, ${color}, ${color})`;
-            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-            const btn = document.getElementById('customColorBtn');
-            btn.classList.add('selected');
-            btn.style.setProperty('--custom-bg', color);
-        }
-
-        async function saveChanges() {
-            const newSubject = document.getElementById('editSubject').value;
-            const newRoom = document.getElementById('editRoom').value;
-            const btn = document.querySelector('.btn-save');
-            btn.innerText = 'กำลังบันทึก...'; btn.disabled = true;
-
-            try {
-                const { error } = await sysDB.from('classrooms')
-                    .update({ subject_name: newSubject, room_name: newRoom, color_code: selectedGradient })
-                    .eq('classroom_id', currentClassId);
-                if(error) throw error;
-                currentClassData.subject_name = newSubject;
-                currentClassData.room_name = newRoom;
-                currentClassData.color_code = selectedGradient;
-                renderClassInfo(currentClassData);
-                closeEditModal();
-            } catch (err) { alert('❌ แก้ไขไม่สำเร็จ: ' + err.message); } 
-            finally { btn.innerText = 'บันทึกการแก้ไข'; btn.disabled = false; }
-        }
-
-        async function deleteClassroom() {
-            if(!confirm('⚠️ ลบห้องเรียนนี้?')) return;
-            try {
-                const { error } = await sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
-                if(error) throw error;
-                window.location.href = 'teacher-dashboard.html';
-            } catch (err) { alert('❌ ลบไม่สำเร็จ'); }
-        }
+        async function handleLogout() { if(confirm('ต้องการออกจากระบบ?')) { await sysDB.auth.signOut(); location.href='teacher-login.html'; } }
     </script>
 </body>
 </html>
