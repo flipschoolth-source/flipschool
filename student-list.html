@@ -50,7 +50,7 @@
         .drawer-item { padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #444; font-family: 'Kanit'; margin-bottom: 8px; transition: 0.2s; }
         .drawer-item:hover { background: #f0f4ff; color: var(--primary); }
 
-        /* --- Hero Header --- */
+        /* --- Page Header --- */
         .page-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); padding: 30px 20px; color: white; border-radius: 0 0 30px 30px; box-shadow: var(--shadow); margin-bottom: 30px; }
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
@@ -60,11 +60,16 @@
         .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
 
-        /* --- Import Final UI --- */
+        /* --- Import UI --- */
+        .data-preview-box { overflow-x: auto; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; }
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .preview-table th { background: #e3f2fd; padding: 10px; text-align: left; border-bottom: 2px solid #2196f3; }
+        .preview-table td { padding: 10px; border-top: 1px solid #eee; }
         .import-final-preview { max-height: 350px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
         .final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; z-index: 10; border-bottom: 2px solid #ddd; }
         .final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #ccc; }
         .status-dot.waiting { background: #ffc107; animation: blink 1s infinite; }
         .status-dot.done { background: #28a745; }
@@ -134,13 +139,14 @@
             <div id="step2" class="step-container" style="display:none;">
                 <div style="display:flex; gap:15px; background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:15px;">
                     <div>หัวตารางแถว: <input type="number" id="hRow" value="1" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
-                    <div>เริ่มข้อมูลแถว: <input type="number" id="sRow" value="2" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
+                    <div>เริ่มแถว: <input type="number" id="sRow" value="2" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
                     <div>สิ้นสุดแถว: <input type="number" id="eRow" placeholder="ทั้งหมด" style="width:90px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
                 </div>
                 <div style="background:#fff3e0; padding:12px; border-radius:12px; margin-bottom:12px; border:1px solid #ffe0b2;">
                     <label style="font-size:13px; font-weight:700; color:#e65100;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัส</label>
                     <label style="font-size:13px; font-weight:700; color:#e65100; margin-left:20px;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง ตามรหัส</label>
                 </div>
+                <div class="data-preview-box"><table class="preview-table" id="previewTable"></table></div>
                 <div id="mappingArea" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
                 <button class="btn-save" style="width:100%; margin-top:20px; height:50px;" onclick="prepareImport()">ตรวจสอบรายการทั้งหมด <i class="fas fa-arrow-right"></i></button>
             </div>
@@ -166,6 +172,14 @@
         let currentSchoolId = null;
         let allSheetRows = [], finalImportList = [];
 
+        const MAPPING_CONFIG = [
+            { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
+            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
+            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'first', 'fname', 'name'] },
+            { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'surname', 'last', 'lname', 'สกุล'] },
+            { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'วดป', 'วันเกิด'] }
+        ];
+
         function toggleDrawer() {
             const drawer = document.getElementById('sideDrawer');
             const overlay = document.getElementById('drawerOverlay');
@@ -180,9 +194,18 @@
                 currentSchoolId = cls.school_id;
                 document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
             }
+            fetchProfile();
             fetchStudents();
             document.getElementById('loadingOverlay').style.display = 'none';
         });
+
+        async function fetchProfile() {
+            const { data: { user } } = await sysDB.auth.getUser();
+            if(user) {
+                const { data: prof } = await sysDB.from('teachers').select('profile_pic').eq('teacher_id', user.id).single();
+                if(prof) document.getElementById('navProfileImg').src = prof.profile_pic;
+            }
+        }
 
         async function fetchStudents() {
             const { data } = await sysDB.from('classroom_students')
@@ -201,6 +224,7 @@
         function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display='flex'; goToStep(1); }
         function closeImportModal() { document.getElementById('importModal').style.display='none'; }
         function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i+1 === s) ? 'block' : 'none'); }
+        function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
         function processFile() {
             const file = document.getElementById('excelFile').files[0];
@@ -209,30 +233,54 @@
                 const workbook = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
                 allSheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header:1, defval:""});
                 document.getElementById('eRow').value = allSheetRows.length;
-                renderMapping();
+                updatePreview();
                 goToStep(2);
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function renderMapping() {
-            const area = document.getElementById('mappingArea');
-            const fields = [
-                {k:'code', l:'เลขประจำตัว*', kw:['รหัส','id','code']},
-                {k:'title', l:'คำนำหน้า', kw:['คำนำหน้า','prefix','title']},
-                {k:'fname', l:'ชื่อ*', kw:['ชื่อ','name','first']},
-                {k:'lname', l:'นามสกุล*', kw:['นามสกุล','surname','last']},
-                {k:'birth', l:'วดป.เกิด', kw:['เกิด','birth','วดป']}
-            ];
-            const headers = allSheetRows[parseInt(document.getElementById('hRow').value)-1] || [];
-            area.innerHTML = fields.map(f => {
-                let idx = headers.findIndex(h => f.kw.some(k => String(h).toLowerCase().includes(k)));
-                let opts = headers.map((h, i) => `<option value="${i}" ${i===idx?'selected':''}>${h || 'คอลัมน์ '+(i+1)}</option>`).join('');
-                return `<div class="mapping-card"><label style="font-size:12px; font-weight:700;">${f.l}</label><select id="map_${f.k}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select></div>`;
-            }).join('');
+        function updatePreview() {
+            const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
+            const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
+            const eIdx = (parseInt(document.getElementById('eRow').value) || allSheetRows.length) - 1;
+            headers = allSheetRows[hIdx] || [];
+            const table = document.getElementById('previewTable'); table.innerHTML = '';
+            [hIdx, dIdx, eIdx].forEach((idx, i) => {
+                if(allSheetRows[idx]) {
+                    const tr = document.createElement('tr');
+                    if(i===0) tr.style.background = "#e3f2fd";
+                    const tdL = document.createElement('td'); tdL.innerText = idx + 1; tdL.style.fontWeight='700'; tr.appendChild(tdL);
+                    allSheetRows[idx].forEach(c => { const td = document.createElement(i===0?'th':'td'); td.innerText=formatVal(c); tr.appendChild(td); });
+                    table.appendChild(tr);
+                }
+            });
+            renderMapping();
         }
 
-        function cleanDate(val) {
+        function renderMapping() {
+            const area = document.getElementById('mappingArea'); area.innerHTML = '';
+            const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
+            const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
+            const headersRow = allSheetRows[hIdx] || [];
+            const firstRow = allSheetRows[dIdx] || [];
+
+            MAPPING_CONFIG.forEach(f => {
+                let bestIdx = headersRow.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
+                let opts = headersRow.map((h, i) => {
+                    const ex = firstRow[i] ? ` (เช่น: ${formatVal(firstRow[i])})` : '';
+                    return `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || 'คอลัมน์ '+(i+1)}${ex}</option>`;
+                }).join('');
+                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span class="example-label" id="live_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
+            });
+            
+            MAPPING_CONFIG.forEach(f => {
+                document.getElementById(`map_${f.key}`).onchange = (e) => { 
+                    document.getElementById(`live_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; 
+                };
+            });
+        }
+
+        function parseBirthDate(val) {
             if(!val) return null;
             if(val instanceof Date) {
                 let y = val.getFullYear();
@@ -255,11 +303,11 @@
             const e = parseInt(document.getElementById('eRow').value) || allSheetRows.length;
             const sortType = document.querySelector('input[name="sortType"]:checked').value;
             const map = {
-                code: document.getElementById('map_code').value,
-                title: document.getElementById('map_title').value,
-                fname: document.getElementById('map_fname').value,
-                lname: document.getElementById('map_lname').value,
-                birth: document.getElementById('map_birth').value
+                code: document.getElementById('map_student_code').value,
+                title: document.getElementById('map_student_title').value,
+                fname: document.getElementById('map_first_name').value,
+                lname: document.getElementById('map_last_name').value,
+                birth: document.getElementById('map_birth_date').value
             };
 
             let raw = allSheetRows.slice(s, e).map(row => {
@@ -267,8 +315,8 @@
                 return {
                     code: String(row[map.code] || "").trim(),
                     title: title,
-                    name: `${row[map.fname]} ${row[map.lname]}`.trim(),
-                    birth: cleanDate(row[map.birth]),
+                    name: `${formatVal(row[map.fname])} ${formatVal(row[map.lname])}`.trim(),
+                    birth: parseBirthDate(row[map.birth]),
                     gender: ['ด.ญ.', 'เด็กหญิง', 'นางสาว', 'น.ส.'].some(k => title.includes(k)) ? 1 : 0
                 };
             }).filter(x => x.code && x.name);
@@ -308,7 +356,7 @@
                 document.getElementById('progressBar').style.width = p+'%';
                 document.getElementById('progressPercent').innerText = p+'%';
             }
-            alert("นำเข้าข้อมูลครบถ้วน!");
+            alert("นำเข้าข้อมูลเสร็จสมบูรณ์!");
             location.reload();
         }
     </script>
