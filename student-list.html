@@ -34,6 +34,7 @@
             position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
         }
         @media (min-width: 768px) { nav { padding: 0 50px; } }
+
         .nav-left-group { display: flex; align-items: center; gap: 15px; }
         .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; cursor: pointer; }
         .logo-container img { height: 50px; }
@@ -41,6 +42,7 @@
         .brand-name { font-family: 'Kanit'; font-size: 24px; font-weight: 700; color: var(--primary-dark); }
         .brand-name span { color: var(--primary-light); }
         .brand-slogan { font-size: 12px; color: #636e72; }
+
         .menu-btn { background: #f0f4ff; color: var(--primary); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; transition: 0.3s; }
 
         /* --- Side Drawer --- */
@@ -55,7 +57,7 @@
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
 
-        /* --- Student Cards --- */
+        /* --- Grid Student List --- */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; list-style: none; }
         .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
@@ -77,6 +79,9 @@
         /* ปุ่มย้อนกลับดีไซน์ใหม่ */
         .btn-back-step { width: 100%; background: none; border: 1px solid #ddd; color: #666; padding: 12px; border-radius: 15px; cursor: pointer; font-family: 'Kanit'; margin-top: 10px; transition: 0.3s; }
         .btn-back-step:hover { background: #f8f9fa; color: var(--primary); border-color: var(--primary-light); }
+
+        /* ตัวอย่างข้อมูลสีส้ม */
+        .example-label { color: var(--accent); font-weight: 600; font-size: 11px; display: block; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -112,7 +117,7 @@
         <div class="header-content" style="max-width:1400px; margin:0 auto; display:flex; justify-content:space-between;">
             <div>
                 <h1 style="font-family:'Kanit'; margin:0;">รายชื่อนักเรียน</h1>
-                <p id="classSubTitle" style="opacity:0.8; margin:5px 0 0;">กำลังโหลดข้อมูลห้องเรียน...</p>
+                <p id="classSubTitle" style="opacity:0.8; margin:5px 0 0; font-weight:500;">กำลังโหลดข้อมูลวิชา...</p>
             </div>
             <div style="text-align: right;">
                 <h2 id="totalCount" style="font-size: 32px; margin: 0; font-family: 'Kanit';">0</h2>
@@ -128,7 +133,7 @@
         <div class="modal-box" style="max-width: 950px; border-radius: 35px;">
             <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer; float:right;"></i></div>
             
-            <div id="step1" class="step-container active">
+            <div id="step1" class="step-container">
                 <div style="padding:60px; border:3px dashed #eee; border-radius:30px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
                     <i class="fas fa-cloud-upload-alt" style="font-size:60px; color:var(--primary); margin-bottom:20px;"></i>
                     <h3 style="font-family:'Kanit';">เลือกไฟล์ Excel รายชื่อนักเรียน</h3>
@@ -152,7 +157,7 @@
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
-                <h4 style="font-family:'Kanit'; margin:0 0 10px 0;">ตรวจสอบความถูกต้องก่อนยืนยัน:</h4>
+                <h4 style="font-family:'Kanit'; margin:0 0 10px 0;">ตรวจสอบรายการที่พร้อมนำเข้า:</h4>
                 <div class="import-final-preview">
                     <table class="final-table">
                         <thead><tr><th>ที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วดป(ค.ศ.)</th><th>สถานะ</th></tr></thead>
@@ -194,6 +199,7 @@
             const { data: cls } = await sysDB.from('classrooms').select('*, schools(*)').eq('classroom_id', currentClassId).single();
             if(cls) {
                 currentSchoolId = cls.school_id;
+                // แก้ไขหัวข้อให้เป็น ภาษาไทย (1/4)
                 document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
             }
             fetchStudents();
@@ -208,7 +214,7 @@
                 document.getElementById('totalCount').innerText = data.length;
                 data.forEach(item => {
                     const s = item.school_students;
-                    container.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div><b>${s.student_title || ''}${s.student_name}</b><br><small>${s.student_code}</small></div></div>`;
+                    container.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div style="flex:1;"><b>${s.student_title || ''}${s.student_name}</b><br><small class="st-code"><i class="fas fa-id-card"></i> ${s.student_code}</small></div></div>`;
                 });
             }
         }
@@ -216,7 +222,6 @@
         function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display='flex'; goToStep(1); }
         function closeImportModal() { document.getElementById('importModal').style.display='none'; }
         function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i+1 === s) ? 'block' : 'none'); }
-
         function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
         function processFile() {
@@ -239,7 +244,6 @@
             const headers = allSheetRows[hIdx] || [];
             const table = document.getElementById('previewTable'); table.innerHTML = '';
             
-            // แสดงแถวหัวตาราง แถวแรก และแถวสุดท้าย
             [hIdx, dIdx, eIdx].forEach((idx, i) => {
                 if(allSheetRows[idx]) {
                     const tr = document.createElement('tr');
@@ -260,16 +264,19 @@
             const firstRow = allSheetRows[dIdx] || [];
 
             MAPPING_CONFIG.forEach(f => {
-                let bestIdx = headersRow.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
+                let bestIdx = headersRow.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k.toLowerCase())));
                 let opts = headersRow.map((h, i) => {
-                    const ex = firstRow[i] ? ` (เช่น: ${formatVal(firstRow[i])})` : ' (ว่าง)';
+                    const ex = firstRow[i] ? ` (เช่น: ${formatVal(firstRow[i])})` : '';
                     return `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || 'คอลัมน์ '+(i+1)}${ex}</option>`;
                 }).join('');
-                area.innerHTML += `<div class="mapping-card" style="background:#fff; padding:12px; border-radius:12px; border:1px solid #eee;"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span style="color:var(--accent); font-weight:600; font-size:11px; display:block; margin-top:5px;" id="live_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
+                area.innerHTML += `<div class="mapping-card" style="background:#fff; padding:12px; border-radius:12px; border:1px solid #eee;"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span class="example-label" id="live_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
             });
             
             MAPPING_CONFIG.forEach(f => {
-                document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`live_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; };
+                document.getElementById(`map_${f.key}`).onchange = (e) => { 
+                    const rowIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
+                    document.getElementById(`live_${f.key}`).innerText = formatVal(allSheetRows[rowIdx][e.target.value]) || '-'; 
+                };
             });
         }
 
@@ -277,8 +284,8 @@
             if(!val) return null;
             if(val instanceof Date) {
                 let y = val.getFullYear();
-                if(y > 2400) val.setFullYear(y - 543);
-                return val.toISOString().split('T')[0];
+                if(y > 2400) y -= 543; // แปลงปี พ.ศ. เป็น ค.ศ.
+                return `${y}-${String(val.getMonth()+1).padStart(2,'0')}-${String(val.getDate()).padStart(2,'0')}`;
             }
             let str = String(val).trim();
             let p = str.split(/[-/.]/);
@@ -327,7 +334,6 @@
             document.getElementById('confirmBtn').disabled = true;
             document.getElementById('progressSection').style.display = 'block';
 
-            // นำเข้าแบบ Sequential เพื่อป้องกันข้อมูลหลุด
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
                 const dot = document.querySelector(`#row_${i} .status-dot`);
