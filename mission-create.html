@@ -1,197 +1,226 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Mission Designer ✨ - FlipSchool</title>
-    
-    <link rel="icon" type="image/png" href="img/favicon.png">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Mission Designer - FlipSchool</title>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun&display=swap" rel="stylesheet">
 
-    <style>
-        :root { 
-            --primary: #00008B; --primary-light: #0052D4; --ai-glow: #8e44ad;
-            --bg: #f4f7fa; --white: #ffffff;
-        }
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; }
-        header { background: linear-gradient(135deg, #000046, var(--primary-light)); color: white; text-align: center; padding: 40px 20px; border-radius: 0 0 40px 40px; }
-        main { max-width: 1200px; margin: -30px auto 50px; padding: 0 20px; display: grid; grid-template-columns: 1fr 400px; gap: 25px; }
-        @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
-
-        .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .ai-status-bar { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 12px 20px; border-radius: 15px; border: 1px solid #ddd; margin-bottom: 20px; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #bbb; }
-        .status-dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-        
-        .btn-ai { background: var(--ai-glow); color: white; width: 100%; border: none; padding: 15px; border-radius: 12px; font-family: Kanit; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 15px; }
-        .phone-mockup { background: #1a1a1a; width: 100%; height: 650px; border-radius: 45px; border: 10px solid #333; position: sticky; top: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        .phone-screen { background: white; height: 100%; display: flex; flex-direction: column; position: relative; }
-        .canvas-content { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-
-        input, textarea, select { width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #eee; box-sizing: border-box; font-family: inherit; margin-bottom: 15px; }
-        #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); display:none; align-items:center; justify-content:center; z-index:9999; }
-        .spinner { width: 45px; height: 45px; border: 5px solid #eee; border-top-color: var(--ai-glow); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+<style>
+body{margin:0;font-family:Sarabun;background:#f0f2f5}
+header{
+  background:linear-gradient(135deg,#000046,#0052D4);
+  color:#fff;text-align:center;padding:40px 20px;
+  border-radius:0 0 40px 40px
+}
+main{
+  max-width:1200px;margin:-30px auto 40px;padding:0 20px;
+  display:grid;grid-template-columns:1fr 420px;gap:25px
+}
+@media(max-width:1024px){main{grid-template-columns:1fr}}
+.card{
+  background:#fff;border-radius:25px;padding:25px;
+  box-shadow:0 10px 30px rgba(0,0,0,.05);margin-bottom:20px
+}
+input,textarea,select{
+  width:100%;padding:12px;border-radius:12px;
+  border:1px solid #ddd;box-sizing:border-box
+}
+button{
+  border:none;border-radius:12px;padding:12px;
+  background:#8e44ad;color:#fff;
+  font-family:Kanit;cursor:pointer;margin-top:10px;width:100%
+}
+button.secondary{background:#34495e}
+.status{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:10px;height:10px;border-radius:50%;background:#bbb}
+.dot.on{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
+.phone{
+  background:#111;border-radius:40px;padding:12px;
+  height:620px;position:sticky;top:20px
+}
+.screen{
+  background:#fff;border-radius:30px;height:100%;
+  display:flex;flex-direction:column;
+  padding:20px
+}
+.quiz-q{font-family:Kanit;font-size:18px;margin-bottom:20px}
+.choice{
+  padding:12px;border-radius:12px;
+  border:1px solid #ddd;margin-bottom:10px;
+  cursor:pointer
+}
+.choice.correct{background:#eafaf1;border-color:#2ecc71}
+.choice.wrong{background:#fdecea;border-color:#e74c3c}
+.choice.disabled{pointer-events:none;opacity:.7}
+.footer{
+  margin-top:auto;font-size:13px;color:#888;text-align:center
+}
+pre{
+  background:#fafafa;padding:15px;border-radius:12px;
+  font-size:12px;max-height:260px;overflow:auto
+}
+</style>
 </head>
+
 <body>
 
-    <div id="loadingOverlay"><div class="spinner"></div></div>
+<header>
+<h1 style="font-family:Kanit;margin:0">AI Mission Designer 🚀</h1>
+<p>พรีวิวเหมือนผู้เรียนใช้งานจริง</p>
+</header>
 
-    <header>
-        <h1 style="font-family:Kanit; margin:0;">AI Mission Designer 🚀</h1>
-        <p>แก้ไขระบบ API ให้เสถียรและใช้งานได้จริง</p>
-    </header>
+<main>
 
-    <main>
-        <section>
-            <div class="card">
-                <div class="ai-status-bar">
-                    <div>
-                        <span class="status-dot" id="statusDot"></span>
-                        <span id="statusText" style="font-size: 14px; font-weight: 600;">ตรวจสอบการเชื่อมต่อ...</span>
-                    </div>
-                    <button onclick="toggleKeySettings()" style="background:none; border:none; color:var(--ai-glow); cursor:pointer; font-weight:bold;">ตั้งค่า Key</button>
-                </div>
+<section>
 
-                <div id="keySettings" style="display:none; margin-bottom:20px;">
-                    <label style="font-size:12px; font-weight:bold;">Gemini API Key:</label>
-                    <input type="password" id="geminiKey" placeholder="วางรหัส AIzaSy... ที่นี่" onchange="testApiKey()">
-                </div>
+<div class="card">
+  <div class="status">
+    <div id="dot" class="dot"></div>
+    <span id="statusText">ยังไม่ได้เชื่อมต่อ API</span>
+  </div>
 
-                <label style="font-family:Kanit;">🤖 เลือกโมเดลที่ต้องการ (เสถียรที่สุด)</label>
-                <select id="modelSelect">
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (แนะนำ - โควตาเยอะ)</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาดมาก)</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (รุ่นทดลองล่าสุด)</option>
-                </select>
+  <label>🔑 Gemini API Key</label>
+  <input type="password" id="geminiKey">
+  <button onclick="testApiKey()">Test API Key</button>
+  <button class="secondary" onclick="listModels()">📋 List Models</button>
+</div>
 
-                <label style="font-family:Kanit;">💡 หัวข้อหรือบทเรียน</label>
-                <textarea id="aiPrompt" rows="3" placeholder="เช่น: สรุปความรู้เรื่องสัตว์ปีก และสร้าง Quiz 3 ข้อ"></textarea>
-                
-                <button class="btn-ai" onclick="generateByAI()">
-                    <i class="fas fa-wand-magic-sparkles"></i> สั่ง AI ออกแบบภารกิจ
-                </button>
-            </div>
+<div class="card">
+  <label>🤖 โมเดล</label>
+  <select id="modelSelect"></select>
+</div>
 
-            <div class="card">
-                <label style="font-family:Kanit;">📝 โครงสร้างข้อมูล (JSON)</label>
-                <div id="jsonOutput" style="background:#f8f9fa; padding:15px; border-radius:10px; font-size:12px; font-family:monospace; min-height:50px; overflow:auto;">
-                    รอการประมวลผล...
-                </div>
-            </div>
-        </section>
+<div class="card">
+  <label>💡 หัวข้อภารกิจ</label>
+  <textarea id="aiPrompt" rows="3"></textarea>
+  <button onclick="generateByAI()">✨ สร้างภารกิจ</button>
+</div>
 
-        <aside>
-            <div class="phone-mockup">
-                <div class="phone-screen">
-                    <div class="canvas-content" id="previewArea">
-                        <i class="fas fa-mobile-alt" style="font-size:60px; color:#eee; margin-bottom:15px;"></i>
-                        <p style="color:#aaa;">Live Preview <br>จะปรากฏที่นี่</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
-    </main>
+<div class="card">
+  <label>📦 JSON</label>
+  <div id="dataEditor"></div>
+</div>
 
-    <script>
-        const API_VERSION = "v1beta";
-        const API_URL = "https://generativelanguage.googleapis.com";
+</section>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if(savedKey) {
-                document.getElementById('geminiKey').value = savedKey;
-                testApiKey();
-            }
-        });
+<aside>
+<div class="phone">
+<div class="screen" id="preview"></div>
+</div>
+</aside>
 
-        async function testApiKey() {
-            const key = document.getElementById('geminiKey').value;
-            if(!key) return;
-            try {
-                // ตรวจสอบผ่านโมเดลมาตรฐาน
-                const res = await fetch(`${API_URL}/${API_VERSION}/models/gemini-1.5-flash?key=${key}`);
-                const json = await res.json();
-                if(json.error) throw new Error(json.error.message);
+</main>
 
-                document.getElementById('statusDot').classList.add('on');
-                document.getElementById('statusText').innerText = "เชื่อมต่อ API สำเร็จ";
-                localStorage.setItem('gemini_api_key', key);
-            } catch(e) {
-                document.getElementById('statusDot').classList.remove('on');
-                document.getElementById('statusText').innerText = "Key ไม่ถูกต้อง";
-            }
-        }
+<script>
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+let quizData = [];
+let index = 0;
+let score = 0;
 
-        async function generateByAI() {
-            const prompt = document.getElementById('aiPrompt').value;
-            const key = document.getElementById('geminiKey').value;
-            const model = document.getElementById('modelSelect').value;
+/* ---------- API ---------- */
+async function testApiKey(){
+  const key = geminiKey.value;
+  try{
+    const res = await fetch(`${API_BASE}/models?key=${key}`);
+    const json = await res.json();
+    if(json.error) throw 0;
+    dot.classList.add("on");
+    statusText.textContent = "เชื่อมต่อสำเร็จ";
+    localStorage.setItem("gemini_api_key",key);
+  }catch{
+    alert("❌ API Key ไม่ถูกต้อง");
+  }
+}
 
-            if(!prompt || !key) return alert("กรุณาระบุหัวข้อและตั้งค่า API Key");
+async function listModels(){
+  const key = geminiKey.value;
+  const res = await fetch(`${API_BASE}/models?key=${key}`);
+  const json = await res.json();
+  modelSelect.innerHTML = "";
+  json.models
+    .filter(m=>m.supportedGenerationMethods?.includes("generateContent"))
+    .forEach(m=>{
+      const opt=document.createElement("option");
+      opt.value=m.name.replace("models/","");
+      opt.textContent=opt.value;
+      modelSelect.appendChild(opt);
+    });
+}
 
-            document.getElementById('loadingOverlay').style.display = 'flex';
+/* ---------- GENERATE ---------- */
+async function generateByAI(){
+  const key = geminiKey.value;
+  const model = modelSelect.value;
+  const prompt = aiPrompt.value;
 
-            try {
-                // ✅ แก้ไข URL: ตรวจสอบว่าไม่มีคำว่า models/ ซ้ำซ้อน และใช้เครื่องหมาย : ต่อท้ายชื่อโมเดล
-                const endpoint = `${API_URL}/${API_VERSION}/models/${model}:generateContent?key=${key}`;
+  const instruction = `
+ตอบเป็น JSON เท่านั้น
+Quiz 3 ข้อ เรื่อง "${prompt}"
+[
+ {"q":"คำถาม","ok":"คำตอบถูก","no":"คำตอบผิด"}
+]`;
 
-                const instruction = `ตอบเป็น JSON เท่านั้น (Array of Objects)
-                สร้างคำถาม Quiz 3 ข้อ เรื่อง: "${prompt}"
-                รูปแบบ: [{"q":"คำถาม","ok":"ถูก","no":"ผิด"}]`;
+  const res = await fetch(
+    `${API_BASE}/models/${model}:generateContent?key=${key}`,
+    {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:instruction}]}]})
+    }
+  );
+  const json = await res.json();
+  let text = json.candidates[0].content.parts[0].text;
+  quizData = JSON.parse(text.replace(/```json|```/g,""));
+  dataEditor.innerHTML = `<pre>${JSON.stringify(quizData,null,2)}</pre>`;
+  startPreview();
+}
 
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
-                });
+/* ---------- PREVIEW ENGINE ---------- */
+function startPreview(){
+  index = 0;
+  score = 0;
+  renderQuestion();
+}
 
-                const data = await response.json();
-                
-                if(data.error) {
-                    // หากเจอปัญหา model not found ให้แจ้งเตือนด้วยสาเหตุจริง
-                    throw new Error(`Google API แจ้งว่า: ${data.error.message}`);
-                }
+function renderQuestion(){
+  const q = quizData[index];
+  preview.innerHTML = `
+    <div class="quiz-q">${index+1}. ${q.q}</div>
+    <div class="choice" onclick="answer(true)">${q.ok}</div>
+    <div class="choice" onclick="answer(false)">${q.no}</div>
+    <div class="footer">ข้อ ${index+1}/${quizData.length}</div>
+  `;
+}
 
-                let text = data.candidates[0].content.parts[0].text;
-                text = text.replace(/```json|```/g, "").trim();
-                const missionJSON = JSON.parse(text);
+function answer(correct){
+  const choices = document.querySelectorAll(".choice");
+  choices.forEach(c=>c.classList.add("disabled"));
 
-                // แสดง JSON
-                document.getElementById('jsonOutput').innerHTML = `<pre>${JSON.stringify(missionJSON, null, 2)}</pre>`;
-                
-                // แสดง Preview
-                renderPreview(missionJSON[0]);
+  if(correct){
+    score++;
+    choices[0].classList.add("correct");
+  }else{
+    choices[1].classList.add("wrong");
+    choices[0].classList.add("correct");
+  }
 
-            } catch (e) {
-                console.error(e);
-                alert("❌ เกิดข้อผิดพลาด: " + e.message);
-            } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
-        }
+  setTimeout(()=>{
+    index++;
+    if(index < quizData.length) renderQuestion();
+    else finish();
+  },900);
+}
 
-        function renderPreview(item) {
-            const area = document.getElementById('previewArea');
-            area.innerHTML = `
-                <div style="width:100%; padding:20px; background:#fff; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                    <h3 style="margin:0 0 15px 0; color:var(--primary);">${item.q}</h3>
-                    <button style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:2px solid #eee; background:#fff; font-weight:bold;">${item.ok}</button>
-                    <button style="width:100%; padding:12px; border-radius:10px; border:2px solid #eee; background:#fff;">${item.no}</button>
-                </div>
-            `;
-        }
+function finish(){
+  preview.innerHTML = `
+    <h2>🎉 จบภารกิจ</h2>
+    <p>คะแนน ${score} / ${quizData.length}</p>
+    <button onclick="startPreview()">เล่นอีกครั้ง</button>
+  `;
+}
+</script>
 
-        function toggleKeySettings() {
-            const el = document.getElementById('keySettings');
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        }
-    </script>
 </body>
 </html>
