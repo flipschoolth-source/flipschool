@@ -26,7 +26,7 @@
 
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; overflow-x: hidden; }
 
-        /* --- Navbar แบบหน้า index.html --- */
+        /* --- Navbar แบบ index.html --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 20px; height: 90px; background: var(--white);
@@ -34,24 +34,20 @@
             position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
         }
         @media (min-width: 768px) { nav { padding: 0 50px; } }
-
         .nav-left-group { display: flex; align-items: center; gap: 15px; }
         .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
-        .logo-container img { height: 50px; width: auto; }
+        .logo-container img { height: 50px; }
         .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
         .brand-name { font-family: 'Kanit'; font-size: 24px; font-weight: 700; color: var(--primary-dark); }
         .brand-name span { color: var(--primary-light); }
         .brand-slogan { font-size: 12px; color: #636e72; }
+        .menu-btn { background: #f0f4ff; color: var(--primary); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; }
 
-        .menu-btn { background: #f0f4ff; color: var(--primary); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; transition: 0.3s; }
-        .menu-btn:hover { background: var(--primary); color: white; }
-
-        /* --- Sidebar & Overlays --- */
+        /* --- Sidebar --- */
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1990; backdrop-filter: blur(2px); }
         .side-drawer { position: fixed; top: 0; left: calc(var(--drawer-width) * -1.1); width: var(--drawer-width); height: 100%; background: white; z-index: 2000; transition: 0.4s; padding: 30px 20px; box-sizing: border-box; }
         .side-drawer.active { left: 0; }
-        .drawer-item { padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #444; font-family: 'Kanit'; margin-bottom: 8px; transition: 0.3s; }
-        .drawer-item:hover { background: #f0f4ff; color: var(--primary); }
+        .drawer-item { padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #444; font-family: 'Kanit'; margin-bottom: 8px; }
 
         /* --- Header Section --- */
         .page-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); padding: 30px 20px; color: white; border-radius: 0 0 30px 30px; box-shadow: var(--shadow); margin-bottom: 30px; }
@@ -63,13 +59,19 @@
         .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.02); }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
 
-        /* --- Import Components --- */
-        .data-preview-box { overflow-x: auto; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; }
-        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .mapping-card { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
-        .import-final-preview { max-height: 400px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
+        /* --- Import Dashboard --- */
+        .import-final-preview { max-height: 350px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
         .final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; z-index: 10; border-bottom: 2px solid #ddd; }
+        .final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        
+        /* --- Import Status UI --- */
+        .status-row { display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+        .status-dot.waiting { background: #ffc107; animation: blink 1s infinite; }
+        .status-dot.done { background: #28a745; }
+        .status-dot.error { background: #dc3545; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.3); z-index: 900; }
     </style>
@@ -115,12 +117,11 @@
     </header>
 
     <main><div id="studentGrid" class="student-grid"></div></main>
-
     <button class="fab-add" onclick="openAddModal()"><i class="fas fa-user-plus"></i></button>
 
     <div id="importModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 950px; border-radius: 35px;">
-            <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน (Master Data)</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i></div>
+            <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i></div>
             
             <div id="step1" class="step-container active">
                 <div style="padding:60px; border:3px dashed #eee; border-radius:30px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
@@ -132,29 +133,36 @@
 
             <div id="step2" class="step-container" style="display:none;">
                 <div style="display:flex; gap:15px; background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:15px;">
-                    <div><label style="font-size:12px; font-weight:700;">หัวตาราง (แถว)</label><input type="number" id="hRow" value="1" min="1" onchange="updatePreview()" style="width:70px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
-                    <div><label style="font-size:12px; font-weight:700;">เริ่มข้อมูล (แถว)</label><input type="number" id="sRow" value="2" min="1" onchange="updatePreview()" style="width:70px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
-                    <div><label style="font-size:12px; font-weight:700;">สิ้นสุด (แถว)</label><input type="number" id="eRow" placeholder="ทั้งหมด" onchange="updatePreview()" style="width:100px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
+                    <div><label style="font-size:12px; font-weight:700;">หัวตาราง(แถว)</label><input type="number" id="hRow" value="1" min="1" onchange="updatePreview()" style="width:70px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
+                    <div><label style="font-size:12px; font-weight:700;">เริ่มข้อมูล(แถว)</label><input type="number" id="sRow" value="2" min="1" onchange="updatePreview()" style="width:70px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
+                    <div><label style="font-size:12px; font-weight:700;">สิ้นสุด(แถว)</label><input type="number" id="eRow" placeholder="ทั้งหมด" onchange="updatePreview()" style="width:90px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
                 </div>
 
-                <div style="background:#fff3e0; padding:15px; border-radius:15px; border:1px solid #ffe0b2; margin-bottom:15px;">
-                    <label style="font-size:14px; font-weight:700; color:#e65100; display:flex; align-items:center; gap:8px;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัสประจำตัว</label>
-                    <label style="font-size:14px; font-weight:700; color:#e65100; display:flex; align-items:center; gap:8px; margin-top:5px;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง แล้วเรียงรหัส</label>
+                <div class="sort-box" style="background:#fff3e0; padding:12px; border-radius:12px; border:1px solid #ffe0b2; margin-bottom:12px;">
+                    <label style="font-size:13px; font-weight:700; color:#e65100;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัส</label>
+                    <label style="font-size:13px; font-weight:700; color:#e65100; margin-left:20px;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง ตามรหัส</label>
                 </div>
 
                 <div class="data-preview-box"><table class="preview-table" id="previewTable"></table></div>
-                <div id="mappingArea" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px; margin-top:20px;"></div>
-                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:30px; height:55px;" onclick="prepareImport()">ตรวจสอบรายการทั้งหมด <i class="fas fa-arrow-right"></i></button>
+                <div id="mappingArea" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-top:15px;"></div>
+
+                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:20px; height:55px;" onclick="prepareImport()">ตรวจสอบรายการทั้งหมด <i class="fas fa-arrow-right"></i></button>
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
-                <div class="import-final-preview"><table class="final-table"><thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วันเกิด</th></tr></thead><tbody id="finalPreviewBody"></tbody></table></div>
+                <h4 style="font-family:'Kanit'; margin:0 0 10px 0;">รายการที่พร้อมนำเข้า และสถานะการบันทึก:</h4>
+                <div class="import-final-preview">
+                    <table class="final-table">
+                        <thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th></tr></thead>
+                        <tbody id="finalPreviewBody"></tbody>
+                    </table>
+                </div>
                 <div id="summaryText" style="background:#e3f2fd; padding:15px; border-radius:15px; color:#0d47a1; font-weight:700; text-align:center; margin-bottom:15px;"></div>
-                <div id="progressSection" style="display:none; padding:20px; background:#fff; border-radius:20px; box-shadow:0 5px 15px rgba(0,0,0,0.05);">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span id="progressLabel">กำลังนำเข้า...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
+                <div id="progressSection" style="display:none; padding:15px; background:#fff; border-radius:15px; border:1px solid #eee;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;"><span id="progressLabel">กำลังดำเนินการ...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
                     <div style="background:#eee; height:12px; border-radius:6px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.4s;"></div></div>
                 </div>
-                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:20px;" onclick="executeImport()">ยืนยันและบันทึกข้อมูล</button>
+                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:18px; margin-top:15px;" onclick="executeImport()">ยืนยันและเริ่มนำเข้าข้อมูล</button>
             </div>
         </div>
     </div>
@@ -167,7 +175,7 @@
         const MAPPING_CONFIG = [
             { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
             { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
-            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'first', 'fname', 'name'] },
+            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'first', 'fname'] },
             { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'last', 'lname', 'สกุล'] },
             { key: 'birth_date', label: 'วันเกิด', keywords: ['เกิด', 'birth', 'dob'] }
         ];
@@ -242,9 +250,9 @@
             MAPPING_CONFIG.forEach(f => {
                 let bestIdx = headers.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
                 let opts = headers.map((h, i) => `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || `Col ${i+1}`}</option>`).join('');
-                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700; color:#555; display:block; margin-bottom:5px;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:13px;">${opts}</select><span class="example-text" id="example_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
+                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700; color:#555; display:block; margin-bottom:5px;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:13px;">${opts}</select><span style="color:var(--accent); font-weight:600; font-size:11px; display:block; margin-top:5px;" id="example_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
             });
-            MAPPING_CONFIG.forEach(f => { document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`example_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; }; });
+            MAPPING_CONFIG.forEach(f => { document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`example_${f.key}`).innerText = formatVal(allSheetRows[(parseInt(document.getElementById('sRow').value)||2)-1][e.target.value]) || '-'; }; });
         }
 
         async function prepareImport() {
@@ -262,8 +270,9 @@
             else raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
 
             finalImportList = raw.map((item, idx) => ({ ...item, num: idx + 1 }));
-            document.getElementById('finalPreviewBody').innerHTML = finalImportList.map(item => `<tr><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td>${item.birth || '-'}</td></tr>`).join('');
-            document.getElementById('summaryText').innerText = `ตรวจพบรายชื่อทั้งหมด ${finalImportList.length} รายการ พร้อมบันทึก`;
+            
+            document.getElementById('finalPreviewBody').innerHTML = finalImportList.map((item, i) => `<tr id="row_${i}"><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td id="status_${i}" class="status-row"><div class="status-dot"></div> <small>รอคิว</small></td></tr>`).join('');
+            document.getElementById('summaryText').innerText = `พร้อมนำเข้าข้อมูลนักเรียน ${finalImportList.length} รายการ`;
             goToStep(3);
         }
 
@@ -272,27 +281,50 @@
             document.getElementById('confirmBtn').disabled = true;
             document.getElementById('progressSection').style.display = 'block';
 
-            // --- แก้ไขให้นำเข้าครบถ้วนด้วยลูปที่ปลอดภัย ---
+            // --- แก้ไขให้นำเข้าครบถ้วนด้วยลูปแบบ Sequence (รอให้สำเร็จทีละรายการ) ---
             for (let i = 0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
+                const statusDot = document.querySelector(`#row_${i} .status-dot`);
+                const statusText = document.querySelector(`#row_${i} small`);
+                
+                statusDot.className = "status-dot waiting";
+                statusText.innerText = "กำลังบันทึก...";
+
                 try {
-                    // 1. Upsert Student Master
+                    // 1. บันทึก Master
                     const { data: std, error: e1 } = await sysDB.from('school_students').upsert({ 
                         school_id: currentSchoolId, student_code: item.code, student_title: item.title, student_name: item.name, birth_date: item.birth || null 
                     }, { onConflict: 'school_id, student_code' }).select().single();
                     
-                    // 2. Upsert Enrollment
-                    if(std) await sysDB.from('classroom_students').upsert({ 
+                    if(e1) throw e1;
+
+                    // 2. บันทึก Enrollment
+                    const { error: e2 } = await sysDB.from('classroom_students').upsert({ 
                         classroom_id: currentClassId, student_id: std.student_id, student_number: item.num 
                     }, { onConflict: 'classroom_id, student_id' });
 
-                    const p = Math.round(((i + 1) / finalImportList.length) * 100);
-                    document.getElementById('progressBar').style.width = p + '%';
-                    document.getElementById('progressPercent').innerText = p + '%';
-                } catch (err) { console.error("Import Error:", err); }
+                    if(e2) throw e2;
+
+                    // สำเร็จ
+                    statusDot.className = "status-dot done";
+                    statusText.innerText = "สำเร็จ";
+
+                } catch (err) {
+                    // ผิดพลาด
+                    statusDot.className = "status-dot error";
+                    statusText.innerText = "ผิดพลาด: " + err.message;
+                    console.error("Row "+i+" error:", err);
+                }
+
+                const p = Math.round(((i + 1) / finalImportList.length) * 100);
+                document.getElementById('progressBar').style.width = p + '%';
+                document.getElementById('progressPercent').innerText = p + '%';
             }
-            alert('นำเข้าสำเร็จครบถ้วน!'); location.reload();
+            alert('ดำเนินการนำเข้าครบทุกรายการแล้ว โปรดตรวจสอบสถานะความสำเร็จในตาราง');
+            location.reload();
         }
+
+        function openAddModal() { alert('ฟังก์ชันเพิ่มรายบุคคลกำลังพัฒนา'); }
     </script>
 </body>
 </html>
