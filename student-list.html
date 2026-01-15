@@ -48,14 +48,12 @@
         .page-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); padding: 30px 20px; color: white; border-radius: 0 0 30px 30px; box-shadow: var(--shadow); margin-bottom: 30px; }
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
-        .total-badge { text-align: right; }
         .total-badge h2 { font-size: 32px; margin: 0; font-family: 'Kanit'; }
 
         /* --- Grid & Cards --- */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; list-style: none; }
         @media (min-width: 768px) { .student-grid { padding: 0 50px 50px; } }
         .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.02); transition: 0.3s; }
-        .student-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
         .st-info h3 { margin: 0; font-family: 'Kanit'; font-size: 17px; color: #2d3436; }
         .st-code { font-size: 11px; color: #b2bec3; background: #f8f9fa; padding: 4px 10px; border-radius: 8px; margin-top: 5px; display: inline-block; }
@@ -65,10 +63,14 @@
         .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .preview-table th { background: #e3f2fd; padding: 10px; text-align: left; border-bottom: 2px solid #2196f3; }
         .preview-table td { padding: 10px; border-top: 1px solid #eee; }
-        .mapping-card { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #eee; transition: 0.3s; }
-        .mapping-card:hover { border-color: var(--primary-light); }
+        .mapping-card { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
         .example-text { color: var(--accent); font-weight: 600; font-size: 11px; display: block; margin-top: 5px; }
         .sort-box { background: #fff3e0; padding: 15px; border-radius: 15px; border: 1px solid #ffe0b2; margin-bottom: 15px; }
+
+        .import-final-preview { max-height: 400px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
+        .import-final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .import-final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
+        .import-final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
 
         .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.3); z-index: 900; }
     </style>
@@ -117,13 +119,12 @@
 
     <div id="importModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 950px; border-radius: 35px;">
-            <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อ (Master Data)</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i></div>
+            <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i></div>
             
             <div id="step1" class="step-container active">
                 <div style="padding:60px; border:3px dashed #eee; border-radius:30px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
                     <i class="fas fa-cloud-upload-alt" style="font-size:60px; color:var(--primary); margin-bottom:20px;"></i>
-                    <h3 style="font-family:'Kanit'; margin:0;">เลือกไฟล์ Excel รายชื่อนักเรียน</h3>
-                    <p style="color:#888;">รองรับ .xlsx, .xls, .csv</p>
+                    <h3 style="font-family:'Kanit';">เลือกไฟล์ Excel รายชื่อนักเรียน</h3>
                     <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none" onchange="processFile()">
                 </div>
             </div>
@@ -139,25 +140,31 @@
                     <label style="font-size:14px; font-weight:700; color:#e65100; display:flex; align-items:center; gap:8px;"><i class="fas fa-sort-numeric-down"></i> รูปแบบการจัดเลขที่</label>
                     <div style="display:flex; gap:25px; margin-top:8px;">
                         <label style="font-size:13px; cursor:pointer;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัสประจำตัว</label>
-                        <label style="font-size:13px; cursor:pointer;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง แล้วเรียงรหัส</label>
+                        <label style="font-size:13px; cursor:pointer;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง ตามรหัส</label>
                     </div>
                 </div>
 
                 <div class="data-preview-box"><table class="preview-table" id="previewTable"></table></div>
+                <div id="mappingArea" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px; margin-top:15px;"></div>
 
-                <p style="font-weight:700; font-size:15px; color:var(--primary); margin:20px 0 10px;"><i class="fas fa-link"></i> จับคู่คอลัมน์กับระบบ</p>
-                <div id="mappingArea" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px;"></div>
-
-                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:30px; height:55px; font-size:18px;" onclick="prepareImport()">ตรวจสอบข้อมูลความถูกต้อง <i class="fas fa-arrow-right"></i></button>
+                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:30px; height:55px;" onclick="prepareImport()">ตรวจสอบการเรียงลำดับ <i class="fas fa-arrow-right"></i></button>
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
-                <div id="summaryText" style="background:#e3f2fd; padding:25px; border-radius:20px; color:#0d47a1; font-weight:700; text-align:center; font-size:18px;"></div>
-                <div id="progressSection" style="display:none; margin-top:25px; padding:20px; background:#fff; border-radius:20px; box-shadow:0 5px 15px rgba(0,0,0,0.05);">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;"><span>กำลังบันทึกข้อมูลลงระบบ...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
-                    <div style="background:#eee; height:14px; border-radius:7px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.4s;"></div></div>
+                <h4 style="font-family:'Kanit'; margin:0 0 15px 0;"><i class="fas fa-clipboard-list"></i> ตรวจสอบรายการเลขที่ก่อนบันทึก</h4>
+                <div class="import-final-preview">
+                    <table class="import-final-table">
+                        <thead><tr><th>เลขที่</th><th>รหัสประจำตัว</th><th>ชื่อ-นามสกุล</th><th>วันเกิด</th></tr></thead>
+                        <tbody id="finalPreviewBody"></tbody>
+                    </table>
                 </div>
-                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:20px; margin-top:20px;" onclick="executeImport()">ยืนยันและนำเข้าข้อมูลจริง</button>
+                <div id="summaryText" style="background:#e3f2fd; padding:15px; border-radius:15px; color:#0d47a1; font-weight:700; text-align:center; margin-bottom:15px;"></div>
+                <div id="progressSection" style="display:none; padding:15px; background:#fff; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;"><span>กำลังนำเข้า...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
+                    <div style="background:#eee; height:10px; border-radius:5px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.4s;"></div></div>
+                </div>
+                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:18px;" onclick="executeImport()">ยืนยันความถูกต้องและบันทึก</button>
+                <button onclick="goToStep(2)" style="width:100%; margin-top:10px; border:none; background:none; color:#888; cursor:pointer;">ย้อนกลับเพื่อแก้ไข</button>
             </div>
         </div>
     </div>
@@ -204,7 +211,6 @@
             const { data } = await sysDB.from('classroom_students')
                 .select('student_number, school_students(student_code, student_title, student_name)')
                 .eq('classroom_id', currentClassId).order('student_number');
-            
             const grid = document.getElementById('studentGrid'); grid.innerHTML = '';
             if(data) {
                 document.getElementById('totalCount').innerText = data.length;
@@ -227,7 +233,7 @@
             d.classList.toggle('active'); o.style.display = d.classList.contains('active') ? 'block' : 'none';
         }
 
-        function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display = 'flex'; }
+        function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display = 'flex'; goToStep(1); }
         function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
         function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i + 1 === s) ? 'block' : 'none'); }
 
@@ -251,12 +257,11 @@
             const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             headers = allSheetRows[hIdx] || [];
-            
             const table = document.getElementById('previewTable'); table.innerHTML = '';
             [hIdx, dIdx].forEach((idx, i) => {
                 if(allSheetRows[idx]) {
-                    const tr = document.createElement('tr');
-                    const tdL = document.createElement('td'); tdL.innerText = idx + 1; tdL.style.fontWeight='700'; tr.appendChild(tdL);
+                    const tr = document.createElement('tr'); if(i===0) tr.style.background = "#e3f2fd";
+                    const tdL = document.createElement('td'); tdL.innerText = idx + 1; tr.appendChild(tdL);
                     allSheetRows[idx].forEach(c => { const td = document.createElement(i===0?'th':'td'); td.innerText=formatVal(c); tr.appendChild(td); });
                     table.appendChild(tr);
                 }
@@ -304,11 +309,22 @@
                 };
             }).filter(r => r.code && r.name !== "");
 
-            if(sortType === 'gender_id') raw.sort((a,b) => (a.gender !== b.gender) ? a.gender - b.gender : a.code.localeCompare(b.code, undefined, {numeric:true}));
-            else raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
+            // เรียงลำดับตามตัวเลือก
+            if(sortType === 'gender_id') {
+                raw.sort((a,b) => (a.gender !== b.gender) ? a.gender - b.gender : a.code.localeCompare(b.code, undefined, {numeric:true}));
+            } else {
+                raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
+            }
 
             finalImportList = raw.map((item, idx) => ({ ...item, num: idx + 1 }));
-            document.getElementById('summaryText').innerText = `ตรวจพบรายชื่อที่สมบูรณ์ ${finalImportList.length} รายการ พร้อมนำเข้า`;
+            
+            // แสดงพรีวิวรายการสุดท้าย
+            const previewBody = document.getElementById('finalPreviewBody');
+            previewBody.innerHTML = finalImportList.map(item => `
+                <tr><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td>${item.birth || '-'}</td></tr>
+            `).join('');
+
+            document.getElementById('summaryText').innerText = `ตรวจพบรายชื่อทั้งหมด ${finalImportList.length} รายการ`;
             goToStep(3);
         }
 
