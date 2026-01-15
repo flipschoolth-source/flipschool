@@ -189,7 +189,7 @@
                 <p style="font-weight:bold; margin-top:15px; font-size:14px; color: var(--primary);"><i class="fas fa-link"></i> จับคู่คอลัมน์กับระบบ:</p>
                 <div id="mappingArea" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;"></div>
 
-                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:25px; height: 50px;" onclick="prepareImport()">ยืนยันความถูกต้องและต่อไป <i class="fas fa-arrow-right"></i></button>
+                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:25px; height: 50px;" onclick="prepareImport()">ตรวจสอบข้อมูลและต่อไป <i class="fas fa-arrow-right"></i></button>
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
@@ -215,11 +215,14 @@
         let currentSchoolId = null;
         let allSheetRows = [], headers = [], finalImportList = [];
 
-        // Keywords สำหรับช่วย Auto-Mapping
+        // ฟิลด์ข้อมูลตามคำขอ: เลขประจำตัว, คำนำหน้า, ชื่อ, สกุล, วดปเกิด
         const MAPPING_CONFIG = [
-            { key: 'student_code', label: 'รหัสประจำตัว*', required: true, keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
-            { key: 'student_name', label: 'ชื่อ-นามสกุล*', required: true, keywords: ['ชื่อ', 'name', 'สกุล', 'รายการ'] },
-            { key: 'student_number', label: 'เลขที่', required: false, keywords: ['ที่', 'ลำดับ', 'no', 'number'] }
+            { key: 'student_code', label: 'เลขประจำตัว*', required: true, keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
+            { key: 'student_title', label: 'คำนำหน้า', required: false, keywords: ['คำนำหน้า', 'title', 'prefix'] },
+            { key: 'first_name', label: 'ชื่อ*', required: true, keywords: ['ชื่อ', 'first name', 'fname'] },
+            { key: 'last_name', label: 'นามสกุล*', required: true, keywords: ['นามสกุล', 'last name', 'lname', 'สกุล'] },
+            { key: 'birth_date', label: 'วดปเกิด (YYYY-MM-DD)', required: false, keywords: ['เกิด', 'birth', 'dob'] },
+            { key: 'student_number', label: 'เลขที่ (ในห้อง)', required: false, keywords: ['ที่', 'ลำดับ', 'no', 'number'] }
         ];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -228,6 +231,7 @@
 
             document.getElementById('backToDetail').onclick = () => location.href = `classroom-detail.html?id=${currentClassId}`;
 
+            // ดึงข้อมูล School ID จากห้องเรียนที่สังกัดครูคนนี้
             const { data: cls } = await sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
             if (cls) {
                 currentSchoolId = cls.school_id;
@@ -249,7 +253,7 @@
 
         async function fetchStudents() {
             const { data } = await sysDB.from('classroom_students')
-                .select('student_number, school_students(student_code, student_name)')
+                .select('student_number, school_students(student_code, student_title, student_name)')
                 .eq('classroom_id', currentClassId).order('student_number');
 
             const grid = document.getElementById('studentGrid'); grid.innerHTML = '';
@@ -257,7 +261,7 @@
                 document.getElementById('totalCount').innerText = data.length;
                 data.forEach(item => {
                     const st = item.school_students;
-                    grid.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div class="st-info"><h3>${st.student_name}</h3><span class="st-code-tag"><i class="fas fa-id-card"></i> ${st.student_code}</span></div></div>`;
+                    grid.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div class="st-info"><h3>${st.student_title || ''}${st.student_name}</h3><span class="st-code-tag"><i class="fas fa-id-card"></i> ${st.student_code}</span></div></div>`;
                 });
             }
         }
@@ -277,7 +281,7 @@
             const file = document.getElementById('excelFile').files[0];
             const reader = new FileReader();
             reader.onload = (e) => {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+                const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array', cellDates: true});
                 allSheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, defval: ""});
                 if (allSheetRows.length > 0) {
                     updatePreview();
@@ -295,14 +299,13 @@
             document.getElementById('exampleRowLabel').innerText = dIdx + 1;
             const table = document.getElementById('previewTable'); table.innerHTML = '';
 
-            // แสดงหัวตารางและข้อมูลแถวแรก
             [hIdx, dIdx].forEach((idx, i) => {
                 if (allSheetRows[idx]) {
                     const tr = document.createElement('tr');
                     if (i === 0) tr.className = 'is-header';
                     allSheetRows[idx].forEach(cell => {
                         const td = document.createElement(i === 0 ? 'th' : 'td');
-                        td.innerText = cell;
+                        td.innerText = (cell instanceof Date) ? cell.toISOString().split('T')[0] : cell;
                         tr.appendChild(td);
                     });
                     table.appendChild(tr);
@@ -317,7 +320,6 @@
             const firstDataRow = allSheetRows[dIdx] || [];
 
             MAPPING_CONFIG.forEach(f => {
-                // ฉลาดขึ้น: จับคู่คอลัมน์อัตโนมัติจาก Keywords
                 let selectedIdx = -1;
                 headers.forEach((h, i) => {
                     if (selectedIdx !== -1) return;
@@ -326,7 +328,9 @@
                 });
 
                 let opts = headers.map((h, i) => {
-                    const example = firstDataRow[i] ? ` (เช่น: ${firstDataRow[i]})` : '';
+                    let val = firstDataRow[i];
+                    if (val instanceof Date) val = val.toISOString().split('T')[0];
+                    const example = val ? ` (เช่น: ${val})` : '';
                     return `<option value="${i}" ${i === selectedIdx ? 'selected' : ''}>${h || `คอลัมน์ ${i+1}`}${example}</option>`;
                 }).join('');
 
@@ -337,61 +341,64 @@
                         <span class="example-val" id="example_${f.key}">${firstDataRow[selectedIdx] || '-'}</span>
                     </div>`;
             });
-
-            // เพิ่ม Event Listener เพื่ออัปเดตตัวอย่างเมื่อเปลี่ยน Selection
-            MAPPING_CONFIG.forEach(f => {
-                document.getElementById(`map_${f.key}`).addEventListener('change', (e) => {
-                    const idx = e.target.value;
-                    document.getElementById(`example_${f.key}`).innerText = firstDataRow[idx] || '-';
-                });
-            });
         }
 
         async function prepareImport() {
             const dIdx = (parseInt(document.getElementById('startRowIndex').value) || 2) - 1;
             const map = {}; MAPPING_CONFIG.forEach(f => map[f.key] = document.getElementById(`map_${f.key}`).value);
 
-            finalImportList = allSheetRows.slice(dIdx).map((row, idx) => ({
-                student_code: String(row[map.student_code] || "").trim(),
-                student_name: String(row[map.student_name] || "").trim(),
-                student_number: row[map.student_number] || (idx + 1)
-            })).filter(r => r.student_code !== "" && r.student_name !== "");
+            finalImportList = allSheetRows.slice(dIdx).map((row, idx) => {
+                let bdate = row[map.birth_date];
+                if (bdate instanceof Date) bdate = bdate.toISOString().split('T')[0];
+                
+                return {
+                    student_code: String(row[map.student_code] || "").trim(),
+                    student_title: String(row[map.student_title] || "").trim(),
+                    student_name: `${String(row[map.first_name] || "").trim()} ${String(row[map.last_name] || "").trim()}`.trim(),
+                    birth_date: bdate || null,
+                    student_number: parseInt(row[map.student_number]) || (idx + 1)
+                };
+            }).filter(r => r.student_code !== "" && r.student_name !== "");
 
-            if (finalImportList.length === 0) return alert("ไม่พบข้อมูลที่สามารถนำเข้าได้ในแถวเริ่มต้นที่ระบุ");
-            document.getElementById('summaryText').innerText = `พร้อมนำเข้าข้อมูลนักเรียนทั้งหมด ${finalImportList.length} รายการ`;
+            if (finalImportList.length === 0) return alert("ไม่พบข้อมูลที่สามารถนำเข้าได้");
+            document.getElementById('summaryText').innerText = `พร้อมนำเข้าข้อมูลนักเรียนทั้งหมด ${finalImportList.length} รายการ ลงรหัสโรงเรียน: ${currentSchoolId}`;
             goToStep(3);
         }
 
         async function executeImport() {
-            if (!currentSchoolId) return alert("ไม่พบรหัสโรงเรียน (School ID) กรุณาตรวจสอบข้อมูลห้องเรียน");
+            if (!currentSchoolId) return alert("ไม่พบ School ID");
             const btn = document.getElementById('confirmBtn'); btn.disabled = true;
             const progressSection = document.getElementById('progressSection'); progressSection.style.display = 'block';
 
             for (let i = 0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
-                // 1. บันทึกลงฐานข้อมูลกลาง (Master Data)
-                const { data: std } = await sysDB.from('school_students').upsert({
+                
+                // 1. บันทึกลง school_students (ตารางกลางโรงเรียน)
+                const { data: std, error: err1 } = await sysDB.from('school_students').upsert({
                     school_id: currentSchoolId,
                     student_code: item.student_code,
-                    student_name: item.student_name
+                    student_title: item.student_title,
+                    student_name: item.student_name,
+                    birth_date: item.birth_date
                 }, { onConflict: 'school_id, student_code' }).select().single();
 
                 if (std) {
-                    // 2. บันทึกการลงทะเบียนวิชานี้ (Enrollment)
+                    // 2. บันทึกลง classroom_students (การลงทะเบียนห้องเรียน)
                     await sysDB.from('classroom_students').upsert({
                         classroom_id: currentClassId,
                         student_id: std.student_id,
                         student_number: item.student_number
                     }, { onConflict: 'classroom_id, student_id' });
                 }
+                
                 const percent = Math.round(((i + 1) / finalImportList.length) * 100);
                 document.getElementById('progressBar').style.width = percent + '%';
                 document.getElementById('progressPercent').innerText = percent + '%';
             }
-            alert('นำเข้าข้อมูลสำเร็จ!'); location.reload();
+            alert('นำเข้าสำเร็จ!'); location.reload();
         }
 
-        function openAddModal() { alert('ฟังก์ชันเพิ่มรายบุคคลกำลังอยู่ในระหว่างการพัฒนา'); }
+        function openAddModal() { alert('เพิ่มนักเรียนรายคนกำลังพัฒนา...'); }
     </script>
 </body>
 </html>
