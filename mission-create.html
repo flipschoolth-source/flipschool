@@ -193,61 +193,59 @@
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
-        async function generateByAI() {
-            const prompt = document.getElementById('aiPrompt').value;
-            const key = document.getElementById('geminiKey').value;
+       async function generateByAI() {
+    const prompt = document.getElementById('aiPrompt').value;
+    const key = document.getElementById('geminiKey').value;
 
-            if(!prompt) return alert('กรุณาระบุเนื้อหาที่คุณต้องการสร้างครับ');
-            if(!key || key.length < 10) {
-                toggleKeySettings();
-                return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนเริ่มใช้งานครับ');
-            }
+    if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการสร้างครับ');
+    if(!key) return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนครับ');
 
-            localStorage.setItem('gemini_api_key', key);
-            updateKeyStatus(true);
-            document.getElementById('loadingOverlay').style.display = 'flex';
+    document.getElementById('loadingOverlay').style.display = 'flex';
 
-            try {
-                // ✅ แก้ไข Endpoint ให้เป็น gemini-1.5-flash:generateContent
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    try {
+        // ✅ ปรับ URL ให้ถูกต้อง (ใช้ v1beta และโมเดลชื่อ gemini-1.5-flash)
+        // รูปแบบคือ: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent
+        const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
-                const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
-                ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
-                ถ้า speech: ["word1", "word2"]
-                ตอบเฉพาะ JSON บริสุทธิ์เท่านั้น ห้ามมีคำอธิบายอื่น และห้ามใส่ Markdown code blocks`;
+        const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
+        ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
+        ถ้า speech: ["word1", "word2"]
+        ตอบเฉพาะ JSON เท่านั้น ห้ามมีคำอธิบายอื่น และห้ามใส่ Markdown code blocks`;
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: instruction }]
-                        }]
-                    })
-                });
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: instruction }]
+                }]
+            })
+        });
 
-                const json = await response.json();
+        const json = await response.json();
 
-                if (json.error) {
-                    throw new Error(json.error.message);
-                }
-
-                // ล้างข้อความเพื่อดึงเฉพาะส่วน JSON มาประมวลผล
-                let rawText = json.candidates[0].content.parts[0].text;
-                const cleanText = rawText.replace(/```json|```/g, "").trim();
-                
-                generatedData = JSON.parse(cleanText);
-                
-                renderEditor();
-                renderPreview();
-
-            } catch (e) {
-                console.error(e);
-                alert('AI ขัดข้อง: ' + e.message);
-            } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
+        // ตรวจสอบข้อผิดพลาดจาก Google Server
+        if (json.error) {
+            throw new Error(json.error.message);
         }
+
+        // อ่านค่าผลลัพธ์และล้างเครื่องหมาย ```json ออก
+        let rawText = json.candidates[0].content.parts[0].text;
+        const cleanText = rawText.replace(/```json|```/g, "").trim();
+        
+        generatedData = JSON.parse(cleanText);
+        
+        renderEditor();
+        renderPreview();
+        updateKeyStatus(true);
+
+    } catch (e) {
+        console.error("AI Error:", e);
+        alert('AI ขัดข้อง: ' + e.message);
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+}
 
         function renderPreview() {
             const canvas = document.getElementById('previewContent');
