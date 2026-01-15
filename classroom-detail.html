@@ -5,114 +5,146 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการห้องเรียน - FlipSchool</title>
     <link rel="icon" href="img/favicon.png">
-
     <link rel="stylesheet" href="css/style.css">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* CSS เฉพาะหน้านี้ (ส่วน Header และ Menu) */
-        
-        /* Header แสดงสีธีมห้อง */
+        /* Sidebar / Drawer Style */
+        .side-drawer {
+            position: fixed; left: -280px; top: 0; width: 280px; height: 100%;
+            background: white; z-index: 2000; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+        }
+        .side-drawer.active { left: 0; }
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1999; display: none; backdrop-filter: blur(2px);
+        }
+        .drawer-overlay.active { display: block; }
+
+        .drawer-header {
+            padding: 20px; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .drawer-logo { font-family: 'Kanit', sans-serif; font-weight: 600; font-size: 20px; color: #1a73e8; }
+        .close-drawer { font-size: 20px; cursor: pointer; color: #666; padding: 5px; }
+
+        .drawer-menu { padding: 10px 0; overflow-y: auto; }
+        .menu-item {
+            padding: 12px 20px; display: flex; align-items: center; gap: 15px;
+            cursor: pointer; transition: 0.2s; font-family: 'Kanit', sans-serif; color: #3c4043;
+            margin: 4px 8px; border-radius: 0 25px 25px 0;
+        }
+        .menu-item:hover { background: #f1f3f4; color: #1a73e8; }
+        .menu-item i { width: 24px; text-align: center; font-size: 18px; color: #5f6368; }
+        .menu-item:hover i { color: #1a73e8; }
+        .menu-label { padding: 15px 24px 5px; font-size: 12px; color: #70757a; font-weight: 600; }
+        hr { border: none; border-top: 1px solid #e8eaed; margin: 10px 0; }
+
+        /* Header Style */
+        nav { 
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 100;
+            padding: 10px 15px; box-sizing: border-box; display: flex; align-items: center;
+        }
+        .nav-left { display: flex; align-items: center; gap: 10px; }
+        .nav-btn { 
+            background: rgba(255,255,255,0.2); border: none; color: white; 
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 18px;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+
         .class-header {
-            height: 220px; padding: 80px 20px 20px; box-sizing: border-box;
+            height: 240px; padding: 80px 30px 30px; box-sizing: border-box;
             color: white; display: flex; flex-direction: column; justify-content: flex-end;
-            background: linear-gradient(45deg, #bbb, #999);
-            border-radius: 0 0 30px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            background: linear-gradient(45deg, #1a73e8, #4285f4);
+            border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             position: relative; transition: background 0.5s ease;
         }
-        .class-header h1 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 28px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .class-header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
-        .student-count {
-            position: absolute; right: 20px; bottom: 20px;
-            background: rgba(255,255,255,0.2); padding: 5px 12px;
-            border-radius: 20px; backdrop-filter: blur(5px); font-size: 14px;
-        }
-
-        /* Menu Grid */
-        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: -40px; }
+        .class-header h1 { margin: 0; font-family: 'Kanit', sans-serif; font-size: 32px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .class-header p { margin: 5px 0 0; font-size: 18px; opacity: 0.9; }
         
-        .menu-card {
-            background: white; border-radius: 20px; padding: 25px 15px;
-            text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-            cursor: pointer; transition: transform 0.2s; border: 1px solid white;
+        .student-chip {
+            margin-top: 15px; display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.2); padding: 6px 15px;
+            border-radius: 20px; backdrop-filter: blur(5px); font-size: 14px; width: fit-content;
         }
-        .menu-card:hover { transform: translateY(-5px); }
-        .menu-icon {
-            width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 28px; color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
+        /* Content Area */
+        .content-area { padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .empty-state {
+            text-align: center; color: #70757a; margin-top: 50px;
+            padding: 40px; border: 2px dashed #e0e0e0; border-radius: 15px;
         }
-        .menu-title { font-weight: 600; color: #333; font-size: 16px; font-family: 'Kanit', sans-serif; }
-        .menu-desc { font-size: 12px; color: #888; margin-top: 3px; }
 
-        /* สีไอคอนเมนู */
-        .bg-check { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-        .bg-student { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .bg-score { background: linear-gradient(135deg, #fa709a, #fee140); }
-        .bg-setting { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #555 !important; }
-
-        /* ปุ่มลบห้องเรียน (แดง) */
+        /* Modal / Form Styles */
+        .color-options { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .color-option { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .color-option.selected { border-color: #333; transform: scale(1.1); }
         .btn-delete { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #ffe5e5; color: #d32f2f; font-weight: 600; cursor: pointer; margin-top: 10px; }
-
-        /* Gradient Presets สำหรับ Modal */
-        .g-1 { background: linear-gradient(45deg, #ff9a9e, #fad0c4); }
-        .g-2 { background: linear-gradient(45deg, #a18cd1, #fbc2eb); }
-        .g-3 { background: linear-gradient(45deg, #84fab0, #8fd3f4); }
-        .g-4 { background: linear-gradient(45deg, #fccb90, #d57eeb); }
-        .g-5 { background: linear-gradient(45deg, #e0c3fc, #8ec5fc); }
-
-        /* Custom Color Picker */
         .custom-color-btn {
             background: #fff; border: 2px dashed #bbb; display: flex; justify-content: center; align-items: center;
-            color: #888; font-size: 16px; overflow: hidden; width: 40px; height: 40px; border-radius: 50%; position: relative;
+            color: #888; font-size: 16px; width: 40px; height: 40px; border-radius: 50%; position: relative; overflow: hidden;
         }
-        .custom-color-btn input[type="color"] { position: absolute; width: 200%; height: 200%; opacity: 0; cursor: pointer; top:-50%; left:-50%; }
-        .custom-color-btn.selected { border: 2px solid #333; background: var(--custom-bg, white); color: transparent; }
+        .custom-color-btn input[type="color"] { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; opacity: 0; cursor: pointer; }
     </style>
 </head>
-<body class="dashboard-page" style="padding-top: 0;"> <div id="loadingOverlay">
+<body class="dashboard-page" style="padding-top: 0; background-color: #f8f9fa;">
+
+    <div id="loadingOverlay">
         <div class="spinner-lg"></div>
     </div>
 
-    <nav style="background: transparent; box-shadow: none; padding: 15px 20px; color: white;">
-        <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
-        <button class="nav-btn" onclick="openEditModal()"><i class="fas fa-ellipsis-v"></i></button>
+    <div id="sideDrawer" class="side-drawer">
+        <div class="drawer-header">
+            <span class="drawer-logo"><i class="fas fa-graduation-cap"></i> FlipSchool</span>
+            <i class="fas fa-times close-drawer" onclick="toggleDrawer()"></i>
+        </div>
+        <div class="drawer-menu">
+            <div class="menu-item" onclick="window.location.href='teacher-dashboard.html'">
+                <i class="fas fa-home"></i> ชั้นเรียนทั้งหมด
+            </div>
+            <hr>
+            <div class="menu-label">การจัดการ</div>
+            <div class="menu-item" onclick="alert('ระบบเช็คชื่อ (Coming Soon)')">
+                <i class="fas fa-user-check" style="color: #34a853;"></i> เช็คชื่อเข้าเรียน
+            </div>
+            <div class="menu-item" onclick="goToStudents()">
+                <i class="fas fa-users" style="color: #4285f4;"></i> รายชื่อนักเรียน
+            </div>
+            <div class="menu-item" onclick="alert('ระบบคะแนน (Coming Soon)')">
+                <i class="fas fa-star" style="color: #fbbc04;"></i> บันทึกคะแนน
+            </div>
+            <hr>
+            <div class="menu-item" onclick="openEditModal()">
+                <i class="fas fa-cog"></i> ตั้งค่าห้องเรียน
+            </div>
+        </div>
+    </div>
+    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleDrawer()"></div>
+
+    <nav>
+        <div class="nav-left">
+            <button class="nav-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+            <button class="nav-btn" onclick="window.location.href='teacher-dashboard.html'"><i class="fas fa-chevron-left"></i></button>
+        </div>
     </nav>
 
     <div class="class-header" id="headerBg">
         <h1 id="subjectName">กำลังโหลด...</h1>
-        <p><i class="fas fa-door-open"></i> <span id="roomName">...</span> | <span id="termText">...</span></p>
-        <div class="student-count"><i class="fas fa-user-graduate"></i> <span id="studentCount">0</span> คน</div>
+        <p id="roomName">...</p>
+        <div class="student-chip">
+            <i class="fas fa-user-graduate"></i>
+            <span id="studentCount">0</span> คน | <span id="termText">...</span>
+        </div>
     </div>
 
-    <div class="container">
-        <div class="menu-grid">
-            <div class="menu-card" onclick="alert('ระบบเช็คชื่อ (Coming Soon)')">
-                <div class="menu-icon bg-check"><i class="fas fa-user-check"></i></div>
-                <div class="menu-title">เช็คชื่อ</div>
-                <div class="menu-desc">เข้าเรียน / ขาดลา</div>
-            </div>
-            
-            <div class="menu-card" onclick="goToStudents()">
-                <div class="menu-icon bg-student"><i class="fas fa-users"></i></div>
-                <div class="menu-title">รายชื่อนักเรียน</div>
-                <div class="menu-desc">เพิ่ม/ลบ ข้อมูล</div>
-            </div>
-            
-            <div class="menu-card" onclick="alert('ระบบคะแนน (Coming Soon)')">
-                <div class="menu-icon bg-score"><i class="fas fa-star"></i></div>
-                <div class="menu-title">คะแนน</div>
-                <div class="menu-desc">เก็บคะแนน / สอบ</div>
-            </div>
-            
-            <div class="menu-card" onclick="openEditModal()">
-                <div class="menu-icon bg-setting"><i class="fas fa-cog"></i></div>
-                <div class="menu-title">ตั้งค่า</div>
-                <div class="menu-desc">แก้ไขข้อมูล / สีธีม</div>
-            </div>
+    <div class="content-area">
+        <div class="empty-state">
+            <i class="fas fa-stream" style="font-size: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+            <p>ยินดีต้อนรับสู่ห้องเรียนดิจิทัล</p>
+            <small>เลือกเมนูจากแถบด้านซ้ายเพื่อเริ่มจัดการห้องเรียน</small>
         </div>
     </div>
 
@@ -131,12 +163,11 @@
 
             <label style="display:block; margin-bottom:5px; font-weight:600; font-size:14px; color:#555;">เลือกสีธีม</label>
             <div class="color-options">
-                <div class="color-option g-1" onclick="selectColor(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
-                <div class="color-option g-2" onclick="selectColor(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
-                <div class="color-option g-3" onclick="selectColor(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
-                <div class="color-option g-4" onclick="selectColor(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
-                <div class="color-option g-5" onclick="selectColor(this, 'linear-gradient(45deg, #e0c3fc, #8ec5fc)')"></div>
-                
+                <div class="color-option" style="background: linear-gradient(45deg, #ff9a9e, #fad0c4)" onclick="selectColor(this, 'linear-gradient(45deg, #ff9a9e, #fad0c4)')"></div>
+                <div class="color-option" style="background: linear-gradient(45deg, #a18cd1, #fbc2eb)" onclick="selectColor(this, 'linear-gradient(45deg, #a18cd1, #fbc2eb)')"></div>
+                <div class="color-option" style="background: linear-gradient(45deg, #84fab0, #8fd3f4)" onclick="selectColor(this, 'linear-gradient(45deg, #84fab0, #8fd3f4)')"></div>
+                <div class="color-option" style="background: linear-gradient(45deg, #fccb90, #d57eeb)" onclick="selectColor(this, 'linear-gradient(45deg, #fccb90, #d57eeb)')"></div>
+                <div class="color-option" style="background: linear-gradient(45deg, #e0c3fc, #8ec5fc)" onclick="selectColor(this, 'linear-gradient(45deg, #e0c3fc, #8ec5fc)')"></div>
                 <div class="custom-color-btn" id="customColorBtn">
                     <i class="fas fa-plus"></i>
                     <input type="color" oninput="handleCustomColor(this)">
@@ -159,18 +190,20 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if (!sysDB) return;
 
-            // 1. ดึง ID
             const params = new URLSearchParams(window.location.search);
             currentClassId = params.get('id');
             if (!currentClassId) { window.location.href = 'teacher-dashboard.html'; return; }
 
-            // 2. เช็ค Auth
             await checkAuthRedirect();
-
-            // 3. โหลดข้อมูลห้อง
             await fetchClassroomData(currentClassId);
             document.getElementById('loadingOverlay').style.display = 'none';
         });
+
+        // --- UI Functions ---
+        function toggleDrawer() {
+            document.getElementById('sideDrawer').classList.toggle('active');
+            document.getElementById('drawerOverlay').classList.toggle('active');
+        }
 
         async function fetchClassroomData(classId) {
             try {
@@ -179,7 +212,6 @@
                 
                 currentClassData = data; 
                 renderClassInfo(data);
-
             } catch (err) {
                 console.error(err);
                 alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
@@ -194,11 +226,13 @@
         }
 
         function goToStudents() {
+            toggleDrawer();
             window.location.href = `student-list.html?cid=${currentClassId}`;
         }
 
         // --- Edit Logic ---
         function openEditModal() {
+            toggleDrawer();
             if(!currentClassData) return;
             document.getElementById('editSubject').value = currentClassData.subject_name;
             document.getElementById('editRoom').value = currentClassData.room_name;
@@ -223,6 +257,7 @@
             const btn = document.getElementById('customColorBtn');
             btn.classList.add('selected');
             btn.style.setProperty('--custom-bg', color);
+            btn.style.background = color;
         }
 
         async function saveChanges() {
