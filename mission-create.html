@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-body{margin:0;font-family:Sarabun;background:#f2f4f7}
+body{margin:0;font-family:Sarabun;background:#f2f4f7;color:#333}
 header{
   background:linear-gradient(135deg,#141e30,#243b55);
   color:#fff;text-align:center;padding:35px 20px 70px;
@@ -31,37 +31,60 @@ main{
 label{font-family:Kanit;font-weight:500;margin-bottom:8px;display:block}
 input,textarea{
   width:100%;padding:14px;border-radius:14px;
-  border:1px solid #ddd;font-size:15px
+  border:1px solid #ddd;font-size:15px;box-sizing:border-box
+}
+textarea:focus,input:focus{
+  outline:none;border-color:#8e44ad;
+  box-shadow:0 0 8px rgba(142,68,173,.15)
 }
 button{
   width:100%;padding:14px;border:none;border-radius:14px;
   background:#8e44ad;color:#fff;
   font-family:Kanit;font-size:16px;
   cursor:pointer;display:flex;gap:10px;
-  justify-content:center;align-items:center
+  justify-content:center;align-items:center;
+  transition:.2s
 }
+button:hover{transform:translateY(-1px);filter:brightness(1.05)}
 button.secondary{background:#34495e}
-.api-status{display:flex;align-items:center;gap:8px;font-size:13px}
+
+.api-status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px}
 .dot{width:10px;height:10px;border-radius:50%;background:#bbb}
 .dot.on{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
 
 .phone{
   background:#111;border-radius:55px;padding:15px;
-  height:760px;position:sticky;top:20px
+  height:760px;position:sticky;top:20px;
+  box-shadow:0 25px 50px rgba(0,0,0,.25)
 }
 .screen{
   background:#fff;border-radius:40px;height:100%;
   overflow:hidden
 }
 iframe{width:100%;height:100%;border:none}
+
+#loadingOverlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(255,255,255,.85);
+  display:none;align-items:center;justify-content:center;
+  z-index:9999
+}
+.spinner{
+  width:48px;height:48px;border:5px solid #eee;
+  border-top-color:#8e44ad;border-radius:50%;
+  animation:spin 1s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
+<div id="loadingOverlay"><div class="spinner"></div></div>
+
 <header>
 <h1 style="font-family:Kanit;margin:0">AI Magic Canvas ✨</h1>
-<p>เวอร์ชันใช้งานจริง เสถียร พร้อมบันทึกลงห้องเรียน</p>
+<p>สร้างสื่อการสอน Interactive ด้วย Gemini AI (เวอร์ชันเสถียร)</p>
 </header>
 
 <main>
@@ -76,18 +99,18 @@ iframe{width:100%;height:100%;border:none}
 
   <label>🔑 Gemini API Key</label>
   <input type="password" id="geminiKey" placeholder="AIzaSy...">
-  <button class="secondary" onclick="testKey()">ทดสอบ API Key</button>
+  <button class="secondary" onclick="testApiKey()">ทดสอบ API Key</button>
 </div>
 
 <div class="card">
-  <label>🤖 โมเดลที่ใช้งาน</label>
-  <input value="gemini-1.5-flash-latest" disabled>
+  <label>🤖 โมเดลที่ใช้งาน (เสถียร)</label>
+  <input value="gemini-1.5-flash" disabled>
 </div>
 
 <div class="card">
   <label>🎨 สั่ง AI สร้างสื่อการสอน</label>
-  <textarea id="prompt" rows="6"
-  placeholder="เช่น สร้างสื่อระบบสุริยะ Interactive มีปุ่มกดและแอนิเมชัน"></textarea>
+  <textarea id="aiPrompt" rows="6"
+    placeholder="เช่น สร้างสื่อระบบสุริยะ Interactive มีปุ่มกดและแอนิเมชัน"></textarea>
   <button onclick="generateCanvas()">
     <i class="fas fa-wand-magic-sparkles"></i> สร้างสื่อ
   </button>
@@ -99,7 +122,7 @@ iframe{width:100%;height:100%;border:none}
 <div class="phone">
 <div class="screen">
 <iframe id="preview"
-srcdoc="<body style='display:flex;justify-content:center;align-items:center;height:100vh;color:#bbb'>ผลงานจะแสดงที่นี่</body>">
+srcdoc="<body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#aaa;text-align:center'>ผลงานจะปรากฏที่นี่</body>">
 </iframe>
 </div>
 </div>
@@ -114,14 +137,15 @@ onclick="saveMission()">
 
 <script>
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const MODEL = "gemini-1.5-flash-latest";
-let lastHTML = "";
+const MODEL = "gemini-1.5-flash";
+let lastGeneratedHTML = "";
 
-/* ===== Test API KEY (วิธีที่ถูกต้อง) ===== */
-async function testKey(){
+/* ================= Test API Key ================= */
+async function testApiKey(){
   const key = geminiKey.value.trim();
-  if(!key) return alert("ใส่ API Key");
+  if(!key) return alert("กรุณาใส่ API Key");
 
+  loading(true);
   try{
     const res = await fetch(
       `${API_BASE}/models/${MODEL}:generateContent?key=${key}`,
@@ -141,55 +165,22 @@ async function testKey(){
   }catch(e){
     dot.classList.remove("on");
     statusText.textContent = "API Key ใช้งานไม่ได้ ❌";
-    alert(e.message);
+    alert("❌ "+e.message);
+  }finally{
+    loading(false);
   }
 }
 
-/* ===== Generate Canvas ===== */
+/* ================= Generate Canvas ================= */
 async function generateCanvas(){
   const key = geminiKey.value.trim();
-  const p = prompt.value.trim();
-  if(!key || !p) return alert("กรอกให้ครบ");
+  const prompt = aiPrompt.value.trim();
+  if(!key || !prompt) return alert("กรอกข้อมูลให้ครบ");
 
-  preview.srcdoc = "<h3 style='text-align:center'>กำลังสร้าง...</h3>";
+  loading(true);
+  preview.srcdoc =
+    "<body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif'>⚡ กำลังสร้างสื่อ...</body>";
 
   const instruction = `
-สร้างเว็บ HTML หน้าเดียว เรื่อง "${p}"
-- ดีไซน์สวยงาม
-- Interactive
-- Responsive
-- ส่งเฉพาะ HTML code เท่านั้น
-`;
-
-  try{
-    const res = await fetch(
-      `${API_BASE}/models/${MODEL}:generateContent?key=${key}`,
-      {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          contents:[{parts:[{text:instruction}]}]
-        })
-      }
-    );
-    const json = await res.json();
-    if(json.error) throw new Error(json.error.message);
-
-    let html = json.candidates[0].content.parts[0].text;
-    html = html.replace(/```html|```/g,"").trim();
-    lastHTML = html;
-
-    preview.srcdoc = html;
-    saveBtn.style.display = "block";
-  }catch(e){
-    preview.srcdoc = `<body>Error: ${e.message}</body>`;
-  }
-}
-
-async function saveMission(){
-  alert("✔ พร้อมบันทึกลง Supabase (เชื่อมต่อได้ทันที)");
-}
-</script>
-
-</body>
-</html>
+คุณคือผู้เชี่ยวชาญด้านการสร้างสื่อการสอน
+สร้างเว็บ HTML หน
