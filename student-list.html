@@ -55,16 +55,17 @@
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
 
-        /* --- Grid Student List --- */
+        /* --- Student Cards --- */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; list-style: none; }
-        .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); transition: 0.3s; }
+        .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
 
-        /* --- Import Final UI --- */
-        .import-final-preview { max-height: 350px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
+        /* --- Import Dashboard & Tables --- */
+        .import-final-preview { max-height: 350px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05); }
         .final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; z-index: 10; border-bottom: 2px solid #ddd; }
         .final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #ccc; }
         .status-dot.waiting { background: #ffc107; animation: blink 1s infinite; }
         .status-dot.done { background: #28a745; }
@@ -72,6 +73,10 @@
         @keyframes blink { 50% { opacity: 0.3; } }
 
         .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.3); z-index: 900; }
+        
+        /* ปุ่มย้อนกลับดีไซน์ใหม่ */
+        .btn-back-step { width: 100%; background: none; border: 1px solid #ddd; color: #666; padding: 12px; border-radius: 15px; cursor: pointer; font-family: 'Kanit'; margin-top: 10px; transition: 0.3s; }
+        .btn-back-step:hover { background: #f8f9fa; color: var(--primary); border-color: var(--primary-light); }
     </style>
 </head>
 <body>
@@ -86,7 +91,7 @@
         <div class="drawer-item" onclick="alert('ฟังก์ชันกำลังพัฒนา')"><i class="fas fa-id-card" style="color:#3498db"></i> พิมพ์บัตรประจำตัว นร.</div>
         <a href="template_student.xlsx" class="drawer-item" style="text-decoration:none;" download><i class="fas fa-download" style="color:#e67e22"></i> ดาวน์โหลดฟอร์มรายชื่อ</a>
         <hr style="border:none; border-top:1px solid #f0f4ff; margin:20px 0;">
-        <div class="drawer-item" id="btnBack"><i class="fas fa-arrow-left"></i> กลับไปหน้าวิชา</div>
+        <div class="drawer-item" id="btnBackToSubject"><i class="fas fa-arrow-left"></i> กลับไปหน้าวิชา</div>
     </div>
 
     <nav>
@@ -123,7 +128,7 @@
         <div class="modal-box" style="max-width: 950px; border-radius: 35px;">
             <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer; float:right;"></i></div>
             
-            <div id="step1" class="step-container">
+            <div id="step1" class="step-container active">
                 <div style="padding:60px; border:3px dashed #eee; border-radius:30px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
                     <i class="fas fa-cloud-upload-alt" style="font-size:60px; color:var(--primary); margin-bottom:20px;"></i>
                     <h3 style="font-family:'Kanit';">เลือกไฟล์ Excel รายชื่อนักเรียน</h3>
@@ -133,9 +138,9 @@
 
             <div id="step2" class="step-container" style="display:none;">
                 <div style="display:flex; gap:15px; background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:15px;">
-                    <div>หัวตารางแถว: <input type="number" id="hRow" value="1" min="1" onchange="updatePreview()" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
-                    <div>เริ่มข้อมูลแถว: <input type="number" id="sRow" value="2" min="1" onchange="updatePreview()" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
-                    <div>สิ้นสุดแถว: <input type="number" id="eRow" placeholder="ทั้งหมด" onchange="updatePreview()" style="width:90px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
+                    <div>หัวตารางแถว: <input type="number" id="hRow" value="1" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;" onchange="updatePreview()"></div>
+                    <div>เริ่มข้อมูลแถว: <input type="number" id="sRow" value="2" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;" onchange="updatePreview()"></div>
+                    <div>สิ้นสุดแถว: <input type="number" id="eRow" placeholder="ทั้งหมด" style="width:90px; padding:5px; border-radius:8px; border:1px solid #ddd;" onchange="updatePreview()"></div>
                 </div>
                 <div style="background:#fff3e0; padding:12px; border-radius:12px; margin-bottom:12px; border:1px solid #ffe0b2;">
                     <label style="font-size:13px; font-weight:700; color:#e65100;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัส</label>
@@ -147,17 +152,19 @@
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
+                <h4 style="font-family:'Kanit'; margin:0 0 10px 0;">ตรวจสอบความถูกต้องก่อนยืนยัน:</h4>
                 <div class="import-final-preview">
                     <table class="final-table">
                         <thead><tr><th>ที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วดป(ค.ศ.)</th><th>สถานะ</th></tr></thead>
                         <tbody id="finalPreviewBody"></tbody>
                     </table>
                 </div>
-                <div id="progressSection" style="display:none; padding:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span id="progressLabel">กำลังนำเข้า...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
-                    <div style="background:#eee; height:10px; border-radius:5px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; background:var(--primary);"></div></div>
+                <div id="progressSection" style="display:none; padding:15px; background:#fff; border-radius:15px; border:1px solid #eee; margin-bottom:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;"><span id="progressLabel">กำลังดำเนินการ...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
+                    <div style="background:#eee; height:12px; border-radius:6px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.4s;"></div></div>
                 </div>
-                <button id="confirmBtn" class="btn-save" style="width:100%; height:55px;" onclick="executeImport()">ยืนยันและเริ่มนำเข้าข้อมูล</button>
+                <button id="confirmBtn" class="btn-save" style="width:100%; height:55px;" onclick="executeImport()">ยืนยันข้อมูลและเริ่มนำเข้า</button>
+                <button class="btn-back-step" onclick="goToStep(2)"><i class="fas fa-undo"></i> ย้อนกลับไปแก้ไขการเลือก</button>
             </div>
         </div>
     </div>
@@ -168,11 +175,11 @@
         let allSheetRows = [], finalImportList = [];
 
         const MAPPING_CONFIG = [
-            { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว', 'student_id'] },
-            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix', 'คำนำหน้าชื่อ'] },
-            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'name', 'first', 'fname', 'ชื่อจริง'] },
+            { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
+            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
+            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'name', 'first', 'fname'] },
             { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'surname', 'last', 'lname', 'สกุล'] },
-            { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'dob', 'วดป', 'วันเกิด'] }
+            { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'วดป', 'วันเกิด'] }
         ];
 
         function toggleDrawer() {
@@ -190,6 +197,7 @@
                 document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
             }
             fetchStudents();
+            document.getElementById('btnBackToSubject').onclick = () => location.href = `classroom-detail.html?id=${currentClassId}`;
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
@@ -200,7 +208,7 @@
                 document.getElementById('totalCount').innerText = data.length;
                 data.forEach(item => {
                     const s = item.school_students;
-                    container.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div style="flex:1;"><b>${s.student_title || ''}${s.student_name}</b><br><small class="st-code"><i class="fas fa-id-card"></i> ${s.student_code}</small></div></div>`;
+                    container.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div><b>${s.student_title || ''}${s.student_name}</b><br><small>${s.student_code}</small></div></div>`;
                 });
             }
         }
@@ -208,6 +216,7 @@
         function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display='flex'; goToStep(1); }
         function closeImportModal() { document.getElementById('importModal').style.display='none'; }
         function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i+1 === s) ? 'block' : 'none'); }
+
         function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
         function processFile() {
@@ -229,6 +238,8 @@
             const eIdx = (parseInt(document.getElementById('eRow').value) || allSheetRows.length) - 1;
             const headers = allSheetRows[hIdx] || [];
             const table = document.getElementById('previewTable'); table.innerHTML = '';
+            
+            // แสดงแถวหัวตาราง แถวแรก และแถวสุดท้าย
             [hIdx, dIdx, eIdx].forEach((idx, i) => {
                 if(allSheetRows[idx]) {
                     const tr = document.createElement('tr');
@@ -246,31 +257,19 @@
             const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const headersRow = allSheetRows[hIdx] || [];
-            const firstDataRow = allSheetRows[dIdx] || [];
+            const firstRow = allSheetRows[dIdx] || [];
 
             MAPPING_CONFIG.forEach(f => {
-                let bestMatchIdx = -1;
-                let maxScore = -1;
-
-                headersRow.forEach((h, i) => {
-                    const hStr = String(h || "").toLowerCase().trim();
-                    f.keywords.forEach(kw => {
-                        if (hStr === kw.toLowerCase()) { bestMatchIdx = i; maxScore = 100; }
-                        else if (hStr.includes(kw.toLowerCase()) && maxScore < 50) { bestMatchIdx = i; maxScore = 50; }
-                    });
-                });
-
+                let bestIdx = headersRow.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
                 let opts = headersRow.map((h, i) => {
-                    const isSelected = (i === bestMatchIdx) ? 'selected' : '';
-                    const exampleVal = firstDataRow[i] ? ` (เช่น: ${formatVal(firstDataRow[i])})` : ' (ว่าง)';
-                    return `<option value="${i}" ${isSelected}>${h || `คอลัมน์ ${i+1}`}${exampleVal}</option>`;
+                    const ex = firstRow[i] ? ` (เช่น: ${formatVal(firstRow[i])})` : ' (ว่าง)';
+                    return `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || 'คอลัมน์ '+(i+1)}${ex}</option>`;
                 }).join('');
-
-                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span style="color:var(--accent); font-weight:600; font-size:11px; display:block; margin-top:5px;" id="live_${f.key}">${formatVal(firstDataRow[bestMatchIdx]) || '-'}</span></div>`;
+                area.innerHTML += `<div class="mapping-card" style="background:#fff; padding:12px; border-radius:12px; border:1px solid #eee;"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span style="color:var(--accent); font-weight:600; font-size:11px; display:block; margin-top:5px;" id="live_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
             });
             
             MAPPING_CONFIG.forEach(f => {
-                document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`live_${f.key}`).innerText = formatVal(firstDataRow[e.target.value]) || '-'; };
+                document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`live_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; };
             });
         }
 
@@ -327,6 +326,8 @@
             if(!currentSchoolId) return alert("ไม่พบ School ID");
             document.getElementById('confirmBtn').disabled = true;
             document.getElementById('progressSection').style.display = 'block';
+
+            // นำเข้าแบบ Sequential เพื่อป้องกันข้อมูลหลุด
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
                 const dot = document.querySelector(`#row_${i} .status-dot`);
@@ -336,7 +337,9 @@
                         school_id: currentSchoolId, student_code: item.code, student_title: item.title, student_name: item.name, birth_date: item.birth
                     }, { onConflict: 'school_id, student_code' }).select().single();
                     if(e1) throw e1;
+
                     await sysDB.from('classroom_students').upsert({ classroom_id: currentClassId, student_id: std.student_id, student_number: item.num }, { onConflict: 'classroom_id, student_id' });
+                    
                     dot.className = "status-dot done";
                     document.getElementById(`st_${i}`).innerHTML = `<div class="status-dot done"></div> สำเร็จ`;
                 } catch (err) {
