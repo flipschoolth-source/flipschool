@@ -26,7 +26,7 @@
 
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; overflow-x: hidden; }
 
-        /* --- Navbar & UI --- */
+        /* --- Navbar & Sidebar --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 20px; height: 90px; background: var(--white);
@@ -44,12 +44,12 @@
         .drawer-item { padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #444; font-family: 'Kanit'; margin-bottom: 8px; transition: 0.3s; }
         .drawer-item:hover { background: #f0f4ff; color: var(--primary); }
 
-        /* --- Header Section --- */
+        /* --- Page Header --- */
         .page-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); padding: 30px 20px; color: white; border-radius: 0 0 30px 30px; box-shadow: var(--shadow); margin-bottom: 30px; }
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
 
-        /* --- Grid Display --- */
+        /* --- Grid Student List --- */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; list-style: none; }
         @media (min-width: 768px) { .student-grid { padding: 0 50px 50px; } }
         .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.02); }
@@ -57,13 +57,21 @@
         .st-info h3 { margin: 0; font-family: 'Kanit'; font-size: 17px; color: #2d3436; }
         .st-code { font-size: 11px; color: #b2bec3; background: #f8f9fa; padding: 4px 10px; border-radius: 8px; margin-top: 5px; display: inline-block; }
 
-        /* --- Import Wizard --- */
+        /* --- Import Wizard Styles --- */
         .data-preview-box { overflow-x: auto; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; }
         .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .preview-table th { background: #e3f2fd; padding: 10px; text-align: left; border-bottom: 2px solid #2196f3; }
         .preview-table td { padding: 10px; border-top: 1px solid #eee; }
         .mapping-card { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
         .example-label { color: var(--accent); font-weight: 600; font-size: 11px; display: block; margin-top: 5px; }
+        .sort-box { background: #fff3e0; padding: 15px; border-radius: 15px; border: 1px solid #ffe0b2; margin-bottom: 15px; }
+
+        /* --- Step 3: Final List Preview --- */
+        .import-final-preview { max-height: 400px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05); }
+        .final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; z-index: 10; }
+        .final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        .final-table tr:hover { background: #fcfdfe; }
 
         .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.3); z-index: 900; }
     </style>
@@ -77,8 +85,7 @@
         <div class="drawer-brand" style="font-family:'Kanit'; font-weight:700; color:var(--primary); font-size:24px; margin-bottom:30px;">Flip<span>School</span></div>
         <div class="drawer-item" onclick="openImportModal()"><i class="fas fa-file-excel" style="color:#2ecc71"></i> นำเข้ารายชื่อนักเรียน</div>
         <div class="drawer-item" onclick="alert('ฟังก์ชันกำลังพัฒนา')"><i class="fas fa-id-card" style="color:#3498db"></i> พิมพ์บัตร QR Code</div>
-        <a href="template_student.xlsx" class="drawer-item" style="text-decoration:none;" download><i class="fas fa-download" style="color:#e67e22"></i> โหลดฟอร์มรายชื่อ</a>
-        <hr style="border:none; border-top:1px solid #f0f4ff; margin:20px 0;">
+        <hr style="border:none; border-top:1px solid #f0f4ff; margin:15px 0;">
         <div class="drawer-item" id="btnBack"><i class="fas fa-arrow-left"></i> กลับไปหน้าวิชา</div>
     </div>
 
@@ -129,8 +136,8 @@
                     <div><label style="font-size:12px; font-weight:700;">สิ้นสุด (แถว)</label><input type="number" id="eRow" placeholder="ทั้งหมด" onchange="updatePreview()" style="width:100px; padding:10px; border-radius:10px; border:1px solid #ddd;"></div>
                 </div>
 
-                <div style="background:#fff3e0; padding:15px; border-radius:15px; border:1px solid #ffe0b2; margin-bottom:15px;">
-                    <label style="font-size:14px; font-weight:700; color:#e65100; display:flex; align-items:center; gap:8px;"><i class="fas fa-sort"></i> รูปแบบการจัดเลขที่</label>
+                <div class="sort-box">
+                    <label style="font-size:14px; font-weight:700; color:#e65100; display:flex; align-items:center; gap:8px;"><i class="fas fa-sort-numeric-down"></i> รูปแบบการจัดเลขที่</label>
                     <div style="display:flex; gap:25px; margin-top:8px;">
                         <label style="font-size:13px; cursor:pointer;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัสประจำตัว</label>
                         <label style="font-size:13px; cursor:pointer;"><input type="radio" name="sortType" value="gender_id"> แยกชาย-หญิง ตามรหัส</label>
@@ -138,23 +145,32 @@
                 </div>
 
                 <div class="data-preview-box"><table class="preview-table" id="previewTable"></table></div>
-
                 <div id="mappingArea" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px; margin-top:20px;"></div>
 
-                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:30px; height:55px; font-size:18px;" onclick="prepareImport()">ตรวจสอบการจัดลำดับ <i class="fas fa-arrow-right"></i></button>
+                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:30px; height:55px; font-size:18px;" onclick="prepareImport()">ตรวจสอบรายการทั้งหมด <i class="fas fa-arrow-right"></i></button>
             </div>
 
             <div id="step3" class="step-container" style="display:none;">
-                <div id="summaryText" style="background:#e3f2fd; padding:20px; border-radius:20px; color:#0d47a1; font-weight:700; text-align:center; margin-bottom:20px;"></div>
+                <h4 style="font-family:'Kanit'; margin:0 0 15px 0;"><i class="fas fa-tasks"></i> ตรวจสอบรายชื่อทั้งหมดที่จะนำเข้า</h4>
+                <div class="import-final-preview">
+                    <table class="final-table">
+                        <thead><tr><th>เลขที่</th><th>รหัสประจำตัว</th><th>ชื่อ-นามสกุล</th><th>วันเกิด</th></tr></thead>
+                        <tbody id="finalPreviewBody"></tbody>
+                    </table>
+                </div>
+                <div id="summaryText" style="background:#e3f2fd; padding:15px; border-radius:15px; color:#0d47a1; font-weight:700; text-align:center; margin-bottom:15px; font-size:18px;"></div>
                 <div id="progressSection" style="display:none; padding:20px; background:#fff; border-radius:20px; box-shadow:0 5px 15px rgba(0,0,0,0.05);">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span>กำลังนำเข้าข้อมูล...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span>กำลังบันทึกข้อมูล...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
                     <div style="background:#eee; height:12px; border-radius:6px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.4s;"></div></div>
                 </div>
-                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:20px;" onclick="executeImport()">ยืนยันและนำเข้าข้อมูล</button>
+                <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%; height:60px; font-size:20px;" onclick="executeImport()">ยืนยันความถูกต้องและบันทึก</button>
+                <button onclick="goToStep(2)" style="width:100%; margin-top:10px; border:none; background:none; color:#888; cursor:pointer;">ย้อนกลับไปแก้ไขข้อมูล</button>
             </div>
         </div>
     </div>
 
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
     <script>
         let currentClassId = new URLSearchParams(window.location.search).get('cid') || new URLSearchParams(window.location.search).get('id');
         let currentSchoolId = null;
@@ -171,18 +187,10 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if(typeof initAppUI === 'function') initAppUI();
             if(!currentClassId) return;
-
             document.getElementById('btnBack').onclick = () => location.href = `classroom-detail.html?id=${currentClassId}`;
-
             const { data: cls } = await sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
-            if(cls) {
-                currentSchoolId = cls.school_id;
-                document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
-            }
-
-            fetchProfile();
-            fetchStudents();
-            document.getElementById('loadingOverlay').style.display = 'none';
+            if(cls) { currentSchoolId = cls.school_id; document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`; }
+            fetchProfile(); fetchStudents(); document.getElementById('loadingOverlay').style.display = 'none';
         });
 
         async function fetchProfile() {
@@ -194,9 +202,7 @@
         }
 
         async function fetchStudents() {
-            const { data } = await sysDB.from('classroom_students')
-                .select('student_number, school_students(student_code, student_title, student_name)')
-                .eq('classroom_id', currentClassId).order('student_number');
+            const { data } = await sysDB.from('classroom_students').select('student_number, school_students(student_code, student_title, student_name)').eq('classroom_id', currentClassId).order('student_number');
             const grid = document.getElementById('studentGrid'); grid.innerHTML = '';
             if(data) {
                 document.getElementById('totalCount').innerText = data.length;
@@ -207,15 +213,10 @@
             }
         }
 
-        function toggleDrawer() { 
-            const d = document.getElementById('sideDrawer'); const o = document.getElementById('drawerOverlay');
-            d.classList.toggle('active'); o.style.display = d.classList.contains('active') ? 'block' : 'none';
-        }
-
+        function toggleDrawer() { const d = document.getElementById('sideDrawer'); const o = document.getElementById('drawerOverlay'); d.classList.toggle('active'); o.style.display = d.classList.contains('active') ? 'block' : 'none'; }
         function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display = 'flex'; goToStep(1); }
         function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
         function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i + 1 === s) ? 'block' : 'none'); }
-
         function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
         function processFile() {
@@ -224,10 +225,7 @@
             reader.onload = (e) => {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array', cellDates: true});
                 allSheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, defval: ""});
-                if(allSheetRows.length > 0) {
-                    document.getElementById('eRow').value = allSheetRows.length;
-                    updatePreview(); goToStep(2);
-                }
+                if(allSheetRows.length > 0) { document.getElementById('eRow').value = allSheetRows.length; updatePreview(); goToStep(2); }
             };
             reader.readAsArrayBuffer(file);
         }
@@ -236,23 +234,13 @@
             const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const eIdx = (parseInt(document.getElementById('eRow').value) || allSheetRows.length) - 1;
-            
             headers = allSheetRows[hIdx] || [];
             const table = document.getElementById('previewTable'); table.innerHTML = '';
-
-            // --- ฟังก์ชันแสดงแถวแรกและแถวสุดท้ายที่เลือก ---
             [hIdx, dIdx, eIdx].forEach((idx, i) => {
                 if(allSheetRows[idx]) {
-                    const tr = document.createElement('tr');
-                    if(i === 0) tr.style.background = "#e3f2fd"; // แถวหัวตาราง
-                    const tdL = document.createElement('td'); 
-                    tdL.innerText = idx + 1; tdL.style.fontWeight='700'; 
-                    tr.appendChild(tdL);
-                    
-                    allSheetRows[idx].forEach(c => {
-                        const td = document.createElement(i===0?'th':'td');
-                        td.innerText = formatVal(c); tr.appendChild(td);
-                    });
+                    const tr = document.createElement('tr'); if(i===0) tr.style.background = "#e3f2fd";
+                    const tdL = document.createElement('td'); tdL.innerText = idx + 1; tdL.style.fontWeight='700'; tr.appendChild(tdL);
+                    allSheetRows[idx].forEach(c => { const td = document.createElement(i===0?'th':'td'); td.innerText=formatVal(c); tr.appendChild(td); });
                     table.appendChild(tr);
                 }
             });
@@ -263,23 +251,12 @@
             const area = document.getElementById('mappingArea'); area.innerHTML = '';
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const firstRow = allSheetRows[dIdx] || [];
-
             MAPPING_CONFIG.forEach(f => {
                 let bestIdx = headers.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
                 let opts = headers.map((h, i) => `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || `Col ${i+1}`}</option>`).join('');
-                area.innerHTML += `
-                    <div class="mapping-card">
-                        <label style="font-size:12px; font-weight:700; color:#555; display:block; margin-bottom:5px;">${f.label}</label>
-                        <select id="map_${f.key}" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:13px;">${opts}</select>
-                        <span class="example-label" id="example_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span>
-                    </div>`;
+                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700; color:#555; display:block; margin-bottom:5px;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:13px;">${opts}</select><span class="example-label" id="example_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
             });
-
-            MAPPING_CONFIG.forEach(f => {
-                document.getElementById(`map_${f.key}`).onchange = (e) => { 
-                    document.getElementById(`example_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; 
-                };
-            });
+            MAPPING_CONFIG.forEach(f => { document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`example_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; }; });
         }
 
         async function prepareImport() {
@@ -299,42 +276,36 @@
                 };
             }).filter(r => r.code && r.name !== "");
 
-            if(sortType === 'gender_id') {
-                raw.sort((a,b) => (a.gender !== b.gender) ? a.gender - b.gender : a.code.localeCompare(b.code, undefined, {numeric:true}));
-            } else {
-                raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
-            }
+            if(sortType === 'gender_id') raw.sort((a,b) => (a.gender !== b.gender) ? a.gender - b.gender : a.code.localeCompare(b.code, undefined, {numeric:true}));
+            else raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
 
             finalImportList = raw.map((item, idx) => ({ ...item, num: idx + 1 }));
+            
+            // แสดงรายการทั้งหมดที่จะนำเข้าใน Step 3
+            const previewBody = document.getElementById('finalPreviewBody');
+            previewBody.innerHTML = finalImportList.map(item => `
+                <tr><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td>${item.birth || '-'}</td></tr>
+            `).join('');
+
             document.getElementById('summaryText').innerText = `พร้อมนำเข้าข้อมูลนักเรียน ${finalImportList.length} รายการ`;
             goToStep(3);
         }
 
         async function executeImport() {
-            if(!currentSchoolId) return alert("ไม่พบข้อมูลโรงเรียน");
+            if(!currentSchoolId) return alert("ไม่พบ School ID");
             document.getElementById('confirmBtn').disabled = true;
             document.getElementById('progressSection').style.display = 'block';
-
             for (let i = 0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
-                // บันทึก Master Data
-                const { data: std } = await sysDB.from('school_students').upsert({ 
-                    school_id: currentSchoolId, student_code: item.code, student_title: item.title, student_name: item.name, birth_date: item.birth || null 
-                }, { onConflict: 'school_id, student_code' }).select().single();
-                
-                // บันทึก Enrollment
-                if(std) await sysDB.from('classroom_students').upsert({ 
-                    classroom_id: currentClassId, student_id: std.student_id, student_number: item.num 
-                }, { onConflict: 'classroom_id, student_id' });
-                
+                const { data: std } = await sysDB.from('school_students').upsert({ school_id: currentSchoolId, student_code: item.code, student_title: item.title, student_name: item.name, birth_date: item.birth || null }, { onConflict: 'school_id, student_code' }).select().single();
+                if(std) await sysDB.from('classroom_students').upsert({ classroom_id: currentClassId, student_id: std.student_id, student_number: item.num }, { onConflict: 'classroom_id, student_id' });
                 const p = Math.round(((i + 1) / finalImportList.length) * 100);
                 document.getElementById('progressBar').style.width = p + '%';
                 document.getElementById('progressPercent').innerText = p + '%';
             }
             alert('นำเข้าสำเร็จ'); location.reload();
         }
-
-        function openAddModal() { alert('ฟังก์ชันเพิ่มรายคนกำลังพัฒนา'); }
+        function openAddModal() { alert('ฟังก์ชันเพิ่มรายบุคคลกำลังพัฒนา'); }
     </script>
 </body>
 </html>
