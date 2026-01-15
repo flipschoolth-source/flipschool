@@ -140,7 +140,7 @@
             <div id="step3" class="step-container" style="display:none;">
                 <div class="import-final-preview">
                     <table class="final-table">
-                        <thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th></tr></thead>
+                        <thead><tr><th>เลขที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วันเกิด (ค.ศ.)</th><th>สถานะ</th></tr></thead>
                         <tbody id="finalPreviewBody"></tbody>
                     </table>
                 </div>
@@ -154,7 +154,6 @@
     </div>
 
     <script>
-        // --- ส่วนแปรและการทำงานเบื้องต้นคงเดิม ---
         let currentClassId = new URLSearchParams(window.location.search).get('cid') || new URLSearchParams(window.location.search).get('id');
         let currentSchoolId = null;
         let allSheetRows = [], headers = [], finalImportList = [];
@@ -167,26 +166,36 @@
             { key: 'birth_date', label: 'วันเกิด', keywords: ['เกิด', 'birth', 'dob'] }
         ];
 
-        // ฟังก์ชันล้างและจัดการปี พ.ศ. ให้เป็น ค.ศ.
+        // --- ฟังก์ชันหลักในการแก้ปัญหา Error วันที่ ---
         function parseBirthDate(val) {
             let dateStr = formatVal(val);
             if (!dateStr || dateStr === "-") return null;
             
             try {
-                // ตรวจสอบว่าเป็นปี พ.ศ. หรือไม่ (ปกติคือค่า > 2400)
-                let parts = dateStr.split(/[-/]/);
+                // กรณี Excel อ่านค่าเป็นตัวเลข (Serial Date)
+                if (!isNaN(val) && typeof val === 'number') {
+                    const date = XLSX.SSF.parse_date_code(val);
+                    let year = date.y;
+                    if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                    return `${year}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+                }
+
+                // กรณีเป็น String เช่น "19/10/2560" หรือ "2560-10-19"
+                let parts = dateStr.split(/[-/.]/);
                 if (parts.length === 3) {
-                    let year = parseInt(parts[0]);
-                    if (year > 2400) {
-                        parts[0] = (year - 543).toString();
-                        dateStr = parts.join("-");
-                    }
+                    let d, m, y;
+                    // ตรวจสอบรูปแบบ YYYY-MM-DD
+                    if (parts[0].length === 4) { y = parseInt(parts[0]); m = parts[1]; d = parts[2]; }
+                    // ตรวจสอบรูปแบบ DD-MM-YYYY
+                    else { d = parts[0]; m = parts[1]; y = parseInt(parts[2]); }
+
+                    if (y > 2400) y -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 }
                 return dateStr;
             } catch(e) { return null; }
         }
 
-        // --- ฟังก์ชันอื่นๆ Fetch ข้อมูล คงเดิม ---
         document.addEventListener('DOMContentLoaded', async () => {
             if(typeof initAppUI === 'function') initAppUI();
             if(!currentClassId) return;
@@ -262,25 +271,23 @@
             MAPPING_CONFIG.forEach(f => { document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`example_${f.key}`).innerText = formatVal(allSheetRows[(parseInt(document.getElementById('sRow').value)||2)-1][e.target.value]) || '-'; }; });
         }
 
-        // --- แก้ไขลอจิกนำเข้า (Step 3) ---
         async function prepareImport() {
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const eIdx = parseInt(document.getElementById('eRow').value) || allSheetRows.length;
+            const sortType = document.querySelector('input[name="sortType"]:checked').value;
             const map = {}; MAPPING_CONFIG.forEach(f => map[f.key] = document.getElementById(`map_${f.key}`).value);
 
             let raw = allSheetRows.slice(dIdx, eIdx).map(row => {
                 const title = formatVal(row[map.student_title]);
-                return { 
-                    code: formatVal(row[map.student_code]), 
-                    title: title, 
-                    name: `${formatVal(row[map.first_name])} ${formatVal(row[map.last_name])}`.trim(), 
-                    birth: parseBirthDate(row[map.birth_date]), // ใช้ฟังก์ชันแปลงปีใหม่
-                    gender: ['ด.ญ.', 'เด็กหญิง', 'นางสาว', 'น.ส.'].some(k => title.includes(k)) ? 1 : 0 
-                };
+                const birth = parseBirthDate(row[map.birth_date]); // แปลง พ.ศ. เป็น ค.ศ.
+                return { code: formatVal(row[map.student_code]), title: title, name: `${formatVal(row[map.first_name])} ${formatVal(row[map.last_name])}`.trim(), birth: birth, gender: ['ด.ญ.', 'เด็กหญิง', 'นางสาว', 'น.ส.'].some(k => title.includes(k)) ? 1 : 0 };
             }).filter(r => r.code && r.name !== "");
 
+            if(sortType === 'gender_id') raw.sort((a,b) => (a.gender !== b.gender) ? a.gender - b.gender : a.code.localeCompare(b.code, undefined, {numeric:true}));
+            else raw.sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
+
             finalImportList = raw.map((item, idx) => ({ ...item, num: idx + 1 }));
-            document.getElementById('finalPreviewBody').innerHTML = finalImportList.map((item, i) => `<tr id="row_${i}"><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td id="status_${i}"><div class="status-dot"></div> <small>รอคิว</small></td></tr>`).join('');
+            document.getElementById('finalPreviewBody').innerHTML = finalImportList.map((item, i) => `<tr id="row_${i}"><td>${item.num}</td><td>${item.code}</td><td>${item.title}${item.name}</td><td>${item.birth || '-'}</td><td id="status_${i}"><div class="status-dot"></div> <small>รอคิว</small></td></tr>`).join('');
             goToStep(3);
         }
 
@@ -314,7 +321,7 @@
                     statusDot.className = "status-dot done"; statusText.innerText = "สำเร็จ";
                 } catch (err) {
                     statusDot.className = "status-dot error"; statusText.innerText = "Error: " + err.message;
-                    console.error("Import Error at row "+i+":", err);
+                    console.error("Import Error row "+i+":", err);
                 }
 
                 const p = Math.round(((i + 1) / finalImportList.length) * 100);
@@ -324,7 +331,7 @@
             alert('ดำเนินการเสร็จสิ้น!'); location.reload();
         }
 
-        function openAddModal() { alert('ฟังก์ชันกำลังพัฒนา'); }
+        function openAddModal() { alert('ฟังก์ชันเพิ่มรายบุคคลกำลังพัฒนา'); }
     </script>
 </body>
 </html>
