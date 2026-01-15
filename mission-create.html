@@ -2,230 +2,280 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AI Mission Designer - FlipSchool</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-body{margin:0;font-family:Sarabun;background:#f0f2f5}
-header{
-  background:linear-gradient(135deg,#000046,#0052D4);
-  color:#fff;text-align:center;padding:40px 20px;
-  border-radius:0 0 40px 40px
+:root { 
+    --primary: #00008B; --primary-light: #0052D4; --ai-glow: #8e44ad;
+    --bg: #f0f2f5; --white: #ffffff;
 }
-main{
-  max-width:1200px;margin:-30px auto 40px;padding:0 20px;
-  display:grid;grid-template-columns:1fr 420px;gap:25px
+body { margin:0; font-family: 'Sarabun', sans-serif; background: var(--bg); }
+header {
+    background: linear-gradient(135deg, #000046, var(--primary-light));
+    color: #fff; text-align: center; padding: 40px 20px;
+    border-radius: 0 0 40px 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
-@media(max-width:1024px){main{grid-template-columns:1fr}}
-.card{
-  background:#fff;border-radius:25px;padding:25px;
-  box-shadow:0 10px 30px rgba(0,0,0,.05);margin-bottom:20px
+main {
+    max-width: 1200px; margin: -30px auto 40px; padding: 0 20px;
+    display: grid; grid-template-columns: 1fr 420px; gap: 25px;
 }
-input,textarea,select{
-  width:100%;padding:12px;border-radius:12px;
-  border:1px solid #ddd;box-sizing:border-box
+@media(max-width:1024px){ main { grid-template-columns: 1fr; } }
+
+.card {
+    background: #fff; border-radius: 25px; padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.05); margin-bottom: 20px;
+    border: 1px solid rgba(0,0,0,0.03);
 }
-button{
-  border:none;border-radius:12px;padding:12px;
-  background:#8e44ad;color:#fff;
-  font-family:Kanit;cursor:pointer;margin-top:10px;width:100%
+label { font-family: 'Kanit'; font-weight: 500; display: block; margin-bottom: 8px; color: #444; }
+input, textarea, select {
+    width: 100%; padding: 12px; border-radius: 12px;
+    border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; transition: 0.3s;
 }
-button.secondary{background:#34495e}
-.status{display:flex;align-items:center;gap:8px;font-size:13px}
-.dot{width:10px;height:10px;border-radius:50%;background:#bbb}
-.dot.on{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
-.phone{
-  background:#111;border-radius:40px;padding:12px;
-  height:600px;position:sticky;top:20px
+input:focus, textarea:focus { border-color: var(--ai-glow); outline: none; }
+
+button {
+    border: none; border-radius: 12px; padding: 14px;
+    background: var(--ai-glow); color: #fff;
+    font-family: Kanit; cursor: pointer; margin-top: 10px; width: 100%;
+    font-size: 16px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.screen{
-  background:#fff;border-radius:30px;height:100%;
-  display:flex;align-items:center;justify-content:center;
-  text-align:center;padding:20px
+button:hover { opacity: 0.9; transform: translateY(-2px); }
+button.secondary { background: #34495e; }
+
+.status { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 15px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: #bbb; transition: 0.3s; }
+.dot.on { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+
+.phone {
+    background: #111; border-radius: 45px; padding: 15px;
+    height: 650px; position: sticky; top: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
 }
-pre{
-  background:#fafafa;padding:15px;border-radius:12px;
-  font-size:12px;max-height:300px;overflow:auto
+.screen {
+    background: #fff; border-radius: 35px; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 25px; box-sizing: border-box; overflow: hidden;
 }
-small{color:#888}
+pre {
+    background: #2d3436; color: #fab1a0; padding: 15px; border-radius: 12px;
+    font-size: 12px; max-height: 250px; overflow: auto; text-align: left;
+}
+#loadingOverlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(255,255,255,0.8); display:none;
+    align-items:center; justify-content:center; z-index:9999;
+}
+.spinner {
+    width: 50px; height: 50px; border: 5px solid #eee;
+    border-top-color: var(--ai-glow); border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-
 <body>
 
+<div id="loadingOverlay"><div class="spinner"></div></div>
+
 <header>
-<h1 style="font-family:Kanit;margin:0">AI Mission Designer 🚀</h1>
-<p>Gemini API (พร้อม models.list)</p>
+<h1 style="font-family:Kanit; margin:0">AI Mission Designer 🚀</h1>
+<p>FlipSchool x Google Gemini Pro & Flash</p>
 </header>
 
 <main>
+    <section>
+        <div class="card">
+            <div class="status">
+                <div id="dot" class="dot"></div>
+                <span id="statusText" style="font-weight: 600; color: #666;">ตรวจสอบการเชื่อมต่อ API...</span>
+            </div>
 
-<section>
+            <label><i class="fa-solid fa-key"></i> Gemini API Key</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="password" id="geminiKey" placeholder="AIzaSy...">
+                <button onclick="testApiKey()" style="margin:0; width: auto; padding: 10px 20px;">ทดสอบ</button>
+            </div>
+            <button class="secondary" onclick="listModels()"><i class="fa-solid fa-list"></i> อัปเดตรายชื่อโมเดล</button>
+        </div>
 
-<div class="card">
-  <div class="status">
-    <div id="dot" class="dot"></div>
-    <span id="statusText">ยังไม่ได้เชื่อมต่อ API</span>
-  </div>
+        <div class="card">
+            <label><i class="fa-solid fa-robot"></i> เลือกโมเดล AI ที่ต้องการใช้</label>
+            <select id="modelSelect">
+                <option value="">-- กรุณาทดสอบ API Key ก่อน --</option>
+            </select>
+            <small style="display:block; margin-top:5px; color:#999;">* แนะนำ: gemini-1.5-flash สำหรับความเร็ว หรือ 1.5-pro สำหรับความฉลาด</small>
+        </div>
 
-  <label>🔑 Gemini API Key</label>
-  <input type="password" id="geminiKey" placeholder="วาง API Key ที่นี่">
+        <div class="card">
+            <label><i class="fa-solid fa-lightbulb"></i> หัวข้อหรือเนื้อหาบทเรียน</label>
+            <textarea id="aiPrompt" rows="3" placeholder="เช่น: ระบบสุริยะจักรวาล ป.4 พร้อม Quiz 3 ข้อ"></textarea>
+            <button onclick="generateByAI()"><i class="fa-solid fa-wand-magic-sparkles"></i> สั่ง AI ออกแบบภารกิจ</button>
+        </div>
 
-  <button onclick="testApiKey()">Test API Key</button>
-  <button class="secondary" onclick="listModels()">📋 List Models</button>
+        <div class="card">
+            <label><i class="fa-solid fa-code"></i> JSON Output (สำหรับระบบ)</label>
+            <div id="dataEditor"><p style="color:#aaa; text-align:center;">ยังไม่มีข้อมูล</p></div>
+        </div>
+    </section>
 
-  <small>
-    * โมเดลที่แสดงคือโมเดลที่ API Key ของคุณใช้ได้จริง
-  </small>
-</div>
-
-<div class="card">
-  <label>🤖 เลือกโมเดล</label>
-  <select id="modelSelect"></select>
-</div>
-
-<div class="card">
-  <label>💡 หัวข้อภารกิจ</label>
-  <textarea id="aiPrompt" rows="3"
-    placeholder="เช่น: สัตว์เลี้ยงน่ารัก 5 ชนิด พร้อมคำถาม"></textarea>
-  <button onclick="generateByAI()">✨ สร้างภารกิจด้วย AI</button>
-</div>
-
-<div class="card">
-  <label>📦 JSON Output</label>
-  <div id="dataEditor"><p style="color:#aaa">ยังไม่มีข้อมูล</p></div>
-</div>
-
-</section>
-
-<aside>
-<div class="phone">
-<div class="screen" id="preview">
-<p style="color:#aaa">รอการสร้างภารกิจ…</p>
-</div>
-</div>
-</aside>
-
+    <aside>
+        <div class="phone">
+            <div class="screen" id="preview">
+                <i class="fa-solid fa-mobile-screen-button" style="font-size: 50px; color: #eee; margin-bottom: 15px;"></i>
+                <p style="color:#aaa">Live Preview <br>จะแสดงหน้าตาเกมที่นี่</p>
+            </div>
+        </div>
+        <button style="background: var(--primary); margin-top: 15px;" onclick="saveToSupabase()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกลงฐานข้อมูล
+        </button>
+    </aside>
 </main>
 
 <script>
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-document.addEventListener("DOMContentLoaded",()=>{
-  const savedKey = localStorage.getItem("gemini_api_key");
-  if(savedKey) geminiKey.value = savedKey;
+document.addEventListener("DOMContentLoaded", () => {
+    const savedKey = localStorage.getItem("gemini_api_key");
+    if(savedKey) {
+        document.getElementById('geminiKey').value = savedKey;
+        // พยายามดึงรายชื่อโมเดลทันทีถ้ามีคีย์
+        listModels();
+    }
 });
 
-/* ---------------- API KEY TEST ---------------- */
-async function testApiKey(){
-  const key = geminiKey.value;
-  if(!key) return alert("กรุณาใส่ API Key");
+/* ---------------- API KEY TEST & MODELS LIST ---------------- */
+async function testApiKey() {
+    const key = document.getElementById('geminiKey').value;
+    if(!key) return alert("กรุณาใส่ API Key");
 
-  try{
-    const res = await fetch(`${API_BASE}/models?key=${key}`);
-    const json = await res.json();
-    if(json.error) throw new Error(json.error.message);
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    try {
+        const res = await fetch(`${API_BASE}/models?key=${key}`);
+        const json = await res.json();
+        
+        if(json.error) throw new Error(json.error.message);
 
-    dot.classList.add("on");
-    statusText.textContent = "เชื่อมต่อ API สำเร็จ";
-    localStorage.setItem("gemini_api_key",key);
-    alert("✅ API Key ใช้งานได้");
+        document.getElementById('dot').classList.add("on");
+        document.getElementById('statusText').textContent = "เชื่อมต่อ API สำเร็จ";
+        document.getElementById('statusText').style.color = "#2ecc71";
+        
+        localStorage.setItem("gemini_api_key", key);
+        alert("✅ API Key ถูกต้อง!");
+        listModels(); // ดึงรายชื่อโมเดลต่อเลย
 
-  }catch(e){
-    dot.classList.remove("on");
-    statusText.textContent = "เชื่อมต่อไม่สำเร็จ";
-    alert("❌ " + e.message);
-  }
+    } catch(e) {
+        document.getElementById('dot').classList.remove("on");
+        document.getElementById('statusText').textContent = "Key ไม่ถูกต้อง";
+        document.getElementById('statusText').style.color = "#e74c3c";
+        alert("❌ Error: " + e.message);
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 }
 
-/* ---------------- MODELS.LIST ---------------- */
-async function listModels(){
-  const key = geminiKey.value;
-  if(!key) return alert("ใส่ API Key ก่อน");
+async function listModels() {
+    const key = document.getElementById('geminiKey').value;
+    if(!key) return;
 
-  try{
-    const res = await fetch(`${API_BASE}/models?key=${key}`);
-    const json = await res.json();
-    if(json.error) throw new Error(json.error.message);
+    try {
+        const res = await fetch(`${API_BASE}/models?key=${key}`);
+        const json = await res.json();
+        
+        const select = document.getElementById("modelSelect");
+        select.innerHTML = "";
 
-    const select = document.getElementById("modelSelect");
-    select.innerHTML = "";
+        // กรองเฉพาะโมเดลที่รองรับการสร้างเนื้อหา
+        const usable = json.models.filter(m => 
+            m.supportedGenerationMethods.includes("generateContent")
+        );
 
-    const usable = json.models.filter(m =>
-      m.supportedGenerationMethods &&
-      m.supportedGenerationMethods.includes("generateContent")
-    );
+        usable.forEach(m => {
+            const opt = document.createElement("option");
+            const mName = m.name.replace("models/", "");
+            opt.value = mName;
+            opt.textContent = mName;
+            // ตั้งค่า Default เป็น gemini-1.5-flash
+            if(mName === 'gemini-1.5-flash') opt.selected = true;
+            select.appendChild(opt);
+        });
 
-    usable.forEach(m=>{
-      const opt = document.createElement("option");
-      opt.value = m.name.replace("models/","");
-      opt.textContent = m.name.replace("models/","");
-      select.appendChild(opt);
-    });
-
-    if(usable.length){
-      alert(`✅ พบโมเดลที่ใช้ได้ ${usable.length} รุ่น`);
-    }else{
-      alert("⚠️ ไม่พบโมเดลที่รองรับ generateContent");
+        if(usable.length > 0) {
+            document.getElementById('dot').classList.add("on");
+            document.getElementById('statusText').textContent = "API พร้อมใช้งาน (" + usable.length + " โมเดล)";
+        }
+    } catch(e) {
+        console.error("Models List Error:", e);
     }
-
-  }catch(e){
-    alert("❌ " + e.message);
-  }
 }
 
 /* ---------------- GENERATE CONTENT ---------------- */
-async function generateByAI(){
-  const key = geminiKey.value;
-  const prompt = aiPrompt.value;
-  const model = modelSelect.value;
+async function generateByAI() {
+    const key = document.getElementById('geminiKey').value;
+    const prompt = document.getElementById('aiPrompt').value;
+    const model = document.getElementById('modelSelect').value;
 
-  if(!key || !prompt || !model)
-    return alert("ข้อมูลไม่ครบ");
+    if(!prompt) return alert("กรุณาระบุหัวข้อภารกิจ");
+    if(!model) return alert("กรุณาเลือกโมเดล (หรือทดสอบ API Key ก่อน)");
 
-  const instruction = `
-ตอบกลับเป็น JSON เท่านั้น
-สร้าง Quiz 3 ข้อ เรื่อง "${prompt}"
-รูปแบบ:
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    const instruction = `ตอบเป็น JSON เท่านั้น (ห้ามมีคำอธิบายอื่น)
+สร้างคำถาม Quiz 3 ข้อ เกี่ยวกับหัวข้อ: "${prompt}"
+รูปแบบ JSON:
 [
- {"q":"คำถาม","ok":"คำตอบถูก","no":"คำตอบผิด"}
-]
-`;
+  {"q":"คำถาม","ok":"คำตอบที่ถูก","no":"คำตอบที่ผิด"}
+]`;
 
-  try{
-    const res = await fetch(
-      `${API_BASE}/models/${model}:generateContent?key=${key}`,
-      {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({
-          contents:[{parts:[{text:instruction}]}]
-        })
-      }
-    );
+    try {
+        const res = await fetch(
+            `${API_BASE}/models/${model}:generateContent?key=${key}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: instruction }] }]
+                })
+            }
+        );
 
-    const json = await res.json();
-    if(json.error) throw new Error(json.error.message);
+        const json = await res.json();
+        if(json.error) throw new Error(json.error.message);
 
-    let text = json.candidates[0].content.parts[0].text;
-    text = text.replace(/```json|```/g,"").trim();
-    const data = JSON.parse(text);
+        let text = json.candidates[0].content.parts[0].text;
+        // ล้าง Markdown Code Block
+        text = text.replace(/```json|```/g, "").trim();
+        
+        const data = JSON.parse(text);
 
-    dataEditor.innerHTML =
-      `<pre>${JSON.stringify(data,null,2)}</pre>`;
+        document.getElementById('dataEditor').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
 
-    preview.innerHTML = `
-      <div>
-        <h3>${data[0].q}</h3>
-        <button>${data[0].ok}</button>
-      </div>
-    `;
+        // แสดงผล Preview ข้อแรก
+        document.getElementById('preview').innerHTML = `
+            <div style="width:100%">
+                <div style="background:var(--primary); color:#white; padding:15px; border-radius:15px; margin-bottom:15px;">
+                    <h3 style="margin:0; color:white;">${data[0].q}</h3>
+                </div>
+                <button style="background:#fff; color:#333; border:2px solid #eee;">${data[0].ok}</button>
+                <button style="background:#fff; color:#333; border:2px solid #eee; margin-top:8px;">${data[0].no}</button>
+                <p style="margin-top:20px; font-size:12px; color:#666;">(ตัวอย่างคำถามที่ 1 จาก 3)</p>
+            </div>
+        `;
 
-  }catch(e){
-    alert("❌ " + e.message);
-  }
+    } catch(e) {
+        alert("❌ การสร้างล้มเหลว: " + e.message);
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+}
+
+function saveToSupabase() {
+    alert("ระบบกำลังเชื่อมต่อกับ Supabase... (ฟังก์ชันนี้ต้องใช้ตัวแปร supabase จาก supabase-db.js)");
+    // ตัวอย่างการใช้งานจริง:
+    // await supabase.from('missions').insert([{ content: generatedData }]);
 }
 </script>
 
