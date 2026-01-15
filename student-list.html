@@ -50,26 +50,21 @@
         .drawer-item { padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #444; font-family: 'Kanit'; margin-bottom: 8px; transition: 0.2s; }
         .drawer-item:hover { background: #f0f4ff; color: var(--primary); }
 
-        /* --- Page Header --- */
+        /* --- Hero Header --- */
         .page-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); padding: 30px 20px; color: white; border-radius: 0 0 30px 30px; box-shadow: var(--shadow); margin-bottom: 30px; }
         @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
         .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
 
         /* --- Grid Student List --- */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; list-style: none; }
-        .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
+        .student-card { background: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); transition: 0.3s; }
         .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
 
-        /* --- Import UI --- */
-        .data-preview-box { overflow-x: auto; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; }
-        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .preview-table th { background: #e3f2fd; padding: 10px; text-align: left; border-bottom: 2px solid #2196f3; }
-        .preview-table td { padding: 10px; border-top: 1px solid #eee; }
+        /* --- Import Final UI --- */
         .import-final-preview { max-height: 350px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 15px; margin-bottom: 20px; }
         .final-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .final-table th { position: sticky; top: 0; background: #f4f7fe; padding: 12px; text-align: left; z-index: 10; border-bottom: 2px solid #ddd; }
         .final-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
-
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #ccc; }
         .status-dot.waiting { background: #ffc107; animation: blink 1s infinite; }
         .status-dot.done { background: #28a745; }
@@ -138,9 +133,9 @@
 
             <div id="step2" class="step-container" style="display:none;">
                 <div style="display:flex; gap:15px; background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:15px;">
-                    <div>หัวตารางแถว: <input type="number" id="hRow" value="1" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
-                    <div>เริ่มแถว: <input type="number" id="sRow" value="2" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
-                    <div>สิ้นสุดแถว: <input type="number" id="eRow" placeholder="ทั้งหมด" style="width:90px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
+                    <div>หัวตารางแถว: <input type="number" id="hRow" value="1" min="1" onchange="updatePreview()" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
+                    <div>เริ่มข้อมูลแถว: <input type="number" id="sRow" value="2" min="1" onchange="updatePreview()" style="width:60px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
+                    <div>สิ้นสุดแถว: <input type="number" id="eRow" placeholder="ทั้งหมด" onchange="updatePreview()" style="width:90px; padding:5px; border-radius:8px; border:1px solid #ddd;"></div>
                 </div>
                 <div style="background:#fff3e0; padding:12px; border-radius:12px; margin-bottom:12px; border:1px solid #ffe0b2;">
                     <label style="font-size:13px; font-weight:700; color:#e65100;"><input type="radio" name="sortType" value="id_only" checked> เรียงตามรหัส</label>
@@ -160,7 +155,7 @@
                 </div>
                 <div id="progressSection" style="display:none; padding:15px;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span id="progressLabel">กำลังนำเข้า...</span><span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span></div>
-                    <div style="background:#eee; height:10px; border-radius:5px; overflow:hidden;"><div id="progressBar" style="width:0%; height:100%; background:var(--primary);"></div></div>
+                    <div style="background:#eee; height:10px; border-radius:5px; overflow:hidden;"><div id="progressBar" style="background:var(--primary); width:0%; height:100%; background:var(--primary);"></div></div>
                 </div>
                 <button id="confirmBtn" class="btn-save" style="width:100%; height:55px;" onclick="executeImport()">ยืนยันและเริ่มนำเข้าข้อมูล</button>
             </div>
@@ -173,11 +168,11 @@
         let allSheetRows = [], finalImportList = [];
 
         const MAPPING_CONFIG = [
-            { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
-            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
-            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'first', 'fname', 'name'] },
+            { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว', 'student_id'] },
+            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix', 'คำนำหน้าชื่อ'] },
+            { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'name', 'first', 'fname', 'ชื่อจริง'] },
             { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'surname', 'last', 'lname', 'สกุล'] },
-            { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'วดป', 'วันเกิด'] }
+            { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'dob', 'วดป', 'วันเกิด'] }
         ];
 
         function toggleDrawer() {
@@ -194,23 +189,12 @@
                 currentSchoolId = cls.school_id;
                 document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
             }
-            fetchProfile();
             fetchStudents();
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        async function fetchProfile() {
-            const { data: { user } } = await sysDB.auth.getUser();
-            if(user) {
-                const { data: prof } = await sysDB.from('teachers').select('profile_pic').eq('teacher_id', user.id).single();
-                if(prof) document.getElementById('navProfileImg').src = prof.profile_pic;
-            }
-        }
-
         async function fetchStudents() {
-            const { data } = await sysDB.from('classroom_students')
-                .select('student_number, school_students(student_code, student_title, student_name)')
-                .eq('classroom_id', currentClassId).order('student_number');
+            const { data } = await sysDB.from('classroom_students').select('student_number, school_students(*)').eq('classroom_id', currentClassId).order('student_number');
             const container = document.getElementById('studentGrid'); container.innerHTML = '';
             if(data) {
                 document.getElementById('totalCount').innerText = data.length;
@@ -243,7 +227,7 @@
             const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const eIdx = (parseInt(document.getElementById('eRow').value) || allSheetRows.length) - 1;
-            headers = allSheetRows[hIdx] || [];
+            const headers = allSheetRows[hIdx] || [];
             const table = document.getElementById('previewTable'); table.innerHTML = '';
             [hIdx, dIdx, eIdx].forEach((idx, i) => {
                 if(allSheetRows[idx]) {
@@ -262,21 +246,31 @@
             const hIdx = (parseInt(document.getElementById('hRow').value) || 1) - 1;
             const dIdx = (parseInt(document.getElementById('sRow').value) || 2) - 1;
             const headersRow = allSheetRows[hIdx] || [];
-            const firstRow = allSheetRows[dIdx] || [];
+            const firstDataRow = allSheetRows[dIdx] || [];
 
             MAPPING_CONFIG.forEach(f => {
-                let bestIdx = headersRow.findIndex(h => f.keywords.some(k => String(h).toLowerCase().includes(k)));
+                let bestMatchIdx = -1;
+                let maxScore = -1;
+
+                headersRow.forEach((h, i) => {
+                    const hStr = String(h || "").toLowerCase().trim();
+                    f.keywords.forEach(kw => {
+                        if (hStr === kw.toLowerCase()) { bestMatchIdx = i; maxScore = 100; }
+                        else if (hStr.includes(kw.toLowerCase()) && maxScore < 50) { bestMatchIdx = i; maxScore = 50; }
+                    });
+                });
+
                 let opts = headersRow.map((h, i) => {
-                    const ex = firstRow[i] ? ` (เช่น: ${formatVal(firstRow[i])})` : '';
-                    return `<option value="${i}" ${i === bestIdx ? 'selected' : ''}>${h || 'คอลัมน์ '+(i+1)}${ex}</option>`;
+                    const isSelected = (i === bestMatchIdx) ? 'selected' : '';
+                    const exampleVal = firstDataRow[i] ? ` (เช่น: ${formatVal(firstDataRow[i])})` : ' (ว่าง)';
+                    return `<option value="${i}" ${isSelected}>${h || `คอลัมน์ ${i+1}`}${exampleVal}</option>`;
                 }).join('');
-                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span class="example-label" id="live_${f.key}">${formatVal(firstRow[bestIdx]) || '-'}</span></div>`;
+
+                area.innerHTML += `<div class="mapping-card"><label style="font-size:12px; font-weight:700;">${f.label}</label><select id="map_${f.key}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">${opts}</select><span style="color:var(--accent); font-weight:600; font-size:11px; display:block; margin-top:5px;" id="live_${f.key}">${formatVal(firstDataRow[bestMatchIdx]) || '-'}</span></div>`;
             });
             
             MAPPING_CONFIG.forEach(f => {
-                document.getElementById(`map_${f.key}`).onchange = (e) => { 
-                    document.getElementById(`live_${f.key}`).innerText = formatVal(firstRow[e.target.value]) || '-'; 
-                };
+                document.getElementById(`map_${f.key}`).onchange = (e) => { document.getElementById(`live_${f.key}`).innerText = formatVal(firstDataRow[e.target.value]) || '-'; };
             });
         }
 
@@ -315,7 +309,7 @@
                 return {
                     code: String(row[map.code] || "").trim(),
                     title: title,
-                    name: `${formatVal(row[map.fname])} ${formatVal(row[map.lname])}`.trim(),
+                    name: `${formatVal(row[map.fname])} ${formatVal(row[map.last_name])}`.trim(),
                     birth: parseBirthDate(row[map.birth]),
                     gender: ['ด.ญ.', 'เด็กหญิง', 'นางสาว', 'น.ส.'].some(k => title.includes(k)) ? 1 : 0
                 };
@@ -333,7 +327,6 @@
             if(!currentSchoolId) return alert("ไม่พบ School ID");
             document.getElementById('confirmBtn').disabled = true;
             document.getElementById('progressSection').style.display = 'block';
-
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
                 const dot = document.querySelector(`#row_${i} .status-dot`);
@@ -343,9 +336,7 @@
                         school_id: currentSchoolId, student_code: item.code, student_title: item.title, student_name: item.name, birth_date: item.birth
                     }, { onConflict: 'school_id, student_code' }).select().single();
                     if(e1) throw e1;
-
                     await sysDB.from('classroom_students').upsert({ classroom_id: currentClassId, student_id: std.student_id, student_number: item.num }, { onConflict: 'classroom_id, student_id' });
-                    
                     dot.className = "status-dot done";
                     document.getElementById(`st_${i}`).innerHTML = `<div class="status-dot done"></div> สำเร็จ`;
                 } catch (err) {
