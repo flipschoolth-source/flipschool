@@ -3,41 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>จัดการภารกิจห้องเรียน - FlipSchool</title>
+    <title>จัดการห้องเรียน - FlipSchool</title>
+    
     <link rel="icon" type="image/png" href="img/favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
     <style>
-        :root { --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4; --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff; --drawer-width: 320px; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-        
-        /* Navbar & Header Style เหมือนเดิม */
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 0 50px; height: 90px; background: var(--white); box-shadow: 0 2px 20px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
+        :root { 
+            --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4;
+            --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff;
+            --sidebar-width: 380px;
+            --drawer-width: 320px;
+        }
+
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* --- Navbar --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 50px; height: 90px; background: var(--white);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        }
         .nav-left-group { display: flex; align-items: center; gap: 15px; }
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit; }
+        .menu-toggle-btn { 
+            background: none; border: none; font-size: 22px; color: var(--primary-dark); 
+            cursor: pointer; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+        }
+        .menu-toggle-btn:hover { background: #f0f4ff; }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: inherit; }
         .logo-container img { height: 55px; }
         .brand-name { font-size: 26px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; }
-        .class-header { min-height: 140px; padding: 25px 50px; color: white; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); border-radius: 0 0 40px 40px; position: relative; }
-        
-        /* Gamification Styles */
-        .mission-map { display: flex; flex-direction: column; align-items: center; gap: 30px; padding: 40px 0; position: relative; }
-        .mission-node { 
-            width: 100px; height: 100px; border-radius: 50%; background: white; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 32px; color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
-            cursor: pointer; position: relative; z-index: 2; border: 5px solid #eee; transition: 0.3s;
+        .brand-name span { color: var(--primary); }
+        .nav-profile-trigger { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; transition: 0.3s ease; }
+
+        /* --- Side Drawer --- */
+        .drawer-overlay, .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1990; backdrop-filter: blur(2px); }
+        .side-drawer { 
+            position: fixed; top: 0; left: calc(var(--drawer-width) * -1.1); width: var(--drawer-width); height: 100%; 
+            background: white; z-index: 2000; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 5px 0 25px rgba(0,0,0,0.1); padding: 0; box-sizing: border-box;
         }
-        .mission-node.completed { background: #34a853; color: white; border-color: #27ae60; }
+        .side-drawer.active { left: 0; }
+        .drawer-header { height: 90px; padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid #f0f4ff; margin-bottom: 20px; }
+        .drawer-menu-item { padding: 14px 20px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #444; font-weight: 500; margin: 0 15px 5px 15px; font-family: 'Kanit'; }
+        .drawer-menu-item:hover { background: #f0f4ff; color: var(--primary); }
+
+        /* --- Class Header --- */
+        .class-header {
+            min-height: 140px; padding: 25px 50px; box-sizing: border-box;
+            color: white; display: flex; flex-direction: column; justify-content: center;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            border-radius: 0 0 40px 40px; box-shadow: 0 10px 30px rgba(0, 0, 70, 0.1);
+            position: relative;
+        }
+        .class-header h1 { margin: 0; font-family: 'Kanit'; font-size: 32px; line-height: 1.2; }
+        .class-header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
+        .student-count-badge {
+            position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.2); padding: 8px 25px;
+            border-radius: 50px; backdrop-filter: blur(8px); font-size: 16px; font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* --- Mission Map Style --- */
+        .mission-map { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 0; position: relative; }
+        .mission-node { 
+            width: 90px; height: 90px; border-radius: 50%; background: white; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 30px; color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.08); 
+            cursor: pointer; position: relative; z-index: 2; border: 5px solid #fff; transition: 0.3s;
+        }
         .mission-node:hover { transform: scale(1.1); border-color: var(--accent); }
-        .mission-line { position: absolute; width: 6px; background: #ddd; z-index: 1; top: 50px; bottom: 50px; }
-        .mission-label { position: absolute; left: 120px; width: 250px; text-align: left; font-family: 'Kanit'; font-size: 18px; color: #444; }
+        .mission-label { position: absolute; left: 110px; width: 200px; text-align: left; font-family: 'Kanit'; }
         
-        .fab-add-mission { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 10px 20px rgba(255,140,0,0.3); z-index: 999; }
+        .main-content { padding: 40px 50px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; flex: 1; }
+        .fab-add { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 10px 20px rgba(255,140,0,0.3); z-index: 999; }
     </style>
 </head>
 <body>
@@ -46,99 +93,140 @@
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
     <div class="side-drawer" id="sideDrawer">
-        <div class="drawer-header"><div class="logo-container"><img src="img/favicon.png" alt="Logo"><div class="brand-name">Flip<span>School</span></div></div></div>
+        <div class="drawer-header">
+            <div class="logo-container">
+                <img src="img/favicon.png" alt="Logo">
+                <div class="logo-text-group">
+                    <div class="brand-name">Flip<span>School</span></div>
+                    <div style="font-size:12px; color:#636e72;">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                </div>
+            </div>
+        </div>
         <div class="drawer-menu-item" onclick="location.href='teacher-dashboard.html'"><i class="fas fa-th-large"></i> แดชบอร์ด</div>
         <div class="drawer-menu-item" onclick="goToStudents()"><i class="fas fa-users"></i> รายชื่อนักเรียน</div>
-        <div class="drawer-menu-item" style="background:#f0f4ff; color:var(--primary);"><i class="fas fa-map-signs"></i> แผนที่ภารกิจ</div>
+        <div class="drawer-menu-item" onclick="openEditModal()"><i class="fas fa-cog"></i> ตั้งค่าห้องเรียน</div>
     </div>
 
     <nav>
         <div class="nav-left-group">
             <button class="menu-toggle-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
-            <div class="logo-container">
+            <div class="logo-container" onclick="location.href='teacher-dashboard.html'">
                 <img src="img/favicon.png" alt="Logo">
-                <div class="brand-name">Flip<span>School</span></div>
+                <div class="logo-text-group">
+                    <div class="brand-name">Flip<span>School</span></div>
+                    <div style="font-size:12px; color:#636e72;">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                </div>
             </div>
         </div>
         <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
     </nav>
 
     <div class="class-header" id="headerBg">
-        <div><h1 id="subjectName">กำลังโหลด...</h1><p><span id="roomName">...</span> | <span id="termText">...</span></p></div>
-        <div class="student-count"><i class="fas fa-star"></i> <span id="missionCount">0</span> ภารกิจ</div>
+        <div>
+            <h1 id="subjectName">กำลังโหลด...</h1>
+            <p><i class="fas fa-door-open"></i> <span id="roomName">...</span> | <span id="termText">...</span></p>
+        </div>
+        <div class="student-count-badge">
+            <i class="fas fa-user-graduate"></i> <span id="studentCount">0</span> คน
+        </div>
     </div>
 
     <main class="main-content">
-        <div class="mission-map">
-            <div class="mission-line"></div>
-            <div id="missionListContent" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 40px;">
-                <div class="empty-state">กำลังโหลดเส้นทางภารกิจ...</div>
+        <div id="missionContainer" class="mission-map">
+            <div class="empty-state">
+                <i class="fas fa-layer-group" style="font-size: 50px; opacity: 0.1; margin-bottom: 15px;"></i>
+                <h3 style="font-family: 'Kanit';">เริ่มต้นสร้างภารกิจการเรียนรู้</h3>
+                <p>กดปุ่ม + มุมขวาล่างเพื่อเพิ่มบทเรียนหรือเกม</p>
             </div>
         </div>
     </main>
 
-    <button class="fab-add-mission" onclick="location.href='mission-create.html?cid=' + currentClassId">
+    <button class="fab-add" onclick="location.href='mission-add.html?cid=' + currentClassId">
         <i class="fas fa-plus"></i>
     </button>
 
     <script>
+        let currentUser = null;
         let currentClassId = new URLSearchParams(window.location.search).get('id');
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const { data: { user } } = await sysDB.auth.getUser();
-            if (!user) location.href = 'teacher-login.html';
+            if (!currentClassId) { location.href = 'teacher-dashboard.html'; return; }
             
+            const { data: { user } } = await sysDB.auth.getUser();
+            if (!user) { location.href = 'teacher-login.html'; return; }
+            currentUser = user;
+
+            await fetchProfile();
             await fetchClassroomData();
             await fetchMissions();
+
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
+        async function fetchProfile() {
+            const { data } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
+            if (data) document.getElementById('navProfileImg').src = data.profile_pic || 'img/default-avatar.png';
+        }
+
         async function fetchClassroomData() {
-            const { data } = await sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
-            if (data) {
-                document.getElementById('subjectName').innerText = data.subject_name;
-                document.getElementById('roomName').innerText = data.room_name;
-                document.getElementById('termText').innerText = `เทอม ${data.semester}/${data.academic_year}`;
-                document.getElementById('headerBg').style.background = data.color_code;
+            const { data: cls } = await sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+            if (cls) {
+                document.getElementById('subjectName').innerText = cls.subject_name;
+                document.getElementById('roomName').innerText = cls.room_name;
+                document.getElementById('termText').innerText = `ปีการศึกษา ${cls.academic_year} | ภาคเรียนที่ ${cls.semester}`;
+                document.getElementById('headerBg').style.background = cls.color_code;
+
+                // --- แก้ไขจุดที่แสดงผลผิดพลาด: ดึงจำนวนสมาชิกนักเรียน ---
+                const { count, error } = await sysDB
+                    .from('classroom_students')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('classroom_id', currentClassId);
+                
+                if (!error) {
+                    document.getElementById('studentCount').innerText = count || 0;
+                }
             }
         }
 
         async function fetchMissions() {
-            const { data, count } = await sysDB.from('missions').select('*', { count: 'exact' }).eq('classroom_id', currentClassId).order('order_index');
-            const container = document.getElementById('missionListContent');
-            container.innerHTML = '';
-            
-            if (data && data.length > 0) {
-                document.getElementById('missionCount').innerText = count;
-                data.forEach((m, idx) => {
-                    const icon = getIcon(m.mission_type);
+            const { data: missions } = await sysDB.from('missions')
+                .select('*')
+                .eq('classroom_id', currentClassId)
+                .order('order_index', { ascending: true });
+
+            if (missions && missions.length > 0) {
+                const container = document.getElementById('missionContainer');
+                container.innerHTML = '<div style="position:absolute; width:6px; background:#ddd; top:0; bottom:0; z-index:1;"></div>';
+                
+                missions.forEach((m, index) => {
+                    const icon = getMissionIcon(m.mission_type);
                     container.innerHTML += `
-                        <div class="mission-node" onclick="playMission('${m.mission_id}', '${m.mission_type}')">
+                        <div class="mission-node" onclick="location.href='play-mission.html?mid=${m.mission_id}'">
                             <i class="${icon}"></i>
                             <div class="mission-label">
-                                <strong>ภารกิจที่ ${idx + 1}</strong><br>
-                                <span style="font-size:14px; color:#666;">${m.title}</span>
+                                <div style="font-weight:700; color:var(--primary-dark);">ภารกิจที่ ${index + 1}</div>
+                                <div style="font-size:14px; color:#636e72;">${m.title}</div>
                             </div>
                         </div>
                     `;
                 });
-            } else {
-                container.innerHTML = '<div class="empty-state"><p>ยังไม่มีภารกิจในห้องเรียนนี้</p></div>';
             }
         }
 
-        function getIcon(type) {
-            const icons = { quiz: 'fas fa-question-circle', speech: 'fas fa-microphone', order: 'fas fa-sort-amount-down', match: 'fas fa-clone' };
+        function getMissionIcon(type) {
+            const icons = { quiz: 'fas fa-tasks', speech: 'fas fa-microphone', match: 'fas fa-clone', order: 'fas fa-sort-amount-down' };
             return icons[type] || 'fas fa-star';
         }
 
-        function playMission(id, type) {
-            // ไปยังหน้าเล่นเกมตามประเภท
-            location.href = `play-${type}.html?mid=${id}`;
+        function toggleDrawer() {
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('active');
+            ov.style.display = dr.classList.contains('active') ? 'block' : 'none';
         }
 
-        function toggleDrawer() { document.getElementById('sideDrawer').classList.toggle('active'); document.getElementById('drawerOverlay').style.display = document.getElementById('sideDrawer').classList.contains('active') ? 'block' : 'none'; }
-        function goToStudents() { location.href = `student-list.html?cid=${currentClassId}`; }
+        function goToStudents() { location.href = `student-list.html?id=${currentClassId}`; }
+        function openEditModal() { alert('ฟังก์ชันแก้ไขห้องเรียน'); }
     </script>
 </body>
 </html>
