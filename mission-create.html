@@ -2,39 +2,272 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>สร้างภารกิจใหม่ - FlipSchool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สร้างภารกิจการเรียนรู้ - FlipSchool</title>
+    
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
     <style>
-        .template-card { border: 2px solid #eee; border-radius: 20px; padding: 20px; cursor: pointer; transition: 0.3s; text-align: center; }
-        .template-card:hover { border-color: var(--primary); background: #f0f4ff; }
-        .template-card i { font-size: 40px; color: var(--primary); margin-bottom: 10px; }
+        :root { 
+            --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4;
+            --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff;
+        }
+
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; padding-bottom: 50px; }
+
+        /* --- Header เหมือนหน้าอื่น ๆ --- */
+        .page-header { 
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); 
+            padding: 40px 20px; color: white; border-radius: 0 0 40px 40px; text-align: center;
+        }
+
+        .container { max-width: 900px; margin: -30px auto 0; padding: 0 20px; }
+
+        .card { 
+            background: white; border-radius: 30px; padding: 30px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); margin-bottom: 25px;
+        }
+
+        /* --- Template Selector --- */
+        .template-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; 
+        }
+
+        .template-item {
+            border: 2px solid #f0f4ff; border-radius: 20px; padding: 20px; text-align: center;
+            cursor: pointer; transition: 0.3s; background: white;
+        }
+
+        .template-item:hover { border-color: var(--primary); transform: translateY(-5px); background: #f0f4ff; }
+        .template-item.active { border-color: var(--primary); background: var(--primary); color: white; }
+        .template-item i { font-size: 32px; margin-bottom: 10px; display: block; }
+        .template-item.active i { color: white; }
+
+        /* --- Form Elements --- */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-family: 'Kanit'; font-weight: 500; margin-bottom: 8px; color: #444; }
+        .form-control { 
+            width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #ddd; 
+            font-family: 'Sarabun'; box-sizing: border-box; font-size: 16px;
+        }
+
+        /* --- Dynamic Editor --- */
+        #contentEditor { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+        .dynamic-item { background: #f8f9fa; padding: 15px; border-radius: 15px; margin-bottom: 10px; position: relative; }
+        .btn-remove { position: absolute; top: 10px; right: 10px; color: #ff4757; cursor: pointer; }
+
+        .btn-add-item { 
+            background: #f0f4ff; color: var(--primary); border: 2px dashed var(--primary);
+            width: 100%; padding: 10px; border-radius: 12px; cursor: pointer; font-family: 'Kanit';
+        }
+
+        .footer-actions { display: flex; gap: 15px; margin-top: 30px; }
+        .btn-main { flex: 1; padding: 15px; border-radius: 15px; border: none; font-family: 'Kanit'; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-cancel { background: #eee; color: #666; }
     </style>
 </head>
 <body>
-    <nav>... (ไตเติลบาร์เดิม) ...</nav>
-    <main class="main-content">
-        <h2 style="font-family:Kanit">เลือกรูปแบบภารกิจเกม</h2>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <div class="template-card" onclick="setupMission('quiz')">
-                <i class="fas fa-list-ul"></i><br><strong>คำถามตัวเลือก</strong>
+
+    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
+
+    <header class="page-header">
+        <h1 style="font-family:'Kanit'; margin:0;">สร้างภารกิจใหม่</h1>
+        <p id="classNameDisplay" style="opacity:0.8; margin-top:5px;">กำลังโหลดห้องเรียน...</p>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div class="form-group">
+                <label>ชื่อภารกิจ (Title)</label>
+                <input type="text" id="missionTitle" class="form-control" placeholder="เช่น บทเรียนที่ 1: การสะกดคำ">
             </div>
-            <div class="template-card" onclick="setupMission('speech')">
-                <i class="fas fa-microphone"></i><br><strong>อ่านออกเสียง</strong>
+            <div class="form-group">
+                <label>แต้มรางวัล (Reward Points)</label>
+                <input type="number" id="rewardPoints" class="form-control" value="10">
             </div>
-            <div class="template-card" onclick="setupMission('order')">
-                <i class="fas fa-sort-alpha-down"></i><br><strong>เรียงประโยค</strong>
+        </div>
+
+        <div class="card">
+            <label style="font-family:'Kanit'; font-weight:600;">เลือกประเภทภารกิจ</label>
+            <div class="template-grid">
+                <div class="template-item" onclick="selectTemplate('lesson')" id="tpl_lesson">
+                    <i class="fas fa-book-open"></i>
+                    <strong>บทเรียนมัลติมีเดีย</strong>
+                </div>
+                <div class="template-item" onclick="selectTemplate('quiz')" id="tpl_quiz">
+                    <i class="fas fa-tasks"></i>
+                    <strong>เกมตอบคำถาม</strong>
+                </div>
+                <div class="template-item" onclick="selectTemplate('speech')" id="tpl_speech">
+                    <i class="fas fa-microphone"></i>
+                    <strong>เกมอ่านออกเสียง</strong>
+                </div>
+                <div class="template-item" onclick="selectTemplate('match')" id="tpl_match">
+                    <i class="fas fa-th"></i>
+                    <strong>เกมจับคู่</strong>
+                </div>
             </div>
-            <div class="template-card" onclick="setupMission('match')">
-                <i class="fas fa-th"></i><br><strong>เกมจับคู่</strong>
+
+            <div id="contentEditor">
+                <p style="text-align:center; color:#999;">กรุณาเลือกประเภทภารกิจด้านบน</p>
             </div>
+        </div>
+
+        <div class="footer-actions">
+            <button class="btn-main btn-cancel" onclick="history.back()">ยกเลิก</button>
+            <button class="btn-main btn-save" onclick="saveMission()">สร้างภารกิจเลย <i class="fas fa-rocket"></i></button>
         </div>
     </main>
 
     <script>
-        function setupMission(type) {
-            // โลจิกเปิด Form ตามประเภท
-            alert('เปิดฟอร์มสร้างเกมประเภท: ' + type);
-            // ในขั้นถัดไปจะส่งไปยังฟอร์มบันทึก JSON ลง content_data
+        const currentClassId = new URLSearchParams(window.location.search).get('cid');
+        let selectedType = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(!currentClassId) return location.href = 'teacher-dashboard.html';
+            
+            // ดึงชื่อห้องเรียน
+            const { data: cls } = await sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', currentClassId).single();
+            if(cls) document.getElementById('classNameDisplay').innerText = `${cls.subject_name} (${cls.room_name})`;
+            
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
+
+        function selectTemplate(type) {
+            selectedType = type;
+            document.querySelectorAll('.template-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('tpl_' + type).classList.add('active');
+            renderEditor();
+        }
+
+        function renderEditor() {
+            const editor = document.getElementById('contentEditor');
+            let html = '';
+
+            if(selectedType === 'lesson') {
+                html = `
+                    <label>เนื้อหาบทเรียน (ใส่ข้อความหรือลิงก์วิดีโอ)</label>
+                    <textarea id="lesson_body" class="form-control" rows="5" placeholder="อธิบายเนื้อหาที่นี่..."></textarea>
+                    <div style="margin-top:10px;">
+                        <label>URL รูปภาพหรือวิดีโอ YouTube (ถ้ามี)</label>
+                        <input type="text" id="lesson_media" class="form-control" placeholder="https://...">
+                    </div>
+                `;
+            } else if(selectedType === 'quiz') {
+                html = `
+                    <div id="quiz_items"></div>
+                    <button class="btn-add-item" onclick="addQuizItem()">+ เพิ่มคำถาม</button>
+                `;
+            } else if(selectedType === 'speech') {
+                html = `
+                    <div id="speech_items"></div>
+                    <button class="btn-add-item" onclick="addSpeechItem()">+ เพิ่มคำ/ประโยคที่ต้องอ่าน</button>
+                `;
+            } else if(selectedType === 'match') {
+                html = `
+                    <p style="font-size:14px; color:#666;">จับคู่คำศัพท์กับความหมาย</p>
+                    <div id="match_items"></div>
+                    <button class="btn-add-item" onclick="addMatchItem()">+ เพิ่มคู่คำศัพท์</button>
+                `;
+            }
+            editor.innerHTML = html;
+            
+            // เริ่มต้นเพิ่มรายการแรกให้เลย
+            if(selectedType === 'quiz') addQuizItem();
+            if(selectedType === 'speech') addSpeechItem();
+            if(selectedType === 'match') addMatchItem();
+        }
+
+        // --- ฟังก์ชันเพิ่มฟิลด์ย่อย ---
+        function addQuizItem() {
+            const container = document.getElementById('quiz_items');
+            const div = document.createElement('div');
+            div.className = 'dynamic-item';
+            div.innerHTML = `
+                <i class="fas fa-trash btn-remove" onclick="this.parentElement.remove()"></i>
+                <input type="text" class="form-control quiz-q" placeholder="คำถาม" style="margin-bottom:5px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                    <input type="text" class="form-control quiz-a1" placeholder="ตัวเลือก 1 (ถูก)">
+                    <input type="text" class="form-control quiz-a2" placeholder="ตัวเลือก 2">
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addSpeechItem() {
+            const container = document.getElementById('speech_items');
+            const div = document.createElement('div');
+            div.className = 'dynamic-item';
+            div.innerHTML = `
+                <i class="fas fa-trash btn-remove" onclick="this.parentElement.remove()"></i>
+                <input type="text" class="form-control speech-text" placeholder="คำหรือประโยคภาษาไทย">
+            `;
+            container.appendChild(div);
+        }
+
+        function addMatchItem() {
+            const container = document.getElementById('match_items');
+            const div = document.createElement('div');
+            div.className = 'dynamic-item';
+            div.innerHTML = `
+                <i class="fas fa-trash btn-remove" onclick="this.parentElement.remove()"></i>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                    <input type="text" class="form-control match-key" placeholder="คำศัพท์">
+                    <input type="text" class="form-control match-val" placeholder="คู่ของมัน">
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        // --- บันทึกลง Database ---
+        async function saveMission() {
+            const title = document.getElementById('missionTitle').value;
+            const points = document.getElementById('rewardPoints').value;
+            if(!title || !selectedType) return alert('กรุณาระบุชื่อภารกิจและเลือกประเภท');
+
+            let contentData = {};
+
+            if(selectedType === 'lesson') {
+                contentData = { body: document.getElementById('lesson_body').value, media: document.getElementById('lesson_media').value };
+            } else if(selectedType === 'quiz') {
+                contentData = Array.from(document.querySelectorAll('.quiz-q')).map((el, i) => ({
+                    q: el.value,
+                    options: [document.querySelectorAll('.quiz-a1')[i].value, document.querySelectorAll('.quiz-a2')[i].value],
+                    correct: 0
+                }));
+            } else if(selectedType === 'speech') {
+                contentData = Array.from(document.querySelectorAll('.speech-text')).map(el => el.value);
+            } else if(selectedType === 'match') {
+                contentData = Array.from(document.querySelectorAll('.match-key')).map((el, i) => ({
+                    key: el.value, val: document.querySelectorAll('.match-val')[i].value
+                }));
+            }
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            const { error } = await sysDB.from('missions').insert({
+                classroom_id: currentClassId,
+                title: title,
+                mission_type: selectedType,
+                content_data: contentData,
+                reward_points: points
+            });
+
+            if(error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            } else {
+                alert('สร้างภารกิจสำเร็จ!');
+                location.href = `classroom-detail.html?id=${currentClassId}`;
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
         }
     </script>
 </body>
