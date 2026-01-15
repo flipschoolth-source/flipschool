@@ -81,7 +81,7 @@
                 <div id="keySettings" style="display:none; margin-bottom:20px; background:#fcfaff; padding:15px; border-radius:15px;">
                     <label style="font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                         Gemini API Key ของคุณ:
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ai-glow); text-decoration:none; font-size:13px;">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" title="รับ API Key ที่นี่" style="color:var(--ai-glow); text-decoration:none; font-size:14px;">
                             <i class="fas fa-external-link-alt"></i> รับคีย์ที่นี่
                         </a>
                     </label>
@@ -188,39 +188,51 @@
             const key = document.getElementById('geminiKey').value;
 
             if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการสร้างครับ');
-            if(!key) {
+            if(!key || key.length < 10) {
                 toggleKeySettings();
                 return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนครับ');
             }
 
             localStorage.setItem('gemini_api_key', key);
+            updateKeyStatus(true);
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
-                // แก้ไข Endpoint ให้เป็นรุ่น 1.5 Flash ที่ถูกต้อง
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+                // ✅ แก้ไข URL ให้ถูกต้องตามโครงสร้าง Google Gemini API
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
                 const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
                 ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
                 ถ้า speech: ["word1", "word2"]
-                ตอบเฉพาะ JSON เท่านั้น ห้ามมีคำอธิบายเพิ่มเติม ห้ามใส่ Markdown code blocks`;
+                ตอบเฉพาะ JSON บริสุทธิ์เท่านั้น ห้ามมีคำอธิบายอื่น และห้ามใส่ Markdown code blocks`;
 
-                const response = await fetch(endpoint, {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: instruction }]
+                        }]
+                    })
                 });
 
                 const json = await response.json();
-                if(json.error) throw new Error(json.error.message);
 
-                const cleanText = json.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim();
+                if (json.error) {
+                    throw new Error(json.error.message);
+                }
+
+                // ล้างข้อความเพื่อดึงเฉพาะส่วน JSON
+                let rawText = json.candidates[0].content.parts[0].text;
+                const cleanText = rawText.replace(/```json|```/g, "").trim();
+                
                 generatedData = JSON.parse(cleanText);
                 
                 renderEditor();
                 renderPreview();
-                updateKeyStatus(true);
+
             } catch (e) {
+                console.error(e);
                 alert('AI ขัดข้อง: ' + e.message);
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none';
@@ -230,6 +242,7 @@
         function renderPreview() {
             const canvas = document.getElementById('previewContent');
             canvas.innerHTML = '';
+            if(!generatedData) return;
             
             if(currentType === 'quiz') {
                 const item = generatedData[0];
@@ -250,7 +263,7 @@
         function renderEditor() {
             document.getElementById('dataEditor').innerHTML = `
                 <div style="font-family:monospace; font-size:12px; line-height:1.5; background:white; padding:10px; border-radius:10px; border:1px solid #eee;">
-                    <pre>${JSON.stringify(generatedData, null, 2)}</pre>
+                    <pre style="white-space: pre-wrap;">${JSON.stringify(generatedData, null, 2)}</pre>
                 </div>
             `;
         }
