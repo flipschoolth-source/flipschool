@@ -26,46 +26,45 @@
 
         .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.03); }
 
+        /* AI Status Bar */
         .ai-status-bar { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 12px 20px; border-radius: 15px; border: 1px solid #ddd; margin-bottom: 20px; transition: 0.3s; }
         .ai-status-bar.connected { background: #f8f0ff; border-color: var(--ai-glow); }
-        
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #bbb; }
         .status-dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-        
         .status-text { font-size: 14px; color: #7f8c8d; font-weight: 600; }
 
-        /* Model Selector Styling */
-        .model-selector { display: flex; gap: 10px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 15px; }
-        .model-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; cursor: pointer; font-family: Kanit; transition: 0.3s; background: transparent; color: #666; }
+        /* Model Selector */
+        .model-selector { display: flex; gap: 8px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 15px; }
+        .model-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; cursor: pointer; font-family: Kanit; font-size: 13px; transition: 0.3s; background: transparent; color: #666; }
         .model-btn.active { background: white; color: var(--ai-glow); box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-weight: bold; }
 
-        .prompt-box textarea { width: 100%; border-radius: 15px; border: 2px solid #eee; padding: 15px; font-family: inherit; resize: none; transition: 0.3s; box-sizing: border-box; }
+        .prompt-box textarea { width: 100%; border-radius: 15px; border: 2px solid #eee; padding: 15px; font-family: inherit; resize: none; box-sizing: border-box; transition: 0.3s; }
         .prompt-box textarea:focus { border-color: var(--ai-glow); outline: none; }
         
         .template-item { padding: 15px; border: 2px solid #eee; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; }
         .template-item.active { border-color: var(--ai-glow); background: #f8f0ff; }
 
-        .phone-mockup { background: #1a1a1a; width: 100%; height: 650px; border-radius: 40px; border: 12px solid #333; position: sticky; top: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .phone-mockup { background: #1a1a1a; width: 100%; height: 600px; border-radius: 40px; border: 12px solid #333; position: sticky; top: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         .phone-screen { background: white; height: 100%; display: flex; flex-direction: column; }
         .screen-header { background: var(--primary); color: white; padding: 20px 10px 10px; text-align: center; font-size: 14px; font-family: Kanit; }
-        .screen-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fdfdfd; }
+        .screen-content { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
         .btn { border: none; padding: 12px 20px; border-radius: 12px; font-family: Kanit; cursor: pointer; transition: 0.3s; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-ai { background: var(--ai-glow); color: white; width: 100%; margin-top: 10px; }
         .btn-save { background: var(--primary); color: white; width: 100%; font-size: 18px; padding: 18px; margin-top: 20px; }
 
         #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:none; align-items:center; justify-content:center; z-index:9999; }
-        .spinner-lg { width: 50px; height: 50px; border: 5px solid #eee; border-top-color: var(--ai-glow); border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner { width: 45px; height: 45px; border: 5px solid #eee; border-top-color: var(--ai-glow); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
+    <div id="loadingOverlay"><div class="spinner"></div></div>
 
     <header class="page-header">
         <h1 style="font-family:Kanit; margin:0;">AI Mission Designer 🚀</h1>
-        <p>สลับใช้ Gemini Pro หรือ Flash ได้ตามใจคุณ</p>
+        <p>สร้างบทเรียนอัจฉริยะด้วยพลัง Gemini Flash</p>
     </header>
 
     <main class="main-container">
@@ -74,51 +73,48 @@
                 <div class="ai-status-bar" id="aiStatusBox">
                     <div>
                         <span class="status-dot" id="statusDot"></span>
-                        <span class="status-text" id="aiStatusText">ยังไม่ได้เชื่อมต่อระบบ AI</span>
+                        <span id="aiStatusText" class="status-text">ยังไม่ได้ใส่ API Key</span>
                     </div>
-                    <button onclick="toggleKeySettings()" style="background:none; border:none; color:var(--ai-glow); cursor:pointer; font-size:12px; font-weight:bold;">
-                        <i class="fas fa-key"></i> ตั้งค่า API Key
-                    </button>
+                    <button onclick="toggleKeySettings()" style="background:none; border:none; color:var(--ai-glow); cursor:pointer; font-size:12px; font-weight:bold;"><i class="fas fa-cog"></i> ตั้งค่า Key</button>
                 </div>
 
                 <div id="keySettings" style="display:none; margin-bottom:20px; background:#fcfaff; padding:15px; border-radius:15px;">
                     <label style="font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        Gemini API Key ของคุณ:
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ai-glow); text-decoration:none; font-size:13px;">
-                            <i class="fas fa-external-link-alt"></i> วิธีสร้าง Key
-                        </a>
+                        Gemini API Key:
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ai-glow); text-decoration:none; font-size:12px;"><i class="fas fa-external-link-alt"></i> รับคีย์ที่นี่</a>
                     </label>
-                    <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="วาง API Key ที่นี่..." onchange="updateKeyStatus()">
+                    <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="AIzaSy...">
                 </div>
 
-                <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">🤖 เลือกความฉลาดของ AI</label>
+                <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">🤖 เลือกโมเดล AI (แนะนำ Flash สำหรับโควตาเยอะ)</label>
                 <div class="model-selector">
-                    <button class="model-btn active" id="btn-flash" onclick="setModel('gemini-1.5-flash')">Flash (เร็ว/โควตาเยอะ)</button>
-                    <button class="model-btn" id="btn-pro" onclick="setModel('gemini-1.5-pro')">Pro (ฉลาด/โควตาน้อย)</button>
+                    <button class="model-btn active" id="m-2flash" onclick="setModel('gemini-2.0-flash')">2.0 Flash</button>
+                    <button class="model-btn" id="m-1flash" onclick="setModel('gemini-1.5-flash')">1.5 Flash</button>
+                    <button class="model-btn" id="m-1pro" onclick="setModel('gemini-1.5-pro')">1.5 Pro</button>
                 </div>
 
                 <div class="prompt-box">
-                    <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">💡 บอกเนื้อหาที่ต้องการสร้าง</label>
-                    <textarea id="aiPrompt" rows="3" placeholder="เช่น: วิทยาศาสตร์ ป.4 เรื่องระบบสุริยะ พร้อม Quiz 3 ข้อ"></textarea>
+                    <label style="font-family:Kanit; font-weight:500; display:block; margin-bottom:8px;">💡 เนื้อหาที่ต้องการสร้าง</label>
+                    <textarea id="aiPrompt" rows="3" placeholder="เช่น: คำศัพท์ภาษาไทยเรื่องสัตว์ป่า 5 คำ พร้อม Quiz"></textarea>
                     <button class="btn btn-ai" onclick="generateByAI()">
-                        <i class="fas fa-wand-magic-sparkles"></i> <span id="btnText">ให้ AI (Flash) ช่วยออกแบบ</span>
+                        <i class="fas fa-wand-magic-sparkles"></i> สร้างด้วย <span id="curModelName">2.0 Flash</span>
                     </button>
                 </div>
             </div>
 
             <div class="card">
-                <label style="font-family:Kanit; font-weight:500;">🎯 เลือกรูปแบบภารกิจ (Template)</label>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:10px; margin-top:10px;">
-                    <div class="template-item active" onclick="selectTpl('quiz')" id="t-quiz"><span>❓</span><small>Quiz</small></div>
-                    <div class="template-item" onclick="selectTpl('speech')" id="t-speech"><span>🎤</span><small>Speak</small></div>
-                    <div class="template-item" onclick="selectTpl('match')" id="t-match"><span>🧩</span><small>Match</small></div>
+                <label style="font-family:Kanit; font-weight:500;">🎯 รูปแบบภารกิจ</label>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px;">
+                    <div class="template-item active" onclick="selectTpl('quiz')" id="t-quiz">❓ Quiz</div>
+                    <div class="template-item" onclick="selectTpl('speech')" id="t-speech">🎤 Speak</div>
+                    <div class="template-item" onclick="selectTpl('match')" id="t-match">🧩 Match</div>
                 </div>
             </div>
 
             <div class="card">
-                <label style="font-family:Kanit; font-weight:500;">📝 ข้อมูลเนื้อหา (แก้ไขได้)</label>
-                <div id="dataEditor" style="margin-top:15px; border: 1px solid #eee; border-radius:15px; padding:15px; background:#fafafa;">
-                    <p style="text-align:center; color:#999; font-size:14px;">เนื้อหาจะปรากฏที่นี่</p>
+                <label style="font-family:Kanit; font-weight:500;">📝 ข้อมูลเนื้อหาจาก AI</label>
+                <div id="dataEditor" style="margin-top:15px; border: 1px solid #eee; border-radius:15px; padding:15px; background:#fafafa; font-size:12px;">
+                    <p style="text-align:center; color:#999;">เนื้อหาที่สร้างจะปรากฏที่นี่</p>
                 </div>
             </div>
         </div>
@@ -126,45 +122,62 @@
         <div class="preview-panel">
             <div class="phone-mockup">
                 <div class="phone-screen">
-                    <div class="screen-header">Preview</div>
+                    <div class="screen-header">ภารกิจ: <span id="p-title">Preview</span></div>
                     <div class="screen-content" id="previewContent">
-                        <i class="fas fa-play-circle" style="font-size:60px; color:#eee;"></i>
+                        <i class="fas fa-mobile-alt" style="font-size:50px; color:#eee;"></i>
+                        <p style="color:#bbb; margin-top:10px;">รอการสร้างเนื้อหา...</p>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-save" onclick="saveMission()">บันทึกภารกิจ</button>
+            <button class="btn btn-save" onclick="saveMission()">
+                <i class="fas fa-cloud-upload-alt"></i> บันทึกและเปิดใช้งาน
+            </button>
         </div>
     </main>
 
     <script>
         let currentType = 'quiz';
-        let currentModel = 'gemini-1.5-flash';
+        let currentModel = 'gemini-2.0-flash';
         let generatedData = null;
 
-        function setModel(model) {
-            currentModel = model;
-            document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active'));
-            if(model.includes('pro')) {
-                document.getElementById('btn-pro').classList.add('active');
-                document.getElementById('btnText').innerText = 'ให้ AI (Pro) ช่วยออกแบบ';
-            } else {
-                document.getElementById('btn-flash').classList.add('active');
-                document.getElementById('btnText').innerText = 'ให้ AI (Flash) ช่วยออกแบบ';
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { user } } = await sysDB.auth.getUser();
+            if(!user) { location.href = 'teacher-login.html'; return; }
+            
+            // ดึงคีย์จาก LocalStorage หรือ DB
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if(savedKey) {
+                document.getElementById('geminiKey').value = savedKey;
+                updateKeyStatus(true);
             }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
+
+        function setModel(m) {
+            currentModel = m;
+            document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+            if(m === 'gemini-2.0-flash') document.getElementById('m-2flash').classList.add('active');
+            if(m === 'gemini-1.5-flash') document.getElementById('m-1flash').classList.add('active');
+            if(m === 'gemini-1.5-pro') document.getElementById('m-1pro').classList.add('active');
+            document.getElementById('curModelName').innerText = m.replace('gemini-', '').replace('-', ' ').toUpperCase();
         }
 
         async function generateByAI() {
             const prompt = document.getElementById('aiPrompt').value;
             const key = document.getElementById('geminiKey').value;
-            if(!prompt || !key) return alert('ระบุเนื้อหาและใส่ API Key ก่อนครับ');
+            if(!prompt || !key) return alert('กรุณาระบุเนื้อหาและใส่ API Key ก่อนครับ');
 
+            localStorage.setItem('gemini_api_key', key);
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
+                // ✅ แก้ไข URL ให้ถูกต้องตามมาตรฐาน Google
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${key}`;
-                const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format เท่านั้น ห้ามมีคำอธิบายอื่น ห้ามใส่ Markdown code blocks: 
-                quiz: [{"q":"คำถาม", "ok":"ถูก", "no":"ผิด"}] 
-                speech: ["คำ1", "คำ2"]`;
+
+                const instruction = `สร้าง JSON สำหรับเกม ${currentType} เรื่อง ${prompt} เท่านั้น ห้ามตอบอย่างอื่น:
+                ถ้า quiz: [{"q":"คำถาม", "ok":"ข้อที่ถูก", "no":"ข้อที่ผิด"}]
+                ถ้า speech: ["คำศัพท์1", "คำศัพท์2"]
+                (ตอบเป็น JSON บริสุทธิ์ ห้ามใส่ Markdown)`;
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -173,15 +186,17 @@
                 });
 
                 const json = await response.json();
-                if (json.error) throw new Error(json.error.message);
+                if(json.error) throw new Error(json.error.message);
 
                 let rawText = json.candidates[0].content.parts[0].text;
-                generatedData = JSON.parse(rawText.replace(/```json|```/g, "").trim());
+                const cleanText = rawText.replace(/```json|```/g, "").trim();
+                generatedData = JSON.parse(cleanText);
                 
-                document.getElementById('dataEditor').innerHTML = `<pre style="font-size:12px;">${JSON.stringify(generatedData, null, 2)}</pre>`;
+                renderEditor();
                 renderPreview();
+                updateKeyStatus(true);
             } catch (e) {
-                alert('AI ขัดข้อง: ' + e.message + '\n(ถ้าใช้รุ่น Pro โควตาอาจเต็ม ให้ลองรอ 1 นาทีหรือสลับใช้ Flash)');
+                alert('AI ขัดข้อง: ' + e.message + '\n(หากใช้ Pro อาจติดโควตา แนะนำให้สลับใช้ Flash)');
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
@@ -189,7 +204,25 @@
 
         function renderPreview() {
             const canvas = document.getElementById('previewContent');
-            canvas.innerHTML = (currentType === 'quiz') ? `<h3>${generatedData[0].q}</h3>` : `<h2>${generatedData[0]}</h2>`;
+            canvas.innerHTML = '';
+            if(!generatedData) return;
+
+            if(currentType === 'quiz') {
+                const item = generatedData[0];
+                canvas.innerHTML = `
+                    <div style="background:var(--primary-light); color:white; padding:15px; border-radius:15px; width:100%; box-sizing:border-box;">
+                        <h4 style="margin:0;">${item.q}</h4>
+                    </div>
+                    <button class="btn" style="width:100%; margin-top:15px; background:white; border:1px solid #ddd;">${item.ok}</button>
+                    <button class="btn" style="width:100%; margin-top:8px; background:white; border:1px solid #ddd;">${item.no}</button>
+                `;
+            } else {
+                canvas.innerHTML = `<h1 style="font-size:40px; color:var(--primary); margin:0;">${generatedData[0]}</h1><p style="color:#666;">🎤 ฝึกพูดคำนี้</p>`;
+            }
+        }
+
+        function renderEditor() {
+            document.getElementById('dataEditor').innerHTML = `<pre style="white-space:pre-wrap; background:white; padding:10px; border-radius:10px; border:1px solid #eee;">${JSON.stringify(generatedData, null, 2)}</pre>`;
         }
 
         function selectTpl(t) {
@@ -198,12 +231,14 @@
             document.getElementById('t-'+t).classList.add('active');
         }
 
-        function updateKeyStatus() {
-            const key = document.getElementById('geminiKey').value;
-            if(key.length > 10) {
-                document.getElementById('statusDot').classList.add('on');
-                document.getElementById('aiStatusText').innerText = 'เชื่อมต่อแล้ว';
-                localStorage.setItem('gemini_api_key', key);
+        function updateKeyStatus(isConnected) {
+            const box = document.getElementById('aiStatusBox');
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('aiStatusText');
+            if(isConnected) {
+                box.classList.add('connected');
+                dot.classList.add('on');
+                txt.innerText = 'เชื่อมต่อระบบ AI แล้ว';
             }
         }
 
@@ -212,7 +247,12 @@
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
-        function saveMission() { alert('บันทึกสำเร็จ!'); }
+        function saveMission() {
+            if(!generatedData) return alert('กรุณาให้ AI สร้างเนื้อหาก่อน');
+            alert('บันทึกภารกิจสำเร็จ! 🎉');
+            const cid = new URLSearchParams(window.location.search).get('cid');
+            location.href = 'classroom-detail.html?id=' + (cid || '');
+        }
     </script>
 </body>
 </html>
