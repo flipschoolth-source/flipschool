@@ -1,184 +1,282 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>รายชื่อนักเรียน - FlipSchool</title>
+    
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+
     <style>
-        /* เพิ่มสไตล์สำหรับตารางพรีวิวและส่วนการจับคู่ให้ชัดเจน */
+        :root { 
+            --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4;
+            --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff;
+            --shadow: 0 15px 35px rgba(0, 0, 70, 0.08);
+            --drawer-width: 280px;
+        }
+
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; overflow-x: hidden; }
+
+        /* --- Navbar (90px) --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; height: 90px; background: var(--white);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        }
+        @media (min-width: 768px) { nav { padding: 0 50px; } }
+
+        .nav-left-group { display: flex; align-items: center; gap: 15px; }
+        .menu-toggle-btn { 
+            background: #f0f4ff; color: var(--primary); border: none; 
+            width: 45px; height: 45px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.3s;
+        }
+        .menu-toggle-btn:hover { background: var(--primary); color: white; }
+
+        .logo-container { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; cursor: pointer; }
+        .logo-container img { height: 45px; }
+        .brand-name { font-size: 22px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; }
+        .brand-name span { color: var(--primary); }
+        .nav-profile-trigger { width: 48px; height: 48px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; }
+
+        /* --- Side Drawer --- */
+        .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1990; backdrop-filter: blur(2px); }
+        .side-drawer { 
+            position: fixed; top: 0; left: calc(var(--drawer-width) * -1.1); width: var(--drawer-width); height: 100%; 
+            background: white; z-index: 2000; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1); padding: 30px 20px; box-sizing: border-box;
+        }
+        .side-drawer.active { left: 0; }
+        .drawer-brand { font-family: 'Kanit'; font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 30px; display: flex; align-items: center; gap: 12px; }
+        .drawer-menu-item { 
+            padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; gap: 15px; 
+            cursor: pointer; transition: 0.2s; color: #444; font-weight: 500; margin-bottom: 8px; font-family: 'Kanit';
+        }
+        .drawer-menu-item:hover { background: #f0f4ff; color: var(--primary); }
+
+        /* --- Header Section --- */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            padding: 30px 20px; color: white; border-radius: 0 0 30px 30px;
+            box-shadow: var(--shadow); margin-bottom: 30px;
+        }
+        @media (min-width: 768px) { .page-header { padding: 40px 50px; border-radius: 0 0 40px 40px; } }
+        
+        .header-content { display: flex; flex-direction: column; gap: 15px; max-width: 1400px; margin: 0 auto; }
+        @media (min-width: 768px) { .header-content { flex-direction: row; justify-content: space-between; align-items: center; } }
+        
+        .header-title h1 { font-family: 'Kanit'; margin: 0; font-size: 24px; }
+        .header-title p { margin: 5px 0 0; opacity: 0.8; font-size: 14px; }
+
+        /* --- Student Card Grid --- */
+        .student-grid { 
+            display: grid; grid-template-columns: 1fr; gap: 15px; 
+            list-style: none; padding: 0 20px 50px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box;
+        }
+        @media (min-width: 640px) { .student-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .student-grid { grid-template-columns: repeat(3, 1fr); padding: 0 50px 50px; } }
+
+        .student-card { 
+            background: var(--white); border-radius: 20px; padding: 20px;
+            display: flex; align-items: center; gap: 15px; transition: 0.4s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.02);
+        }
+        .student-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+
+        .st-num { width: 45px; height: 45px; background: #f0f4ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 700; flex-shrink: 0; }
+        .st-info h3 { margin: 0; font-family: 'Kanit'; color: #2d3436; font-size: 17px; }
+        .st-code-tag { font-size: 11px; color: #b2bec3; background: #f8f9fa; padding: 4px 10px; border-radius: 8px; margin-top: 5px; display: inline-block; }
+
+        /* --- Import Wizard --- */
         .data-preview-box { overflow-x: auto; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; }
         .data-preview-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
         .data-preview-table th, .data-preview-table td { padding: 8px 12px; border: 1px solid #eee; text-align: left; }
         .is-header { background: #e3f2fd; font-weight: bold; border-bottom: 2px solid #2196f3; }
-        .map-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 10px; }
-        .modal-input { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+
+        .fab-add { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.3); z-index: 900; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
+    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
+
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+    <div class="side-drawer" id="sideDrawer">
+        <div class="drawer-brand"><img src="img/favicon.png" height="35"> Flip<span>School</span></div>
+        <div class="drawer-menu-item" onclick="openImportModal()"><i class="fas fa-file-excel" style="color:#2ecc71"></i> นำเข้ารายชื่อ (Excel)</div>
+        <div class="drawer-menu-item" onclick="alert('Coming Soon')"><i class="fas fa-id-card" style="color:#3498db"></i> พิมพ์บัตร QR Code</div>
+        <a href="template_student.xlsx" class="drawer-menu-item" style="text-decoration:none;" download><i class="fas fa-download" style="color:#e67e22"></i> โหลดฟอร์มรายชื่อ</a>
+        <hr style="border:none; border-top:1px solid #f0f4ff; margin:15px 0;">
+        <div class="drawer-menu-item" id="backToDetail"><i class="fas fa-arrow-left"></i> กลับไปหน้าวิชา</div>
+    </div>
+
+    <nav>
+        <div class="nav-left-group">
+            <button class="menu-toggle-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+            <div class="logo-container" onclick="location.href='teacher-dashboard.html'">
+                <img src="img/favicon.png" alt="Logo">
+                <div class="logo-text-group">
+                    <div class="brand-name"></div>
+                    <div class="slogan"></div>
+                </div>
+            </div>
+        </div>
+        <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="location.href='teacher-dashboard.html'">
+    </nav>
+
+    <header class="page-header">
+        <div class="header-content">
+            <div class="header-title">
+                <h1>รายชื่อนักเรียน</h1>
+                <p id="classSubTitle">กำลังโหลดข้อมูลห้องเรียน...</p>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+                <div style="font-size: 32px; font-weight: 700; font-family: 'Kanit';" id="totalCount">0</div>
+                <div style="font-size: 16px; opacity: 0.8;">คน</div>
+            </div>
+        </div>
+    </header>
+
+    <main><div id="studentGrid" class="student-grid"></div></main>
+
+    <button class="fab-add" onclick="openAddModal()"><i class="fas fa-user-plus"></i></button>
+
     <div id="importModal" class="modal-overlay">
         <div class="modal-box" style="max-width: 850px; border-radius: 30px;">
-            <div class="modal-title">
-                <span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อนักเรียน (Master Data)</span>
-                <i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i>
-            </div>
-
+            <div class="modal-title"><span><i class="fas fa-file-excel"></i> นำเข้ารายชื่อ (Master Data)</span><i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer;"></i></div>
+            
             <div id="step1" class="step-container active">
-                <div style="padding:60px 20px; border:2px dashed #ccc; border-radius:20px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
+                <div style="padding:50px; border:2px dashed #ccc; border-radius:20px; text-align:center; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
                     <i class="fas fa-cloud-upload-alt" style="font-size:50px; color:var(--primary); margin-bottom:15px;"></i>
-                    <p style="font-family:'Kanit';">คลิกเพื่อเลือกไฟล์ Excel หรือ CSV</p>
+                    <p>คลิกเพื่อเลือกไฟล์ Excel</p>
                     <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none" onchange="processFile()">
                 </div>
             </div>
 
-            <div id="step2" class="step-container">
-                <p style="font-weight:600; font-size:14px;"><i class="fas fa-search"></i> ตรวจสอบข้อมูลและจับคู่หัวตาราง:</p>
+            <div id="step2" class="step-container" style="display:none;">
                 <div class="data-preview-box"><table class="data-preview-table" id="previewTable"></table></div>
-                <div id="mappingArea" style="margin-top:20px;"></div>
-                <button class="btn-save" style="background:var(--primary); margin-top:20px; width:100%;" onclick="prepareImport()">ขั้นตอนถัดไป <i class="fas fa-arrow-right"></i></button>
-            </div>
-
-            <div id="step3" class="step-container">
-                <div id="summaryText" style="font-weight:bold; margin-bottom:15px; color:var(--primary);"></div>
-                <div id="progressSection" style="display:none; background:#f0f4ff; padding:20px; border-radius:15px; margin-top:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span id="progressText" style="font-size:14px; font-weight:600;">กำลังบันทึกข้อมูล...</span>
-                        <span id="progressPercent" style="font-weight:700; color:var(--primary);">0%</span>
-                    </div>
-                    <div style="background:#ddd; height:12px; border-radius:10px; overflow:hidden;">
-                        <div id="progressBar" style="background:var(--primary); width:0%; height:100%; transition:0.3s;"></div>
-                    </div>
-                </div>
-                <div id="confirmBtnContainer">
-                    <button class="btn-save" id="confirmBtn" style="background:var(--primary); width:100%;" onclick="executeImport()">ยืนยันการนำเข้าข้อมูล</button>
-                    <button class="btn-cancel" style="width:100%; margin-top:10px; border:none; background:none; color:#666;" onclick="goToStep(1)">เลือกไฟล์ใหม่</button>
-                </div>
+                <div id="mappingArea"></div>
+                <button class="btn-save" style="background:var(--primary); width:100%; margin-top:20px;" onclick="prepareImport()">บันทึกข้อมูล</button>
             </div>
         </div>
     </div>
 
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
     <script>
-        // ... (ส่วนตั้งค่าตัวแปรและ Fetch ข้อมูลเดิม) ...
+        let currentClassId = new URLSearchParams(window.location.search).get('cid');
+        let currentSchoolId = null;
+        let allSheetRows = [], headers = [];
+        const MAPPING_CONFIG = [
+            { key: 'student_code', label: 'รหัสประจำตัว*', required: true },
+            { key: 'student_name', label: 'ชื่อ-นามสกุล*', required: true },
+            { key: 'student_number', label: 'เลขที่', required: false }
+        ];
 
-        // ฟังก์ชันแก้ไขให้ทำงานได้จริง
-        function openImportModal() { 
-            const drawer = document.getElementById('sideDrawer');
-            const overlay = document.getElementById('drawerOverlay');
-            if(drawer) drawer.classList.remove('active');
-            if(overlay) overlay.classList.remove('active');
-            
-            document.getElementById('importModal').style.display = 'flex'; 
-            goToStep(1); 
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof initAppUI === 'function') initAppUI();
+            if (!currentClassId) return;
+
+            document.getElementById('backToDetail').onclick = () => location.href = `classroom-detail.html?id=${currentClassId}`;
+
+            // 1. ดึงข้อมูลโรงเรียน
+            const { data: cls } = await sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
+            if (cls) {
+                currentSchoolId = cls.school_id;
+                document.getElementById('classSubTitle').innerText = `${cls.subject_name} (${cls.room_name})`;
+            }
+
+            await fetchProfile();
+            await fetchStudents();
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
+
+        async function fetchProfile() {
+            const { data: { user } } = await sysDB.auth.getUser();
+            if (user) {
+                const { data: prof } = await sysDB.from('teachers').select('profile_pic').eq('teacher_id', user.id).single();
+                if (prof) document.getElementById('navProfileImg').src = prof.profile_pic;
+            }
         }
 
+        async function fetchStudents() {
+            const { data } = await sysDB.from('classroom_students')
+                .select('student_number, school_students(student_code, student_name)')
+                .eq('classroom_id', currentClassId).order('student_number');
+
+            const grid = document.getElementById('studentGrid'); grid.innerHTML = '';
+            if (data) {
+                document.getElementById('totalCount').innerText = data.length;
+                data.forEach(item => {
+                    const st = item.school_students;
+                    grid.innerHTML += `<div class="student-card"><div class="st-num">${item.student_number}</div><div class="st-info"><h3>${st.student_name}</h3><span class="st-code-tag"><i class="fas fa-id-card"></i> ${st.student_code}</span></div></div>`;
+                });
+            }
+        }
+
+        function toggleDrawer() { 
+            document.getElementById('sideDrawer').classList.toggle('active');
+            document.getElementById('drawerOverlay').style.display = document.getElementById('sideDrawer').classList.contains('active') ? 'block' : 'none';
+        }
+
+        // --- Import Functions ---
+        function openImportModal() { toggleDrawer(); document.getElementById('importModal').style.display = 'flex'; }
         function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
-        
-        function goToStep(s) { 
-            document.querySelectorAll('.step-container').forEach((el, i) => {
-                el.classList.toggle('active', i + 1 === s);
-            }); 
-        }
 
-        // อ่านไฟล์ Excel
         function processFile() {
             const file = document.getElementById('excelFile').files[0];
-            if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
                 const ws = workbook.Sheets[workbook.SheetNames[0]];
-                allSheetRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-                
-                if (allSheetRows.length > 0) {
-                    headers = allSheetRows[0];
-                    renderPreview();
-                    renderMapping();
-                    goToStep(2);
-                }
+                allSheetRows = XLSX.utils.sheet_to_json(ws, {header: 1});
+                headers = allSheetRows[0];
+                renderPreview(); renderMapping();
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
             };
             reader.readAsArrayBuffer(file);
         }
 
         function renderPreview() {
-            const table = document.getElementById('previewTable');
-            table.innerHTML = '';
-            // โชว์ 5 แถวแรก
+            const table = document.getElementById('previewTable'); table.innerHTML = '';
             allSheetRows.slice(0, 5).forEach((row, i) => {
-                const tr = document.createElement('tr');
-                if (i === 0) tr.className = 'is-header';
-                row.forEach(cell => {
-                    const td = document.createElement(i === 0 ? 'th' : 'td');
-                    td.innerText = cell;
-                    tr.appendChild(td);
-                });
+                const tr = document.createElement('tr'); if (i === 0) tr.className = 'is-header';
+                row.forEach(cell => { const td = document.createElement('td'); td.innerText = cell; tr.appendChild(td); });
                 table.appendChild(tr);
             });
         }
 
         function renderMapping() {
-            const area = document.getElementById('mappingArea');
-            area.innerHTML = '';
-            MAPPING_CONFIG.forEach(field => {
-                let options = headers.map((h, i) => `<option value="${i}">${h || `Column ${i+1}`}</option>`).join('');
-                area.innerHTML += `
-                    <div class="map-row">
-                        <label style="font-size:13px; font-weight:600;">${field.label}</label>
-                        <select id="map_${field.key}" class="modal-input">${options}</select>
-                    </div>`;
+            const area = document.getElementById('mappingArea'); area.innerHTML = '';
+            MAPPING_CONFIG.forEach(f => {
+                let opts = headers.map((h, i) => `<option value="${i}">${h || `Col ${i+1}`}</option>`).join('');
+                area.innerHTML += `<div style="margin-bottom:10px;"><label style="font-size:13px; font-weight:600;">${f.label}</label><select id="map_${f.key}" class="modal-input" style="width:100%">${opts}</select></div>`;
             });
         }
 
-        function prepareImport() {
-            const map = {};
-            MAPPING_CONFIG.forEach(f => map[f.key] = document.getElementById(`map_${f.key}`).value);
-            
-            // เตรียม List ข้อมูล
-            finalImportList = allSheetRows.slice(1).map((row, idx) => ({
+        async function prepareImport() {
+            if (!currentSchoolId) return alert("ไม่พบข้อมูลโรงเรียน");
+            const map = {}; MAPPING_CONFIG.forEach(f => map[f.key] = document.getElementById(`map_${f.key}`).value);
+            const list = allSheetRows.slice(1).map((row, idx) => ({
                 student_code: String(row[map.student_code]).trim(),
                 student_name: String(row[map.student_name]).trim(),
                 student_number: row[map.student_number] || (idx + 1)
-            })).filter(r => r.student_code !== "" && r.student_name !== "");
+            })).filter(r => r.student_code && r.student_name);
 
-            document.getElementById('summaryText').innerText = `ตรวจพบรายชื่อทั้งหมด ${finalImportList.length} รายการ พร้อมนำเข้าห้องเรียนนี้`;
-            goToStep(3);
-        }
-
-        // นำเข้าข้อมูลจริงลง Supabase
-        async function executeImport() {
-            if (!currentSchoolId) return alert("ไม่พบข้อมูลโรงเรียน กรุณาลองใหม่");
-            
-            const confirmBtn = document.getElementById('confirmBtn');
-            const progressSection = document.getElementById('progressSection');
-            confirmBtn.disabled = true;
-            progressSection.style.display = 'block';
-
-            for (let i = 0; i < finalImportList.length; i++) {
-                const item = finalImportList[i];
-                
-                // 1. บันทึกลงตารางกลางโรงเรียน (school_students)
-                const { data: std, error: err1 } = await sysDB.from('school_students')
-                    .upsert({ 
-                        school_id: currentSchoolId, 
-                        student_code: item.student_code, 
-                        student_name: item.student_name 
-                    }, { onConflict: 'school_id, student_code' })
-                    .select().single();
-
-                if (std) {
-                    // 2. บันทึกการเข้าห้องเรียน (classroom_students)
-                    await sysDB.from('classroom_students').upsert({ 
-                        classroom_id: currentClassId, 
-                        student_id: std.student_id, 
-                        student_number: item.student_number 
-                    }, { onConflict: 'classroom_id, student_id' });
-                }
-
-                // อัปเดต Progress Bar
-                const percent = Math.round(((i + 1) / finalImportList.length) * 100);
-                document.getElementById('progressBar').style.width = percent + '%';
-                document.getElementById('progressPercent').innerText = percent + '%';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            for (const item of list) {
+                // 1. Upsert School Students
+                const { data: std } = await sysDB.from('school_students').upsert({ school_id: currentSchoolId, student_code: item.student_code, student_name: item.student_name }, { onConflict: 'school_id, student_code' }).select().single();
+                // 2. Upsert Enrollment
+                if (std) await sysDB.from('classroom_students').upsert({ classroom_id: currentClassId, student_id: std.student_id, student_number: item.student_number }, { onConflict: 'classroom_id, student_id' });
             }
-
-            alert('นำเข้าข้อมูลนักเรียนเรียบร้อยแล้ว');
             location.reload();
         }
     </script>
