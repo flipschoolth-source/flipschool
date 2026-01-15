@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Mission Designer - FlipSchool</title>
+<title>Mission Creator – Stable Preview</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;font-family:Sarabun;background:#f0f2f5}
+body{margin:0;font-family:Sarabun;background:#f2f4f7}
 header{
-  background:linear-gradient(135deg,#000046,#0052D4);
+  background:linear-gradient(135deg,#141e30,#243b55);
   color:#fff;text-align:center;padding:40px 20px;
   border-radius:0 0 40px 40px
 }
@@ -21,11 +21,12 @@ main{
 @media(max-width:1024px){main{grid-template-columns:1fr}}
 .card{
   background:#fff;border-radius:25px;padding:25px;
-  box-shadow:0 10px 30px rgba(0,0,0,.05);margin-bottom:20px
+  box-shadow:0 10px 30px rgba(0,0,0,.06);margin-bottom:20px
 }
+label{font-family:Kanit;font-size:14px}
 input,textarea,select{
   width:100%;padding:12px;border-radius:12px;
-  border:1px solid #ddd;box-sizing:border-box
+  border:1px solid #ddd;box-sizing:border-box;margin-top:6px
 }
 button{
   border:none;border-radius:12px;padding:12px;
@@ -36,6 +37,7 @@ button.secondary{background:#34495e}
 .status{display:flex;align-items:center;gap:8px;font-size:13px}
 .dot{width:10px;height:10px;border-radius:50%;background:#bbb}
 .dot.on{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
+
 .phone{
   background:#111;border-radius:40px;padding:12px;
   height:620px;position:sticky;top:20px
@@ -67,8 +69,8 @@ pre{
 <body>
 
 <header>
-<h1 style="font-family:Kanit;margin:0">AI Mission Designer 🚀</h1>
-<p>พรีวิวเหมือนผู้เรียนใช้งานจริง</p>
+<h1 style="font-family:Kanit;margin:0">AI Mission Creator 🚀</h1>
+<p>เวอร์ชันพรีวิวใช้งานจริง เสถียร</p>
 </header>
 
 <main>
@@ -78,28 +80,30 @@ pre{
 <div class="card">
   <div class="status">
     <div id="dot" class="dot"></div>
-    <span id="statusText">ยังไม่ได้เชื่อมต่อ API</span>
+    <span id="statusText">ยังไม่ได้ทดสอบ API Key</span>
   </div>
 
   <label>🔑 Gemini API Key</label>
-  <input type="password" id="geminiKey">
-  <button onclick="testApiKey()">Test API Key</button>
+  <input type="password" id="geminiKey" placeholder="AIzaSy...">
+  <button onclick="testApiKey()">ทดสอบ API Key</button>
   <button class="secondary" onclick="listModels()">📋 List Models</button>
 </div>
 
 <div class="card">
   <label>🤖 โมเดล</label>
-  <select id="modelSelect"></select>
+  <select id="modelSelect">
+    <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest (แนะนำ)</option>
+  </select>
 </div>
 
 <div class="card">
   <label>💡 หัวข้อภารกิจ</label>
-  <textarea id="aiPrompt" rows="3"></textarea>
-  <button onclick="generateByAI()">✨ สร้างภารกิจ</button>
+  <textarea id="aiPrompt" rows="3" placeholder="เช่น Past Simple Tense"></textarea>
+  <button onclick="generateByAI()">✨ สร้างภารกิจด้วย AI</button>
 </div>
 
 <div class="card">
-  <label>📦 JSON</label>
+  <label>📦 JSON (ผลลัพธ์)</label>
   <div id="dataEditor"></div>
 </div>
 
@@ -107,7 +111,9 @@ pre{
 
 <aside>
 <div class="phone">
-<div class="screen" id="preview"></div>
+<div class="screen" id="preview">
+  <div class="footer">รอสร้างภารกิจ…</div>
+</div>
 </div>
 </aside>
 
@@ -119,25 +125,46 @@ let quizData = [];
 let index = 0;
 let score = 0;
 
-/* ---------- API ---------- */
+/* ================= API KEY TEST ================= */
 async function testApiKey(){
-  const key = geminiKey.value;
+  const key = geminiKey.value.trim();
+  if(!key) return alert("กรุณาใส่ API Key");
+
   try{
-    const res = await fetch(`${API_BASE}/models?key=${key}`);
+    const res = await fetch(
+      `${API_BASE}/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          contents:[{parts:[{text:"ping"}]}]
+        })
+      }
+    );
+
     const json = await res.json();
-    if(json.error) throw 0;
+    if(json.error) throw new Error(json.error.message);
+
     dot.classList.add("on");
-    statusText.textContent = "เชื่อมต่อสำเร็จ";
+    statusText.textContent = "API Key ใช้งานได้ ✔";
     localStorage.setItem("gemini_api_key",key);
-  }catch{
-    alert("❌ API Key ไม่ถูกต้อง");
+
+  }catch(e){
+    dot.classList.remove("on");
+    statusText.textContent = "API Key ใช้งานไม่ได้ ❌";
+    alert("❌ "+e.message);
   }
 }
 
+/* ================= LIST MODELS ================= */
 async function listModels(){
-  const key = geminiKey.value;
+  const key = geminiKey.value.trim();
+  if(!key) return alert("ใส่ API Key ก่อน");
+
   const res = await fetch(`${API_BASE}/models?key=${key}`);
   const json = await res.json();
+  if(json.error) return alert(json.error.message);
+
   modelSelect.innerHTML = "";
   json.models
     .filter(m=>m.supportedGenerationMethods?.includes("generateContent"))
@@ -149,15 +176,16 @@ async function listModels(){
     });
 }
 
-/* ---------- GENERATE ---------- */
+/* ================= GENERATE BY AI ================= */
 async function generateByAI(){
-  const key = geminiKey.value;
+  const key = geminiKey.value.trim();
   const model = modelSelect.value;
-  const prompt = aiPrompt.value;
+  const prompt = aiPrompt.value.trim();
+  if(!prompt) return alert("ใส่หัวข้อภารกิจ");
 
   const instruction = `
 ตอบเป็น JSON เท่านั้น
-Quiz 3 ข้อ เรื่อง "${prompt}"
+สร้าง Quiz 3 ข้อ เรื่อง "${prompt}"
 [
  {"q":"คำถาม","ok":"คำตอบถูก","no":"คำตอบผิด"}
 ]`;
@@ -167,17 +195,23 @@ Quiz 3 ข้อ เรื่อง "${prompt}"
     {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({contents:[{parts:[{text:instruction}]}]})
+      body:JSON.stringify({
+        contents:[{parts:[{text:instruction}]}]
+      })
     }
   );
+
   const json = await res.json();
+  if(json.error) return alert(json.error.message);
+
   let text = json.candidates[0].content.parts[0].text;
   quizData = JSON.parse(text.replace(/```json|```/g,""));
+
   dataEditor.innerHTML = `<pre>${JSON.stringify(quizData,null,2)}</pre>`;
   startPreview();
 }
 
-/* ---------- PREVIEW ENGINE ---------- */
+/* ================= PREVIEW ENGINE ================= */
 function startPreview(){
   index = 0;
   score = 0;
@@ -208,8 +242,7 @@ function answer(correct){
 
   setTimeout(()=>{
     index++;
-    if(index < quizData.length) renderQuestion();
-    else finish();
+    index < quizData.length ? renderQuestion() : finish();
   },900);
 }
 
@@ -220,6 +253,9 @@ function finish(){
     <button onclick="startPreview()">เล่นอีกครั้ง</button>
   `;
 }
+
+/* ================= LOAD SAVED KEY ================= */
+geminiKey.value = localStorage.getItem("gemini_api_key") || "";
 </script>
 
 </body>
