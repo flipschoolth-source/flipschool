@@ -1,89 +1,145 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Mission Designer - FlipSchool</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mission Creator - FlipSchool</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script>
-<script src="js/supabase-db.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<style>
-/* ... CSS เดิมของคุณ ... */
-body{margin:0;font-family:Sarabun;background:#f2f4f7}
-header{background:linear-gradient(135deg,#141e30,#243b55);color:#fff;text-align:center;padding:40px 20px;border-radius:0 0 40px 40px}
-main{max-width:1200px;margin:-30px auto 40px;padding:0 20px;display:grid;grid-template-columns:1fr 420px;gap:25px}
-@media(max-width:1024px){main{grid-template-columns:1fr}}
-.card{background:#fff;border-radius:25px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.06);margin-bottom:20px}
-label{font-family:Kanit;font-size:14px}
-input,textarea,select{width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;margin-top:6px}
-button{border:none;border-radius:12px;padding:12px;background:#8e44ad;color:#fff;font-family:Kanit;cursor:pointer;margin-top:10px;width:100%}
-button.secondary{background:#34495e}
-.status{display:flex;align-items:center;gap:8px;font-size:13px}
-.dot{width:10px;height:10px;border-radius:50%;background:#bbb}
-.dot.on{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
-.phone{background:#111;border-radius:40px;padding:12px;height:620px;position:sticky;top:20px}
-.screen{background:#fff;border-radius:30px;height:100%;display:flex;flex-direction:column;padding:20px}
-.quiz-q{font-family:Kanit;font-size:18px;margin-bottom:20px}
-.choice{padding:12px;border-radius:12px;border:1px solid #ddd;margin-bottom:10px;cursor:pointer}
-.choice.correct{background:#eafaf1;border-color:#2ecc71}
-.choice.wrong{background:#fdecea;border-color:#e74c3c}
-.choice.disabled{pointer-events:none;opacity:.7}
-.footer{margin-top:auto;font-size:13px;color:#888;text-align:center}
-pre{background:#fafafa;padding:15px;border-radius:12px;font-size:12px;max-height:260px;overflow:auto}
-</style>
+    <style>
+        body{margin:0;font-family:Sarabun, sans-serif;background:#f2f4f7;color:#333;}
+        header{
+            background:linear-gradient(135deg,#141e30,#243b55);
+            color:#fff;text-align:center;padding:40px 20px;
+            border-radius:0 0 40px 40px;box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        main{
+            max-width:1200px;margin:-30px auto 40px;padding:0 20px;
+            display:grid;grid-template-columns:1fr 420px;gap:25px
+        }
+        @media(max-width:1024px){main{grid-template-columns:1fr}}
+        .card{
+            background:#fff;border-radius:25px;padding:25px;
+            box-shadow:0 10px 30px rgba(0,0,0,.06);margin-bottom:20px
+        }
+        label{font-family:Kanit;font-size:14px;font-weight:500;color:#555}
+        input,textarea,select{
+            width:100%;padding:12px;border-radius:12px;
+            border:1px solid #ddd;box-sizing:border-box;margin-top:6px;font-family:inherit;
+        }
+        button{
+            border:none;border-radius:12px;padding:12px;
+            background:#8e44ad;color:#fff;
+            font-family:Kanit;cursor:pointer;margin-top:10px;width:100%;
+            transition: 0.3s;font-size:16px;
+        }
+        button:hover{opacity: 0.9; transform: translateY(-1px);}
+        button.secondary{background:#34495e}
+        .status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px}
+        .dot{width:10px;height:10px;border-radius:50%;background:#bbb}
+        .dot.on{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
+
+        .phone{
+            background:#111;border-radius:45px;padding:12px;
+            height:620px;position:sticky;top:20px;border: 4px solid #333;
+        }
+        .screen{
+            background:#fff;border-radius:35px;height:100%;
+            display:flex;flex-direction:column;
+            padding:20px;overflow: hidden;position: relative;
+        }
+        .quiz-q{font-family:Kanit;font-size:18px;margin-bottom:20px;color: #141e30;}
+        .choice{
+            padding:12px;border-radius:12px;
+            border:1px solid #ddd;margin-bottom:10px;
+            cursor:pointer;transition: 0.2s;font-weight: 500;
+        }
+        .choice:hover{background: #f8f9fa;}
+        .choice.correct{background:#eafaf1;border-color:#2ecc71;color:#1e7e44}
+        .choice.wrong{background:#fdecea;border-color:#e74c3c;color:#a94442}
+        .choice.disabled{pointer-events:none;opacity:.7}
+        .footer{
+            margin-top:auto;font-size:13px;color:#888;text-align:center;padding-bottom: 10px;
+        }
+        pre{
+            background:#fafafa;padding:15px;border-radius:12px;
+            font-size:12px;max-height:260px;overflow:auto;border: 1px solid #eee;
+        }
+        #loadingOverlay{
+            position: fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(255,255,255,0.8);display:none;
+            align-items:center;justify-content:center;z-index:9999;
+        }
+        .spinner {
+            width: 40px;height: 40px;border: 4px solid #f3f3f3;
+            border-top: 4px solid #8e44ad;border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 
 <body>
 
+<div id="loadingOverlay"><div class="spinner"></div></div>
+
 <header>
-<h1 style="font-family:Kanit;margin:0">AI Mission Creator 🚀</h1>
-<p>เวอร์ชันเชื่อมต่อโปรไฟล์ครู (Supabase)</p>
+    <h1 style="font-family:Kanit;margin:0">AI Mission Creator 🚀</h1>
+    <p>สร้างภารกิจการเรียนรู้ด้วย Gemini AI x FlipSchool</p>
 </header>
 
 <main>
-<section>
-    <div class="card">
-        <div class="status">
-            <div id="dot" class="dot"></div>
-            <span id="statusText">กำลังโหลดข้อมูลโปรไฟล์...</span>
+    <section>
+        <div class="card">
+            <div class="status">
+                <div id="dot" class="dot"></div>
+                <span id="statusText">กำลังตรวจสอบการเชื่อมต่อ...</span>
+            </div>
+
+            <label><i class="fas fa-key"></i> Gemini API Key</label>
+            <input type="password" id="geminiKey" placeholder="AIzaSy...">
+            <button onclick="testApiKey()">ทดสอบและบันทึกลงโปรไฟล์</button>
+            <button class="secondary" onclick="listModels()">📋 อัปเดตรายชื่อโมเดล</button>
         </div>
 
-        <label>🔑 Gemini API Key</label>
-        <input type="password" id="geminiKey" placeholder="AIzaSy...">
-        <button onclick="testApiKey()">ทดสอบและบันทึกลงโปรไฟล์</button>
-        <button class="secondary" onclick="listModels()">📋 อัปเดตรายชื่อโมเดล</button>
-    </div>
-
-    <div class="card">
-        <label>🤖 โมเดล</label>
-        <select id="modelSelect">
-            <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest</option>
-        </select>
-    </div>
-
-    <div class="card">
-        <label>💡 หัวข้อภารกิจ</label>
-        <textarea id="aiPrompt" rows="3" placeholder="เช่น Past Simple Tense"></textarea>
-        <button onclick="generateByAI()">✨ สร้างภารกิจด้วย AI</button>
-    </div>
-
-    <div class="card">
-        <label>📦 JSON (ผลลัพธ์)</label>
-        <div id="dataEditor"></div>
-    </div>
-</section>
-
-<aside>
-    <div class="phone">
-        <div class="screen" id="preview">
-            <div class="footer">รอสร้างภารกิจ…</div>
+        <div class="card">
+            <label><i class="fas fa-robot"></i> โมเดลที่เลือกใช้</label>
+            <select id="modelSelect">
+                <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest (แนะนำ)</option>
+            </select>
         </div>
-    </div>
-</aside>
+
+        <div class="card">
+            <label><i class="fas fa-lightbulb"></i> หัวข้อภารกิจ (เช่น เรื่อง, บทเรียน)</label>
+            <textarea id="aiPrompt" rows="3" placeholder="ตัวอย่าง: คำศัพท์ภาษาไทยเรื่องสัตว์ป่า ป.2"></textarea>
+            <button onclick="generateByAI()" style="background: #243b55;">✨ สั่ง AI สร้างภารกิจ</button>
+        </div>
+
+        <div class="card">
+            <label><i class="fas fa-code"></i> JSON Data (ผลลัพธ์)</label>
+            <div id="dataEditor"><p style="color:#ccc; font-size: 12px; text-align: center;">ยังไม่มีข้อมูล</p></div>
+        </div>
+    </section>
+
+    <aside>
+        <div class="phone">
+            <div class="screen" id="preview">
+                <div style="text-align: center; margin-top: 50%;">
+                    <i class="fas fa-mobile-alt" style="font-size: 50px; color: #eee;"></i>
+                    <div class="footer">รอพรีวิวภารกิจที่นี่…</div>
+                </div>
+            </div>
+        </div>
+        <button id="saveBtn" onclick="saveToClassroom()" style="margin-top: 20px; background: #2ecc71; display: none;">
+            <i class="fas fa-save"></i> บันทึกลงห้องเรียน
+        </button>
+    </aside>
 </main>
 
 <script>
@@ -91,125 +147,134 @@ const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 let quizData = [];
 let index = 0;
 let score = 0;
-let currentUser = null;
+let teacherProfile = null;
 
-// ================= 1. LOAD USER & KEY FROM DB =================
+// ================= เช็คการล็อกอินและดึงคีย์จาก DB =================
 document.addEventListener("DOMContentLoaded", async () => {
-    // ดึง User ปัจจุบัน
     const { data: { user } } = await sysDB.auth.getUser();
     if (!user) {
-        alert("กรุณาเข้าสู่ระบบก่อนใช้งาน");
-        window.location.href = "teacher-login.html";
+        alert("กรุณาเข้าสู่ระบบครูพื่อใช้งาน");
+        window.location.href = 'teacher-login.html';
         return;
     }
-    currentUser = user;
 
-    // ดึง Key จากตาราง teachers (สมมติว่ามีคอลัมน์ gemini_key)
+    // ดึงข้อมูลครูเพื่อดูว่ามี gemini_key บันทึกไว้ไหม
     const { data: profile } = await sysDB
         .from('teachers')
-        .select('gemini_key')
+        .select('*')
         .eq('teacher_id', user.id)
         .single();
+    
+    teacherProfile = profile;
 
     if (profile && profile.gemini_key) {
-        geminiKey.value = profile.gemini_key;
-        updateStatus(true, "ใช้ API Key จากโปรไฟล์ของคุณ");
-        listModels();
+        document.getElementById('geminiKey').value = profile.gemini_key;
+        testApiKey(true); // ทดสอบคีย์เดิมแบบเงียบๆ
     } else {
-        updateStatus(false, "ยังไม่มี API Key ในโปรไฟล์");
+        document.getElementById('statusText').textContent = "ยังไม่มี API Key ในโปรไฟล์ของคุณ";
     }
 });
 
-function updateStatus(on, text) {
-    on ? dot.classList.add("on") : dot.classList.remove("on");
-    statusText.textContent = text;
-}
-
-/* ================= 2. TEST & SAVE KEY ================= */
-async function testApiKey(){
-    const key = geminiKey.value.trim();
-    if(!key) return alert("กรุณาใส่ API Key");
+/* ================= API KEY TEST & SAVE ================= */
+async function testApiKey(silent = false){
+    const key = document.getElementById('geminiKey').value.trim();
+    if(!key) return !silent ? alert("กรุณาใส่ API Key") : null;
 
     try{
-        const res = await fetch(`${API_BASE}/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({ contents:[{parts:[{text:"ping"}]}] })
-        });
-
+        const res = await fetch(`${API_BASE}/models?key=${key}`);
         const json = await res.json();
         if(json.error) throw new Error(json.error.message);
 
-        updateStatus(true, "API Key ใช้งานได้ ✔");
-
-        // ถามบันทึกลง DB หากไม่ตรงกับของเดิม
-        if (confirm("✅ ทดสอบผ่าน! คุณต้องการบันทึก API Key นี้ลงในโปรไฟล์เพื่อใช้ครั้งต่อไปหรือไม่?")) {
-            const { error } = await sysDB
-                .from('teachers')
-                .update({ gemini_key: key })
-                .eq('teacher_id', currentUser.id);
-
-            if (error) throw error;
-            alert("บันทึกลงฐานข้อมูลสำเร็จ");
+        document.getElementById('dot').classList.add("on");
+        document.getElementById('statusText').textContent = "API Key พร้อมใช้งาน ✔";
+        
+        // ถ้าเป็นคีย์ใหม่ที่ยังไม่เหมือนใน DB ให้ถามบันทึก
+        if (!silent && (!teacherProfile || teacherProfile.gemini_key !== key)) {
+            if (confirm("✅ คีย์ใช้งานได้! คุณต้องการบันทึกคีย์นี้ลงในโปรไฟล์ของคุณเพื่อใช้ครั้งต่อไปหรือไม่?")) {
+                const { error } = await sysDB
+                    .from('teachers')
+                    .update({ gemini_key: key })
+                    .eq('teacher_id', teacherProfile.teacher_id);
+                
+                if (!error) alert("บันทึกคีย์ลงฐานข้อมูลเรียบร้อยครับ");
+            }
         }
+        listModels(); // อัปเดตรายชื่อโมเดลทันที
 
-    } catch(e) {
-        updateStatus(false, "API Key ใช้งานไม่ได้ ❌");
-        alert("❌ "+e.message);
+    }catch(e){
+        document.getElementById('dot').classList.remove("on");
+        document.getElementById('statusText').textContent = "API Key ผิดพลาด ❌";
+        if(!silent) alert("❌ "+e.message);
     }
 }
 
-/* ================= 3. LIST MODELS & GENERATE ================= */
+/* ================= LIST MODELS ================= */
 async function listModels(){
-    const key = geminiKey.value.trim();
+    const key = document.getElementById('geminiKey').value.trim();
     if(!key) return;
 
-    try {
-        const res = await fetch(`${API_BASE}/models?key=${key}`);
-        const json = await res.json();
-        if(json.error) return;
+    const res = await fetch(`${API_BASE}/models?key=${key}`);
+    const json = await res.json();
+    if(json.error) return;
 
-        modelSelect.innerHTML = "";
-        json.models
-            .filter(m=>m.supportedGenerationMethods?.includes("generateContent"))
-            .forEach(m=>{
-                const opt=document.createElement("option");
-                const mName = m.name.replace("models/","");
-                opt.value=mName;
-                opt.textContent=mName;
-                if(mName === "gemini-1.5-flash-latest") opt.selected = true;
-                modelSelect.appendChild(opt);
-            });
-    } catch(err) { console.error(err); }
+    const select = document.getElementById("modelSelect");
+    select.innerHTML = "";
+    json.models
+        .filter(m => m.supportedGenerationMethods?.includes("generateContent"))
+        .forEach(m => {
+            const opt = document.createElement("option");
+            const name = m.name.replace("models/","");
+            opt.value = name;
+            opt.textContent = name;
+            if(name === "gemini-1.5-flash-latest") opt.selected = true;
+            select.appendChild(opt);
+        });
 }
 
+/* ================= GENERATE BY AI ================= */
 async function generateByAI(){
-    const key = geminiKey.value.trim();
-    const model = modelSelect.value;
-    const prompt = aiPrompt.value.trim();
-    if(!prompt) return alert("ใส่หัวข้อภารกิจ");
+    const key = document.getElementById('geminiKey').value.trim();
+    const model = document.getElementById('modelSelect').value;
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    
+    if(!key) return alert("กรุณาตั้งค่า API Key ก่อน");
+    if(!prompt) return alert("กรุณาใส่หัวข้อภารกิจ");
 
-    const instruction = `ตอบเป็น JSON เท่านั้น สร้าง Quiz 3 ข้อ เรื่อง "${prompt}" [{"q":"คำถาม","ok":"ถูก","no":"ผิด"}]`;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    const instruction = `
+    ตอบเป็น JSON บริสุทธิ์เท่านั้น ห้ามมีคำอธิบายอื่น
+    สร้าง Quiz 3 ข้อ เรื่อง "${prompt}" 
+    รูปแบบ: [{"q":"คำถาม","ok":"คำตอบถูก","no":"คำตอบผิด"}]`;
 
     try {
         const res = await fetch(`${API_BASE}/models/${model}:generateContent?key=${key}`, {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({ contents:[{parts:[{text:instruction}]}] })
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                contents: [{parts: [{text: instruction}]}]
+            })
         });
 
         const json = await res.json();
         if(json.error) throw new Error(json.error.message);
 
         let text = json.candidates[0].content.parts[0].text;
-        quizData = JSON.parse(text.replace(/```json|```/g,""));
+        // ล้างอักขระส่วนเกินที่ AI อาจแถมมา
+        text = text.replace(/```json|```/g, "").trim();
+        quizData = JSON.parse(text);
 
-        dataEditor.innerHTML = `<pre>${JSON.stringify(quizData,null,2)}</pre>`;
+        document.getElementById('dataEditor').innerHTML = `<pre>${JSON.stringify(quizData, null, 2)}</pre>`;
+        document.getElementById('saveBtn').style.display = 'block';
         startPreview();
-    } catch(e) { alert("เกิดข้อผิดพลาด: " + e.message); }
+    } catch(e) {
+        alert("❌ เกิดข้อผิดพลาด: " + e.message);
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 }
 
-/* ================= 4. PREVIEW ENGINE ================= */
+/* ================= PREVIEW ENGINE ================= */
 function startPreview(){
     index = 0; score = 0;
     renderQuestion();
@@ -217,33 +282,70 @@ function startPreview(){
 
 function renderQuestion(){
     const q = quizData[index];
-    preview.innerHTML = `
+    // สุ่มตำแหน่งคำตอบถูก-ผิด
+    const isOkFirst = Math.random() > 0.5;
+    
+    document.getElementById('preview').innerHTML = `
         <div class="quiz-q">${index+1}. ${q.q}</div>
-        <div class="choice" onclick="answer(true)">${q.ok}</div>
-        <div class="choice" onclick="answer(false)">${q.no}</div>
-        <div class="footer">ข้อ ${index+1}/${quizData.length}</div>
+        <div class="choice" onclick="answer(${isOkFirst})">${isOkFirst ? q.ok : q.no}</div>
+        <div class="choice" onclick="answer(${!isOkFirst})">${!isOkFirst ? q.ok : q.no}</div>
+        <div class="footer">ภารกิจ: ${index+1}/${quizData.length}</div>
     `;
 }
 
-function answer(correct){
+function answer(isCorrect){
     const choices = document.querySelectorAll(".choice");
-    choices.forEach(c=>c.classList.add("disabled"));
-    if(correct){ score++; choices[0].classList.add("correct"); }
-    else{ choices[1].classList.add("wrong"); choices[0].classList.add("correct"); }
+    choices.forEach(c => c.classList.add("disabled"));
 
-    setTimeout(()=>{
+    // หาปุ่มที่ถูกเสมอ (เพื่อแสดงสีเขียว)
+    const allChoices = Array.from(choices);
+    
+    if(isCorrect){
+        score++;
+        event.target.classList.add("correct");
+    } else {
+        event.target.classList.add("wrong");
+        // เฉลยข้อที่ถูก
+        alert("คำตอบที่ถูกคือ: " + quizData[index].ok);
+    }
+
+    setTimeout(() => {
         index++;
         index < quizData.length ? renderQuestion() : finish();
-    },900);
+    }, 1000);
 }
 
 function finish(){
-    preview.innerHTML = `
-        <h2 style="font-family:Kanit">🎉 จบภารกิจ</h2>
-        <p>คะแนนของคุณคือ ${score} / ${quizData.length}</p>
-        <button onclick="startPreview()">ลองเล่นอีกครั้ง</button>
+    document.getElementById('preview').innerHTML = `
+        <div style="text-align:center; margin-top:30%;">
+            <i class="fas fa-trophy" style="font-size:60px; color:#f1c40f;"></i>
+            <h2 style="font-family:Kanit">สำเร็จ!</h2>
+            <p>คะแนนของคุณ: ${score} / ${quizData.length}</p>
+            <button onclick="startPreview()" class="secondary">ลองเล่นอีกครั้ง</button>
+        </div>
     `;
 }
+
+/* ================= SAVE TO DB (MISSION) ================= */
+async function saveToClassroom() {
+    const cid = new URLSearchParams(window.location.search).get('cid');
+    if (!cid) return alert("ไม่พบรหัสห้องเรียน");
+
+    const { error } = await sysDB.from('missions').insert([{
+        classroom_id: cid,
+        mission_type: 'quiz',
+        mission_data: quizData,
+        title: document.getElementById('aiPrompt').value
+    }]);
+
+    if (!error) {
+        alert("บันทึกภารกิจลงห้องเรียนเรียบร้อยแล้ว! 🎉");
+        window.location.href = `classroom-detail.html?id=${cid}`;
+    } else {
+        alert("บันทึกไม่สำเร็จ: " + error.message);
+    }
+}
 </script>
+
 </body>
 </html>
