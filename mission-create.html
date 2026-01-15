@@ -1,82 +1,71 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Magic Canvas Creator - FlipSchool</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlipSchool AI - Stable Designer</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-db.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <style>
-        :root { --primary: #141e30; --accent: #8e44ad; --bg: #f8f9fb; }
-        body { margin:0; font-family:Sarabun; background:var(--bg); color:#333; }
-        header { background:linear-gradient(135deg,#141e30,#243b55); color:#fff; text-align:center; padding:30px 20px 60px; border-radius:0 0 50px 50px; }
-        main { max-width:1300px; margin:-40px auto 40px; padding:0 20px; display:grid; grid-template-columns: 1fr 450px; gap:25px; }
-        @media(max-width:1024px){ main{ grid-template-columns:1fr; } }
+<style>
+    :root { --primary: #141e30; --accent: #8e44ad; --bg: #f8f9fb; }
+    body { margin:0; font-family:Sarabun; background:var(--bg); color:#333; }
+    header { background:linear-gradient(135deg,#141e30,#243b55); color:#fff; text-align:center; padding:30px 20px 60px; border-radius:0 0 50px 50px; }
+    main { max-width:1200px; margin:-40px auto 40px; padding:0 20px; display:grid; grid-template-columns: 1fr 400px; gap:25px; }
+    @media(max-width:1024px){ main{ grid-template-columns:1fr; } }
+    
+    .card { background:#fff; border-radius:30px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,.08); margin-bottom:20px; }
+    label { font-family:Kanit; font-weight:500; margin-bottom:10px; display:block; }
+    input, textarea { width:100%; padding:15px; border-radius:15px; border:1px solid #ddd; box-sizing:border-box; font-family:inherit; }
+    
+    button { border:none; border-radius:15px; padding:15px; background:var(--accent); color:#fff; font-family:Kanit; cursor:pointer; font-size:16px; width:100%; transition:0.3s; display:flex; align-items:center; justify-content:center; gap:10px; }
+    button:hover { transform:translateY(-2px); filter:brightness(1.1); }
+    
+    /* API Status Area */
+    .status-container { display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; background:#f0f2f5; padding:10px 15px; border-radius:12px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#bbb; transition:0.3s; }
+    .dot.on { background:#2ecc71; box-shadow:0 0 10px #2ecc71; }
 
-        .card { background:#fff; border-radius:30px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,.08); margin-bottom:20px; }
-        label { font-family:Kanit; font-weight:500; margin-bottom:10px; display:block; }
-        input, textarea, select { width:100%; padding:15px; border-radius:15px; border:1px solid #ddd; box-sizing:border-box; font-family:inherit; margin-bottom:10px; }
-        
-        button { border:none; border-radius:15px; padding:15px; background:var(--accent); color:#fff; font-family:Kanit; cursor:pointer; font-size:16px; width:100%; transition:0.3s; display:flex; align-items:center; justify-content:center; gap:10px; }
-        button:hover { transform:translateY(-2px); filter:brightness(1.1); }
-        
-        /* Canvas Preview (Phone Mockup) */
-        .phone { background:#111; border-radius:55px; padding:15px; height:750px; position:sticky; top:20px; border: 5px solid #333; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
-        .screen { background:#fff; border-radius:40px; height:100%; overflow:hidden; position:relative; }
-        iframe { width: 100%; height: 100%; border:none; }
+    /* Canvas (Phone Mockup) */
+    .phone { background:#111; border-radius:50px; padding:12px; height:680px; position:sticky; top:20px; border: 4px solid #333; }
+    .screen { background:#fff; border-radius:40px; height:100%; overflow:hidden; position:relative; }
+    iframe { width: 100%; height: 100%; border:none; background:#fff; }
 
-        .api-status { display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:15px; font-weight:600; }
-        .dot { width:10px; height:10px; border-radius:50%; background:#bbb; }
-        .dot.on { background:#2ecc71; box-shadow:0 0 10px #2ecc71; }
-
-        #loadingOverlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:none; align-items:center; justify-content:center; z-index:9999; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    #loadingOverlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:none; align-items:center; justify-content:center; z-index:9999; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
 
 <div id="loadingOverlay"><div class="spinner"></div></div>
 
 <header>
-    <h1 style="font-family:Kanit;margin:0">AI Magic Canvas 🚀</h1>
-    <p>สร้างสื่อการสอน Interactive แบบมืออาชีพ</p>
+    <h1 style="font-family:Kanit;margin:0">AI Magic Designer ✨</h1>
+    <p>Stable Edition (v1beta Optimized)</p>
 </header>
 
 <main>
     <section>
         <div class="card">
-            <div class="api-status">
-                <div id="dot" class="dot"></div>
-                <span id="statusText">กำลังโหลดข้อมูลโปรไฟล์...</span>
+            <div class="status-container">
+                <div><span id="dot" class="dot"></span> <small id="statusText">เช็คสถานะ API...</small></div>
+                <button onclick="checkKeyAndSave()" style="width:auto; padding:5px 15px; font-size:12px; margin:0; background:#34495e;">เช็ค & บันทึกคีย์</button>
             </div>
             <label>🔑 Gemini API Key</label>
-            <div style="display:flex; gap:10px;">
-                <input type="password" id="geminiKey" placeholder="วาง API Key ที่นี่">
-                <button onclick="testAndSaveKey()" style="width:auto; padding:0 20px; background:#34495e;">ทดสอบ & บันทึก</button>
-            </div>
+            <input type="password" id="geminiKey" placeholder="วาง API Key (AIzaSy...)">
         </div>
 
         <div class="card">
-            <label>🤖 เลือกโมเดล</label>
-            <select id="modelSelect">
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (เร็ว/ฟรีเยอะ)</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาด/สร้างโค้ดเก่ง)</option>
-                <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (ล่าสุด)</option>
-            </select>
-        </div>
-
-        <div class="card">
-            <label>🎨 คุณอยากให้ AI เนรมิตสื่ออะไร? (สั่งได้เหมือน Gemini Pro)</label>
-            <textarea id="aiPrompt" rows="5" placeholder="เช่น: สร้างสื่อการสอนเรื่องระบบสุริยะ มีแอนิเมชันดาวเคราะห์หมุนรอบดวงอาทิตย์ ใช้ Tailwind CSS ให้สวยงามและกดดูข้อมูลได้"></textarea>
-            <button onclick="magicGenerate()">
-                <i class="fas fa-wand-magic-sparkles"></i> สร้างสื่อ Interactive
+            <label>🎨 หัวข้อสื่อการสอนที่ต้องการ</label>
+            <textarea id="aiPrompt" rows="5" placeholder="ตัวอย่าง: สร้างหน้าสื่อการสอนเรื่อง วัฏจักรน้ำ มีปุ่มกดโต้ตอบและแอนิเมชันสวยๆ ด้วย Tailwind CSS"></textarea>
+            <button onclick="createMagicContent()" style="margin-top:20px;">
+                <i class="fas fa-wand-magic-sparkles"></i> รังสรรค์สื่อ Interactive
             </button>
         </div>
     </section>
@@ -84,16 +73,19 @@
     <aside>
         <div class="phone">
             <div class="screen">
-                <iframe id="previewFrame" srcdoc="<body style='display:flex;justify-content:center;align-items:center;height:90vh;font-family:sans-serif;color:#ccc;text-align:center;'><div>ผลงานจะปรากฏที่นี่...</div></body>"></iframe>
+                <iframe id="previewFrame" srcdoc="<body style='display:flex;justify-content:center;align-items:center;height:90vh;font-family:sans-serif;color:#ccc;text-align:center;'><div>ผลงานจะแสดงที่นี่</div></body>"></iframe>
             </div>
         </div>
     </aside>
 </main>
 
 <script>
-const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+// --- CONFIG & CONSTANTS ---
+const API_URL = "https://generativelanguage.googleapis.com/v1beta";
+const TARGET_MODEL = "gemini-1.5-flash-latest"; // ล็อกโมเดลที่เสถียรที่สุด
 let teacherProfile = null;
 
+// --- INITIALIZE ---
 document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await sysDB.auth.getUser();
     if (!user) return window.location.href = 'teacher-login.html';
@@ -103,58 +95,69 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (profile?.gemini_key) {
         document.getElementById('geminiKey').value = profile.gemini_key;
-        updateStatusUI(true, "API Key พร้อมใช้งาน (จาก DB)");
-    } else {
-        updateStatusUI(false, "กรุณากรอก API Key");
+        updateStatus(true, "API Key พร้อมใช้งาน");
     }
 });
 
-function updateStatusUI(on, text) {
-    document.getElementById('dot').className = on ? 'dot on' : 'dot';
+function updateStatus(ok, text) {
+    document.getElementById('dot').className = ok ? 'dot on' : 'dot';
     document.getElementById('statusText').textContent = text;
 }
 
-// ✅ แก้ไขปัญหา Model Not Found โดยการล้างชื่อโมเดลก่อนส่ง
-async function testAndSaveKey() {
+// --- 🛠 CHECK KEY BY GENERATE (Best Practice) ---
+async function checkKeyAndSave() {
     const key = document.getElementById('geminiKey').value.trim();
-    if(!key) return alert("กรุณากรอกคีย์");
-    
+    if(!key) return alert("กรุณากรอก API Key");
+
     document.getElementById('loadingOverlay').style.display = 'flex';
     try {
-        const res = await fetch(`${API_BASE}/models?key=${key}`);
-        const json = await res.json();
-        if (json.error) throw new Error(json.error.message);
+        // ลองส่ง Ping เล็กๆ เพื่อเช็คว่า Key ใช้ได้จริงไหม (ไม่ใช้ models.list)
+        const response = await fetch(`${API_URL}/models/${TARGET_MODEL}:generateContent?key=${key}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: "hi" }] }] })
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
 
-        updateStatusUI(true, "เชื่อมต่อสำเร็จ");
-        if (confirm("✅ คีย์ใช้ได้! บันทึกลงโปรไฟล์ FlipSchool เพื่อใช้ถาวรไหม?")) {
+        updateStatus(true, "เชื่อมต่อสำเร็จ");
+        
+        // ถามเพื่อบันทึกลงโปรไฟล์
+        if (confirm("✅ ทดสอบผ่าน! ต้องการบันทึกลงโปรไฟล์ FlipSchool เพื่อใช้ถาวรไหม?")) {
             await sysDB.from('teachers').update({ gemini_key: key }).eq('teacher_id', teacherProfile.teacher_id);
             alert("บันทึกคีย์เรียบร้อย!");
         }
     } catch (e) {
         alert("❌ Error: " + e.message);
-        updateStatusUI(false, "คีย์ไม่ถูกต้อง");
-    } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+        updateStatus(false, "คีย์ไม่ถูกต้องหรือโควตาเต็ม");
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 }
 
-async function magicGenerate() {
+// --- 🚀 MAGIC GENERATE (Canvas Mode) ---
+async function createMagicContent() {
     const key = document.getElementById('geminiKey').value.trim();
-    const model = document.getElementById('modelSelect').value;
     const prompt = document.getElementById('aiPrompt').value.trim();
+    const iframe = document.getElementById('previewFrame');
 
-    if (!prompt || !key) return alert("ข้อมูลไม่ครบ");
+    if (!prompt || !key) return alert("กรุณากรอกข้อมูลให้ครบครับ");
 
     document.getElementById('loadingOverlay').style.display = 'flex';
-    const iframe = document.getElementById('previewFrame');
-    iframe.srcdoc = "<body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>⚡ กำลังร่ายมนตร์สร้างสื่อ...</h3></body>";
+    iframe.srcdoc = "<body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>กำลังรังสรรค์สื่อการสอน...</h3></body>";
 
-    // ✅ ล้าง 'models/' ออกจากชื่อโมเดล เพื่อป้องกัน URL ซ้อนกัน
-    const cleanModel = model.replace('models/', '');
-    const endpoint = `${API_BASE}/models/${cleanModel}:generateContent?key=${key}`;
+    // ✅ ปรับ URL ให้ถูกต้อง ป้องกัน models/ ซ้อน
+    const endpoint = `${API_URL}/models/${TARGET_MODEL}:generateContent?key=${key}`;
 
-    const instruction = `สร้าง Interactive Educational Page (Single HTML file) เรื่อง: "${prompt}" 
-    - ใช้ Tailwind CSS ได้ 
-    - มีลูกเล่นแอนิเมชันและการโต้ตอบ (JS) 
-    - ส่งเฉพาะ CODE เท่านั้น ห้ามมีคำอธิบาย หรือ Markdown backticks`;
+    const instruction = `
+    คุณคือ Web Designer สร้างหน้า HTML สื่อการสอน 1 หน้า เรื่อง: "${prompt}"
+    เงื่อนไข:
+    1. ส่งเฉพาะ CODE HTML เท่านั้น (Single File) ห้ามมีคำอธิบาย หรือ Markdown backticks
+    2. ใช้ Tailwind CSS CDN สำหรับความสวยงาม
+    3. ต้องมีลูกเล่น Interactive (ปุ่มกด, แอนิเมชัน JS)
+    4. แสดงผลเป็นภาษาไทยให้ถูกต้อง (Thai language support)
+    `;
 
     try {
         const res = await fetch(endpoint, {
@@ -162,14 +165,23 @@ async function magicGenerate() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
         });
+
         const data = await res.json();
         if (data.error) throw new Error(data.error.message);
 
         let code = data.candidates[0].content.parts[0].text;
-        iframe.srcdoc = code.replace(/```html|```/g, "").trim();
+        // ล้าง Markdown ถ้ามี
+        code = code.replace(/```html|```/g, "").trim();
+        
+        // เรนเดอร์ลง Iframe (Canvas)
+        iframe.srcdoc = code;
+
     } catch (e) {
         alert("❌ AI ขัดข้อง: " + e.message);
-    } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+        iframe.srcdoc = "<body>Error: " + e.message + "</body>";
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 }
 </script>
 </body>
