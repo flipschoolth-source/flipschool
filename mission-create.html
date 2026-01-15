@@ -3,157 +3,197 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Canvas Designer - FlipSchool</title>
+<title>AI Canvas Mission - FlipSchool</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/supabase-db.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    body{margin:0;font-family:Sarabun;background:#f2f4f7}
-    header{background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;text-align:center;padding:30px 20px;border-radius:0 0 30px 30px}
+    body{margin:0;font-family:Sarabun;background:#f2f4f7;color:#333}
+    header{background:linear-gradient(135deg,#141e30,#243b55);color:#fff;text-align:center;padding:30px 20px;border-radius:0 0-40px 40px}
     main{max-width:1300px;margin:20px auto;padding:0 20px;display:grid;grid-template-columns:1fr 450px;gap:20px}
     @media(max-width:1024px){main{grid-template-columns:1fr}}
     
-    .card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.05);margin-bottom:20px}
-    label{font-family:Kanit;font-weight:500;display:block;margin-bottom:5px}
-    input, textarea, select {width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;margin-top:5px;font-family:inherit}
+    .card{background:#fff;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.05);margin-bottom:20px}
+    label{font-family:Kanit;font-weight:500;display:block;margin-bottom:8px}
+    input, textarea, select {width:100%;padding:12px;border-radius:12px;border:1.5px solid #ddd;box-sizing:border-box;margin-top:5px;font-family:inherit}
     
-    button{border:none;border-radius:12px;padding:14px;background:#00b894;color:#fff;font-family:Kanit;cursor:pointer;width:100%;font-size:16px;transition:0.3s}
-    button:hover{filter:brightness(1.1)}
-    
-    /* Mockup Phone */
-    .phone{background:#111;border-radius:40px;padding:12px;height:750px;position:sticky;top:20px;border:4px solid #333}
-    .screen{background:#fff;border-radius:30px;height:100%;overflow:hidden;position:relative}
-    
-    /* iframe rendering */
-    #canvasIframe {width: 100%; height: 100%; border: none; background: white;}
-    
-    #codeEditor {background:#2d3436;color:#dfe6e9;padding:15px;border-radius:12px;font-size:12px;max-height:300px;overflow:auto;margin-top:10px}
-    .status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px}
-    .dot{width:10px;height:10px;border-radius:50%;background:#bbb}
-    .dot.on{background:#00b894;box-shadow:0 0 6px #00b894}
+    button{border:none;border-radius:12px;padding:14px;background:#8e44ad;color:#fff;font-family:Kanit;cursor:pointer;width:100%;font-size:16px;transition:0.3s;display:flex;align-items:center;justify-content:center;gap:8px}
+    button:hover{filter:brightness(1.1);transform:translateY(-1px)}
+    button.secondary{background:#34495e}
+
+    /* AI Status */
+    .status-box{display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;padding:12px 20px;border-radius:15px;border:1px solid #eee;margin-bottom:20px}
+    .dot{width:10px;height:10px;border-radius:50%;background:#bbb;margin-right:8px;display:inline-block}
+    .dot.on{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
+
+    /* Phone Preview */
+    .phone{background:#111;border-radius:50px;padding:12px;height:700px;position:sticky;top:20px;border:4px solid #333;box-shadow:0 25px 50px rgba(0,0,0,0.15)}
+    .screen{background:#fff;border-radius:40px;height:100%;overflow:hidden;position:relative;display:flex;flex-direction:column}
+    iframe{width:100%;height:100%;border:none;background:#fff}
+
+    #codeView{background:#282c34;color:#abb2bf;padding:15px;border-radius:12px;font-size:12px;max-height:200px;overflow:auto;margin-top:10px;display:none}
 </style>
 </head>
 <body>
 
 <header>
-    <h1 style="font-family:Kanit;margin:0">AI Canvas Designer ✨</h1>
-    <p>สร้างหน้าตาบทเรียนด้วย Code HTML/JS แบบเรียลไทม์</p>
+    <h1 style="font-family:Kanit;margin:0">AI Canvas Designer 🚀</h1>
+    <p>สร้างสื่อการสอนแบบ Interactive (HTML/CSS/JS)</p>
 </header>
 
 <main>
     <section>
         <div class="card">
-            <div class="status"><div id="dot" class="dot"></div><span id="statusText">กำลังโหลดข้อมูล...</span></div>
-            <label>🔑 API Key</label>
-            <input type="password" id="geminiKey" placeholder="AIzaSy...">
-            <button onclick="testAndSaveKey()" style="background:#636e72;margin-top:10px">ทดสอบและบันทึกคีย์</button>
+            <div class="status-box">
+                <div><span id="dot" class="dot"></span><span id="statusText" style="font-size:13px;font-weight:600">ตรวจสอบสิทธิ์...</span></div>
+                <button onclick="testAndSaveKey()" style="width:auto;padding:5px 15px;font-size:12px;margin:0" class="secondary">ทดสอบ & บันทึกคีย์</button>
+            </div>
+            
+            <label>🔑 Gemini API Key</label>
+            <input type="password" id="geminiKey" placeholder="วาง API Key ที่นี่">
         </div>
 
         <div class="card">
             <label>🤖 เลือกโมเดล</label>
             <select id="modelSelect">
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (แม่นยำเรื่อง Code)</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (เร็วและฟรีเยอะ)</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (เร็ว/ประหยัด)</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาด/สร้างโค้ดเก่ง)</option>
+                <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (ล่าสุด)</option>
             </select>
         </div>
 
         <div class="card">
-            <label>🎨 สั่งการ AI (Prompt)</label>
-            <textarea id="aiPrompt" rows="5" placeholder="ตัวอย่าง: สร้างหน้าสื่อการสอนเรื่องวัฏจักรน้ำ มีแอนิเมชันฝนตกและมีปุ่มให้กดอ่านคำอธิบายแบบสวยๆ ใช้ Tailwind CSS ได้"></textarea>
-            <button onclick="generateHTML()">✨ สร้างและแสดงผลบน Canvas</button>
-        </div>
-
-        <div class="card" id="codeCard" style="display:none">
-            <label>💻 Source Code</label>
-            <pre id="codeEditor"></pre>
+            <label>🎨 สั่ง AI ออกแบบสื่อ (Prompt)</label>
+            <textarea id="aiPrompt" rows="5" placeholder="เช่น: สร้างเกมจับคู่คำศัพท์ภาษาอังกฤษสัตว์น้ำ 5 คำ มีเสียงตอนตอบถูก และใช้ Tailwind CSS ให้สวยงาม"></textarea>
+            <button onclick="generateCanvasContent()">
+                <i class="fas fa-magic"></i> สร้างสื่อ Interactive
+            </button>
+            <pre id="codeView"></pre>
         </div>
     </section>
 
     <aside>
         <div class="phone">
             <div class="screen">
-                <iframe id="canvasIframe" title="Preview"></iframe>
+                <iframe id="previewIframe" srcdoc="<body style='display:flex;justify-content:center;align-items:center;height:90vh;font-family:sans-serif;color:#ccc;'><div>พรีวิวจะปรากฏที่นี่</div></body>"></iframe>
             </div>
         </div>
+        <button id="saveBtn" style="margin-top:15px;background:#2ecc71;display:none" onclick="saveToSupabase()">
+            <i class="fas fa-save"></i> บันทึกลงห้องเรียน
+        </button>
     </aside>
 </main>
 
 <script>
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 let teacherProfile = null;
+let currentCode = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await sysDB.auth.getUser();
     if (!user) return window.location.href = 'teacher-login.html';
+    
     const { data: profile } = await sysDB.from('teachers').select('*').eq('teacher_id', user.id).single();
     teacherProfile = profile;
+
     if (profile?.gemini_key) {
         document.getElementById('geminiKey').value = profile.gemini_key;
-        document.getElementById('dot').classList.add('on');
-        document.getElementById('statusText').textContent = "พร้อมใช้งาน";
+        updateStatus(true, "ใช้คีย์จากฐานข้อมูล");
     }
 });
 
+function updateStatus(ok, txt) {
+    document.getElementById('dot').className = ok ? 'dot on' : 'dot';
+    document.getElementById('statusText').textContent = txt;
+}
+
 async function testAndSaveKey() {
-    const key = document.getElementById('geminiKey').value;
-    const res = await fetch(`${API_BASE}/models/gemini-1.5-flash?key=${key}`);
-    const json = await res.json();
-    if(json.error) return alert("คีย์ไม่ถูกต้อง");
-    
-    if(confirm("คีย์ใช้งานได้! บันทึกลงโปรไฟล์หรือไม่?")) {
-        await sysDB.from('teachers').update({gemini_key: key}).eq('teacher_id', teacherProfile.teacher_id);
-        alert("บันทึกสำเร็จ");
-        location.reload();
+    const key = document.getElementById('geminiKey').value.trim();
+    try {
+        const res = await fetch(`${API_BASE}/models?key=${key}`);
+        const json = await res.json();
+        if (json.error) throw new Error(json.error.message);
+
+        if (confirm("✅ คีย์ใช้ได้! บันทึกลงฐานข้อมูลเพื่อใช้ครั้งต่อไปไหม?")) {
+            await sysDB.from('teachers').update({ gemini_key: key }).eq('teacher_id', teacherProfile.teacher_id);
+            alert("บันทึกสำเร็จ");
+        }
+        updateStatus(true, "เชื่อมต่อสำเร็จ");
+    } catch (e) {
+        alert("❌ ผิดพลาด: " + e.message);
+        updateStatus(false, "คีย์ไม่ถูกต้อง");
     }
 }
 
-async function generateHTML() {
-    const key = document.getElementById('geminiKey').value;
-    const prompt = document.getElementById('aiPrompt').value;
+async function generateCanvasContent() {
+    const key = document.getElementById('geminiKey').value.trim();
+    const prompt = document.getElementById('aiPrompt').value.trim();
     const model = document.getElementById('modelSelect').value;
 
-    if(!prompt || !key) return alert("ข้อมูลไม่ครบ");
-    
-    // แสดงสถานะ Loading ใน Preview
-    const iframe = document.getElementById('canvasIframe');
-    iframe.srcdoc = "<html><body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>⚡ กำลังประมวลผล...</h3></body></html>";
+    if (!prompt || !key) return alert("กรุณากรอกข้อมูลให้ครบ");
+
+    const iframe = document.getElementById('previewIframe');
+    iframe.srcdoc = "<html><body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>กำลังรังสรรค์สื่อการสอน...</h3></body></html>";
+
+    // ✅ แก้ไขปัญหา Model Name ซ้ำซ้อน
+    const cleanModel = model.replace('models/', '');
+    const url = `${API_BASE}/models/${cleanModel}:generateContent?key=${key}`;
 
     const instruction = `
-    คุณคือผู้เชี่ยวชาญด้าน HTML5 Canvas และ Web Design
-    จงสร้างเว็บเพจ 1 หน้า (Single File) สำหรับเนื้อหา: "${prompt}"
-    กฎ:
-    1. ตอบเป็น HTML Code เพียวๆ เท่านั้น ห้ามมีคำอธิบายอื่น
-    2. รวม CSS และ JS ไว้ในไฟล์เดียวกัน
-    3. ออกแบบให้สวยงาม ทันสมัย และ Responsive เข้ากับขนาดมือถือ
-    4. สามารถใช้ CDN เช่น Tailwind CSS หรือ FontAwesome ได้
+    คุณคือ Web Designer ระดับโลก จงสร้าง "สื่อการสอนแบบโต้ตอบ (Interactive)" เรื่อง: "${prompt}"
+    กฎการตอบกลับ:
+    1. ตอบเป็น HTML/CSS/JS ภายในไฟล์เดียว (Single File) เท่านั้น
+    2. ห้ามมีคำอธิบาย หรือข้อความอื่นนอกเหนือจาก Code
+    3. ห้ามใส่ Markdown Backticks (เช่น \`\`\`html)
+    4. ออกแบบให้สวยงามแบบ Mobile-First และมีปุ่มกดโต้ตอบได้จริง
+    5. ใช้ Tailwind CSS ผ่าน CDN ได้
     `;
 
     try {
-        const res = await fetch(`${API_BASE}/models/${model}:generateContent?key=${key}`, {
+        const res = await fetch(url, {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
         });
+
         const json = await res.json();
+        if (json.error) throw new Error(json.error.message);
+
         let code = json.candidates[0].content.parts[0].text;
-        
-        // ล้าง Markdown Backticks
         code = code.replace(/```html|```/g, "").trim();
-
-        // แสดง Code
-        document.getElementById('codeCard').style.display = 'block';
-        document.getElementById('codeEditor').textContent = code;
-
-        // เรนเดอร์ลงใน Iframe (Canvas)
+        
+        currentCode = code;
         iframe.srcdoc = code;
+        
+        document.getElementById('codeView').style.display = "block";
+        document.getElementById('codeView').textContent = code;
+        document.getElementById('saveBtn').style.display = "flex";
 
     } catch (e) {
-        alert("Error: " + e.message);
+        alert("❌ AI ขัดข้อง: " + e.message);
+        iframe.srcdoc = "<body>Error: " + e.message + "</body>";
+    }
+}
+
+async function saveToSupabase() {
+    const cid = new URLSearchParams(window.location.search).get('cid');
+    if (!cid) return alert("ไม่พบรหัสห้องเรียน");
+
+    const { error } = await sysDB.from('missions').insert([{
+        classroom_id: cid,
+        title: document.getElementById('aiPrompt').value,
+        mission_type: 'canvas',
+        mission_data: { html: currentCode }
+    }]);
+
+    if (!error) {
+        alert("บันทึกสื่อลงห้องเรียนแล้ว! 🎉");
+        window.location.href = `classroom-detail.html?id=${cid}`;
     }
 }
 </script>
