@@ -81,12 +81,11 @@
                 <div id="keySettings" style="display:none; margin-bottom:20px; background:#fcfaff; padding:15px; border-radius:15px;">
                     <label style="font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                         Gemini API Key ของคุณ:
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" title="รับ API Key ที่นี่" style="color:var(--ai-glow); text-decoration:none; font-size:14px;">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ai-glow); text-decoration:none; font-size:13px;">
                             <i class="fas fa-external-link-alt"></i> รับคีย์ที่นี่
                         </a>
                     </label>
                     <input type="password" id="geminiKey" class="form-control" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;" placeholder="วาง API Key ที่นี่..." onchange="updateKeyStatus()">
-                    <small style="color:#666; display:block; margin-top:5px;">* คีย์จะถูกจำไว้ในเบราว์เซอร์เพื่อความสะดวกในการใช้งานครั้งถัดไป</small>
                 </div>
 
                 <div class="prompt-box">
@@ -170,7 +169,6 @@
             if (finalStatus && keyVal) {
                 box.classList.add('connected');
                 dot.classList.add('on');
-                // แสดง Key 4 ตัวหน้าและ 4 ตัวหลังเพื่อความปลอดภัย
                 const maskedKey = keyVal.substring(0, 4) + "..." + keyVal.substring(keyVal.length - 4);
                 txt.innerText = `เชื่อมต่อแล้ว (${maskedKey})`;
             } else {
@@ -190,23 +188,24 @@
             const key = document.getElementById('geminiKey').value;
 
             if(!prompt) return alert('กรุณาระบุเนื้อหาที่ต้องการสร้างครับ');
-            if(!key || key.length < 10) {
+            if(!key) {
                 toggleKeySettings();
-                return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนเริ่มใช้งานครับ');
+                return alert('กรุณาตรวจสอบและตั้งค่า API Key ก่อนครับ');
             }
 
             localStorage.setItem('gemini_api_key', key);
-            updateKeyStatus(true);
-
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
+                // แก้ไข Endpoint ให้เป็นรุ่น 1.5 Flash ที่ถูกต้อง
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+
                 const instruction = `สร้างเนื้อหาเกมประเภท ${currentType} เรื่อง ${prompt} เป็น JSON format: 
                 ถ้า quiz: [{"q":"..", "ok":"..", "no":".."}]
                 ถ้า speech: ["word1", "word2"]
-                ตอบเฉพาะ JSON เท่านั้น ห้ามมีคำอธิบายเพิ่ม`;
+                ตอบเฉพาะ JSON เท่านั้น ห้ามมีคำอธิบายเพิ่มเติม ห้ามใส่ Markdown code blocks`;
 
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
@@ -220,10 +219,12 @@
                 
                 renderEditor();
                 renderPreview();
+                updateKeyStatus(true);
             } catch (e) {
-                alert('AI ขัดข้อง: โปรดตรวจสอบว่า API Key ถูกต้องหรือไม่ (' + e.message + ')');
+                alert('AI ขัดข้อง: ' + e.message);
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
-            document.getElementById('loadingOverlay').style.display = 'none';
         }
 
         function renderPreview() {
