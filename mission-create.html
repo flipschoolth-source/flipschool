@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mission Creator ✨ - FlipSchool</title>
+    <title>AI Mission Designer ✨ - FlipSchool</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
@@ -14,62 +14,88 @@
     <style>
         :root { --primary: #00008B; --accent: #8e44ad; --bg: #f2f4f7; }
         body { margin:0; font-family: 'Sarabun', sans-serif; background: var(--bg); color: #333; }
+        
         header { 
             background: linear-gradient(135deg, var(--primary), #2a5298);
             color: white; text-align: center; padding: 40px 20px 70px;
-            border-radius: 0 0 50px 50px;
+            border-radius: 0 0 50px 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
+
         main { 
             max-width: 1300px; margin: -50px auto 50px; padding: 0 20px;
             display: grid; grid-template-columns: 1fr 450px; gap: 30px;
         }
+
         @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
-        .card { background: #fff; border-radius: 30px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.3); }
-        label { font-family: 'Kanit'; font-weight: 500; display: block; margin-bottom: 10px; }
-        input, textarea { width: 100%; padding: 15px; border-radius: 18px; border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; font-size: 15px; }
-        
+
+        .card { 
+            background: #fff; border-radius: 30px; padding: 30px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        label { font-family: 'Kanit'; font-weight: 500; display: block; margin-bottom: 10px; font-size: 16px; }
+
+        input, textarea { 
+            width: 100%; padding: 15px; border-radius: 18px; border: 1px solid #ddd;
+            box-sizing: border-box; font-family: inherit; font-size: 15px; transition: 0.3s;
+        }
+
+        textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 15px rgba(142,68,173,0.1); }
+
         .btn-magic { 
             background: linear-gradient(135deg, #8e44ad, #6c5ce7);
             color: white; border: none; padding: 18px; border-radius: 20px;
             font-family: 'Kanit'; font-size: 18px; cursor: pointer; width: 100%;
             transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 12px;
+            box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3);
         }
-        .btn-magic:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3); }
 
-        .phone { background: #111; border-radius: 55px; padding: 15px; height: 720px; border: 5px solid #333; position: sticky; top: 20px; }
+        .btn-magic:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(108, 92, 231, 0.4); }
+
+        .phone { 
+            background: #111; border-radius: 55px; padding: 15px; 
+            height: 750px; position: sticky; top: 20px;
+            border: 6px solid #333; box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+        }
+
         .screen { background: #fff; border-radius: 40px; height: 100%; overflow: hidden; position: relative; }
         iframe { width: 100%; height: 100%; border: none; background: white; }
 
-        /* Loader Animation */
-        .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #8e44ad; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 15px; color: #666; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; }
+        .dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1 style="font-family: 'Kanit'; margin: 0;">AI Mission Designer ✨</h1>
-    <p>สร้างสื่อการสอนด้วยพลัง Gemini ผ่าน Supabase Edge Functions</p>
+    <h1 style="font-family: 'Kanit'; margin: 0; font-size: 32px;">AI Mission Designer ✨</h1>
+    <p>เนรมิตสื่อการสอน Interactive ระดับ Gemini Pro</p>
 </header>
 
 <main>
     <section>
         <div class="card">
-            <label><i class="fas fa-heading"></i> 1. ชื่อภารกิจ</label>
-            <input type="text" id="missionTitle" placeholder="เช่น ท่องแดนไดโนเสาร์">
+            <div class="status-bar">
+                <div id="statusDot" class="dot"></div>
+                <span id="statusText">กำลังเตรียมระบบ...</span>
+            </div>
+
+            <label><i class="fas fa-heading"></i> 1. ชื่อภารกิจ (Title)</label>
+            <input type="text" id="missionTitle" placeholder="เช่น การผจญภัยในระบบสุริยะ">
             
-            <label style="margin-top: 20px;"><i class="fas fa-comment-dots"></i> 2. สั่งการ AI (Prompt)</label>
-            <textarea id="aiPrompt" rows="5" placeholder="อธิบายสื่อที่ต้องการ... AI จะเขียน Code HTML/JS ให้ทันที"></textarea>
+            <label style="margin-top: 20px;"><i class="fas fa-wand-sparkles"></i> 2. สั่งการ AI (Prompt)</label>
+            <textarea id="aiPrompt" rows="6" placeholder="อธิบายสื่อที่ต้องการ... เช่น สร้างมินิเกมเลือกคำตอบเรื่องวัฏจักรน้ำ มีแอนิเมชันสวยๆ และใช้ภาษาไทย"></textarea>
             
-            <button class="btn-magic" style="margin-top: 25px;" onclick="generateByAI()">
+            <button class="btn-magic" id="btnGenerate" onclick="generateWithAI()" style="margin-top: 25px;">
                 <i class="fas fa-bolt"></i> เริ่มรังสรรค์ด้วย AI
             </button>
         </div>
 
         <div id="saveArea" class="card" style="margin-top: 20px; display: none;">
-            <button onclick="saveMission()" style="background: #00b894; border:none; padding:15px; border-radius:15px; color:white; width:100%; font-family:Kanit; cursor:pointer;">
-                <i class="fas fa-save"></i> บันทึกลงห้องเรียน
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;"><i class="fas fa-check-circle"></i> AI สร้างสื่อสำเร็จ! ตรวจสอบพรีวิวด้านขวา</p>
+            <button onclick="saveMission()" style="background: #00b894; border:none; padding:18px; border-radius:15px; color:white; width:100%; font-family:Kanit; cursor:pointer; font-size: 18px;">
+                <i class="fas fa-save"></i> บันทึกลงฐานข้อมูลห้องเรียน
             </button>
         </div>
     </section>
@@ -84,58 +110,72 @@
 </main>
 
 <script>
-    let supabaseClient;
+    let supabaseClient = null;
     let currentHTML = "";
 
-    // 1. Initialize Supabase เมื่อหน้าเว็บโหลด
+    // 1. เริ่มต้นระบบเมื่อหน้าเว็บโหลด
     window.addEventListener('load', () => {
         try {
-            if (typeof APP_CONFIG === 'undefined') throw new Error("ไม่พบ APP_CONFIG ใน js/config.js");
+            if (typeof APP_CONFIG === 'undefined') throw new Error("ไม่พบตัวแปร APP_CONFIG ใน js/config.js");
             
+            // เชื่อมต่อ Supabase
             supabaseClient = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
-            console.log("Supabase Ready ✅");
+            
+            document.getElementById('statusDot').classList.add('on');
+            document.getElementById('statusText').textContent = "ระบบ AI พร้อมใช้งาน ✅";
+            
             if (typeof initAppUI === 'function') initAppUI();
         } catch (err) {
-            alert("ระบบขัดข้อง: " + err.message);
+            document.getElementById('statusText').textContent = "ระบบขัดข้อง: " + err.message;
+            alert("Initialization Error: " + err.message);
         }
     });
 
-    // 2. ฟังก์ชันเรียก Edge Function
-    async function generateByAI() {
-        if (!supabaseClient) return alert("ระบบยังไม่พร้อม");
+    // 2. ฟังก์ชันเรียก AI ผ่าน Edge Function
+    async function generateWithAI() {
+        if (!supabaseClient) return alert("ระบบยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ");
 
         const prompt = document.getElementById('aiPrompt').value;
         const title = document.getElementById('missionTitle').value;
-        if (!prompt || !title) return alert("กรุณากรอกข้อมูลให้ครบ");
+        if (!prompt || !title) return alert("กรุณากรอกชื่อภารกิจและคำสั่ง AI");
 
         const preview = document.getElementById('preview');
+        const btn = document.getElementById('btnGenerate');
+        
+        // แสดง Loading ใน Preview
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังรังสรรค์...';
         preview.srcdoc = `
-            <div class="loader-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
-                <div style="border:4px solid #f3f3f3; border-top:4px solid #8e44ad; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
-                <h3 style="margin-top:15px; color:#555;">AI กำลังสร้างสื่อการสอน...</h3>
+            <body style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; background:#f9f9f9; text-align:center;">
+                <div style="border: 5px solid #f3f3f3; border-top: 5px solid #8e44ad; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+                <h3 style="color:#2a5298; margin-top:20px;">AI กำลังเนรมิตสื่อการสอน...</h3>
+                <p style="color:#666; font-size:14px;">โปรดรอนะครับ ผลงานระดับ Gemini Pro กำลังเดินทางมา</p>
                 <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-            </div>`;
+            </body>`;
 
         try {
-            // เรียก Edge Function 'generate-mission'
+            // เรียก Edge Function
             const { data, error } = await supabaseClient.functions.invoke('generate-mission', {
                 body: { prompt: prompt }
             });
 
             if (error) throw error;
-            if (!data || !data.html) throw new Error("AI ไม่ส่งข้อมูลกลับมา");
+            if (!data || !data.html) throw new Error("AI ไม่ส่งข้อมูลกลับมา (โปรดเช็คโควตา API)");
 
             currentHTML = data.html;
             preview.srcdoc = currentHTML;
             document.getElementById('saveArea').style.display = 'block';
 
         } catch (e) {
-            console.error(e);
-            preview.srcdoc = `<body style='padding:20px; font-family:sans-serif; color:red;'><h3>❌ เกิดข้อผิดพลาด</h3><p>${e.message}</p></body>`;
+            console.error("AI Error:", e);
+            preview.srcdoc = `<body style="padding:20px; font-family:sans-serif; color:red;"><h3>❌ เกิดข้อผิดพลาด</h3><p>${e.message}</p></body>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-bolt"></i> เริ่มรังสรรค์ด้วย AI';
         }
     }
 
-    // 3. ฟังก์ชันบันทึกข้อมูลลง Table 'missions'
+    // 3. ฟังก์ชันบันทึกลงฐานข้อมูล
     async function saveMission() {
         const title = document.getElementById('missionTitle').value;
         const cid = new URLSearchParams(window.location.search).get('cid');
@@ -154,7 +194,7 @@
 
             if (error) throw error;
 
-            alert("บันทึกภารกิจสำเร็จ 🎉");
+            alert("บันทึกภารกิจสำเร็จ 🎉 นักเรียนสามารถเข้าเรียนได้ทันที");
             window.location.href = `classroom-detail.html?id=${cid}`;
         } catch (e) {
             alert("บันทึกไม่สำเร็จ: " + e.message);
