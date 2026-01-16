@@ -24,36 +24,41 @@
             display: grid; grid-template-columns: 1fr 420px; gap: 30px;
         }
         @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
-        .card { background: #fff; border-radius: 30px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        .card { background: #fff; border-radius: 30px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.3); }
+        label { font-family: 'Kanit'; font-weight: 500; display: block; margin-bottom: 10px; }
+        input, textarea { width: 100%; padding: 15px; border-radius: 18px; border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; font-size: 15px; }
+        
         .btn-magic { 
             background: linear-gradient(135deg, #8e44ad, #6c5ce7);
             color: white; border: none; padding: 18px; border-radius: 20px;
             font-family: 'Kanit'; font-size: 18px; cursor: pointer; width: 100%;
+            transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 12px;
         }
-        .phone { background: #111; border-radius: 55px; padding: 12px; height: 720px; border: 5px solid #333; }
-        .screen { background: #fff; border-radius: 40px; height: 100%; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
-        input, textarea { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; margin-top: 10px; box-sizing: border-box; }
+        .btn-magic:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3); }
+
+        .phone { background: #111; border-radius: 55px; padding: 15px; height: 720px; border: 5px solid #333; position: sticky; top: 20px; }
+        .screen { background: #fff; border-radius: 40px; height: 100%; overflow: hidden; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; background: white; }
     </style>
 </head>
 <body>
 
 <header>
     <h1 style="font-family: 'Kanit'; margin: 0;">AI Mission Designer ✨</h1>
-    <p>สร้างสื่อ Interactive ผ่าน Supabase Edge Function</p>
+    <p>เนรมิตสื่อการสอน Interactive ผ่าน Supabase Edge Function</p>
 </header>
 
 <main>
     <section>
         <div class="card">
-            <label><b>1. ชื่อภารกิจ</b></label>
-            <input type="text" id="missionTitle" placeholder="เช่น สรุปเรื่องแรงโน้มถ่วง">
+            <label><i class="fas fa-heading"></i> 1. ชื่อภารกิจ</label>
+            <input type="text" id="missionTitle" placeholder="เช่น การเดินทางของหยดน้ำ">
             
-            <label style="margin-top: 20px; display: block;"><b>2. สั่งการ AI</b></label>
-            <textarea id="aiPrompt" rows="5" placeholder="อธิบายสื่อที่ต้องการ... AI จะเขียน Code HTML/JS ให้ทันที"></textarea>
+            <label style="margin-top: 20px;"><i class="fas fa-comment-dots"></i> 2. สั่งการ AI (Prompt)</label>
+            <textarea id="aiPrompt" rows="5" placeholder="อธิบายสื่อที่ต้องการ... AI จะเขียน Code HTML/JS ให้เหมือนสั่งใน Gemini Pro"></textarea>
             
-            <button class="btn-magic" style="margin-top: 20px;" onclick="generateByAI()">
-                <i class="fas fa-bolt"></i> เริ่มรังสรรค์
+            <button class="btn-magic" style="margin-top: 25px;" onclick="generateByAI()">
+                <i class="fas fa-bolt"></i> เริ่มรังสรรค์ด้วย AI
             </button>
         </div>
 
@@ -74,37 +79,47 @@
 </main>
 
 <script>
-    // --- ประกาศตัวแปรไว้ด้านบนสุด ---
-    let supabase;
+    // --- ประกาศตัวแปร Global ---
+    let supabaseClient;
     let currentHTML = "";
 
-    // --- เริ่มต้น Client เมื่อทุกอย่างพร้อม ---
-    window.onload = function() {
+    // --- เริ่มต้น Client เมื่อโหลดหน้าเสร็จ ---
+    window.addEventListener('load', () => {
         try {
-            // ตรวจสอบว่ามี CONFIG หรือไม่
             if (typeof CONFIG === 'undefined') {
-                throw new Error("ไม่พบไฟล์ config.js หรือตัวแปร CONFIG");
+                throw new Error("ไม่พบตัวแปร CONFIG ในไฟล์ js/config.js");
             }
-            supabase = netlifyConfig = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-            console.log("Supabase Client Initialized ✅");
+            // สร้าง Client และเก็บใส่ตัวแปร Global
+            supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+            console.log("Supabase Initialized ✅");
         } catch (err) {
-            console.error("Initialization Error:", err);
+            console.error("Init Error:", err);
             alert("ระบบขัดข้อง: " + err.message);
         }
-    };
+    });
 
     async function generateByAI() {
-        if (!supabase) return alert("ระบบยังไม่พร้อม กรุณารอสักครู่");
+        // ตรวจสอบว่า Client พร้อมหรือยัง
+        if (!supabaseClient) {
+            alert("ระบบยังไม่พร้อม กรุณารอสักครู่หรือรีเฟรชหน้าเว็บ");
+            return;
+        }
 
         const prompt = document.getElementById('aiPrompt').value;
-        if (!prompt) return alert("กรุณากรอกคำสั่ง");
+        const title = document.getElementById('missionTitle').value;
+        if (!prompt || !title) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
         const preview = document.getElementById('preview');
-        preview.srcdoc = "<body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>⚡ AI กำลังสร้างสื่อการสอน...</h3></body>";
+        preview.srcdoc = `
+            <body style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;'>
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #8e44ad; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                <h3 style="margin-top:15px; color:#555;">⚡ กำลังเนรมิตสื่อการสอน...</h3>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            </body>`;
 
         try {
             // เรียก Edge Function
-            const { data, error } = await supabase.functions.invoke('generate-mission', {
+            const { data, error } = await supabaseClient.functions.invoke('generate-mission', {
                 body: { prompt: prompt }
             });
 
@@ -115,8 +130,8 @@
             document.getElementById('saveArea').style.display = 'block';
 
         } catch (e) {
-            console.error(e);
-            preview.srcdoc = `<body style='color:red; padding:20px;'><h3>Error</h3>${e.message}</body>`;
+            console.error("AI Error:", e);
+            preview.srcdoc = `<body style='color:red; padding:20px; font-family:sans-serif;'><h3>❌ เกิดข้อผิดพลาด</h3><p>${e.message}</p></body>`;
         }
     }
 
@@ -125,20 +140,22 @@
         const cid = new URLSearchParams(window.location.search).get('cid');
 
         if (!title || !currentHTML) return alert("ข้อมูลไม่ครบ");
-        if (!cid) return alert("ไม่พบรหัสห้องเรียนใน URL (?cid=...)");
+        if (!cid) return alert("ไม่พบรหัสห้องเรียน (?cid=...) ใน URL");
 
-        const { error } = await supabase.from('missions').insert({
-            classroom_id: cid,
-            title: title,
-            mission_type: 'canvas',
-            content_data: { html: currentHTML }
-        });
+        try {
+            const { error } = await supabaseClient.from('missions').insert({
+                classroom_id: cid,
+                title: title,
+                mission_type: 'canvas',
+                content_data: { html: currentHTML }
+            });
 
-        if (!error) {
-            alert("บันทึกสำเร็จ 🎉");
+            if (error) throw error;
+
+            alert("บันทึกภารกิจสำเร็จ 🎉");
             window.location.href = `classroom-detail.html?id=${cid}`;
-        } else {
-            alert("บันทึกไม่สำเร็จ: " + error.message);
+        } catch (e) {
+            alert("บันทึกไม่สำเร็จ: " + e.message);
         }
     }
 </script>
