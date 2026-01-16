@@ -1,181 +1,100 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mission Create | AI Magic Canvas</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-<style>
-body{margin:0;font-family:Sarabun;background:#f2f4f7}
-header{
-  background:linear-gradient(135deg,#141e30,#243b55);
-  color:#fff;text-align:center;
-  padding:35px 20px 70px;
-  border-radius:0 0 50px 50px
-}
-main{
-  max-width:1400px;margin:-40px auto 40px;
-  padding:0 20px;
-  display:grid;grid-template-columns:1fr 460px;gap:25px
-}
-@media(max-width:1024px){main{grid-template-columns:1fr}}
-.card{
-  background:#fff;border-radius:30px;padding:25px;
-  box-shadow:0 15px 35px rgba(0,0,0,.08);
-  margin-bottom:20px
-}
-label{font-family:Kanit;font-weight:500;margin-bottom:8px;display:block}
-input,textarea{
-  width:100%;padding:14px;border-radius:14px;
-  border:1px solid #ddd;font-size:15px
-}
-button{
-  width:100%;padding:14px;border:none;
-  border-radius:14px;background:#8e44ad;
-  color:#fff;font-family:Kanit;font-size:16px;
-  cursor:pointer;display:flex;gap:10px;
-  justify-content:center;align-items:center
-}
-button.secondary{background:#34495e}
-.api-status{display:flex;gap:8px;font-size:13px;margin-bottom:12px}
-.dot{width:10px;height:10px;border-radius:50%;background:#bbb}
-.dot.on{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
-.phone{
-  background:#111;border-radius:55px;padding:15px;
-  height:760px;position:sticky;top:20px
-}
-.screen{background:#fff;border-radius:40px;height:100%;overflow:hidden}
-iframe{width:100%;height:100%;border:none}
-#loadingOverlay{
-  position:fixed;inset:0;
-  background:rgba(255,255,255,.85);
-  display:none;align-items:center;justify-content:center;z-index:9999
-}
-.spinner{
-  width:48px;height:48px;border:5px solid #eee;
-  border-top-color:#8e44ad;border-radius:50%;
-  animation:spin 1s linear infinite
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+    <meta charset="UTF-8">
+    <title>AI Mission Creator | FlipSchool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script> 
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500&family=Sarabun&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #243b55; --accent: #8e44ad; }
+        body { margin:0; font-family: Sarabun; background:#f2f4f7; }
+        header { background: var(--primary); color:white; padding:30px; text-align:center; border-radius:0 0 40px 40px; }
+        main { max-width:1200px; margin:-30px auto 40px; padding:0 20px; display:grid; grid-template-columns: 1fr 420px; gap:20px; }
+        .card { background:#fff; border-radius:25px; padding:25px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+        .phone { background:#111; border-radius:45px; padding:12px; height:700px; position:sticky; top:20px; }
+        .screen { background:#fff; border-radius:35px; height:100%; overflow:hidden; }
+        iframe { width:100%; height:100%; border:none; }
+        button { background:var(--accent); color:white; border:none; padding:15px; border-radius:12px; cursor:pointer; width:100%; font-family:Kanit; font-size:16px; }
+    </style>
 </head>
-
 <body>
 
-<div id="loadingOverlay"><div class="spinner"></div></div>
-
-<header>
-  <h1 style="font-family:Kanit;margin:0">Mission Create ✨</h1>
-  <p>AI Magic Canvas (Stable API)</p>
-</header>
+<header><h1 style="margin:0; font-family:Kanit;">AI Mission Creator 🚀</h1></header>
 
 <main>
+    <section>
+        <div class="card">
+            <label style="font-family:Kanit">🎯 ชื่อภารกิจ</label>
+            <input id="missionTitle" style="width:100%; padding:12px; margin:10px 0; border-radius:10px; border:1px solid #ddd;">
+            
+            <label style="font-family:Kanit">💡 คำสั่ง AI (Prompt)</label>
+            <textarea id="aiPrompt" rows="5" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-top:10px;" placeholder="เช่น สร้างมินิเกมสอนเรื่องวัฏจักรน้ำ"></textarea>
+            
+            <button onclick="generateWithEdge()" style="margin-top:20px;">✨ เริ่มรังสรรค์ด้วย AI</button>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+            <button onclick="saveMission()" style="background:#2ecc71;">💾 บันทึกลงห้องเรียน</button>
+        </div>
+    </section>
 
-<section>
-
-<div class="card">
-  <div class="api-status">
-    <div id="dot" class="dot"></div>
-    <span id="statusText">ยังไม่ได้ทดสอบ API</span>
-  </div>
-
-  <label>🔑 Gemini API Key</label>
-  <input type="password" id="geminiKey" placeholder="AIzaSy...">
-  <button class="secondary" onclick="testKey()">ทดสอบ API Key</button>
-</div>
-
-<div class="card">
-  <label>🤖 โมเดล</label>
-  <input value="gemini-1.0-pro (Stable)" disabled>
-</div>
-
-<div class="card">
-  <label>🎨 คำสั่งสร้างสื่อ</label>
-  <textarea id="prompt" rows="6"></textarea>
-  <button onclick="generate()">
-    <i class="fas fa-wand-magic-sparkles"></i> สร้างสื่อ
-  </button>
-</div>
-
-</section>
-
-<aside>
-
-<div class="phone">
-  <div class="screen">
-    <iframe id="preview"
-      srcdoc="<body style='display:flex;align-items:center;justify-content:center;height:100vh;color:#aaa'>Preview</body>">
-    </iframe>
-  </div>
-</div>
-
-</aside>
-
+    <aside>
+        <div class="phone">
+            <div class="screen">
+                <iframe id="preview"></iframe>
+            </div>
+        </div>
+    </aside>
 </main>
 
 <script>
-const API_BASE = "https://generativelanguage.googleapis.com/v1";
-const MODEL = "gemini-1.0-pro";
+// ใช้ค่าจาก js/config.js ของคุณ
+const supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+let currentHTML = "";
 
-function loading(v){
-  document.getElementById("loadingOverlay").style.display = v?"flex":"none";
-}
+async function generateWithEdge() {
+    const prompt = document.getElementById('aiPrompt').value;
+    if(!prompt) return alert("กรุณากรอกคำสั่ง");
 
-async function testKey(){
-  const key = geminiKey.value.trim();
-  if(!key) return alert("ใส่ API Key ก่อน");
+    // แสดงสถานะ Loading
+    document.getElementById('preview').srcdoc = "<html><body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h3>⚡ กำลังสร้างสื่อการสอนอัจฉริยะ...</h3></body></html>";
 
-  loading(true);
-  try{
-    const r = await fetch(
-      `${API_BASE}/models/${MODEL}:generateContent?key=${key}`,
-      {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          contents:[{parts:[{text:"ping"}]}]
-        })
-      }
-    );
-    const j = await r.json();
-    if(j.error) throw j.error;
+    try {
+        // เรียก Edge Function แทนการเรียก Google ตรงๆ
+        const { data, error } = await supabase.functions.invoke('generate-mission', {
+            body: { prompt: prompt }
+        });
 
-    dot.classList.add("on");
-    statusText.textContent = "API ใช้งานได้ ✔";
-  }catch(e){
-    dot.classList.remove("on");
-    statusText.textContent = "API ใช้งานไม่ได้ ❌";
-    alert(e.message);
-  }
-  loading(false);
-}
+        if (error) throw error;
 
-async function generate(){
-  const key = geminiKey.value.trim();
-  const text = prompt.value.trim();
-  if(!key||!text) return alert("ข้อมูลไม่ครบ");
-
-  loading(true);
-  preview.srcdoc="กำลังสร้าง...";
-
-  const r = await fetch(
-    `${API_BASE}/models/${MODEL}:generateContent?key=${key}`,
-    {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        contents:[{parts:[{text:text}]}]
-      })
+        currentHTML = data.html;
+        document.getElementById('preview').srcdoc = currentHTML;
+    } catch (e) {
+        alert("เกิดข้อผิดพลาด: " + e.message);
     }
-  );
-  const j = await r.json();
-  preview.srcdoc = j.candidates[0].content.parts[0].text;
-  loading(false);
+}
+
+async function saveMission() {
+    const title = document.getElementById('missionTitle').value;
+    const cid = new URLSearchParams(location.search).get('cid'); // classroom_id จาก URL
+
+    if(!title || !currentHTML) return alert("ข้อมูลไม่ครบ");
+
+    const { error } = await supabase.from('missions').insert({
+        classroom_id: cid,
+        title: title,
+        mission_type: 'canvas',
+        content_data: { html: currentHTML },
+        reward_points: 20
+    });
+
+    if(!error) {
+        alert("บันทึกภารกิจสำเร็จ! 🎉");
+    } else {
+        alert("บันทึกไม่สำเร็จ: " + error.message);
+    }
 }
 </script>
-
 </body>
 </html>
