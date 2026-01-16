@@ -12,50 +12,46 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --primary: #1e3c72; --accent: #8e44ad; --bg: #f2f4f7; }
+        :root { --primary: #00008B; --accent: #8e44ad; --bg: #f2f4f7; }
         body { margin:0; font-family: 'Sarabun', sans-serif; background: var(--bg); color: #333; }
         header { 
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: linear-gradient(135deg, var(--primary), #2a5298);
             color: white; text-align: center; padding: 40px 20px 70px;
             border-radius: 0 0 50px 50px;
         }
         main { 
             max-width: 1300px; margin: -50px auto 50px; padding: 0 20px;
-            display: grid; grid-template-columns: 1fr 420px; gap: 30px;
+            display: grid; grid-template-columns: 1fr 450px; gap: 30px;
         }
         @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
-        .card { background: #fff; border-radius: 30px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.3); }
-        label { font-family: 'Kanit'; font-weight: 500; display: block; margin-bottom: 10px; }
-        input, textarea { width: 100%; padding: 15px; border-radius: 18px; border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; font-size: 15px; }
-        
+        .card { background: #fff; border-radius: 30px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
         .btn-magic { 
             background: linear-gradient(135deg, #8e44ad, #6c5ce7);
             color: white; border: none; padding: 18px; border-radius: 20px;
-            font-family: 'Kanit'; font-size: 18px; cursor: pointer; width: 100%;
-            transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 12px;
+            font-family: 'Kanit'; font-size: 18px; cursor: pointer; width: 100%; transition: 0.3s;
         }
         .btn-magic:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3); }
-
-        .phone { background: #111; border-radius: 55px; padding: 15px; height: 720px; border: 5px solid #333; position: sticky; top: 20px; }
+        .phone { background: #111; border-radius: 55px; padding: 12px; height: 750px; border: 5px solid #333; position: sticky; top: 20px; }
         .screen { background: #fff; border-radius: 40px; height: 100%; overflow: hidden; position: relative; }
         iframe { width: 100%; height: 100%; border: none; background: white; }
+        input, textarea { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; margin-top: 10px; box-sizing: border-box; font-family: inherit; }
     </style>
 </head>
 <body>
 
 <header>
     <h1 style="font-family: 'Kanit'; margin: 0;">AI Mission Designer ✨</h1>
-    <p>เนรมิตสื่อการสอน Interactive ผ่าน Supabase Edge Function</p>
+    <p>สร้างสื่อการสอนอัจฉริยะ (GLORY Model Ecosystem)</p>
 </header>
 
 <main>
     <section>
         <div class="card">
-            <label><i class="fas fa-heading"></i> 1. ชื่อภารกิจ</label>
-            <input type="text" id="missionTitle" placeholder="เช่น การเดินทางของหยดน้ำ">
+            <label style="font-family: 'Kanit';"><b><i class="fas fa-heading"></i> 1. ชื่อภารกิจ</b></label>
+            <input type="text" id="missionTitle" placeholder="เช่น การทดลองของนักวิทยาศาสตร์น้อย">
             
-            <label style="margin-top: 20px;"><i class="fas fa-comment-dots"></i> 2. สั่งการ AI (Prompt)</label>
-            <textarea id="aiPrompt" rows="5" placeholder="อธิบายสื่อที่ต้องการ... AI จะเขียน Code HTML/JS ให้เหมือนสั่งใน Gemini Pro"></textarea>
+            <label style="margin-top: 20px; display: block; font-family: 'Kanit';"><b><i class="fas fa-magic"></i> 2. คำสั่ง AI (Prompt)</b></label>
+            <textarea id="aiPrompt" rows="6" placeholder="อธิบายสื่อที่ต้องการ... เช่น สร้างแอนิเมชันวัฏจักรน้ำ และมีปุ่มกดอ่านความรู้"></textarea>
             
             <button class="btn-magic" style="margin-top: 25px;" onclick="generateByAI()">
                 <i class="fas fa-bolt"></i> เริ่มรังสรรค์ด้วย AI
@@ -64,7 +60,7 @@
 
         <div id="saveArea" class="card" style="margin-top: 20px; display: none;">
             <button onclick="saveMission()" style="background: #00b894; border:none; padding:15px; border-radius:15px; color:white; width:100%; font-family:Kanit; cursor:pointer;">
-                <i class="fas fa-save"></i> บันทึกลงห้องเรียน
+                <i class="fas fa-save"></i> บันทึกลงฐานข้อมูลห้องเรียน
             </button>
         </div>
     </section>
@@ -79,46 +75,41 @@
 </main>
 
 <script>
-    // --- ประกาศตัวแปร Global ---
-    let supabaseClient;
+    let supabaseClient = null;
     let currentHTML = "";
 
-    // --- เริ่มต้น Client เมื่อโหลดหน้าเสร็จ ---
+    // --- เชื่อมต่อกับตัวแปร APP_CONFIG จาก js/config.js ---
     window.addEventListener('load', () => {
         try {
-            if (typeof CONFIG === 'undefined') {
-                throw new Error("ไม่พบตัวแปร CONFIG ในไฟล์ js/config.js");
+            if (typeof APP_CONFIG === 'undefined') {
+                throw new Error("ไม่พบตัวแปร APP_CONFIG ในไฟล์ js/config.js");
             }
-            // สร้าง Client และเก็บใส่ตัวแปร Global
-            supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-            console.log("Supabase Initialized ✅");
+            
+            // ใช้ชื่อตัวแปรให้ตรงกับไฟล์ของคุณ
+            supabaseClient = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
+            console.log("FlipSchool Supabase Client Ready ✅");
+            
+            // เรียกฟังก์ชัน UI ของคุณ (ถ้ามี)
+            if(typeof initAppUI === 'function') initAppUI();
+
         } catch (err) {
-            console.error("Init Error:", err);
+            console.error("Initialization Error:", err);
             alert("ระบบขัดข้อง: " + err.message);
         }
     });
 
     async function generateByAI() {
-        // ตรวจสอบว่า Client พร้อมหรือยัง
-        if (!supabaseClient) {
-            alert("ระบบยังไม่พร้อม กรุณารอสักครู่หรือรีเฟรชหน้าเว็บ");
-            return;
-        }
+        if (!supabaseClient) return alert("ระบบยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ");
 
         const prompt = document.getElementById('aiPrompt').value;
         const title = document.getElementById('missionTitle').value;
         if (!prompt || !title) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
         const preview = document.getElementById('preview');
-        preview.srcdoc = `
-            <body style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;'>
-                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #8e44ad; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
-                <h3 style="margin-top:15px; color:#555;">⚡ กำลังเนรมิตสื่อการสอน...</h3>
-                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-            </body>`;
+        preview.srcdoc = "<body style='display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;'><h3>⚡ AI กำลังร่ายมนตร์สร้างสื่อ...</h3></body>";
 
         try {
-            // เรียก Edge Function
+            // เรียก Edge Function 'generate-mission'
             const { data, error } = await supabaseClient.functions.invoke('generate-mission', {
                 body: { prompt: prompt }
             });
@@ -131,7 +122,7 @@
 
         } catch (e) {
             console.error("AI Error:", e);
-            preview.srcdoc = `<body style='color:red; padding:20px; font-family:sans-serif;'><h3>❌ เกิดข้อผิดพลาด</h3><p>${e.message}</p></body>`;
+            preview.srcdoc = `<body style='color:red; padding:20px;'><h3>❌ เกิดข้อผิดพลาด</h3><p>${e.message}</p></body>`;
         }
     }
 
@@ -147,13 +138,15 @@
                 classroom_id: cid,
                 title: title,
                 mission_type: 'canvas',
-                content_data: { html: currentHTML }
+                content_data: { html: currentHTML },
+                reward_points: 20
             });
 
             if (error) throw error;
 
-            alert("บันทึกภารกิจสำเร็จ 🎉");
+            alert("บันทึกภารกิจลงห้องเรียนสำเร็จ 🎉");
             window.location.href = `classroom-detail.html?id=${cid}`;
+
         } catch (e) {
             alert("บันทึกไม่สำเร็จ: " + e.message);
         }
