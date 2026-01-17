@@ -178,11 +178,14 @@
 </div>
 
 <script>
-  // 🔐 CONFIG (Production)
+  // 🔐 CONFIG
   const SUPABASE_URL = "https://hznmvaxjlgjnrvtjosdt.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE";
 
-  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const _supabase = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 
   async function generateMission() {
     const promptEl = document.getElementById("prompt");
@@ -190,52 +193,61 @@
     const status = document.getElementById("status");
     const btn = document.getElementById("generateBtn");
 
-    // ดึง cid จาก URL
     const urlParams = new URLSearchParams(window.location.search);
-    const cid = urlParams.get('cid');
+    const cid = urlParams.get("cid") || "demo";
 
     const prompt = promptEl.value.trim();
     if (!prompt) {
-      alert("กรุณาพิมพ์หัวข้อบทเรียนที่ต้องการสร้างครับ");
+      alert("กรุณาพิมพ์หัวข้อบทเรียน");
       return;
     }
 
-    // เริ่มการทำงาน
     btn.disabled = true;
     status.style.color = "white";
-    status.textContent = "⏳ กำลังส่งข้อมูลให้ AI ประมวลผล...";
-    preview.srcdoc = `
-      <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Sarabun',sans-serif;flex-direction:column;gap:15px;color:#64748b;">
-        <div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #7c3aed;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <p>Gemini กำลังออกแบบบทเรียนให้คุณ...</p>
-        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-      </div>
-    `;
+    status.textContent = "⏳ กำลังสร้าง Mission...";
+    preview.srcdoc = "<p style='padding:20px'>กำลังโหลด...</p>";
 
     try {
-      // เรียกใช้ Edge Function "generate-mission"
-      const { data, error } = await _supabase.functions.invoke("generate-mission", {
-        body: { 
-            prompt: prompt,
-            cid: cid // ส่ง Course ID ไปด้วย
-        }
-      });
+      const { data, error } =
+        await _supabase.functions.invoke("generate-mission", {
+          body: { prompt, cid },
+        });
 
-      if (error) throw error;
-
-      if (data && data.html) {
-        preview.srcdoc = data.html;
-        status.textContent = "✅ สร้าง Mission สำเร็จแล้ว!";
-        status.style.color = "#4ade80";
-      } else {
-        throw new Error("ไม่ได้รับข้อมูล HTML จากระบบ");
+      if (error) {
+        throw new Error(error.message || "Function error");
       }
 
+      // 🔑 จุดสำคัญ: รับข้อมูลให้ยืดหยุ่น
+      let html = "";
+
+      if (typeof data === "string") {
+        html = data;
+      } else if (data?.html) {
+        html = data.html;
+      } else if (data?.content) {
+        html = data.content;
+      }
+
+      if (!html) {
+        throw new Error("Function ตอบกลับมา แต่ไม่มี HTML");
+      }
+
+      preview.srcdoc = html;
+      status.textContent = "✅ สร้าง Mission สำเร็จแล้ว!";
+      status.style.color = "#4ade80";
+
     } catch (err) {
-      console.error("Error details:", err);
-      status.textContent = "❌ เกิดข้อผิดพลาด: " + (err.message || "กรุณาลองใหม่อีกครั้ง");
+      console.error(err);
+      status.textContent =
+        "❌ เกิดข้อผิดพลาด: " + (err.message || "ไม่ทราบสาเหตุ");
       status.style.color = "#f87171";
-      preview.srcdoc = `<div style="padding:20px;font-family:Sarabun;color:#f87171;"><h3>เกิดข้อผิดพลาด</h3><p>${err.message}</p></div>`;
+
+      preview.srcdoc = `
+        <div style="padding:20px;font-family:Sarabun;color:#f87171">
+          <h3>เกิดข้อผิดพลาด</h3>
+          <p>${err.message}</p>
+        </div>
+      `;
     } finally {
       btn.disabled = false;
     }
