@@ -12,30 +12,32 @@ serve(async (req) => {
     const { prompt } = await req.json();
     const apiKey = Deno.env.get("GEMINI_API_KEY");
 
+    // เรียก Gemini ให้สร้างเนื้อหาเป็น HTML โดยตรง
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `จงสร้างบทเรียนเรื่อง: ${prompt} โดยเขียนเป็น HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่านสำหรับเด็ก` }] }],
+          contents: [{ parts: [{ text: `จงสร้างบทเรียนเรื่อง ${prompt} เป็นรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่าน` }] }],
         }),
       }
     );
 
     const result = await response.json();
-    let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ไม่สามารถสร้างเนื้อหาได้</h3>";
+    let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ขออภัย ไม่สามารถสร้างเนื้อหาได้ในขณะนี้</h3>";
     
-    // ลบสัญลักษณ์ ```html ที่ AI มักแถมมาออกเพื่อให้แสดงผลได้ทันที
+    // ลบสัญลักษณ์ ```html ที่ Gemini มักจะแถมมาออก
     htmlContent = htmlContent.replace(/```html|```/g, "");
 
+    // ส่งกลับในรูปแบบ JSON ที่มี key ชื่อ html (เพื่อให้ตรงกับ data.html ในหน้าเว็บ)
     return new Response(JSON.stringify({ html: htmlContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ html: `<h3>เกิดข้อผิดพลาด: ${error.message}</h3>` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200, 
     });
