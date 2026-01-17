@@ -18,7 +18,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `จงสร้างบทเรียนภาษาไทยเรื่อง: ${prompt} ให้เขียนในรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่านสำหรับเด็ก` }] }],
+          contents: [{ parts: [{ text: `จงสร้างบทเรียนเรื่อง: ${prompt} โดยเขียนเป็น HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่านสำหรับเด็ก` }] }],
         }),
       }
     );
@@ -26,7 +26,7 @@ serve(async (req) => {
     const result = await response.json();
     let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ไม่สามารถสร้างเนื้อหาได้</h3>";
     
-    // ลบส่วนเกินที่ Gemini มักจะแถมมา (เช่น ```html)
+    // ลบสัญลักษณ์ ```html ที่ AI มักแถมมาออกเพื่อให้แสดงผลได้ทันที
     htmlContent = htmlContent.replace(/```html|```/g, "");
 
     return new Response(JSON.stringify({ html: htmlContent }), {
@@ -37,7 +37,7 @@ serve(async (req) => {
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      status: 200, 
     });
   }
 });
