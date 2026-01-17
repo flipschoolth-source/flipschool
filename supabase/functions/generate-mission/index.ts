@@ -11,35 +11,41 @@ serve(async (req) => {
   try {
     const { prompt } = await req.json();
     const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
 
-    // เรียก Gemini ให้สร้างเนื้อหาเป็น HTML โดยตรง
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    // เปลี่ยนมาใช้รุ่น gemini-1.5-flash เพื่อความเสถียรและความเร็ว
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `จงสร้างบทเรียนเรื่อง ${prompt} เป็นรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่าน` }] }],
+          contents: [{
+            role: "user",
+            parts: [{ text: `คุณคือครูประถม เขียนเนื้อหาบทเรียนสำหรับเด็ก หัวข้อ: ${prompt} โครงสร้าง: ชื่อบทเรียน, คำอธิบาย, เนื้อหา, กิจกรรม, คำถามท้ายบท 3 ข้อ ตอบเป็นข้อความล้วน ไม่ใช้ markdown` }]
+          }]
         }),
       }
     );
 
-    const result = await response.json();
-    let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ขออภัย ไม่สามารถสร้างเนื้อหาได้ในขณะนี้</h3>";
-    
-    // ลบสัญลักษณ์ ```html ที่ Gemini มักจะแถมมาออก
-    htmlContent = htmlContent.replace(/```html|```/g, "");
+    if (!geminiRes.ok) throw new Error("Gemini API error: " + await geminiRes.text());
 
-    // ส่งกลับในรูปแบบ JSON ที่มี key ชื่อ html (เพื่อให้ตรงกับ data.html ในหน้าเว็บ)
-    return new Response(JSON.stringify({ html: htmlContent }), {
+    const geminiData = await geminiRes.json();
+    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "ไม่ได้รับเนื้อหา";
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head><meta charset="UTF-8"><style>body{font-family:Sarabun,sans-serif;padding:20px;line-height:1.7}h1{color:#7c3aed}h2{margin-top:20px}</style></head>
+      <body>
+      ${rawText.replace(/ชื่อบทเรียน:/g, "<h1>📘 ชื่อบทเรียน</h1>").replace(/คำอธิบาย:/g, "<h2>📝 คำอธิบาย</h2>").replace(/เนื้อหา:/g, "<h2>📚 เนื้อหา</h2>").replace(/กิจกรรม:/g, "<h2>🎯 กิจกรรม</h2>").replace(/คำถามท้ายบท:/g, "<h2>❓ คำถามท้ายบท</h2>").replace(/\n/g, "<br>")}
+      </body></html>`;
+
+    return new Response(JSON.stringify({ html }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
 
-  } catch (error) {
-    return new Response(JSON.stringify({ html: `<h3>เกิดข้อผิดพลาด: ${error.message}</h3>` }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, 
-    });
+  } catch (e) {
+    return new Response(JSON.stringify({ html: `<div style="color:red;font-family:Sarabun"><h3>เกิดข้อผิดพลาด</h3><p>${e.message}</p></div>` }), { headers: corsHeaders });
   }
 });
