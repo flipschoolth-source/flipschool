@@ -18,16 +18,15 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `จงสร้างบทเรียนวิชาภาษาไทยเรื่อง ${prompt} โดยเขียนในรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และใส่สไตล์ให้ดูน่าอ่านสำหรับเด็ก` }] }],
+          contents: [{ parts: [{ text: `จงสร้างบทเรียนภาษาไทยเรื่อง: ${prompt} ให้เขียนในรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และจัดรูปแบบให้น่าอ่านสำหรับเด็ก` }] }],
         }),
       }
     );
 
     const result = await response.json();
-    // ดึงข้อความ HTML จาก Gemini โดยตรง
     let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ไม่สามารถสร้างเนื้อหาได้</h3>";
     
-    // ลบสัญลักษณ์ ```html ที่ Gemini มักแถมมาออก
+    // ลบส่วนเกินที่ Gemini มักจะแถมมา (เช่น ```html)
     htmlContent = htmlContent.replace(/```html|```/g, "");
 
     return new Response(JSON.stringify({ html: htmlContent }), {
@@ -38,7 +37,7 @@ serve(async (req) => {
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, 
+      status: 200,
     });
   }
 });
