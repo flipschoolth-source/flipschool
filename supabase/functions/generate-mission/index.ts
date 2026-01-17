@@ -6,72 +6,39 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // 1. จัดการ Preflight (แก้ปัญหา 200 Preflight ที่คุณเจอ)
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const { prompt } = await req.json();
     const apiKey = Deno.env.get("GEMINI_API_KEY");
 
-    // ตรวจสอบ Secret (ถ้าไม่มีจะแจ้ง Error ชัดเจน ไม่ปล่อยให้พังเป็น 500)
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Supabase Secrets" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 2. เรียก Gemini API
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `สร้างบทเรียนเป็นรูปแบบ JSON เท่านั้น: ${prompt}` }] }],
-          generationConfig: { 
-            responseMimeType: "application/json",
-            temperature: 0.7 
-          }
+          contents: [{ parts: [{ text: `จงสร้างบทเรียนวิชาภาษาไทยเรื่อง ${prompt} โดยเขียนในรูปแบบ HTML ที่สวยงาม ใช้ฟอนต์ Sarabun และใส่สไตล์ให้ดูน่าอ่านสำหรับเด็ก` }] }],
         }),
       }
     );
 
-    if (!response.ok) {
-      const errorDetail = await response.text();
-      throw new Error(`Gemini API Error: ${errorDetail}`);
-    }
-
-    const data = await response.json();
-    const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = await response.json();
+    // ดึงข้อความ HTML จาก Gemini โดยตรง
+    let htmlContent = result.candidates?.[0]?.content?.parts?.[0]?.text || "<h3>ไม่สามารถสร้างเนื้อหาได้</h3>";
     
-    if (!rawJson) throw new Error("Gemini ไม่ส่งข้อมูลรูปแบบ JSON กลับมา");
+    // ลบสัญลักษณ์ ```html ที่ Gemini มักแถมมาออก
+    htmlContent = htmlContent.replace(/```html|```/g, "");
 
-    const lesson = JSON.parse(rawJson);
-    
-    // 3. ส่ง HTML กลับ (ใช้ฟังก์ชัน buildMissionHTML เดิม)
-    const html = `
-      <div style="font-family:'Sarabun',sans-serif; padding:20px;">
-        <h2 style="color:#7c3aed;">${lesson.title || 'บทเรียนใหม่'}</h2>
-        <p><strong>ระดับ:</strong> ${lesson.level || '-'}</p>
-        <hr>
-        <h3>เนื้อหา</h3>
-        <p>${lesson.content || 'ไม่มีเนื้อหา'}</p>
-      </div>
-    `;
-
-    return new Response(JSON.stringify({ html }), {
+    return new Response(JSON.stringify({ html: htmlContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error) {
-    // ส่ง Error ออกไปให้หน้าเว็บเห็นชัดๆ
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, // ส่งเป็น 200 เพื่อให้หน้าเว็บอ่านข้อความ Error ได้
+      status: 200, 
     });
   }
 });
