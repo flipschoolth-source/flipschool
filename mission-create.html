@@ -5,7 +5,9 @@
   <title>Mission Create ✨ | FlipSchool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+
   <style>
+    /* ส่วนของหน้าหลัก (Editor) */
     body {
       margin: 0;
       font-family: "Sarabun", sans-serif;
@@ -59,20 +61,6 @@
 
     textarea:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
 
-    input {
-      width: 100%;
-      padding: 12px 16px;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      font-family: inherit;
-      box-sizing: border-box;
-      outline: none;
-      transition: border 0.3s;
-    }
-
-    input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
-
     button {
       margin-top: 20px;
       width: 100%;
@@ -108,6 +96,8 @@
     
     .api-key-section { margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
     
+    .api-key-input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Sarabun', sans-serif; margin-top: 5px; }
+    
     .test-btn { background: linear-gradient(135deg, #10b981, #059669); margin-top: 10px; }
 
     @media (max-width: 1024px) {
@@ -118,6 +108,7 @@
 </head>
 
 <body>
+
 <header>
   <h1>Mission Create ✨</h1>
   <p>ระบบสร้างบทเรียนอัจฉริยะ (Powered by Gemini AI)</p>
@@ -126,15 +117,14 @@
 <div class="container">
   <div class="card">
     <label for="prompt">🧠 คุณต้องการสร้างบทเรียนเรื่องอะไร?</label>
-    <textarea id="prompt">สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา</textarea>
+    <textarea id="prompt">สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ</textarea>
     
     <div class="api-key-section">
-      <label for="apiKey">🔑 Google AI API Key</label>
-      <input type="password" id="apiKey" placeholder="ใส่ API Key ของคุณ">
+      <label for="apiKey">🔑 Google AI API Key (จำเป็น)</label>
+      <input type="password" id="apiKey" class="api-key-input" placeholder="ใส่ API Key ของคุณที่นี่">
       <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #7c3aed;">
-          รับ API Key ฟรีที่นี่
-        </a>
+        ดาวน์โหลด API Key ได้ที่: 
+        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #7c3aed;">Google AI Studio</a>
       </p>
     </div>
 
@@ -150,54 +140,47 @@
 </div>
 
 <script>
-// ===================== CONFIG =====================
+// ===================== CONFIGURATION =====================
 const GEMINI_MODEL = "gemini-1.5-flash";
 
 // ===================== MAIN FUNCTIONS =====================
 async function generateMission() {
-  const prompt = document.getElementById("prompt").value.trim();
-  const apiKey = document.getElementById("apiKey").value.trim();
+  const promptEl = document.getElementById("prompt");
+  const apiKeyEl = document.getElementById("apiKey");
   const preview = document.getElementById("preview");
   const status = document.getElementById("status");
   const btn = document.getElementById("generateBtn");
   
+  const prompt = promptEl.value.trim();
+  const apiKey = apiKeyEl.value.trim();
+  
   if (!prompt || !apiKey) {
-    alert("กรุณากรอกข้อมูลให้ครบ");
+    alert("กรุณากรอกข้อมูลให้ครบถ้วน");
     return;
   }
   
   btn.disabled = true;
-  status.textContent = "⏳ กำลังสร้าง...";
+  status.textContent = "⏳ กำลังเชื่อมต่อกับ AI...";
   status.style.color = "#f59e0b";
   
-  // แสดง loading
-  preview.srcdoc = getLoadingHTML(prompt);
+  showLoadingScreen(preview, prompt);
   
   try {
-    const aiPrompt = `สร้างบทเรียนเรื่อง "${prompt}" ในรูปแบบ Markdown โดยมีส่วนต่างๆ:
-1. ชื่อบทเรียน
-2. วัตถุประสงค์
-3. เนื้อหา
-4. กิจกรรม (3 กิจกรรม)
-5. แบบทดสอบ (3 ข้อ)
-
-ใช้ภาษาไทยทั้งหมด`;
-    
+    const aiPrompt = createAIPrompt(prompt);
     const response = await callGeminiAPI(apiKey, aiPrompt);
     
     if (response.success) {
-      // สร้าง HTML สำหรับบทเรียน
-      const lessonHTML = createLessonHTML(response.content, prompt);
-      preview.srcdoc = lessonHTML;
-      status.textContent = "✅ สร้างสำเร็จ!";
+      const htmlContent = convertToFullHTML(response.content, prompt);
+      preview.srcdoc = htmlContent;
+      status.textContent = "✅ สร้างบทเรียนสำเร็จ!";
       status.style.color = "#10b981";
       localStorage.setItem('gemini_api_key', apiKey);
     } else {
       throw new Error(response.error);
     }
   } catch (error) {
-    preview.srcdoc = getErrorHTML(error.message);
-    status.textContent = "❌ ล้มเหลว";
+    showErrorScreen(preview, error.message);
+    status.textContent = "❌ " + error.message;
     status.style.color = "#ef4444";
   } finally {
     btn.disabled = false;
@@ -206,258 +189,94 @@ async function generateMission() {
 
 async function callGeminiAPI(apiKey, prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
       })
     });
-    
     const data = await response.json();
-    
-    if (!response.ok) {
-      return { success: false, error: data.error?.message || "API Error" };
-    }
-    
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return { success: false, error: "AI ไม่ตอบกลับ" };
-    }
-    
+    if (!response.ok) return { success: false, error: data.error?.message };
     return { success: true, content: data.candidates[0].content.parts[0].text };
   } catch (error) {
-    return { success: false, error: "เชื่อมต่อล้มเหลว" };
+    return { success: false, error: error.message };
   }
 }
 
 async function testAPIKey() {
   const apiKey = document.getElementById("apiKey").value.trim();
   const status = document.getElementById("status");
-  const btn = document.getElementById("testBtn");
+  if (!apiKey) { alert("กรุณาใส่ API Key"); return; }
   
-  if (!apiKey) {
-    alert("กรุณาใส่ API Key");
-    return;
-  }
-  
-  btn.disabled = true;
-  status.textContent = "🧪 ทดสอบ...";
-  
-  const response = await callGeminiAPI(apiKey, "พูดว่า 'ทดสอบสำเร็จ'");
-  
+  status.textContent = "🧪 กำลังทดสอบ...";
+  const response = await callGeminiAPI(apiKey, "Say 'OK'");
   if (response.success) {
-    status.textContent = "✅ API Key ใช้งานได้";
+    status.textContent = "✅ API Key ใช้งานได้!";
     status.style.color = "#10b981";
     localStorage.setItem('gemini_api_key', apiKey);
   } else {
-    status.textContent = "❌ API Key ผิด";
+    status.textContent = "❌ API Key ผิดพลาด";
     status.style.color = "#ef4444";
   }
-  
-  btn.disabled = false;
 }
 
-// ===================== HTML TEMPLATES =====================
-function getLoadingHTML(prompt) {
-  return `
-<html><head><meta charset="UTF-8"><style>
-body {margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;font-family:sans-serif;text-align:center;}
-.spinner {width:50px;height:50px;border:5px solid #e2e8f0;border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
-@keyframes spin {to{transform:rotate(360deg);}}
-</style></head>
-<body><div><div class="spinner"></div><h3 style="color:#7c3aed;">กำลังสร้างบทเรียน</h3><p>${prompt.substring(0,50)}</p></div></body></html>`;
+function createAIPrompt(userPrompt) {
+  return `จงสร้างบทเรียนเรื่อง "${userPrompt}" ในรูปแบบโครงสร้าง Markdown ที่ชัดเจน (ห้ามส่งรหัส HTML มา) โดยประกอบด้วย: ชื่อบทเรียน, วัตถุประสงค์, เนื้อหาละเอียด, กิจกรรม, และแบบทดสอบ 3 ข้อ พร้อมเฉลย`;
 }
 
-function getErrorHTML(message) {
-  return `
-<html><head><meta charset="UTF-8"><style>
-body {margin:0;padding:20px;background:#fef2f2;color:#dc2626;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;}
-.error-box {background:white;padding:25px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);max-width:400px;}
-</style></head>
-<body><div class="error-box"><h3>❌ ข้อผิดพลาด</h3><p>${message}</p><button onclick="window.parent.location.reload()" style="background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;margin-top:15px;">ลองใหม่</button></div></body></html>`;
-}
-
-function createLessonHTML(content, prompt) {
-  // แปลง Markdown เป็น HTML อย่างง่าย
-  let html = content
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+// แก้ไขฟังก์ชัน convertToFullHTML ให้จัดการ Markdown เป็น HTML ภายใน iframe อย่างถูกต้อง
+function convertToFullHTML(content, prompt) {
+  // แปลง Markdown เบื้องต้น
+  const formattedBody = content
+    .replace(/### (.*)/g, '<h3>$1</h3>')
+    .replace(/## (.*)/g, '<h2>$1</h2>')
+    .replace(/# (.*)/g, '<h1>$1</h1>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
-  
-  // สร้าง HTML เต็มสำหรับ iframe
-  return `<!DOCTYPE html>
-<html>
+
+  // สร้างไฟล์ HTML เต็มรูปแบบเพื่อฉีดเข้า iframe
+  return `
+<!DOCTYPE html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${prompt}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Sarabun', sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f8fafc;
-      color: #334155;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #7c3aed;
-    }
-    
-    .title {
-      color: #7c3aed;
-      font-size: 1.8rem;
-      margin: 0 0 10px 0;
-    }
-    
-    .badge {
-      background: #7c3aed;
-      color: white;
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      display: inline-block;
-      margin-bottom: 15px;
-    }
-    
-    h1, h2, h3 {
-      color: #1e293b;
-      margin: 25px 0 15px 0;
-    }
-    
-    .content-section {
-      background: #f8fafc;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px 0;
-      border-left: 4px solid #7c3aed;
-    }
-    
-    .quiz {
-      background: #f0f9ff;
-      border-left-color: #3b82f6;
-    }
-    
-    .quiz-question {
-      margin: 15px 0;
-      padding: 15px;
-      background: white;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-    }
-    
-    .btn {
-      background: #7c3aed;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 10px 5px;
-      font-family: inherit;
-    }
-    
-    .btn:hover {
-      background: #6d28d9;
-    }
-    
-    footer {
-      text-align: center;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e2e8f0;
-      color: #64748b;
-    }
+    body { font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #334155; padding: 20px; background: #f8fafc; }
+    .container { max-width: 100%; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
+    h2 { color: #1e293b; margin-top: 20px; }
+    .badge { background: #7c3aed; color: white; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; display: inline-block; margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <span class="badge">สร้างโดย AI</span>
-      <h1 class="title">${prompt}</h1>
-      <p>${new Date().toLocaleDateString('th-TH')}</p>
-    </div>
-    
-    <div class="content">
-      ${html}
-    </div>
-    
-    <div class="content-section quiz">
-      <h2>📝 แบบทดสอบ</h2>
-      <div class="quiz-question">
-        <p><strong>ข้อ 1:</strong> คุณเข้าใจบทเรียนนี้ดีแค่ไหน?</p>
-        <button class="btn" onclick="this.style.background='#10b981'">ดีมาก</button>
-        <button class="btn" onclick="this.style.background='#f59e0b'">พอใช้</button>
-        <button class="btn" onclick="this.style.background='#ef4444'">ต้องปรับปรุง</button>
-      </div>
-      
-      <div style="text-align: center; margin: 20px 0;">
-        <button class="btn" onclick="alert('🎉 คุณทำแบบทดสอบสำเร็จ!')">
-          ส่งคำตอบ
-        </button>
-      </div>
-    </div>
-    
-    <footer>
-      <p>✨ สร้างโดย Mission Create</p>
-    </footer>
+    <div class="badge">Lesson Create by AI</div>
+    ${formattedBody}
+    <hr>
+    <p style="text-align:center; color:#94a3b8; font-size:0.8rem;">Powered by FlipSchool & Gemini AI</p>
   </div>
-  
-  <script>
-    // JavaScript สำหรับบทเรียน
-    console.log('บทเรียนโหลดสำเร็จ');
-  </script>
 </body>
 </html>`;
 }
 
-// ===================== INITIALIZE =====================
-document.addEventListener('DOMContentLoaded', function() {
-  // โหลด API Key ที่บันทึกไว้
+// ฟังก์ชันอื่นๆ (Loading/Error)
+function showLoadingScreen(preview, prompt) {
+  preview.srcdoc = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>✨ กำลังสร้างบทเรียน...</h2><p>${prompt}</p></div></div>`;
+}
+
+function showErrorScreen(preview, msg) {
+  preview.srcdoc = `<div style="padding:20px; color:red; font-family:sans-serif;"><h3>❌ ข้อผิดพลาด</h3><p>${msg}</p></div>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
   const savedKey = localStorage.getItem('gemini_api_key');
-  if (savedKey) {
-    document.getElementById('apiKey').value = savedKey;
-  }
-  
-  // ตั้งค่า event listeners
+  if (savedKey) document.getElementById('apiKey').value = savedKey;
   document.getElementById('generateBtn').addEventListener('click', generateMission);
   document.getElementById('testBtn').addEventListener('click', testAPIKey);
-  
-  // แสดงหน้าต้อนรับใน iframe
-  const preview = document.getElementById('preview');
-  preview.srcdoc = `
-  <html>
-  <head><meta charset="UTF-8"><style>
-    body {margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;font-family:sans-serif;text-align:center;}
-  </style></head>
-  <body>
-    <div>
-      <h2 style="color:#7c3aed;">✨ Mission Create</h2>
-      <p>พร้อมสร้างบทเรียนด้วย AI</p>
-      <p>1. ใส่ API Key</p>
-      <p>2. พิมพ์หัวข้อบทเรียน</p>
-      <p>3. คลิกสร้าง!</p>
-    </div>
-  </body>
-  </html>`;
 });
 </script>
 
