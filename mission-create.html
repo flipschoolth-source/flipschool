@@ -66,11 +66,10 @@
 const GEMINI_MODEL = "gemini-1.5-flash";
 
 async function callGeminiAPI(apiKey, prompt) {
-  // ล้างค่าว่างและอักขระแปลกปลอมออกจาก Key
   const cleanKey = apiKey.trim().replace(/[^a-zA-Z0-9_-]/g, '');
   
-  // ใช้ v1 API (เสถียรกว่า v1beta ในบางพื้นที่)
-  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${cleanKey}`;
+  // ใช้ v1beta เพื่อให้รองรับโมเดล gemini-1.5-flash ได้แน่นอน
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${cleanKey}`;
 
   try {
     const response = await fetch(url, {
@@ -85,6 +84,8 @@ async function callGeminiAPI(apiKey, prompt) {
     const data = await response.json();
 
     if (!response.ok) {
+      // แสดงรายละเอียด Error ใน Console เพื่อการตรวจสอบ
+      console.error("API Error Detail:", data);
       return { success: false, error: data.error?.message || "Error " + response.status };
     }
     return { success: true, content: data.candidates[0].content.parts[0].text };
