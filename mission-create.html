@@ -1,41 +1,311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mission Create ✨ | FlipSchool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #7c3aed;
+      --secondary: #9333ea;
+      --bg: #0f172a;
+      --card-bg: #ffffff;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Sarabun", sans-serif;
+      background: linear-gradient(135deg, var(--bg), #1e293b);
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 40px 20px;
+      text-align: center;
+      color: white;
+    }
+
+    header h1 { margin: 0; font-size: 2.2rem; letter-spacing: 1px; }
+    header p { opacity: 0.8; font-weight: 300; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 450px;
+      gap: 30px;
+      padding: 30px;
+      max-width: 1300px;
+      margin: auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    label { font-weight: 600; display: block; margin-bottom: 12px; color: #1e293b; font-size: 1.1rem; }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 16px;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      resize: vertical;
+      font-family: inherit;
+      box-sizing: border-box;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+
+    .button-group { display: flex; gap: 10px; margin-top: 20px; }
+
+    button {
+      flex: 2;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4); }
+    button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .test-btn { flex: 1; background: #10b981; }
+
+    .phone {
+      background: #000;
+      border-radius: 50px;
+      padding: 15px;
+      height: 780px;
+      border: 10px solid #334155;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: sticky;
+      top: 20px;
+    }
+
+    .phone iframe { 
+      width: 100%; 
+      height: 100%; 
+      border: none; 
+      border-radius: 35px; 
+      background: white; 
+    }
+
+    .status { margin-top: 15px; font-size: 0.95rem; text-align: center; font-weight: 500; min-height: 24px; }
+    
+    .api-key-section { 
+      margin-top: 20px; 
+      padding: 15px; 
+      background: #f1f5f9; 
+      border-radius: 15px; 
+    }
+    
+    .api-key-input { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #cbd5e1; 
+      border-radius: 8px; 
+      font-family: inherit; 
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
+      .phone { height: 700px; max-width: 400px; margin: auto; position: static; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Mission Create ✨</h1>
+  <p>สร้างสื่อการสอนที่มีชีวิตด้วยพลังแห่ง AI</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <label for="prompt">🧠 หัวข้อบทเรียนที่ต้องการ</label>
+    <textarea id="prompt" placeholder="ใส่ชื่อหัวข้อบทเรียนที่นี่...">สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ</textarea>
+    
+    <div class="api-key-section">
+      <label for="apiKey">🔑 Google Gemini API Key</label>
+      <input type="password" id="apiKey" class="api-key-input" placeholder="วาง API Key (AIzaSy...) ที่นี่">
+      <p style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
+        รับ Key ได้ที่: <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary); font-weight: 600;">Google AI Studio</a>
+      </p>
+    </div>
+
+    <div class="button-group">
+        <button id="generateBtn">✨ เริ่มสร้าง Mission</button>
+        <button id="testBtn" class="test-btn">🧪 Test API</button>
+    </div>
+    
+    <div class="status" id="status">สถานะ: พร้อมใช้งาน</div>
+  </div>
+
+  <div class="phone">
+    <iframe id="preview" name="preview"></iframe>
+  </div>
+</div>
+
+<script>
+// กำหนดชื่อรุ่นของ AI ให้ถูกต้อง
+const GEMINI_MODEL = "gemini-1.5-flash";
+
+// --- ฟังก์ชันหลักในการสร้างบทเรียน ---
+async function generateMission() {
+  const promptEl = document.getElementById("prompt");
+  const apiKeyEl = document.getElementById("apiKey");
+  const preview = document.getElementById("preview");
+  const status = document.getElementById("status");
+  const btn = document.getElementById("generateBtn");
+  
+  const userText = promptEl.value.trim();
+  const apiKey = apiKeyEl.value.trim();
+  
+  if (!userText || !apiKey) {
+    alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนครับ");
+    return;
+  }
+  
+  btn.disabled = true;
+  status.textContent = "⏳ AI กำลังสร้างบทเรียน...";
+  status.style.color = "#f59e0b";
+  showLoadingScreen(preview);
+  
+  try {
+    const systemPrompt = `คุณคือผู้เชี่ยวชาญด้านการสอน จงสร้างบทเรียนเรื่อง "${userText}" ในรูปแบบ Markdown โดยมีโครงสร้าง: ชื่อบทเรียน, วัตถุประสงค์, เนื้อหาที่เข้าใจง่าย, กิจกรรม, และแบบทดสอบพร้อมเฉลย`;
+    const response = await callGeminiAPI(apiKey, systemPrompt);
+    
+    if (response.success) {
+      // แปลงเนื้อหา Markdown เป็น HTML เพื่อแสดงใน iframe
+      const htmlContent = convertToFullHTML(marked.parse(response.content));
+      preview.srcdoc = htmlContent;
+      status.textContent = "✅ สร้างสำเร็จ!";
+      status.style.color = "#10b981";
+      localStorage.setItem('gemini_api_key', apiKey);
+    } else {
+      throw new Error(response.error);
+    }
+  } catch (error) {
+    showErrorScreen(preview, error.message);
+    status.textContent = "❌ " + error.message;
+    status.style.color = "#ef4444";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- ฟังก์ชันเรียก API (ปรับปรุงเพื่อเช็ก Error 404/403) ---
 async function callGeminiAPI(apiKey, prompt) {
-  // ตรวจสอบว่ามี API Key หรือไม่
-  if (!apiKey) return { success: false, error: "ไม่พบ API Key" };
-
-  // URL สำหรับเรียกใช้งาน Gemini 1.5 Flash
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.7, 
-          maxOutputTokens: 4000 
-        }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 3500 }
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      // วิเคราะห์ Error ตามรหัสที่ Google ส่งกลับมา
-      console.error("API Error Data:", data);
-      let errorMsg = data.error?.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
-      
-      if (response.status === 400) errorMsg = "คำขอผิดพลาด (Bad Request) - ตรวจสอบรูปแบบ API Key";
-      if (response.status === 403) errorMsg = "สิทธิ์การใช้งานถูกปฏิเสธ - API Key อาจยังไม่เปิดใช้งาน Generative Language API";
-      if (response.status === 404) errorMsg = "ไม่พบโมเดล - ตรวจสอบชื่อรุ่น gemini-1.5-flash ในโค้ด";
-      if (response.status === 429) errorMsg = "เรียกใช้งานบ่อยเกินไป (Quota Exceeded) - กรุณารอ 1 นาที";
-
+      console.error("API Error Detail:", data);
+      let errorMsg = data.error?.message || "เกิดข้อผิดพลาด";
+      if (response.status === 404) errorMsg = "ไม่พบ API (ตรวจสอบชื่อ Model หรือ URL)";
+      if (response.status === 403) errorMsg = "API Key ไม่ถูกต้อง หรือไม่ได้เปิดใช้งาน";
+      if (response.status === 429) errorMsg = "ใช้งานเกินโควตาฟรี (รอ 1 นาที)";
       return { success: false, error: errorMsg };
     }
 
     return { success: true, content: data.candidates[0].content.parts[0].text };
   } catch (error) {
-    console.error("Fetch Error:", error);
-    return { success: false, error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Google ได้ (ตรวจสอบอินเทอร์เน็ต)" };
+    return { success: false, error: "เชื่อมต่ออินเทอร์เน็ตไม่ได้ หรือ URL ผิดพลาด" };
   }
 }
+
+// --- ฟังก์ชันทดสอบ API Key ---
+async function testAPIKey() {
+  const apiKey = document.getElementById("apiKey").value.trim();
+  const status = document.getElementById("status");
+  if (!apiKey) { alert("กรุณาใส่ API Key"); return; }
+  
+  status.textContent = "🧪 กำลังทดสอบ...";
+  const response = await callGeminiAPI(apiKey, "Say 'OK'");
+  if (response.success) {
+    status.textContent = "✅ API Key ใช้งานได้จริง!";
+    status.style.color = "#10b981";
+    localStorage.setItem('gemini_api_key', apiKey);
+  } else {
+    status.textContent = "❌ API Key ไม่ถูกต้อง (" + response.error + ")";
+    status.style.color = "#ef4444";
+  }
+}
+
+// --- การจัดรูปแบบ HTML ภายใน Iframe ---
+function convertToFullHTML(htmlBody) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #334155; padding: 20px; background: white; }
+    h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 5px; }
+    h2 { color: #1e293b; margin-top: 20px; }
+    .badge { background: #7c3aed; color: white; padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; display: inline-block; margin-bottom: 15px; }
+    ul, ol { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="badge">AI Lesson by FlipSchool</div>
+  ${htmlBody}
+  <hr>
+  <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Create by Gemini AI</p>
+</body>
+</html>`;
+}
+
+function showLoadingScreen(preview) {
+  preview.srcdoc = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;"><h3>⏳ กำลังเนรมิตบทเรียน...</h3></div>`;
+}
+
+function showErrorScreen(preview, msg) {
+  preview.srcdoc = `<div style="padding:20px; color:red; font-family:sans-serif;"><h3>❌ เกิดข้อผิดพลาด</h3><p>${msg}</p></div>`;
+}
+
+// เมื่อโหลดหน้าเว็บเสร็จ
+document.addEventListener('DOMContentLoaded', () => {
+  const savedKey = localStorage.getItem('gemini_api_key');
+  if (savedKey) document.getElementById('apiKey').value = savedKey;
+  document.getElementById('generateBtn').addEventListener('click', generateMission);
+  document.getElementById('testBtn').addEventListener('click', testAPIKey);
+});
+</script>
+
+</body>
+</html>
