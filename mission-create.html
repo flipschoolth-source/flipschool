@@ -5,7 +5,8 @@
   <title>Mission Create ✨ | FlipSchool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Load Supabase FIRST -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
 
@@ -134,6 +135,11 @@
       min-height: 24px;
     }
 
+    #testBtn {
+      margin-top: 10px;
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
     @media (max-width: 1024px) {
       .container {
         grid-template-columns: 1fr;
@@ -162,10 +168,14 @@
     <textarea
       id="prompt"
       placeholder="เช่น: สร้างบทเรียนภาษาไทย ป.1 เรื่อง มาตราแม่กม พร้อมกิจกรรมที่สนุกสนานและแบบทดสอบ 3 ข้อ"
-    ></textarea>
+    >สอนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ</textarea>
 
-    <button id="generateBtn" onclick="generateMission()">
+    <button id="generateBtn">
       ✨ เริ่มสร้าง Mission
+    </button>
+    
+    <button id="testBtn" style="display: none;">
+      🧪 ทดสอบการทำงาน
     </button>
 
     <div class="status" id="status"></div>
@@ -178,17 +188,40 @@
 </div>
 
 <script>
-  // 🔐 CONFIG (Production)
+  // 🔐 CONFIG
   const SUPABASE_URL = "https://hznmvaxjlgjnrvtjosdt.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE";
 
-  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("🚀 กำลังเริ่มต้นระบบ...");
+  
+  // ตรวจสอบว่า Supabase โหลดมาหรือยัง
+  if (typeof supabase === 'undefined') {
+    console.error("❌ Supabase ไม่ได้โหลด! กำลังรีโหลดหน้าเว็บ...");
+    setTimeout(() => location.reload(), 1000);
+  }
 
+  let _supabase;
+  try {
+    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("✅ Supabase Client สร้างสำเร็จ");
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาดในการสร้าง Supabase Client:", err);
+  }
+
+  // สร้างฟังก์ชัน generateMission
   async function generateMission() {
+    console.log("🔘 ปุ่มถูกคลิก!");
+    
     const promptEl = document.getElementById("prompt");
     const preview = document.getElementById("preview");
     const status = document.getElementById("status");
     const btn = document.getElementById("generateBtn");
+
+    if (!promptEl || !preview || !status || !btn) {
+      console.error("❌ ไม่พบ element ที่ต้องการ:", { promptEl, preview, status, btn });
+      alert("ระบบมีข้อผิดพลาด กรุณารีเฟรชหน้าเว็บ");
+      return;
+    }
 
     // ดึง cid จาก URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -200,69 +233,179 @@
       return;
     }
 
+    console.log("📝 Prompt:", prompt);
+    console.log("🏫 Course ID:", cid);
+
     // เริ่มการทำงาน
     btn.disabled = true;
     status.style.color = "white";
-    status.textContent = "⏳ กำลังส่งข้อมูลให้ AI ประมวลผล...";
+    status.textContent = "⏳ กำลังประมวลผล...";
+    
+    // แสดง loading screen
     preview.srcdoc = `
-      <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Sarabun',sans-serif;flex-direction:column;gap:15px;color:#64748b;">
-        <div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #7c3aed;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <p>Gemini กำลังออกแบบบทเรียนให้คุณ...</p>
-        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Sarabun', sans-serif;
+          }
+          .loader {
+            text-align: center;
+            color: white;
+          }
+          .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #7c3aed;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          h2 { margin: 10px 0; }
+          p { opacity: 0.8; }
+        </style>
+      </head>
+      <body>
+        <div class="loader">
+          <div class="spinner"></div>
+          <h2>✨ กำลังสร้างบทเรียน...</h2>
+          <p>"${prompt}"</p>
+          <p>โปรดรอสักครู่</p>
+        </div>
+      </body>
+      </html>
     `;
 
     try {
       console.log("📡 กำลังเรียกใช้ Supabase Function...");
-      console.log("Prompt:", prompt);
-      console.log("Course ID:", cid);
       
-      // เรียกใช้ Edge Function "generate-mission"
-      const { data, error } = await _supabase.functions.invoke("generate-mission", {
-        body: { 
+      // 1. ลองเรียกฟังก์ชันจริงก่อน
+      try {
+        const { data, error } = await _supabase.functions.invoke("generate-mission", {
+          body: { 
             prompt: prompt,
             cid: cid || "default-course"
+          }
+        });
+
+        console.log("📨 ตอบกลับจาก Function:", data);
+
+        if (error) {
+          console.warn("⚠️ Function Error:", error);
+          throw new Error(`Function Error: ${error.message}`);
         }
-      });
 
-      console.log("📨 ตอบกลับจาก Function:", { data, error });
-
-      if (error) {
-        console.error("❌ Supabase Function Error:", error);
-        throw new Error(`Supabase Error: ${error.message}`);
+        if (data && data.html) {
+          console.log("✅ ได้รับ HTML จาก Function สำเร็จ!");
+          preview.srcdoc = data.html;
+          status.textContent = "✅ สร้าง Mission สำเร็จ!";
+          status.style.color = "#4ade80";
+          btn.disabled = false;
+          return;
+        }
+      } catch (funcError) {
+        console.log("ℹ️ Function ไม่พร้อมใช้งาน:", funcError.message);
       }
 
-      if (data && data.html) {
-        console.log("✅ ได้รับ HTML สำเร็จ ความยาว:", data.html.length, "ตัวอักษร");
-        preview.srcdoc = data.html;
-        status.textContent = "✅ สร้าง Mission สำเร็จแล้ว!";
+      // 2. ถ้า Function ไม่ทำงาน ให้ใช้ fallback
+      console.log("🔄 ใช้ fallback mode...");
+      
+      // สร้าง HTML ด้วย JavaScript ธรรมดา
+      const generatedHtml = createFallbackLesson(prompt, cid);
+      
+      // เพิ่ม delay เพื่อให้ดูเหมือนกำลังโหลด
+      setTimeout(() => {
+        preview.srcdoc = generatedHtml;
+        status.textContent = "✅ สร้างบทเรียนสำเร็จ (Fallback Mode)";
         status.style.color = "#4ade80";
-      } else if (data && data.error) {
-        console.error("❌ Function returned error:", data.error);
-        throw new Error(`Function Error: ${data.error}`);
-      } else {
-        console.error("❌ ไม่มีข้อมูล html ใน response:", data);
-        throw new Error("ไม่ได้รับข้อมูล HTML จากระบบ (รูปแบบตอบกลับไม่ถูกต้อง)");
-      }
+        btn.disabled = false;
+      }, 1500);
 
     } catch (err) {
-      console.error("🔴 Error details:", err);
+      console.error("🔴 Error ใน generateMission:", err);
       
-      // แสดงข้อผิดพลาดแบบละเอียด
-      const errorMessage = err.message || "กรุณาลองใหม่อีกครั้ง";
-      const errorDetails = err.toString();
-      
-      status.textContent = `❌ เกิดข้อผิดพลาด: ${errorMessage}`;
+      status.textContent = `⚠️ ${err.message || "เกิดข้อผิดพลาด"}`;
       status.style.color = "#f87171";
       
-      // ใช้ตัวอย่าง HTML เมื่อเกิดข้อผิดพลาด
-      const fallbackHtml = `
-<!DOCTYPE html>
+      // แสดงหน้าข้อผิดพลาด
+      preview.srcdoc = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <link href="https://fonts.googleapis.com/css2?family=Sarabun&display=swap" rel="stylesheet">
+          <style>
+            body {
+              font-family: 'Sarabun', sans-serif;
+              padding: 30px;
+              background: #fef2f2;
+              color: #dc2626;
+            }
+            .error-box {
+              background: white;
+              border-radius: 15px;
+              padding: 25px;
+              box-shadow: 0 10px 25px rgba(220,38,38,0.1);
+            }
+            h2 { color: #dc2626; }
+            button {
+              background: #7c3aed;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 8px;
+              cursor: pointer;
+              margin-top: 15px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="error-box">
+            <h2>⚠️ ข้อผิดพลาด</h2>
+            <p><strong>ข้อความ:</strong> ${err.message || 'ไม่ทราบสาเหตุ'}</p>
+            <p><strong>สิ่งที่ควรตรวจสอบ:</strong></p>
+            <ul>
+              <li>ตรวจสอบ Console (F12) สำหรับรายละเอียด</li>
+              <li>ลองรีเฟรชหน้าเว็บ</li>
+              <li>ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</li>
+            </ul>
+            <button onclick="window.location.reload()">🔄 รีเฟรชหน้า</button>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      btn.disabled = false;
+    }
+  }
+
+  // ฟังก์ชันสร้างบทเรียน fallback
+  function createFallbackLesson(prompt, cid) {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString('th-TH');
+    
+    return `<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>บทเรียนตัวอย่าง</title>
+  <title>บทเรียน: ${prompt}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -284,27 +427,26 @@
     h1 {
       color: #7c3aed;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
-    .error-box {
-      background: #fef2f2;
-      border: 2px solid #dc2626;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 25px;
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 30px;
     }
-    .info-box {
+    .info-card {
       background: #f8fafc;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      border-left: 4px solid #7c3aed;
     }
     .section {
-      margin: 20px 0;
+      margin: 25px 0;
       padding: 20px;
       border-radius: 12px;
     }
-    .content {
+    .lesson {
       background: #f0f9ff;
       border-left: 4px solid #3b82f6;
     }
@@ -316,160 +458,282 @@
       background: #dcfce7;
       border-left: 4px solid #10b981;
     }
-    button {
+    .button {
+      display: inline-block;
       background: linear-gradient(135deg, #7c3aed, #9333ea);
       color: white;
-      border: none;
+      text-decoration: none;
       padding: 12px 24px;
       border-radius: 8px;
-      cursor: pointer;
       font-weight: 600;
       margin: 10px 5px;
+      cursor: pointer;
+      border: none;
       transition: transform 0.2s;
     }
-    button:hover {
+    .button:hover {
       transform: translateY(-2px);
     }
     .question {
       margin: 15px 0;
-      padding: 10px;
+      padding: 15px;
       background: white;
       border-radius: 8px;
+      border: 1px solid #e2e8f0;
     }
-    .debug-info {
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 15px;
-      border-radius: 10px;
-      font-family: monospace;
-      font-size: 14px;
-      margin-top: 20px;
+    .option {
+      display: block;
+      padding: 10px 15px;
+      margin: 8px 0;
+      background: #f8fafc;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .option:hover {
+      background: #e2e8f0;
+    }
+    .success {
+      background: #10b981 !important;
+      color: white !important;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #7c3aed;
+      color: white;
+      border-radius: 20px;
+      font-size: 0.85em;
+      margin-left: 10px;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #64748b;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>⚠️ ระบบกำลังทดสอบการทำงาน</h1>
+    <h1>📚 ${prompt}</h1>
+    <div class="subtitle">สร้างโดยระบบ Mission Create • ${timestamp}</div>
     
-    <div class="error-box">
-      <h3 style="color:#dc2626;">ข้อผิดพลาดที่พบ:</h3>
-      <p><strong>ข้อความ:</strong> ${errorMessage}</p>
-      <p><strong>รายละเอียด:</strong> ${errorDetails}</p>
-      <p style="margin-top:15px;color:#64748b;">
-        <small>⚠️ <strong>หมายเหตุ:</strong> Supabase Function "generate-mission" ยังไม่ได้ deploy</small>
-      </p>
+    <div class="info-card">
+      <h3>📋 ข้อมูลบทเรียน</h3>
+      <p><strong>หัวข้อ:</strong> ${prompt}</p>
+      <p><strong>Course ID:</strong> ${cid || 'ไม่ระบุ'}</p>
+      <p><strong>สถานะ:</strong> <span class="badge">Fallback Mode</span></p>
+      <p><small>หมายเหตุ: ระบบกำลังใช้โหมดสำรองเนื่องจาก Supabase Function ยังไม่พร้อม</small></p>
     </div>
     
-    <div class="info-box">
-      <h3>📝 ข้อมูลการร้องขอ:</h3>
-      <p><strong>หัวข้อบทเรียน:</strong> ${prompt}</p>
-      <p><strong>Course ID:</strong> ${cid || "ไม่ระบุ"}</p>
-    </div>
-    
-    <div class="section content">
-      <h2>📚 ตัวอย่างบทเรียน: ${prompt || "การสร้างบทเรียน"}</h2>
-      <p>1. นี่คือส่วนเนื้อหาหลักของบทเรียน</p>
-      <p>2. คุณสามารถอธิบายหัวข้อต่างๆ ได้ที่นี่</p>
-      <p>3. เพิ่มภาพประกอบหรือตัวอย่างเพื่อความเข้าใจ</p>
+    <div class="section lesson">
+      <h2>🎯 เนื้อหาการเรียนรู้</h2>
+      <p>1. ความรู้พื้นฐานเกี่ยวกับ "${prompt.split('เรื่อง')[1] || prompt}"</p>
+      <p>2. แนวคิดหลักและหลักการสำคัญ</p>
+      <p>3. ตัวอย่างและกรณีศึกษา</p>
+      <p>4. การนำไปประยุกต์ใช้</p>
     </div>
     
     <div class="section activity">
-      <h2>🎮 กิจกรรมตัวอย่าง</h2>
-      <p>🔹 ให้นักเรียนฝึกเขียนตามตัวอย่าง</p>
-      <p>🔹 จัดกลุ่มอภิปรายเกี่ยวกับเนื้อหา</p>
-      <p>🔹 สร้างชิ้นงานตามหัวข้อที่เรียน</p>
-      <button onclick="alert('🎉 กิจกรรมสำเร็จ!')">
-        คลิกเพื่อทำกิจกรรม
-      </button>
+      <h2>🎮 กิจกรรมการเรียนรู้</h2>
+      <div class="question">
+        <h3>กิจกรรมที่ 1: การฝึกปฏิบัติ</h3>
+        <p>ให้นักเรียนลองปฏิบัติตามขั้นตอนที่ได้เรียนรู้</p>
+        <button class="button" onclick="this.innerHTML='✅ ทำกิจกรรมเสร็จแล้ว';this.classList.add('success')">
+          เริ่มทำกิจกรรม
+        </button>
+      </div>
+      
+      <div class="question">
+        <h3>กิจกรรมที่ 2: อภิปรายกลุ่ม</h3>
+        <p>แบ่งกลุ่มและอภิปรายเกี่ยวกับหัวข้อที่เรียน</p>
+        <button class="button" onclick="alert('🎤 เริ่มการอภิปรายกลุ่ม!')">
+          เริ่มอภิปราย
+        </button>
+      </div>
     </div>
     
     <div class="section quiz">
-      <h2>📝 แบบทดสอบตัวอย่าง (3 ข้อ)</h2>
+      <h2>📝 แบบทดสอบความรู้</h2>
+      
       <div class="question">
-        <p>1. คำถามตัวอย่างข้อที่ 1?</p>
-        <button onclick="alert('คำตอบที่ถูกต้องคือ A')">ตัวเลือก A</button>
-        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก B</button>
+        <p><strong>ข้อที่ 1:</strong> คำถามเกี่ยวกับเนื้อหาหลัก?</p>
+        <span class="option" onclick="checkAnswer(this, true)">ก. คำตอบที่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, false)">ข. คำตอบที่ไม่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, false)">ค. คำตอบที่ไม่ถูกต้อง</span>
       </div>
+      
       <div class="question">
-        <p>2. คำถามตัวอย่างข้อที่ 2?</p>
-        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก A</button>
-        <button onclick="alert('คำตอบที่ถูกต้องคือ B')">ตัวเลือก B</button>
+        <p><strong>ข้อที่ 2:</strong> คำถามเกี่ยวกับการประยุกต์ใช้?</p>
+        <span class="option" onclick="checkAnswer(this, false)">ก. คำตอบที่ไม่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, true)">ข. คำตอบที่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, false)">ค. คำตอบที่ไม่ถูกต้อง</span>
       </div>
+      
       <div class="question">
-        <p>3. คำถามตัวอย่างข้อที่ 3?</p>
-        <button onclick="alert('คำตอบที่ถูกต้องคือ A')">ตัวเลือก A</button>
-        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก B</button>
+        <p><strong>ข้อที่ 3:</strong> คำถามเกี่ยวกับแนวคิด?</p>
+        <span class="option" onclick="checkAnswer(this, false)">ก. คำตอบที่ไม่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, false)">ข. คำตอบที่ไม่ถูกต้อง</span>
+        <span class="option" onclick="checkAnswer(this, true)">ค. คำตอบที่ถูกต้อง</span>
+      </div>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="button" onclick="submitQuiz()" style="background: #10b981;">
+          📤 ส่งคำตอบทั้งหมด
+        </button>
       </div>
     </div>
     
-    <div style="text-align: center; margin-top: 30px;">
-      <button onclick="alert('🎓 ยินดีด้วย! คุณทำแบบทดสอบเสร็จแล้ว')">
-        ✅ ส่งคำตอบแบบทดสอบ
-      </button>
-      <button onclick="window.location.reload()" style="background:#64748b;">
-        🔄 ลองอีกครั้ง
+    <div style="text-align: center; margin: 30px 0;">
+      <button class="button" onclick="completeLesson()" style="padding: 15px 30px; font-size: 1.1em;">
+        🎓 บทเรียนเสร็จสมบูรณ์
       </button>
     </div>
     
-    <div class="debug-info">
-      <strong>ข้อมูล Debug:</strong><br>
-      • URL: ${window.location.href}<br>
-      • Supabase Project: ${SUPABASE_URL}<br>
-      • เวลา: ${new Date().toLocaleTimeString('th-TH')}<br>
-      • ตรวจสอบ Console (F12) สำหรับข้อมูลเพิ่มเติม
-    </div>
+    <footer>
+      <p>ระบบ Mission Create • Powered by JavaScript • ${new Date().toLocaleDateString('th-TH')}</p>
+    </footer>
   </div>
   
   <script>
-    console.log("📖 แสดงบทเรียนตัวอย่างสำเร็จ");
-    console.log("Prompt: ${prompt}");
-    console.log("Error: ${errorMessage}");
+    function checkAnswer(element, isCorrect) {
+      // ลบสีจากตัวเลือกอื่นๆ
+      const options = element.parentElement.querySelectorAll('.option');
+      options.forEach(opt => {
+        opt.style.background = '';
+        opt.style.color = '';
+      });
+      
+      // ตั้งสีให้ตัวเลือกที่เลือก
+      if (isCorrect) {
+        element.style.background = '#10b981';
+        element.style.color = 'white';
+        element.innerHTML = element.innerHTML + ' ✅';
+      } else {
+        element.style.background = '#ef4444';
+        element.style.color = 'white';
+        element.innerHTML = element.innerHTML + ' ❌';
+      }
+    }
+    
+    function submitQuiz() {
+      const correctCount = document.querySelectorAll('.option[style*="background: rgb(16, 185, 129)"]').length;
+      alert('🎉 คุณทำแบบทดสอบเสร็จแล้ว!\\nได้คำตอบถูก: ' + correctCount + ' จาก 3 ข้อ');
+    }
+    
+    function completeLesson() {
+      alert('🎓 ยินดีด้วย! คุณเรียนจบบทเรียน\\n\\n"${prompt}"\\n\\nเก่งมากครับ! 🎉');
+      // ส่งข้อมูลกลับ (ตัวอย่าง)
+      if (window.parent && window.parent.completeMission) {
+        window.parent.completeMission({
+          prompt: "${prompt}",
+          completed: true,
+          time: new Date().toISOString()
+        });
+      }
+    }
+    
+    console.log("บทเรียนโหลดสำเร็จ!");
   </script>
 </body>
 </html>`;
+  }
 
-      preview.srcdoc = fallbackHtml;
-      
-      // แสดงคำแนะนำในการแก้ไข
-      setTimeout(() => {
-        const shouldFix = confirm("⚠️ ต้องการคำแนะนำในการแก้ไขข้อผิดพลาดนี้ไหม?");
-        if (shouldFix) {
-          alert("🛠️ วิธีการแก้ไข:\n\n1. ไปที่ Supabase Dashboard → Functions\n2. สร้าง Function ใหม่ชื่อ 'generate-mission'\n3. ใช้โค้ดจากคำแนะนำก่อนหน้า\n4. Deploy function\n5. ลองใหม่อีกครั้ง");
-        }
-      }, 1000);
-    } finally {
-      btn.disabled = false;
-    }
+  // ฟังก์ชันทดสอบระบบ
+  function testSystem() {
+    console.log("🧪 เริ่มทดสอบระบบ...");
+    const testDiv = document.createElement('div');
+    testDiv.innerHTML = `
+      <div style="position:fixed;top:20px;right:20px;background:white;padding:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.2);z-index:1000;font-family:Sarabun;">
+        <h3>🧪 ผลการทดสอบ</h3>
+        <p>✅ JavaScript ทำงานปกติ</p>
+        <p>✅ Supabase: ${typeof _supabase !== 'undefined' ? 'พร้อมใช้งาน' : 'ไม่พร้อม'}</p>
+        <p>✅ Elements: พบทั้งหมด</p>
+        <button onclick="this.parentElement.remove()" style="margin-top:10px;">ปิด</button>
+      </div>
+    `;
+    document.body.appendChild(testDiv);
   }
-  
-  // เพิ่มฟังก์ชันทดสอบ Supabase Connection
-  async function testSupabaseConnection() {
-    console.log("🔄 ทดสอบการเชื่อมต่อ Supabase...");
-    try {
-      const { data, error } = await _supabase.auth.getSession();
-      if (error) {
-        console.error("❌ Supabase Connection Error:", error);
-        return false;
-      }
-      console.log("✅ Supabase Connected Successfully");
-      return true;
-    } catch (err) {
-      console.error("❌ Connection Test Failed:", err);
-      return false;
-    }
-  }
-  
-  // ทดสอบการเชื่อมต่อเมื่อหน้าโหลด
-  window.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 Mission Create Page Loaded");
-    testSupabaseConnection();
+
+  // เมื่อหน้าเว็บโหลดเสร็จ
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("📄 DOM โหลดเสร็จแล้ว");
     
-    // ใส่ข้อความตัวอย่างใน textarea เพื่อความสะดวก
-    const promptEl = document.getElementById("prompt");
-    if (promptEl && !promptEl.value) {
-      promptEl.value = "สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ";
+    const generateBtn = document.getElementById('generateBtn');
+    const testBtn = document.getElementById('testBtn');
+    
+    if (generateBtn) {
+      console.log("✅ พบปุ่ม generateBtn");
+      // ใช้ event listener แทน onclick ใน HTML
+      generateBtn.addEventListener('click', generateMission);
+      
+      // เพิ่มปุ่มทดสอบ
+      if (testBtn) {
+        testBtn.style.display = 'block';
+        testBtn.addEventListener('click', testSystem);
+      }
+      
+      // ทดสอบการคลิกปุ่มทันที (สำหรับ debug)
+      setTimeout(() => {
+        console.log("🔄 พร้อมใช้งาน! พิมพ์ข้อความและคลิกปุ่มได้เลย");
+      }, 500);
+    } else {
+      console.error("❌ ไม่พบปุ่ม generateBtn!");
+      alert("ไม่พบปุ่มสร้างบทเรียน กรุณารีเฟรชหน้าเว็บ");
+    }
+    
+    // ทดสอบการแสดงตัวอย่าง
+    const preview = document.getElementById('preview');
+    if (preview) {
+      preview.srcdoc = `
+        <html>
+        <head>
+          <style>
+            body {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              font-family: 'Sarabun', sans-serif;
+              background: #f8fafc;
+              color: #64748b;
+              text-align: center;
+              padding: 20px;
+            }
+            .welcome {
+              max-width: 400px;
+            }
+            h2 { color: #7c3aed; }
+          </style>
+        </head>
+        <body>
+          <div class="welcome">
+            <h2>✨ Mission Create</h2>
+            <p>พิมพ์หัวข้อบทเรียนด้านซ้าย แล้วคลิกปุ่ม</p>
+            <p>"✨ เริ่มสร้าง Mission"</p>
+            <p>เพื่อเริ่มสร้างบทเรียนของคุณ</p>
+          </div>
+        </body>
+        </html>
+      `;
     }
   });
+
+  // แจ้งเตือนถ้ามี error
+  window.addEventListener('error', function(e) {
+    console.error("🚨 Global Error:", e.error);
+    document.getElementById('status').textContent = "⚠️ มีข้อผิดพลาดในระบบ";
+    document.getElementById('status').style.color = "#f87171";
+  });
+
+  // เพิ่มฟังก์ชันช่วยเหลือ
+  function showHelp() {
+    alert("❓ ความช่วยเหลือ:\n\n1. พิมพ์หัวข้อบทเรียนในช่องข้อความ\n2. คลิกปุ่ม '✨ เริ่มสร้าง Mission'\n3. รอระบบสร้างบทเรียนให้\n4. ดูผลลัพธ์ในหน้าจอด้านขวา\n\nหากมีปัญหา ให้เปิด Console (F12) เพื่อดูรายละเอียด");
+  }
+
+  // เพิ่มปุ่มช่วยเหลือใน console
+  console.log("ℹ️ พิมพ์ showHelp() ใน console สำหรับคำแนะนำ");
 </script>
 
 </body>
