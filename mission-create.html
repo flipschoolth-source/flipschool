@@ -15,17 +15,10 @@
         .phone-shadow {
             box-shadow: 0 0 0 12px #1e293b, 0 0 0 14px #334155, 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .loading-pulse { animation: pulse-soft 2s infinite; }
     </style>
 </head>
 <body class="text-slate-200 min-h-screen flex flex-col">
@@ -42,16 +35,32 @@
         <!-- Left Panel: Controls -->
         <div class="lg:col-span-7 flex flex-col gap-6">
             <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl backdrop-blur-sm">
+                
+                <!-- API Key Section -->
+                <div class="mb-6 p-4 bg-slate-900/50 rounded-2xl border border-slate-700">
+                    <label for="apiKeyInput" class="block text-sm font-semibold mb-2 text-violet-300 flex items-center gap-2">
+                        🔑 ใส่ Google Gemini API Key ของคุณ
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="password" id="apiKeyInput" 
+                            class="flex-grow bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                            placeholder="วาง API Key (AIzaSy...) ที่นี่">
+                        <button id="testBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 rounded-xl font-bold transition-all whitespace-nowrap text-sm">
+                            🧪 ทดสอบ Key
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-2">*Key จะถูกบันทึกไว้ในเบราว์เซอร์ของคุณเท่านั้น</p>
+                </div>
+
                 <label for="prompt" class="block text-lg font-semibold mb-4 flex items-center gap-2">
                     <span class="text-2xl">🧠</span> หัวข้อบทเรียนที่ต้องการสร้าง
                 </label>
                 <textarea id="prompt" 
-                    class="w-full h-48 bg-slate-900/50 border border-slate-600 rounded-2xl p-4 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all resize-none"
+                    class="w-full h-40 bg-slate-900/50 border border-slate-600 rounded-2xl p-4 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all resize-none"
                     placeholder="เช่น: สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมสนุกๆ และแบบทดสอบ 3 ข้อ">สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ</textarea>
                 
                 <div id="statusBox" class="mt-4 p-4 rounded-xl bg-slate-900/30 border border-slate-700 hidden">
                     <p id="statusText" class="text-sm font-medium text-slate-300 flex items-center gap-3">
-                        <!-- Status icon injected here -->
                         <span>พร้อมใช้งาน</span>
                     </p>
                 </div>
@@ -70,12 +79,11 @@
             <div class="bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-3xl">
                 <h3 class="font-bold text-indigo-300 mb-2 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                    เคล็ดลับการใช้งาน
+                    วิธีแก้ปัญหา
                 </h3>
                 <ul class="text-sm text-slate-400 space-y-2 list-disc list-inside">
-                    <li>ระบุระดับชั้นให้ชัดเจน (เช่น ป.1, ม.3)</li>
-                    <li>เพิ่มคีย์เวิร์ดอย่าง "เกมแสนสนุก", "ตัวอย่างในชีวิตประจำวัน"</li>
-                    <li>สามารถระบุจำนวนข้อสอบที่ต้องการได้</li>
+                    <li>หากปุ่มทดสอบขึ้นสีแดง แสดงว่า Key ไม่ถูกต้อง</li>
+                    <li>ตรวจสอบว่าไม่ได้คัดลอกช่องว่างเกินมาตอนวาง Key</li>
                 </ul>
             </div>
         </div>
@@ -84,13 +92,9 @@
         <div class="lg:col-span-5 flex justify-center">
             <div class="relative w-full max-w-[380px]">
                 <div class="phone-shadow bg-white w-full aspect-[9/19] rounded-[3rem] overflow-hidden border-[8px] border-slate-800 relative">
-                    <!-- Notch -->
                     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-2xl z-20"></div>
-                    
                     <iframe id="preview" class="w-full h-full border-none bg-slate-50" name="preview"></iframe>
                 </div>
-                
-                <!-- Floating Badge -->
                 <div class="absolute -bottom-4 -right-4 bg-fuchsia-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl rotate-12">
                     LIVE PREVIEW
                 </div>
@@ -99,15 +103,28 @@
     </main>
 
     <script>
-        const apiKey = ""; // Environment provided
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025";
         
         const promptEl = document.getElementById("prompt");
+        const apiKeyInput = document.getElementById("apiKeyInput");
         const generateBtn = document.getElementById("generateBtn");
+        const testBtn = document.getElementById("testBtn");
         const clearBtn = document.getElementById("clearBtn");
         const statusBox = document.getElementById("statusBox");
         const statusText = document.getElementById("statusText");
         const previewFrame = document.getElementById("preview");
+
+        window.onload = () => {
+            const savedKey = localStorage.getItem("flipschool_api_key");
+            if (savedKey) apiKeyInput.value = savedKey;
+
+            previewFrame.srcdoc = `
+                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun', sans-serif; color:#94a3b8; text-align:center; padding:20px;">
+                    <div style="font-size:48px; margin-bottom:10px;">✨</div>
+                    <p>พิมพ์หัวข้อบทเรียนและกดปุ่มด้านข้าง<br>เพื่อเริ่มสร้าง Mission ของคุณ!</p>
+                </div>
+            `;
+        };
 
         const updateStatus = (message, type = 'info') => {
             statusBox.classList.remove('hidden');
@@ -135,139 +152,91 @@
                 try {
                     const response = await fetch(url, options);
                     if (response.ok) return await response.json();
-                    if (response.status !== 429 && response.status < 500) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || `HTTP Error ${response.status}`);
-                    }
+                    const errorData = await response.json();
+                    if (response.status === 403 || response.status === 401) throw new Error("API Key ไม่ถูกต้อง");
+                    if (response.status !== 429 && response.status < 500) throw new Error(errorData.error?.message || "Error");
                 } catch (err) {
                     if (i === maxRetries - 1) throw err;
                 }
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await new Promise(r => setTimeout(r, delay));
                 delay *= 2;
+            }
+        }
+
+        async function testConnection() {
+            const userKey = apiKeyInput.value.trim();
+            if (!userKey) {
+                updateStatus("กรุณาใส่ API Key ก่อนทดสอบ", "error");
+                return;
+            }
+
+            testBtn.disabled = true;
+            testBtn.textContent = "⌛ กำลังเช็ก...";
+            updateStatus("กำลังทดสอบการเชื่อมต่อ...", "loading");
+
+            try {
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${userKey}`;
+                await fetchWithRetry(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: "Say 'Success'" }] }] })
+                });
+
+                localStorage.setItem("flipschool_api_key", userKey);
+                updateStatus("API Key ใช้งานได้ปกติ!", "success");
+            } catch (error) {
+                updateStatus(`การทดสอบล้มเหลว: ${error.message}`, "error");
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = "🧪 ทดสอบ Key";
             }
         }
 
         async function generateMission() {
             const userPrompt = promptEl.value.trim();
-            if (!userPrompt) {
-                updateStatus("กรุณากรอกหัวข้อบทเรียนก่อนครับ", "error");
-                return;
-            }
+            const userKey = apiKeyInput.value.trim();
 
+            if (!userKey) { updateStatus("กรุณาใส่ API Key ก่อนครับ", "error"); return; }
+            if (!userPrompt) { updateStatus("กรุณากรอกหัวข้อบทเรียนก่อนครับ", "error"); return; }
+
+            localStorage.setItem("flipschool_api_key", userKey);
             generateBtn.disabled = true;
             updateStatus("กำลังประมวลผลด้วย AI...", "loading");
             
-            // Set initial loading state in preview
-            previewFrame.srcdoc = `
-                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun', sans-serif; background:#f8fafc; color:#64748b; text-align:center; padding:20px;">
-                    <div style="width:50px; height:50px; border:4px solid #7c3aed; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:20px;"></div>
-                    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-                    <h2 style="color:#1e293b; margin:0;">กำลังสร้างบทเรียน...</h2>
-                    <p>ขั้นตอนนี้อาจใช้เวลาประมาณ 10-20 วินาที</p>
-                </div>
-            `;
-
-            const systemInstruction = `
-                You are FlipSchool AI, an expert educational content creator for Thai schools. 
-                Your task is to generate a comprehensive, engaging, and interactive lesson in Thai language.
-                Follow this structure:
-                1. Lesson Title (H1)
-                2. Learning Objectives (Bullet points)
-                3. Engaging Lesson Content (Use H2 for sections, markdown for bolding)
-                4. An Interactive Activity (A "Try this" section)
-                5. A Quiz (3 multiple choice questions with answers at the bottom hidden or clearly marked).
-                
-                Tone: Encouraging, professional, and suitable for the specified grade level.
-                Always use standard Thai fonts (Sarabun).
-            `;
+            previewFrame.srcdoc = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun'; color:#64748b;">⏳ กำลังเนรมิตบทเรียน...</div>`;
 
             try {
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
-                const payload = {
-                    contents: [{ parts: [{ text: userPrompt }] }],
-                    systemInstruction: { parts: [{ text: systemInstruction }] }
-                };
-
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${userKey}`;
                 const data = await fetchWithRetry(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: "You are FlipSchool AI. Generate a Thai lesson with Title, Objectives, Content, Activity, and Quiz." }] }
+                    })
                 });
 
                 const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!content) throw new Error("ไม่สามารถสร้างเนื้อหาได้ กรุณาลองใหม่");
-
-                const renderedHtml = marked.parse(content);
-                previewFrame.srcdoc = wrapInTemplate(renderedHtml);
-                
+                previewFrame.srcdoc = wrapInTemplate(marked.parse(content));
                 updateStatus("สร้างบทเรียนสำเร็จ!", "success");
             } catch (error) {
-                console.error(error);
-                updateStatus(`เกิดข้อผิดพลาด: ${error.message}`, "error");
-                previewFrame.srcdoc = `<div style="padding:20px; color:#e11d48; font-family:sans-serif;"><h3>❌ ข้อผิดพลาด</h3><p>${error.message}</p></div>`;
+                updateStatus(error.message, "error");
             } finally {
                 generateBtn.disabled = false;
             }
         }
 
         function wrapInTemplate(bodyHtml) {
-            return `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-                    <style>
-                        :root { --primary: #7c3aed; }
-                        body { 
-                            font-family: 'Sarabun', sans-serif; 
-                            line-height: 1.7; 
-                            color: #334155; 
-                            background: #fdfdff; 
-                            margin: 0; 
-                            padding: 0; 
-                        }
-                        .content { padding: 24px; }
-                        h1 { color: var(--primary); font-size: 1.8rem; margin-top: 0; border-bottom: 4px solid #f0e7ff; padding-bottom: 12px; }
-                        h2 { color: #1e293b; font-size: 1.4rem; margin-top: 2rem; display: flex; align-items: center; gap: 8px; }
-                        h2::before { content: '🚀'; }
-                        blockquote { background: #f5f3ff; border-left: 5px solid var(--primary); padding: 15px; margin: 20px 0; border-radius: 0 12px 12px 0; font-style: italic; }
-                        ul, ol { padding-left: 20px; }
-                        li { margin-bottom: 10px; }
-                        .quiz-box { background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 30px; }
-                        .badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; display: inline-block; }
-                        .footer { text-align: center; padding: 30px; color: #94a3b8; font-size: 0.8rem; border-top: 1px solid #f1f5f9; }
-                    </style>
-                </head>
-                <body>
-                    <div class="content">
-                        <div class="badge">FlipSchool Mission</div>
-                        ${bodyHtml}
-                    </div>
-                    <div class="footer">
-                        สร้างโดย FlipSchool AI 🚀<br>พลังขับเคลื่อนโดย Gemini 2.5 Flash
-                    </div>
-                </body>
-                </html>
-            `;
+            return `<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet"><style>body{font-family:'Sarabun',sans-serif;line-height:1.7;color:#334155;padding:24px;background:#fdfdff;}h1{color:#7c3aed;border-bottom:4px solid #f0e7ff;padding-bottom:12px;}.footer{text-align:center;padding:30px;color:#94a3b8;font-size:0.8rem;}</style></head><body>${bodyHtml}<div class="footer">สร้างโดย FlipSchool AI 🚀</div></body></html>`;
         }
 
         generateBtn.addEventListener("click", generateMission);
+        testBtn.addEventListener("click", testConnection);
         clearBtn.addEventListener("click", () => {
             promptEl.value = "";
             statusBox.classList.add('hidden');
             previewFrame.srcdoc = "";
         });
-
-        // Initialize empty preview
-        window.onload = () => {
-             previewFrame.srcdoc = `
-                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun', sans-serif; color:#94a3b8; text-align:center; padding:20px;">
-                    <div style="font-size:48px; margin-bottom:10px;">✨</div>
-                    <p>พิมพ์หัวข้อบทเรียนและกดปุ่มด้านข้าง<br>เพื่อเริ่มสร้าง Mission ของคุณ!</p>
-                </div>
-            `;
-        };
     </script>
 </body>
 </html>
