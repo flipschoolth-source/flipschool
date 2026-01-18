@@ -160,9 +160,9 @@
   <div class="card">
     <label for="prompt">🧠 คุณต้องการสร้างบทเรียนเรื่องอะไร?</label>
     <textarea
-      id="prompt" >
-      "สร้างบทเรียนภาษาไทย ป.1 เรื่อง มาตราแม่กม พร้อมกิจกรรมที่สนุกสนานและแบบทดสอบ 3 ข้อ"
-   </textarea>
+      id="prompt"
+      placeholder="เช่น: สร้างบทเรียนภาษาไทย ป.1 เรื่อง มาตราแม่กม พร้อมกิจกรรมที่สนุกสนานและแบบทดสอบ 3 ข้อ"
+    ></textarea>
 
     <button id="generateBtn" onclick="generateMission()">
       ✨ เริ่มสร้าง Mission
@@ -213,26 +213,40 @@
     `;
 
     try {
+      console.log("📡 กำลังเรียกใช้ Supabase Function...");
+      console.log("Prompt:", prompt);
+      console.log("Course ID:", cid);
+      
       // เรียกใช้ Edge Function "generate-mission"
       const { data, error } = await _supabase.functions.invoke("generate-mission", {
         body: { 
             prompt: prompt,
-            cid: cid // ส่ง Course ID ไปด้วย
+            cid: cid || "default-course"
         }
       });
 
-      if (error) throw error;
+      console.log("📨 ตอบกลับจาก Function:", { data, error });
+
+      if (error) {
+        console.error("❌ Supabase Function Error:", error);
+        throw new Error(`Supabase Error: ${error.message}`);
+      }
 
       if (data && data.html) {
+        console.log("✅ ได้รับ HTML สำเร็จ ความยาว:", data.html.length, "ตัวอักษร");
         preview.srcdoc = data.html;
         status.textContent = "✅ สร้าง Mission สำเร็จแล้ว!";
         status.style.color = "#4ade80";
+      } else if (data && data.error) {
+        console.error("❌ Function returned error:", data.error);
+        throw new Error(`Function Error: ${data.error}`);
       } else {
-        throw new Error("ไม่ได้รับข้อมูล HTML จากระบบ");
+        console.error("❌ ไม่มีข้อมูล html ใน response:", data);
+        throw new Error("ไม่ได้รับข้อมูล HTML จากระบบ (รูปแบบตอบกลับไม่ถูกต้อง)");
       }
 
     } catch (err) {
-      console.error("Error details:", err);
+      console.error("🔴 Error details:", err);
       
       // แสดงข้อผิดพลาดแบบละเอียด
       const errorMessage = err.message || "กรุณาลองใหม่อีกครั้ง";
@@ -241,28 +255,221 @@
       status.textContent = `❌ เกิดข้อผิดพลาด: ${errorMessage}`;
       status.style.color = "#f87171";
       
-      preview.srcdoc = `
-        <div style="padding:30px;font-family:Sarabun;color:#1e293b;max-width:600px;margin:auto;">
-          <h3 style="color:#dc2626;">⚠️ เกิดข้อผิดพลาด</h3>
-          <p><strong>ข้อความ:</strong> ${errorMessage}</p>
-          <p><strong>รายละเอียด:</strong> ${errorDetails}</p>
-          <div style="margin-top:20px;padding:15px;background:#fef2f2;border-radius:8px;">
-            <small>ตรวจสอบว่า:</small>
-            <ul style="margin:10px 0;">
-              <li>API Key ถูกตั้งค่าใน Supabase Functions แล้ว</li>
-              <li>Function "generate-mission" ถูก deploy แล้ว</li>
-              <li>อินเทอร์เน็ตทำงานปกติ</li>
-            </ul>
-          </div>
-          <button onclick="location.reload()" style="margin-top:15px;padding:10px 20px;background:#7c3aed;color:white;border:none;border-radius:8px;cursor:pointer;">
-            🔄 ลองอีกครั้ง
-          </button>
-        </div>
-      `;
+      // ใช้ตัวอย่าง HTML เมื่อเกิดข้อผิดพลาด
+      const fallbackHtml = `
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>บทเรียนตัวอย่าง</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #1e293b;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #7c3aed;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .error-box {
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    .info-box {
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .content {
+      background: #f0f9ff;
+      border-left: 4px solid #3b82f6;
+    }
+    .activity {
+      background: #fef7cd;
+      border-left: 4px solid #f59e0b;
+    }
+    .quiz {
+      background: #dcfce7;
+      border-left: 4px solid #10b981;
+    }
+    button {
+      background: linear-gradient(135deg, #7c3aed, #9333ea);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 10px 5px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .question {
+      margin: 15px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+    .debug-info {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚠️ ระบบกำลังทดสอบการทำงาน</h1>
+    
+    <div class="error-box">
+      <h3 style="color:#dc2626;">ข้อผิดพลาดที่พบ:</h3>
+      <p><strong>ข้อความ:</strong> ${errorMessage}</p>
+      <p><strong>รายละเอียด:</strong> ${errorDetails}</p>
+      <p style="margin-top:15px;color:#64748b;">
+        <small>⚠️ <strong>หมายเหตุ:</strong> Supabase Function "generate-mission" ยังไม่ได้ deploy</small>
+      </p>
+    </div>
+    
+    <div class="info-box">
+      <h3>📝 ข้อมูลการร้องขอ:</h3>
+      <p><strong>หัวข้อบทเรียน:</strong> ${prompt}</p>
+      <p><strong>Course ID:</strong> ${cid || "ไม่ระบุ"}</p>
+    </div>
+    
+    <div class="section content">
+      <h2>📚 ตัวอย่างบทเรียน: ${prompt || "การสร้างบทเรียน"}</h2>
+      <p>1. นี่คือส่วนเนื้อหาหลักของบทเรียน</p>
+      <p>2. คุณสามารถอธิบายหัวข้อต่างๆ ได้ที่นี่</p>
+      <p>3. เพิ่มภาพประกอบหรือตัวอย่างเพื่อความเข้าใจ</p>
+    </div>
+    
+    <div class="section activity">
+      <h2>🎮 กิจกรรมตัวอย่าง</h2>
+      <p>🔹 ให้นักเรียนฝึกเขียนตามตัวอย่าง</p>
+      <p>🔹 จัดกลุ่มอภิปรายเกี่ยวกับเนื้อหา</p>
+      <p>🔹 สร้างชิ้นงานตามหัวข้อที่เรียน</p>
+      <button onclick="alert('🎉 กิจกรรมสำเร็จ!')">
+        คลิกเพื่อทำกิจกรรม
+      </button>
+    </div>
+    
+    <div class="section quiz">
+      <h2>📝 แบบทดสอบตัวอย่าง (3 ข้อ)</h2>
+      <div class="question">
+        <p>1. คำถามตัวอย่างข้อที่ 1?</p>
+        <button onclick="alert('คำตอบที่ถูกต้องคือ A')">ตัวเลือก A</button>
+        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก B</button>
+      </div>
+      <div class="question">
+        <p>2. คำถามตัวอย่างข้อที่ 2?</p>
+        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก A</button>
+        <button onclick="alert('คำตอบที่ถูกต้องคือ B')">ตัวเลือก B</button>
+      </div>
+      <div class="question">
+        <p>3. คำถามตัวอย่างข้อที่ 3?</p>
+        <button onclick="alert('คำตอบที่ถูกต้องคือ A')">ตัวเลือก A</button>
+        <button onclick="alert('คำตอบนี้ไม่ถูกต้อง')">ตัวเลือก B</button>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px;">
+      <button onclick="alert('🎓 ยินดีด้วย! คุณทำแบบทดสอบเสร็จแล้ว')">
+        ✅ ส่งคำตอบแบบทดสอบ
+      </button>
+      <button onclick="window.location.reload()" style="background:#64748b;">
+        🔄 ลองอีกครั้ง
+      </button>
+    </div>
+    
+    <div class="debug-info">
+      <strong>ข้อมูล Debug:</strong><br>
+      • URL: ${window.location.href}<br>
+      • Supabase Project: ${SUPABASE_URL}<br>
+      • เวลา: ${new Date().toLocaleTimeString('th-TH')}<br>
+      • ตรวจสอบ Console (F12) สำหรับข้อมูลเพิ่มเติม
+    </div>
+  </div>
+  
+  <script>
+    console.log("📖 แสดงบทเรียนตัวอย่างสำเร็จ");
+    console.log("Prompt: ${prompt}");
+    console.log("Error: ${errorMessage}");
+  </script>
+</body>
+</html>`;
+
+      preview.srcdoc = fallbackHtml;
+      
+      // แสดงคำแนะนำในการแก้ไข
+      setTimeout(() => {
+        const shouldFix = confirm("⚠️ ต้องการคำแนะนำในการแก้ไขข้อผิดพลาดนี้ไหม?");
+        if (shouldFix) {
+          alert("🛠️ วิธีการแก้ไข:\n\n1. ไปที่ Supabase Dashboard → Functions\n2. สร้าง Function ใหม่ชื่อ 'generate-mission'\n3. ใช้โค้ดจากคำแนะนำก่อนหน้า\n4. Deploy function\n5. ลองใหม่อีกครั้ง");
+        }
+      }, 1000);
     } finally {
       btn.disabled = false;
     }
   }
+  
+  // เพิ่มฟังก์ชันทดสอบ Supabase Connection
+  async function testSupabaseConnection() {
+    console.log("🔄 ทดสอบการเชื่อมต่อ Supabase...");
+    try {
+      const { data, error } = await _supabase.auth.getSession();
+      if (error) {
+        console.error("❌ Supabase Connection Error:", error);
+        return false;
+      }
+      console.log("✅ Supabase Connected Successfully");
+      return true;
+    } catch (err) {
+      console.error("❌ Connection Test Failed:", err);
+      return false;
+    }
+  }
+  
+  // ทดสอบการเชื่อมต่อเมื่อหน้าโหลด
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Mission Create Page Loaded");
+    testSupabaseConnection();
+    
+    // ใส่ข้อความตัวอย่างใน textarea เพื่อความสะดวก
+    const promptEl = document.getElementById("prompt");
+    if (promptEl && !promptEl.value) {
+      promptEl.value = "สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ";
+    }
+  });
 </script>
 
 </body>
