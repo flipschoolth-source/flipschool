@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>**Mission Create ✨ | FlipSchool</title>
+  <title>Mission Create ✨ | FlipSchool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -142,20 +142,20 @@
 
 <div class="container">
   <div class="card">
-    <label for="prompt">🧠 หัวข้อบทเรียนที่ต้องการ</label>
+    <label for="prompt">🧠 หัวข้อบทเรียนที่ต้องการสร้าง</label>
     <textarea id="prompt" placeholder="ใส่ชื่อหัวข้อบทเรียนที่นี่...">สร้างบทเรียนภาษาไทย ป.1 เรื่อง สระอา พร้อมกิจกรรมและแบบทดสอบ 3 ข้อ</textarea>
     
     <div class="api-key-section">
       <label for="apiKey">🔑 Google Gemini API Key</label>
-      <input type="password" id="apiKey" class="api-key-input" placeholder="วาง API Key (AIzaSy...) ที่นี่">
+      <input type="password" id="apiKey" class="api-key-input" placeholder="วาง API Key ที่นี่...">
       <p style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
-        รับ Key ได้ที่: <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary); font-weight: 600;">Google AI Studio</a>
+        ตรวจสอบ Key ได้ที่: <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary); font-weight: 600;">Google AI Studio</a>
       </p>
     </div>
 
     <div class="button-group">
         <button id="generateBtn">✨ เริ่มสร้าง Mission</button>
-        <button id="testBtn" class="test-btn">🧪 Test API</button>
+        <button id="testBtn" class="test-btn">🧪 ทดสอบ API</button>
     </div>
     
     <div class="status" id="status">สถานะ: พร้อมใช้งาน</div>
@@ -167,10 +167,52 @@
 </div>
 
 <script>
-// กำหนดชื่อรุ่นของ AI ให้ถูกต้อง
+// --- การตั้งค่าเริ่มต้น ---
 const GEMINI_MODEL = "gemini-1.5-flash";
 
-// --- ฟังก์ชันหลักในการสร้างบทเรียน ---
+// --- ฟังก์ชันหลักในการเรียกใช้ API ---
+async function callGeminiAPI(apiKey, prompt) {
+  // ทำความสะอาด API Key (ลบช่องว่างและอักขระพิเศษที่อาจหลุดมา)
+  const cleanKey = apiKey.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+  
+  // URL สำหรับเรียกใช้งาน Gemini API
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${cleanKey}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { 
+          temperature: 0.7, 
+          maxOutputTokens: 3500 
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("API Error Response:", data);
+      let errorMsg = data.error?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ";
+      
+      if (response.status === 404) errorMsg = "ไม่พบโมเดล (เช็กชื่อรุ่น gemini-1.5-flash)";
+      if (response.status === 403) errorMsg = "API Key ไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึง";
+      if (response.status === 400) errorMsg = "รูปแบบคำขอไม่ถูกต้อง (Bad Request)";
+      
+      return { success: false, error: errorMsg };
+    }
+
+    // ส่งคืนเนื้อหาจาก AI
+    return { success: true, content: data.candidates[0].content.parts[0].text };
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    return { success: false, error: "ไม่สามารถเชื่อมต่อ Google ได้ (เช็กอินเทอร์เน็ต)" };
+  }
+}
+
+// --- ฟังก์ชันสร้างบทเรียน ---
 async function generateMission() {
   const promptEl = document.getElementById("prompt");
   const apiKeyEl = document.getElementById("apiKey");
@@ -182,24 +224,23 @@ async function generateMission() {
   const apiKey = apiKeyEl.value.trim();
   
   if (!userText || !apiKey) {
-    alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนครับ");
+    alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนเริ่มสร้างบทเรียนครับ");
     return;
   }
   
   btn.disabled = true;
-  status.textContent = "⏳ AI กำลังสร้างบทเรียน...";
+  status.textContent = "⏳ AI กำลังเรียบเรียงเนื้อหาบทเรียน...";
   status.style.color = "#f59e0b";
   showLoadingScreen(preview);
   
   try {
-    const systemPrompt = `คุณคือผู้เชี่ยวชาญด้านการสอน จงสร้างบทเรียนเรื่อง "${userText}" ในรูปแบบ Markdown โดยมีโครงสร้าง: ชื่อบทเรียน, วัตถุประสงค์, เนื้อหาที่เข้าใจง่าย, กิจกรรม, และแบบทดสอบพร้อมเฉลย`;
+    const systemPrompt = `คุณคือผู้เชี่ยวชาญด้านสื่อการเรียนการสอน จงสร้างบทเรียนเรื่อง "${userText}" ในรูปแบบ Markdown โดยมีโครงสร้างดังนี้: ชื่อบทเรียน, วัตถุประสงค์, เนื้อหาสรุปเข้าใจง่าย, กิจกรรมเสริมทักษะ, และแบบทดสอบพร้อมเฉลยท้ายบท`;
     const response = await callGeminiAPI(apiKey, systemPrompt);
     
     if (response.success) {
-      // แปลงเนื้อหา Markdown เป็น HTML เพื่อแสดงใน iframe
       const htmlContent = convertToFullHTML(marked.parse(response.content));
       preview.srcdoc = htmlContent;
-      status.textContent = "✅ สร้างสำเร็จ!";
+      status.textContent = "✅ สร้างบทเรียนสำเร็จแล้ว!";
       status.style.color = "#10b981";
       localStorage.setItem('gemini_api_key', apiKey);
     } else {
@@ -214,91 +255,67 @@ async function generateMission() {
   }
 }
 
-// --- ฟังก์ชันเรียก API (ปรับปรุงเพื่อเช็ก Error 404/403) ---
-async function callGeminiAPI(apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 3500 }
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("API Error Detail:", data);
-      let errorMsg = data.error?.message || "เกิดข้อผิดพลาด";
-      if (response.status === 404) errorMsg = "ไม่พบ API (ตรวจสอบชื่อ Model หรือ URL)";
-      if (response.status === 403) errorMsg = "API Key ไม่ถูกต้อง หรือไม่ได้เปิดใช้งาน";
-      if (response.status === 429) errorMsg = "ใช้งานเกินโควตาฟรี (รอ 1 นาที)";
-      return { success: false, error: errorMsg };
-    }
-
-    return { success: true, content: data.candidates[0].content.parts[0].text };
-  } catch (error) {
-    return { success: false, error: "เชื่อมต่ออินเทอร์เน็ตไม่ได้ หรือ URL ผิดพลาด" };
-  }
-}
-
 // --- ฟังก์ชันทดสอบ API Key ---
 async function testAPIKey() {
   const apiKey = document.getElementById("apiKey").value.trim();
   const status = document.getElementById("status");
-  if (!apiKey) { alert("กรุณาใส่ API Key"); return; }
   
-  status.textContent = "🧪 กำลังทดสอบ...";
+  if (!apiKey) { 
+    alert("กรุณาวาง API Key ของคุณก่อนทดสอบ"); 
+    return; 
+  }
+  
+  status.textContent = "🧪 กำลังเชื่อมต่อกับ Google Gemini...";
+  status.style.color = "#f59e0b";
+
   const response = await callGeminiAPI(apiKey, "Say 'OK'");
+  
   if (response.success) {
     status.textContent = "✅ API Key ใช้งานได้จริง!";
     status.style.color = "#10b981";
     localStorage.setItem('gemini_api_key', apiKey);
   } else {
-    status.textContent = "❌ API Key ไม่ถูกต้อง (" + response.error + ")";
+    status.textContent = "❌ " + response.error;
     status.style.color = "#ef4444";
   }
 }
 
-// --- การจัดรูปแบบ HTML ภายใน Iframe ---
+// --- ฟังก์ชันประกอบ HTML สำหรับ Preview ---
 function convertToFullHTML(htmlBody) {
   return `
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #334155; padding: 20px; background: white; }
-    h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 5px; }
-    h2 { color: #1e293b; margin-top: 20px; }
-    .badge { background: #7c3aed; color: white; padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; display: inline-block; margin-bottom: 15px; }
+    body { font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #334155; padding: 25px; background: white; }
+    h1 { color: #7c3aed; font-size: 1.8rem; border-bottom: 3px solid #f0e7ff; padding-bottom: 10px; }
+    h2 { color: #1e293b; margin-top: 25px; border-left: 5px solid #7c3aed; padding-left: 12px; }
+    .badge { background: #7c3aed; color: white; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; display: inline-block; margin-bottom: 10px; }
     ul, ol { padding-left: 20px; }
     li { margin-bottom: 8px; }
-    hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
+    .footer { text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 40px; }
   </style>
 </head>
 <body>
-  <div class="badge">AI Lesson by FlipSchool</div>
+  <div class="badge">FlipSchool Interactive</div>
   ${htmlBody}
-  <hr>
-  <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Create by Gemini AI</p>
+  <div class="footer">Power by Gemini AI & FlipSchool</div>
 </body>
 </html>`;
 }
 
 function showLoadingScreen(preview) {
-  preview.srcdoc = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;"><h3>⏳ กำลังเนรมิตบทเรียน...</h3></div>`;
+  preview.srcdoc = `<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun', sans-serif; text-align:center;"><div><h2 style="color:#7c3aed;">⏳ กำลังสร้างสรรค์บทเรียน...</h2><p>โปรดรอสักครู่ AI กำลังเนรมิตเนื้อหาให้คุณ</p></div></div>`;
 }
 
 function showErrorScreen(preview, msg) {
-  preview.srcdoc = `<div style="padding:20px; color:red; font-family:sans-serif;"><h3>❌ เกิดข้อผิดพลาด</h3><p>${msg}</p></div>`;
+  preview.srcdoc = `<div style="padding:30px; color:#ef4444; font-family:'Sarabun', sans-serif;"><h3>❌ เกิดข้อผิดพลาด</h3><p>${msg}</p></div>`;
 }
 
-// เมื่อโหลดหน้าเว็บเสร็จ
+// เริ่มต้นโหลด Key เดิมที่เคยเซฟไว้
 document.addEventListener('DOMContentLoaded', () => {
   const savedKey = localStorage.getItem('gemini_api_key');
   if (savedKey) document.getElementById('apiKey').value = savedKey;
