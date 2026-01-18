@@ -5,8 +5,9 @@
   <title>Mission Create ✨ | FlipSchool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
 
   <style>
@@ -17,24 +18,11 @@
       color: #333;
       min-height: 100vh;
     }
-
     header {
       padding: 40px 20px;
       text-align: center;
       color: white;
     }
-
-    header h1 {
-      margin: 0;
-      font-size: 2.2rem;
-      letter-spacing: 1px;
-    }
-
-    header p {
-      opacity: 0.8;
-      font-weight: 300;
-    }
-
     .container {
       display: grid;
       grid-template-columns: 1fr 450px;
@@ -43,24 +31,12 @@
       max-width: 1300px;
       margin: auto;
     }
-
     .card {
       background: white;
       border-radius: 20px;
       padding: 24px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
     }
-
-    label {
-      font-weight: 600;
-      display: block;
-      margin-bottom: 12px;
-      color: #1e293b;
-      font-size: 1.1rem;
-    }
-
     textarea {
       width: 100%;
       min-height: 180px;
@@ -68,82 +44,38 @@
       font-size: 1rem;
       border-radius: 12px;
       border: 1px solid #e2e8f0;
-      resize: vertical;
-      font-family: inherit;
-      box-sizing: border-box;
-      outline: none;
-      transition: border 0.3s;
     }
-
-    textarea:focus {
-      border-color: #7c3aed;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-    }
-
     button {
       margin-top: 20px;
       width: 100%;
       padding: 16px;
       font-size: 1.1rem;
-      font-weight: 600;
       border-radius: 14px;
       border: none;
       cursor: pointer;
       background: linear-gradient(135deg, #7c3aed, #9333ea);
       color: white;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
     }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
-    }
-
     button:disabled {
       background: #94a3b8;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
     }
-
     .phone {
       background: #1e293b;
       border-radius: 40px;
       padding: 12px;
       height: 750px;
-      border: 8px solid #334155;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      position: sticky;
-      top: 20px;
     }
-
-    .phone iframe {
+    iframe {
       width: 100%;
       height: 100%;
-      border: none;
       border-radius: 30px;
+      border: none;
       background: white;
     }
-
     .status {
-      margin-top: 15px;
-      font-size: 0.95rem;
+      margin-top: 12px;
       text-align: center;
-      font-weight: 500;
       min-height: 24px;
-    }
-
-    @media (max-width: 1024px) {
-      .container {
-        grid-template-columns: 1fr;
-      }
-      .phone {
-        height: 650px;
-        max-width: 450px;
-        margin: auto;
-        position: static;
-      }
     }
   </style>
 </head>
@@ -152,100 +84,90 @@
 
 <header>
   <h1>Mission Create ✨</h1>
-  <p>ระบบสร้างบทเรียนอัจฉริยะ (Powered by Gemini AI & Supabase)</p>
+  <p>ระบบสร้างบทเรียนอัจฉริยะ (Gemini + Supabase)</p>
 </header>
 
 <div class="container">
 
   <div class="card">
-    <label for="prompt">🧠 คุณต้องการสร้างบทเรียนเรื่องอะไร?</label>
-    <textarea
-      id="prompt"
-      placeholder="เช่น: สร้างบทเรียนภาษาไทย ป.1 เรื่อง มาตราแม่กม พร้อมกิจกรรมที่สนุกสนานและแบบทดสอบ 3 ข้อ"
-    ></textarea>
+    <label>🧠 คุณต้องการสร้างบทเรียนเรื่องอะไร?</label>
+    <textarea id="prompt"
+      placeholder="เช่น: สร้างบทเรียนวิทยาศาสตร์ ป.5 เรื่อง แรงโน้มถ่วง พร้อมกิจกรรมและแบบทดสอบ">
+    </textarea>
 
-    <button id="generateBtn" onclick="generateMission()">
-      ✨ เริ่มสร้าง Mission
-    </button>
-
+    <button id="generateBtn">✨ เริ่มสร้าง Mission</button>
     <div class="status" id="status"></div>
   </div>
 
   <div class="phone">
-    <iframe id="preview" name="preview"></iframe>
+    <iframe id="preview"></iframe>
   </div>
 
 </div>
 
 <script>
-  // 🔐 CONFIG
-  const SUPABASE_URL = "https://hznmvaxjlgjnrvtjosdt.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE";
+  // ❗ ป้องกันเปิดผ่าน file://
+  if (location.protocol === "file:") {
+    alert("กรุณาเปิดผ่าน Web Server (เช่น localhost, Netlify, Vercel)");
+  }
 
-  const _supabase = supabase.createClient(
+  const SUPABASE_URL = "https://hznmvaxjlgjnrvtjosdt.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
+
+  const supabaseClient = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
 
+  const btn = document.getElementById("generateBtn");
+  const status = document.getElementById("status");
+  const preview = document.getElementById("preview");
+
+  btn.addEventListener("click", generateMission);
+
   async function generateMission() {
-    const promptEl = document.getElementById("prompt");
-    const preview = document.getElementById("preview");
-    const status = document.getElementById("status");
-    const btn = document.getElementById("generateBtn");
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const cid = urlParams.get("cid") || "demo";
-
-    const prompt = promptEl.value.trim();
+    const prompt = document.getElementById("prompt").value.trim();
     if (!prompt) {
-      alert("กรุณาพิมพ์หัวข้อบทเรียน");
+      alert("กรุณากรอกหัวข้อบทเรียน");
       return;
     }
 
     btn.disabled = true;
     status.style.color = "white";
-    status.textContent = "⏳ กำลังสร้าง Mission...";
-    preview.srcdoc = "<p style='padding:20px'>กำลังโหลด...</p>";
+    status.textContent = "⏳ กำลังสร้างบทเรียนด้วย AI...";
 
     try {
       const { data, error } =
-        await _supabase.functions.invoke("generate-mission", {
-          body: { prompt, cid },
-        });
+        await supabaseClient.functions.invoke(
+          "generate-mission",
+          {
+            body: { prompt },
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        );
 
       if (error) {
-        throw new Error(error.message || "Function error");
+        throw error;
       }
 
-      // 🔑 จุดสำคัญ: รับข้อมูลให้ยืดหยุ่น
-      let html = "";
-
-      if (typeof data === "string") {
-        html = data;
-      } else if (data?.html) {
-        html = data.html;
-      } else if (data?.content) {
-        html = data.content;
+      if (!data || !data.html) {
+        throw new Error("Edge Function ไม่ส่ง html กลับมา");
       }
 
-      if (!html) {
-        throw new Error("Function ตอบกลับมา แต่ไม่มี HTML");
-      }
-
-      preview.srcdoc = html;
+      preview.srcdoc = data.html;
       status.textContent = "✅ สร้าง Mission สำเร็จแล้ว!";
       status.style.color = "#4ade80";
 
     } catch (err) {
-      console.error(err);
-      status.textContent =
-        "❌ เกิดข้อผิดพลาด: " + (err.message || "ไม่ทราบสาเหตุ");
+      console.error("Invoke error:", err);
+      status.textContent = "❌ " + err.message;
       status.style.color = "#f87171";
-
       preview.srcdoc = `
-        <div style="padding:20px;font-family:Sarabun;color:#f87171">
+        <div style="padding:20px;font-family:Sarabun;color:red;">
           <h3>เกิดข้อผิดพลาด</h3>
-          <p>${err.message}</p>
+          <pre>${err.message}</pre>
         </div>
       `;
     } finally {
