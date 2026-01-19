@@ -3,9 +3,10 @@
    ========================================= */
 
 const APP_CONFIG = {
-    // 1. Supabase Settings
-    SUPABASE_URL: 'https://hznmvaxjlgjnrvtjosdt.supabase.co',
-    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE',
+    // 1. Supabase Settings - ดึงค่าจาก Environment Variables
+    // หากไม่มีการกำหนดค่าผ่านระบบ Server ให้ใส่ค่าว่างไว้เพื่อความปลอดภัย
+    SUPABASE_URL: window._env_?.SUPABASE_URL || '',
+    SUPABASE_KEY: window._env_?.SUPABASE_KEY || '',
 
     // 2. ข้อมูลแอปพลิเคชัน
     APP_NAME: 'FlipSchool',
