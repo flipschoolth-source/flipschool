@@ -15,12 +15,13 @@
 
     <!-- 3. เครื่องมือ UI -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Sarabun', 'Noto Sans Thai', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
+        /* ระบบพรีวิวที่รองรับการย่อขนาดอัตโนมัติ */
         .preview-outer-container {
             width: 100%;
             display: flex;
@@ -92,50 +93,23 @@
         }
         .quota-free { background: #e0f2fe; color: #0369a1; }
         .quota-pay { background: #dcfce7; color: #15803d; }
-
-        .modal-overlay {
-            background-color: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(4px);
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Notification Box -->
+    <!-- กล่องแจ้งเตือนข้อความ -->
     <div id="msgBox" class="custom-message-box">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
-    <!-- Save Confirmation Modal -->
-    <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in duration-300">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">💾</div>
-                <h3 class="text-xl font-bold text-slate-800">ยืนยันการบันทึกภารกิจ</h3>
-                <p class="text-sm text-slate-500 mt-2">กรุณาเลือกขั้นตอนถัดไปที่คุณครูต้องการดำเนินการครับ</p>
-            </div>
-            <div class="space-y-3">
-                <button onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2">
-                    ✅ บันทึกและจบงาน (กลับหน้าห้องเรียน)
-                </button>
-                <button onclick="confirmSave('continue')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2">
-                    🚀 บันทึกและสร้างภารกิจใหม่ทันที
-                </button>
-                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">
-                    ย้อนกลับไปแก้ไข
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ Navbar -->
+    <!-- ✅ แถบเมนูด้านบน (สไตล์เดียวกับหน้าแรก) -->
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 md:px-6 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-inner">
                     <span class="text-blue-900 text-xl font-sans">🎓</span>
                 </div>
-                <span class="text-xl md:text-2xl font-bold tracking-tight font-sans">Flip<span class="text-orange-400">School</span></span>
+                <span class="text-xl md:text-2xl font-bold tracking-tight">Flip<span class="text-orange-400">School</span></span>
             </div>
             <div class="flex gap-4 items-center font-medium">
                 <a href="teacher-dashboard.html" class="hover:text-orange-300 transition-colors text-xs md:text-sm">แดชบอร์ด</a>
@@ -146,72 +120,59 @@
 
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <!-- ฝั่งซ้าย: เครื่องมือสร้างภารกิจ -->
+        <!-- ฝั่งซ้าย: เครื่องมือควบคุมการสร้างภารกิจ -->
         <div class="lg:col-span-5 flex flex-col gap-6">
             <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
                 
-                <!-- Title Header -->
-                <h2 class="text-2xl font-bold text-blue-900 flex items-center gap-3 mb-4">
-                    <span class="text-3xl">🤖</span> 
-                    <span id="pageModeTitle">AI Mission Creator</span>
-                </h2>
-
-                <!-- Classroom Info Indicator -->
-                <div id="classroomHeader" class="hidden-el mb-6 p-5 bg-orange-50 rounded-[2rem] border border-orange-100 flex items-center gap-4">
-                    <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md shrink-0">📍</div>
-                    <div class="flex-grow">
-                        <p class="text-[10px] uppercase font-bold text-orange-600 tracking-widest mb-1 font-sans">TARGET CLASSROOM</p>
-                        <h3 id="classroomSubjectDisplay" class="text-lg font-bold text-slate-800 leading-tight">...</h3>
-                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs font-bold text-slate-500">
-                            <span id="classroomRoomDisplay">...</span>
-                            <span class="text-orange-200 hidden sm:inline">|</span>
-                            <span id="classroomSemesterDisplay">...</span>
-                            <span class="text-orange-200 hidden sm:inline">|</span>
-                            <span id="classroomYearDisplay">...</span>
-                        </div>
+                <!-- ข้อมูลห้องเรียนที่เชื่อมต่อ -->
+                <div id="classroomHeader" class="hidden-el mb-6 p-4 bg-orange-50 rounded-2xl border border-orange-100 flex items-center gap-4">
+                    <div class="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white text-xl">📍</div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-orange-600 tracking-wider">กำลังสร้างภารกิจให้ห้องเรียน</p>
+                        <p id="classroomNameDisplay" class="text-sm font-bold text-slate-800">กำลังโหลดชื่อห้องเรียน...</p>
                     </div>
                 </div>
 
-                <!-- Quota & API Management -->
+                <h2 class="text-2xl font-bold text-blue-900 flex items-center gap-3 mb-6">
+                    <span class="text-3xl">🤖</span> AI Mission Creator
+                </h2>
+
+                <!-- การจัดการโควตาและ API Key -->
                 <div class="mb-8 space-y-4">
                     <div class="flex justify-between items-center px-1">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">API CONFIGURATION</span>
-                        <div class="flex gap-2">
-                            <a href="https://aistudio.google.com/app/api-keys" target="_blank" class="text-[10px] bg-emerald-100 text-emerald-600 hover:bg-emerald-200 px-2 py-1 rounded font-bold transition-colors">
-                                🔑 รับ API Key
-                            </a>
-                            <a href="https://aistudio.google.com/app/billing" target="_blank" class="text-[10px] bg-blue-100 text-blue-600 hover:bg-blue-200 px-2 py-1 rounded font-bold transition-colors">
-                                ⚡ เพิ่มโควตา
-                            </a>
-                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">การตั้งค่า AI</span>
+                        <a href="https://aistudio.google.com/app/billing" target="_blank" class="text-[10px] bg-blue-100 text-blue-600 hover:bg-blue-200 px-2 py-1 rounded font-bold transition-colors">
+                            ⚡ เพิ่มโควตา (Billing)
+                        </a>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
-                        <select id="modelSelector" class="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 font-sans">
-                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <select id="modelSelector" class="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (โควตาสูง)</option>
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (แนะนำ)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาดสูงสุด)</option>
                         </select>
-                        <div id="quotaInfo" class="quota-badge quota-free flex items-center justify-center text-center font-sans">
-                            FREE TIER MODE
+                        <div id="quotaInfo" class="quota-badge quota-free flex items-center justify-center text-center">
+                            Free Tier Mode
                         </div>
                     </div>
 
-                    <!-- API Key View/Edit -->
+                    <!-- แสดงสถานะ Key -->
                     <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs shadow-sm">✓</div>
-                            <span class="text-xs font-bold text-slate-700">API Key เชื่อมต่อแล้ว</span>
+                            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                            <span class="text-xs font-bold text-slate-700">API Key พร้อมใช้งาน</span>
                         </div>
                         <button onclick="showApiKeyEdit()" class="text-xs font-bold text-blue-600 hover:underline">แก้ไข</button>
                     </div>
 
+                    <!-- ส่วนแก้ไข Key -->
                     <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-200">
                         <div class="flex gap-2">
                             <div class="relative flex-grow">
                                 <input type="password" id="apiKeyInput" 
-                                    class="w-full bg-white border border-slate-300 rounded-xl p-2.5 pr-9 focus:ring-2 focus:ring-orange-500 outline-none text-sm transition-all"
-                                    placeholder="ใส่ API Key ที่นี่...">
+                                    class="w-full bg-white border border-slate-300 rounded-xl p-2.5 pr-9 focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                                    placeholder="ใส่ API Key...">
                                 <button onclick="toggleKeyVisibility()" class="absolute right-3 top-2.5 text-slate-400">👁️</button>
                             </div>
                             <button id="saveKeyBtn" class="bg-blue-900 hover:bg-black text-white px-4 rounded-xl font-bold transition-all text-sm active:scale-95">
@@ -221,23 +182,23 @@
                     </div>
                 </div>
 
-                <!-- Prompt Section -->
+                <!-- ส่วนระบุรายละเอียดภารกิจ -->
                 <div class="space-y-4">
                     <div class="flex flex-col gap-3">
-                        <label class="block text-sm font-bold text-slate-700 px-1">เนรมิตภารกิจตามจินตนาการ</label>
+                        <label class="block text-sm font-bold text-slate-700">คำสั่งเนรมิตภารกิจ</label>
                         <div class="flex flex-wrap gap-2">
-                            <button id="btnOptimizePrompt" class="btn-ai-sparkle shadow-sm"><span>✨ ปรับแต่งคำสั่ง</span></button>
-                            <button id="btnSuggestIdeas" class="btn-ai-sparkle shadow-sm"><span>✨ ขอไอเดียใหม่</span></button>
+                            <button id="btnOptimizePrompt" class="btn-ai-sparkle"><span>✨ ปรับแต่งคำสั่ง</span></button>
+                            <button id="btnSuggestIdeas" class="btn-ai-sparkle"><span>✨ ขอไอเดีย</span></button>
                         </div>
                     </div>
                     
                     <textarea id="promptInput" 
                         class="w-full h-44 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 focus:ring-2 focus:ring-blue-600 outline-none transition-all resize-none text-slate-700 shadow-inner"
-                        placeholder="ระบุรายละเอียดภารกิจ เช่น: สร้างเกมจับคู่คำศัพท์ภาษาไทย เรื่องอักษรสามหมู่ มี 5 ข้อ..."></textarea>
+                        placeholder="เช่น: สร้างเกมตอบคำถามเรื่องสิ่งแวดล้อม ธีมป่าไม้..."></textarea>
 
                     <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-center gap-4 animate-pulse">
                         <div class="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-sm font-bold text-orange-700 italic text-center">AI กำลังดำเนินการ...</span>
+                        <span id="loadingMessage" class="text-sm font-bold text-orange-700">AI กำลังดำเนินการ...</span>
                     </div>
 
                     <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-orange-200 transform active:scale-95">
@@ -247,26 +208,26 @@
             </div>
         </div>
 
-        <!-- ฝั่งขวา: พื้นที่ Preview -->
+        <!-- ฝั่งขวา: พื้นที่พรีวิวผลลัพธ์ -->
         <div class="lg:col-span-7 flex flex-col gap-4">
             <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 gap-4">
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl shadow-inner">
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
                     <button onclick="changeView('mobile')" id="btn-mobile" class="p-2 bg-white shadow-sm rounded-lg transition-all">📱</button>
                     <button onclick="changeView('tablet')" id="btn-tablet" class="p-2 hover:bg-white transition-all rounded-lg">📑</button>
                     <button onclick="changeView('desktop')" id="btn-desktop" class="p-2 hover:bg-white transition-all rounded-lg">💻</button>
                 </div>
                 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer">
                         <input type="checkbox" id="orientSwitch" class="w-4 h-4 accent-orange-500"> แนวนอน
                     </label>
                     <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all hidden shadow-md active:scale-95">
-                        📌 บันทึกลงคลังภารกิจ
+                        📌 บันทึกลงห้องเรียน
                     </button>
                 </div>
             </div>
 
-            <div class="preview-outer-container bg-slate-200/50 rounded-[2.5rem] border-4 border-dashed border-slate-300">
+            <div class="preview-outer-container">
                 <div id="previewWrapper" class="preview-frame-wrapper device-mobile">
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none" name="missionFrame" title="พรีวิว"></iframe>
                 </div>
@@ -276,7 +237,7 @@
 
     <footer class="bg-white border-t border-slate-200 py-6 mt-auto text-center">
         <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 FlipSchool. นวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model</p>
-        <p class="text-slate-400 text-[10px]">ออกแบบและพัฒนาโดย ครูไพรัช อินควรชุม | เทศบาล 1 (ถนนนครนอก)</p>
+        <p class="text-slate-400 text-[10px]">ออกแบบและพัฒนาโดย ครูไพรัช อินควรชุม</p>
     </footer>
 
     <script>
@@ -284,7 +245,6 @@
         let currentSize = 'mobile';
         let generatedCode = "";
         let targetCid = null;
-        let editingMid = null; 
 
         const frame = document.getElementById("missionFrame");
         const wrapper = document.getElementById("previewWrapper");
@@ -296,19 +256,17 @@
         const loadingMessage = document.getElementById("loadingMessage");
         const msgBox = document.getElementById("msgBox");
         const msgText = document.getElementById("msgText");
-        
         const classroomHeader = document.getElementById("classroomHeader");
-        const classroomSubjectDisplay = document.getElementById("classroomSubjectDisplay");
-        const classroomRoomDisplay = document.getElementById("classroomRoomDisplay");
-        const classroomSemesterDisplay = document.getElementById("classroomSemesterDisplay");
-        const classroomYearDisplay = document.getElementById("classroomYearDisplay");
+        const classroomNameDisplay = document.getElementById("classroomNameDisplay");
 
+        // ฟังก์ชันแสดงข้อความแจ้งเตือนแทน alert()
         function showMessage(text) {
             msgText.innerText = text;
             msgBox.style.display = "block";
             setTimeout(() => { msgBox.style.display = "none"; }, 5000);
         }
 
+        // ฟังก์ชันรอจนกว่า Database จะพร้อมทำงาน
         async function waitForDB(maxAttempts = 10) {
             for (let i = 0; i < maxAttempts; i++) {
                 if (window.sysDB) return window.sysDB;
@@ -322,16 +280,16 @@
             const db = await waitForDB();
             if (db) await loadKeyFromDB();
 
+            // ดึง Classroom ID จาก URL
             const urlParams = new URLSearchParams(window.location.search);
             targetCid = urlParams.get('cid');
-            editingMid = urlParams.get('mid');
-
-            if (targetCid && db) fetchClassroomDetails(db, targetCid);
-            if (editingMid && db) fetchMissionDetails(db, editingMid);
+            if (targetCid && db) {
+                fetchClassroomName(db, targetCid);
+            }
 
             document.getElementById("saveKeyBtn").addEventListener("click", saveKeyToDB);
             document.getElementById("generateBtn").addEventListener("click", handleGenerate);
-            document.getElementById("saveToCloudBtn").addEventListener("click", openSaveModal);
+            document.getElementById("saveToCloudBtn").addEventListener("click", saveMissionToClassroom);
             document.getElementById("btnOptimizePrompt").addEventListener("click", optimizePrompt);
             document.getElementById("btnSuggestIdeas").addEventListener("click", suggestIdeas);
             
@@ -340,46 +298,41 @@
             initPreviewFrame();
         });
 
-        async function fetchClassroomDetails(db, cid) {
+        // ดึงชื่อห้องเรียนมาแสดงผล
+        async function fetchClassroomName(db, cid) {
             classroomHeader.classList.remove('hidden-el');
             try {
-                const { data, error } = await db.from('classrooms').select('subject_name, room_name, academic_year, semester').eq('classroom_id', cid).single();
+                const { data, error } = await db
+                    .from('classrooms')
+                    .select('classroom_name')
+                    .eq('classroom_id', cid)
+                    .single();
+                
                 if (error) throw error;
-                classroomSubjectDisplay.innerText = data.subject_name;
-                classroomRoomDisplay.innerText = `ห้อง: ${data.room_name}`;
-                classroomSemesterDisplay.innerText = `เทอม: ${data.semester}`;
-                classroomYearDisplay.innerText = `ปี: ${data.academic_year}`;
-            } catch (err) { classroomSubjectDisplay.innerText = "ไม่พบข้อมูลห้องเรียน"; }
+                classroomNameDisplay.innerText = data.classroom_name;
+            } catch (err) {
+                console.error("Fetch Classroom Error:", err);
+                classroomNameDisplay.innerText = "ไม่พบข้อมูลห้องเรียน";
+                classroomNameDisplay.classList.add('text-rose-500');
+            }
         }
 
-        async function fetchMissionDetails(db, mid) {
-            try {
-                const { data, error } = await db.from('missions').select('*').eq('mission_id', mid).single();
-                if (error) throw error;
-                document.getElementById('pageModeTitle').innerText = "แก้ไขภารกิจเดิม";
-                promptInput.value = data.description || "";
-                generatedCode = data.content_data?.html || "";
-                if(generatedCode) {
-                    frame.srcdoc = generatedCode;
-                    document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                }
-                showMessage("โหลดข้อมูลภารกิจเดิมเรียบร้อยแล้วครับ ✨");
-            } catch (err) { showMessage("ไม่สามารถโหลดข้อมูลภารกิจได้"); }
-        }
-
+        // บันทึก API Key ลงตาราง teachers
         async function saveKeyToDB() {
             const key = keyInput.value.trim();
             if(!key) return showMessage("กรุณาระบุ API Key");
             const db = window.sysDB;
             try {
                 const { data: { user } } = await db.auth.getUser();
-                if(!user) return showMessage("กรุณาเข้าสู่ระบบก่อนครับ");
-                await db.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
+                if(!user) return showMessage("กรุณาเข้าสู่ระบบก่อน");
+                const { error } = await db.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
+                if(error) throw error;
                 showMessage("บันทึก API Key สำเร็จ! ✨");
                 updateApiKeyUI(true);
             } catch (err) { showMessage("Error: " + err.message); }
         }
 
+        // โหลด API Key จากฐานข้อมูล
         async function loadKeyFromDB() {
             const db = window.sysDB;
             if (!db) return;
@@ -387,7 +340,10 @@
                 const { data: { user } } = await db.auth.getUser();
                 if(user) {
                     const { data } = await db.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
-                    if(data?.gemini_api_key) { keyInput.value = data.gemini_api_key; updateApiKeyUI(true); }
+                    if(data?.gemini_api_key) {
+                        keyInput.value = data.gemini_api_key;
+                        updateApiKeyUI(true);
+                    }
                 }
             } catch (e) {}
         }
@@ -399,147 +355,79 @@
 
         function showApiKeyEdit() { updateApiKeyUI(false); keyInput.focus(); }
 
-        /**
-         * ปรับปรุงฟังก์ชันเรียก Gemini ให้ทนทานต่อ Error มากขึ้น
-         */
+        // ฟังก์ชันเรียกใช้ Gemini API พร้อมระบบรอหากติดโควตา
         async function callGemini(userPrompt, systemPrompt = "") {
             const teacherKey = keyInput.value.trim();
             const targetKey = apiKeyEnv || teacherKey;
-            const selectedModel = modelSelector.value;
-            if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ก่อนเริ่มงานครับ"); }
+            const targetModel = modelSelector.value;
+            if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key"); }
 
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${targetKey}`;
-            
-            // เพิ่ม Retry Logic
-            let lastError = null;
-            for (let i = 0; i < 3; i++) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${targetKey}`;
+            const maxRetries = 5;
+            for (let i = 0; i < maxRetries; i++) {
                 try {
-                    const res = await fetch(endpoint, {
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: userPrompt }] }], 
-                            systemInstruction: { parts: [{ text: systemPrompt }] },
-                            generationConfig: {
-                                temperature: 0.7,
-                                topP: 0.95,
-                                topK: 40,
-                                maxOutputTokens: 8192,
-                            }
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userPrompt }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
                         })
                     });
-
-                    const result = await res.json();
-                    
-                    if (res.status === 429) { 
-                        const waitSec = Math.pow(2, i);
-                        toggleLoading(true, `ระบบหนาแน่น... กำลังลองใหม่ในอีก ${waitSec} วินาที`);
-                        await new Promise(r => setTimeout(r, waitSec * 1000)); 
-                        continue; 
+                    if (response.status === 429) {
+                        if (i === maxRetries - 1) throw new Error("โควตาเต็มชั่วคราว กรุณารอสักครู่ครับ");
+                        await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                        continue;
                     }
-
+                    const result = await response.json();
                     if (result.error) throw new Error(result.error.message);
-
-                    // ตรวจสอบว่ามีการบล็อกเนื้อหาหรือไม่
-                    if (!result.candidates || result.candidates.length === 0) {
-                        if (result.promptFeedback?.blockReason) {
-                            throw new Error(`คำสั่งถูกระงับเนื่องจาก: ${result.promptFeedback.blockReason} กรุณาปรับเปลี่ยนคำสั่งใหม่ครับ`);
-                        }
-                        throw new Error("AI ไม่สามารถสร้างเนื้อหาได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ");
-                    }
-
-                    const content = result.candidates[0]?.content?.parts?.[0]?.text;
-                    if (!content) throw new Error("AI ส่งข้อมูลกลับมาเป็นค่าว่าง กรุณาลองใหม่อีกครั้งครับ");
-                    
-                    return content;
-
-                } catch (err) { 
-                    lastError = err;
-                    if (i === 2) throw err; 
-                }
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (err) { if (i === maxRetries - 1) throw err; }
             }
         }
 
+        // เริ่มต้นการเนรมิตภารกิจ
         async function handleGenerate() {
             const prompt = promptInput.value.trim();
-            if(!prompt) return showMessage("กรุณาระบุสิ่งที่ต้องการเนรมิตก่อนครับ");
+            if(!prompt) return showMessage("ระบุรายละเอียดภารกิจก่อนครับ");
+            toggleLoading(true, "กำลังเนรมิตบทเรียน... ระบบจะพยายามเชื่อมต่อจนสำเร็จครับ");
             
-            toggleLoading(true, "กำลังรังสรรค์ภารกิจอัจฉริยะ... ขั้นตอนนี้อาจใช้เวลา 10-30 วินาทีครับ");
-            
-            const sys = `คุณคือ FlipSchool AI ผู้เชี่ยวชาญการสร้างสื่อการสอน Single HTML (Tailwind + Noto Sans Thai). 
-            กฎเหล็ก:
-            1. ส่งโค้ด HTML ที่สมบูรณ์และเล่นได้ทันที
-            2. ห้ามมีคำอธิบาย หรือ Markdown Backticks (\`\`\`html) มาเด็ดขาด
-            3. ต้องมีฟังก์ชัน JavaScript ชื่อ saveResult(score, answers) เพื่อส่ง message 'MISSION_COMPLETE' กลับมา
-            4. ดีไซน์ต้องสวยงาม พรีเมียม และใช้ภาษาไทยที่ถูกต้อง (ไม่มีอักษรลาวปน)`;
+            const sys = `คุณคือ FlipSchool AI สร้างสื่อการสอน Single HTML (Tailwind + Noto Sans Thai). 
+            กฎสำคัญ:
+            1. ส่งเฉพาะโค้ด HTML เท่านั้น ห้ามมี Markdown
+            2. ต้องมีฟังก์ชัน JavaScript ชื่อ saveResult(score, answers)
+            3. เมื่อจบต้องส่งข้อมูลกลับมาที่ window.parent
+            4. ดีไซน์ต้องสวยงาม สไตล์ Gamification และใช้ภาษาไทยที่ถูกต้อง`;
 
             try {
                 const code = await callGemini(prompt, sys);
-                
-                // ตรวจสอบความปลอดภัยก่อนเรียก .replace
-                if (typeof code !== 'string') {
-                    throw new Error("ข้อมูลที่ได้รับจาก AI ไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับ");
-                }
-                
-                // คลีนโค้ดให้สะอาดที่สุด
-                generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
-                
-                if (generatedCode.length < 100) {
-                    throw new Error("โค้ดที่สร้างไม่สมบูรณ์ กรุณากดปุ่มเนรมิตอีกครั้งครับ");
-                }
-
-                frame.srcdoc = generatedCode;
+                const cleanCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                generatedCode = cleanCode;
+                frame.srcdoc = cleanCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตภารกิจสำเร็จ! สามารถทดสอบเล่นได้ทางขวาครับ ✨");
-            } catch (err) { 
-                console.error("Generate Error:", err);
-                showMessage("เกิดข้อผิดพลาด: " + err.message); 
-            }
+                showMessage("เนรมิตภารกิจสำเร็จ! ✨");
+            } catch (err) { showMessage(err.message); }
             finally { toggleLoading(false); }
         }
 
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
-        function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-
-        async function confirmSave(actionType) {
+        // บันทึกภารกิจลงในคลังและผูกกับห้องเรียน
+        async function saveMissionToClassroom() {
             if(!generatedCode) return;
-            const title = prompt("ระบุชื่อภารกิจนี้:", editingMid ? "" : "ภารกิจใหม่");
+            const title = prompt("ระบุชื่อภารกิจนี้:");
             if(!title) return;
-
-            closeSaveModal();
             const db = window.sysDB;
             try {
                 const { data: { user } } = await db.auth.getUser();
-                if(!user) return showMessage("กรุณาเข้าสู่ระบบก่อนบันทึกงานครับ");
-                
-                const missionData = {
+                const { error } = await db.from('missions').insert({
+                    teacher_id: user.id,
                     classroom_id: targetCid,
                     title: title,
-                    description: promptInput.value,
-                    mission_type: "ai_generated",
-                    content_data: { html: generatedCode },
-                    reward_points: 10,
-                    updated_at: new Date()
-                };
-
-                let res;
-                if (editingMid) {
-                    res = await db.from('missions').update(missionData).eq('mission_id', editingMid);
-                } else {
-                    res = await db.from('missions').insert([missionData]);
-                }
-
-                if(res.error) throw res.error;
-                showMessage("บันทึกภารกิจเรียบร้อยแล้วครับ! 🚀");
-
-                if (actionType === 'exit') {
-                    setTimeout(() => history.back(), 1500);
-                } else {
-                    setTimeout(() => {
-                        window.location.href = `mission-create-ai.html?cid=${targetCid}`;
-                    }, 1000);
-                }
-            } catch (err) { showMessage("ไม่สามารถบันทึกได้: " + err.message); }
+                    html_content: generatedCode,
+                    created_at: new Date()
+                });
+                if(error) throw error;
+                showMessage("บันทึกภารกิจลงห้องเรียนสำเร็จ! 🚀");
+            } catch (err) { showMessage("Error: " + err.message); }
         }
 
         function toggleLoading(show, message = "") {
@@ -552,7 +440,10 @@
             currentSize = size;
             ['mobile', 'tablet', 'desktop'].forEach(b => {
                 const el = document.getElementById(`btn-${b}`);
-                if (el) { el.classList.toggle('bg-white', b === size); el.classList.toggle('shadow-sm', b === size); }
+                if (el) {
+                    el.classList.toggle('bg-white', b === size);
+                    el.classList.toggle('shadow-sm', b === size);
+                }
             });
             applyViewSettings();
         }
@@ -569,26 +460,26 @@
         }
 
         function initPreviewFrame() {
-            frame.srcdoc = `<html><body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun'; color:#94a3b8; text-align:center; padding:20px;"><div><h1 style="font-size:3rem; margin:0;">🎮</h1><p>พร้อมรับผลงานชิ้นใหม่จากฝีมือ AI ครับ</p></div></body></html>`;
+            frame.srcdoc = `<html><body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun'; color:#94a3b8; text-align:center; padding:20px;"><div><h1 style="font-size:3rem; margin:0;">🎮</h1><p>รอรับผลงานจากคุณครูครับ</p></div></body></html>`;
         }
 
         function toggleKeyVisibility() { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; }
         
         async function optimizePrompt() {
             const input = promptInput.value.trim();
-            if (!input) return showMessage("กรุณาใส่หัวข้อสั้นๆ ก่อนครับ");
-            toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่งให้คมชัดขึ้น...");
+            if (!input) return showMessage("ใส่หัวข้อก่อนครับ");
+            toggleLoading(true, "AI กำลังขัดเกลาคำสั่ง...");
             try {
-                const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียดเพื่อสร้างภารกิจการศึกษาที่สนุกสนาน สวยงาม และได้สาระ ตอบเป็นภาษาไทย");
+                const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียดเพื่อสร้างเกมการศึกษาที่สนุก ตอบเป็นภาษาไทย");
                 if (res) promptInput.value = res.trim();
             } catch (err) { showMessage(err.message); }
             finally { toggleLoading(false); }
         }
 
         async function suggestIdeas() {
-            toggleLoading(true, "AI กำลังค้นหาไอเดียสุดสร้างสรรค์...");
+            toggleLoading(true, "AI กำลังคิดไอเดีย...");
             try {
-                const res = await callGemini("ขอไอเดียเกมการสอนใหม่ๆ", "Suggest a creative educational game idea for kids in Thai.");
+                const res = await callGemini("ขอไอเดียภารกิจสนุกๆ", "Suggest a creative educational game idea in Thai.");
                 if (res) promptInput.value = res.trim();
             } catch (err) { showMessage(err.message); }
             finally { toggleLoading(false); }
