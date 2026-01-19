@@ -2,8 +2,8 @@
    2. Supabase Connection (ตัวเชื่อมฐานข้อมูล)
    ========================================= */
 
-// ตัวแปร Global สำหรับเรียกใช้ Database ทั่วทั้งแอป
-let sysDB = null;
+// กำหนดให้เป็นตัวแปร Global ที่ผูกกับ window เพื่อให้ไฟล์อื่นเรียกใช้ได้แน่นอน
+window.sysDB = null;
 
 (function initSupabase() {
     // 1. ตรวจสอบว่าโหลด Library มาหรือยัง
@@ -20,18 +20,20 @@ let sysDB = null;
 
     // 3. เริ่มเชื่อมต่อ
     try {
-        sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
+        // กำหนดค่าลงใน window.sysDB
+        window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
         console.log('✅ Database Connected Successfully');
     } catch (err) {
         console.error('❌ Connection Failed:', err.message);
     }
 })();
 
-// ฟังก์ชันช่วยเหลือ: ตรวจสอบสถานะ Login (ถ้าไม่ได้ Login ให้ไปหน้าเข้าสู่ระบบ)
+// ฟังก์ชันช่วยเหลือ: ตรวจสอบสถานะ Login
 async function checkAuthRedirect() {
-    if (!sysDB) return null;
+    const db = window.sysDB;
+    if (!db) return null;
     try {
-        const { data: { user } } = await sysDB.auth.getUser();
+        const { data: { user } } = await db.auth.getUser();
         if (!user) {
             window.location.href = 'teacher-login.html';
         }
