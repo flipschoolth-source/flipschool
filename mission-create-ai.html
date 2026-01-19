@@ -101,7 +101,7 @@
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
-    <!-- ✅ Navbar: สไตล์เดียวกับ index.html -->
+    <!-- ✅ Navbar -->
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 md:px-6 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -148,8 +148,8 @@
                     <div class="grid grid-cols-2 gap-2">
                         <select id="modelSelector" class="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="gemini-1.5-flash">Gemini 1.5 Flash (โควตาสูง)</option>
-                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (แนะนำ)</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาดสูงสุด)</option>
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (ใหม่ล่าสุด)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (ฉลาดที่สุด)</option>
                         </select>
                         <div id="quotaInfo" class="quota-badge quota-free flex items-center justify-center text-center">
                             Free Tier Mode
@@ -276,7 +276,6 @@
             const db = await waitForDB();
             if (db) await loadKeyFromDB();
 
-            // ดึง Classroom ID จาก URL และค้นหาข้อมูลห้องเรียน
             const urlParams = new URLSearchParams(window.location.search);
             targetCid = urlParams.get('cid');
             if (targetCid && db) {
@@ -294,10 +293,6 @@
             initPreviewFrame();
         });
 
-        /**
-         * แก้ไขฟังก์ชันให้ดึงข้อมูลจาก Schema ตาราง classrooms จริง
-         * แสดงผล วิชา + ห้องเรียน
-         */
         async function fetchClassroomName(db, cid) {
             classroomHeader.classList.remove('hidden-el');
             try {
@@ -308,7 +303,6 @@
                     .single();
                 
                 if (error) throw error;
-                // แสดงผล "วิชา: [subject_name] ห้อง: [room_name]"
                 classroomNameDisplay.innerText = `${data.subject_name} (${data.room_name})`;
             } catch (err) {
                 console.error("Fetch Classroom Error:", err);
@@ -353,13 +347,18 @@
 
         function showApiKeyEdit() { updateApiKeyUI(false); keyInput.focus(); }
 
+        /**
+         * ฟังก์ชันเรียกใช้ Gemini API พร้อมการจัดการ Error โควตาเป็นภาษาไทย
+         */
         async function callGemini(userPrompt, systemPrompt = "") {
             const teacherKey = keyInput.value.trim();
             const targetKey = apiKeyEnv || teacherKey;
-            const targetModel = modelSelector.value;
-            if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key"); }
+            const selectedModel = modelSelector.value;
+            
+            if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ก่อนเริ่มใช้งานครับ"); }
 
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${targetKey}`;
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${targetKey}`;
+            
             const maxRetries = 5;
             for (let i = 0; i < maxRetries; i++) {
                 try {
@@ -371,15 +370,35 @@
                             systemInstruction: { parts: [{ text: systemPrompt }] }
                         })
                     });
-                    if (response.status === 429) {
-                        if (i === maxRetries - 1) throw new Error("โควตาเต็มชั่วคราว กรุณารอสักครู่ (60 วินาที) ครับ");
+
+                    const result = await response.json();
+
+                    // ตรวจสอบ Error Code 429 (Quota Exceeded)
+                    if (response.status === 429 || (result.error && result.error.message.toLowerCase().includes('quota'))) {
+                        if (i === maxRetries - 1) {
+                            throw new Error("ขออภัยครับ โควตาการใช้งาน AI ของคุณครูเต็มแล้ว (Rate Limit Exceeded) กรุณารอสักครู่ประมาณ 1-2 นาที หรือลองเปลี่ยนไปใช้โมเดลรุ่น Flash แทนครับ");
+                        }
+                        // รอเพิ่มขึ้นแบบ Exponential และลองใหม่
                         await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
                         continue;
                     }
-                    const result = await response.json();
-                    if (result.error) throw new Error(result.error.message);
+
+                    if (response.status === 404) {
+                        throw new Error(`ไม่พบโมเดล ${selectedModel} ในระบบ หรืออาจยังไม่เปิดให้ใช้งานในภูมิภาคของคุณครูครับ`);
+                    }
+
+                    if (result.error) {
+                        let errMsg = result.error.message;
+                        // แปลข้อผิดพลาดทั่วไปเป็นภาษาไทย
+                        if (errMsg.includes('API key not valid')) errMsg = "API Key ไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้งครับ";
+                        if (errMsg.includes('billing')) errMsg = "โควตาแบบฟรีของคุณครูเต็มแล้ว กรุณาตรวจสอบการตั้งค่า Billing ใน Google AI Studio ครับ";
+                        throw new Error(errMsg);
+                    }
+
                     return result.candidates?.[0]?.content?.parts?.[0]?.text;
-                } catch (err) { if (i === maxRetries - 1) throw err; }
+                } catch (err) { 
+                    if (i === maxRetries - 1) throw err; 
+                }
             }
         }
 
@@ -391,11 +410,13 @@
             const sys = `คุณคือ FlipSchool AI ผู้เชี่ยวชาญการสร้างสื่อการสอน Single HTML (Tailwind + Noto Sans Thai). 
             กฎสำคัญ:
             1. ส่งโค้ด HTML ที่ทำงานได้ทันที ห้ามมีคำอธิบาย หรือ Markdown
-            2. ต้องมีระบบบันทึกคะแนน saveResult(score, answers)
-            3. ดีไซน์ต้องสวยงาม สไตล์ Gamification และใช้ภาษาไทยที่ถูกต้อง (ไม่มีภาษาลาวปน)`;
+            2. ต้องมีระบบบันทึกคะแนน saveResult(score, answers) โดยส่ง message 'MISSION_COMPLETE' ไปที่ window.parent
+            3. ดีไซน์ต้องสวยงาม สไตล์ Gamification และใช้ภาษาไทยที่ถูกต้องเท่านั้น`;
 
             try {
                 const code = await callGemini(prompt, sys);
+                if (!code) throw new Error("AI ไม่สามารถส่งโค้ดกลับมาได้ในขณะนี้");
+                
                 const cleanCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
                 generatedCode = cleanCode;
                 frame.srcdoc = cleanCode;
@@ -405,9 +426,6 @@
             finally { toggleLoading(false); }
         }
 
-        /**
-         * บันทึกภารกิจลงในตาราง missions ตาม Schema จริงของคุณครู
-         */
         async function saveMissionToClassroom() {
             if(!generatedCode) return;
             const title = prompt("ระบุชื่อภารกิจนี้:");
@@ -415,14 +433,12 @@
             const db = window.sysDB;
             try {
                 const { data: { user } } = await db.auth.getUser();
-                
-                // ตาราง missions ของคุณครูต้องการ classroom_id, title, description, mission_type, content_data
                 const { error } = await db.from('missions').insert({
                     classroom_id: targetCid,
                     title: title,
                     description: "สร้างโดย FlipSchool AI",
                     mission_type: "ai_generated",
-                    content_data: { html: generatedCode }, // เก็บเป็น JSON ตาม Schema
+                    content_data: { html: generatedCode },
                     reward_points: 10,
                     created_at: new Date()
                 });
@@ -470,9 +486,9 @@
         async function optimizePrompt() {
             const input = promptInput.value.trim();
             if (!input) return showMessage("ใส่หัวข้อก่อนครับ");
-            toggleLoading(true, "AI กำลังขัดเกลาคำสั่ง...");
+            toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่ง...");
             try {
-                const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียดเพื่อสร้างภารกิจการศึกษาที่สนุกสนาน ตอบเป็นภาษาไทย");
+                const res = await callGemini(input, "คุณคือผู้เชี่ยวชาญการเขียน Prompt สื่อการสอน ขยายความให้ละเอียด สวยงาม และสนุก ตอบเป็นภาษาไทย");
                 if (res) promptInput.value = res.trim();
             } catch (err) { showMessage(err.message); }
             finally { toggleLoading(false); }
@@ -481,7 +497,7 @@
         async function suggestIdeas() {
             toggleLoading(true, "AI กำลังคิดไอเดีย...");
             try {
-                const res = await callGemini("ขอไอเดียเกมการสอนใหม่ๆ", "Suggest a creative educational game idea in Thai.");
+                const res = await callGemini("ขอไอเดียเกมการสอนใหม่ๆ 1 อย่าง สำหรับเด็กไทย", "Suggest a creative educational game idea in Thai.");
                 if (res) promptInput.value = res.trim();
             } catch (err) { showMessage(err.message); }
             finally { toggleLoading(false); }
