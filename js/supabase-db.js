@@ -5,33 +5,46 @@
 // กำหนดให้เป็นตัวแปร Global ที่ผูกกับ window เพื่อให้ไฟล์อื่นเรียกใช้ได้แน่นอน
 window.sysDB = null;
 
-(function initSupabase() {
-    // 1. ตรวจสอบว่าโหลด Library มาหรือยัง
+/**
+ * ฟังก์ชันเริ่มต้นการเชื่อมต่อ Supabase
+ * จะถูกเรียกโดยอัตโนมัติเมื่อโหลดไฟล์นี้
+ */
+window.initSupabase = function() {
+    // 1. ตรวจสอบว่าโหลด Library (SDK) มาหรือยัง
     if (typeof supabase === 'undefined') {
-        console.error('❌ Critical Error: Supabase SDK not found.');
-        return;
+        console.warn('⚠️ Supabase SDK not found yet, retrying...');
+        return false;
     }
 
-    // 2. ตรวจสอบ Config
-    if (typeof APP_CONFIG === 'undefined') {
-        console.error('❌ Critical Error: Config not found.');
-        return;
+    // 2. ตรวจสอบ Config จาก js/config.js
+    if (typeof APP_CONFIG === 'undefined' || !APP_CONFIG.SUPABASE_URL) {
+        console.error('❌ Critical Error: APP_CONFIG or Supabase URL not found.');
+        return false;
     }
 
     // 3. เริ่มเชื่อมต่อ
     try {
-        // กำหนดค่าลงใน window.sysDB
-        window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
-        console.log('✅ Database Connected Successfully');
+        if (!window.sysDB) {
+            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
+            console.log('✅ Database Connected Successfully');
+        }
+        return true;
     } catch (err) {
         console.error('❌ Connection Failed:', err.message);
+        return false;
     }
-})();
+};
+
+// รันฟังก์ชันทันที
+initSupabase();
 
 // ฟังก์ชันช่วยเหลือ: ตรวจสอบสถานะ Login
 async function checkAuthRedirect() {
     const db = window.sysDB;
-    if (!db) return null;
+    if (!db) {
+        console.error('❌ sysDB is not initialized');
+        return null;
+    }
     try {
         const { data: { user } } = await db.auth.getUser();
         if (!user) {
@@ -39,6 +52,7 @@ async function checkAuthRedirect() {
         }
         return user;
     } catch (e) {
+        console.error('Auth Check Error:', e);
         return null;
     }
 }
