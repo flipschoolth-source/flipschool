@@ -3,211 +3,467 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>สร้างภารกิจใหม่ ✨ | FlipSchool</title>
-    <!-- โหลดค่ากำหนดพื้นฐานและความลับจาก Vercel -->
+    <title>AI Mission Creator ✨ | FlipSchool</title>
+
+    <!-- 1. โหลดความลับและ Config -->
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
+    
+    <!-- 2. โหลด Supabase SDK และตัวเชื่อมฐานข้อมูล -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <!-- 3. โหลดเครื่องมือ UI -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ใช้ฟอนต์สารบรรณที่มีมาตรฐานการแสดงผลภาษาไทยที่ถูกต้อง -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { 
-            font-family: 'Sarabun', sans-serif; 
-            background-color: #f8fafc; 
-            color: #1e293b;
-        }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
-        /* สไตล์ Navbar เลียนแบบหน้า index.html ตามที่คุณครูต้องการ */
-        .nav-gradient { 
-            background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); 
-        }
-        
-        /* การตกแต่งการ์ดโมดูลเพื่อความสวยงามและตอบสนองการคลิก */
-        .model-card { 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            border: 1px solid #e2e8f0; 
-            background: white;
-            border-radius: 2rem;
-            padding: 2.5rem 2rem;
+        /* Preview System with Auto Scaling */
+        .preview-outer-container {
+            width: 100%;
             display: flex;
-            flex-direction: column;
-            height: 100%;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        
-        .model-card:hover { 
-            transform: translateY(-12px); 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); 
-            border-color: #FF8C00; 
-        }
-        
-        .icon-box { 
-            width: 4.5rem; height: 4.5rem;
-            border-radius: 1.25rem;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1rem;
+            min-height: 700px;
         }
 
-        .model-card:hover .icon-box {
-            transform: scale(1.1) rotate(5deg);
+        .preview-frame-wrapper {
+            background: #1e293b;
+            border-radius: 2.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 10px solid #0f172a;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            position: relative;
+            transform-origin: top center;
         }
 
-        /* สำหรับสถานะที่ยังไม่พร้อมใช้งาน */
-        .coming-soon {
-            filter: grayscale(0.5);
-            opacity: 0.8;
-            cursor: not-allowed;
+        .device-mobile { width: 375px; height: 667px; }
+        .device-tablet { width: 768px; height: 1024px; }
+        .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
+        .is-landscape.device-mobile { width: 667px; height: 375px; }
+        .is-landscape.device-tablet { width: 1024px; height: 768px; }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        
+        .btn-ai-sparkle {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
         }
+        .btn-ai-sparkle:hover { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
+        
+        .custom-message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            border-left: 5px solid #FF8C00;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .hidden-el { display: none !important; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="min-h-screen flex flex-col">
 
-    <!-- ✅ Navbar: รูปแบบเหมือน index.html -->
+    <!-- Notification Box -->
+    <div id="msgBox" class="custom-message-box">
+        <p id="msgText" class="text-sm font-bold"></p>
+    </div>
+
+    <!-- ✅ Navbar: สไตล์ index.html -->
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <div class="container mx-auto px-4 md:px-6 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-inner">
-                    <span class="text-blue-900 text-2xl">🎓</span>
+                <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-inner">
+                    <span class="text-blue-900 text-xl font-sans">🎓</span>
                 </div>
-                <span class="text-2xl font-bold tracking-tight">Flip<span class="text-orange-400">School</span></span>
+                <span class="text-xl md:text-2xl font-bold tracking-tight font-sans">Flip<span class="text-orange-400">School</span></span>
             </div>
             <div class="flex gap-4 items-center font-medium">
-                <a href="teacher-dashboard.html" class="hover:text-orange-300 transition-colors text-sm md:text-base">แดชบอร์ด</a>
-                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all text-sm">ย้อนกลับ</button>
+                <a href="teacher-dashboard.html" class="hover:text-orange-300 transition-colors text-xs md:text-sm">แดชบอร์ด</a>
+                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg transition-all text-xs">ย้อนกลับ</button>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-6 py-12 max-w-7xl">
-        <header class="text-center mb-16">
-            <div id="classroomInfo" class="inline-block bg-orange-100 text-orange-700 px-4 py-1 rounded-full text-xs font-bold mb-4 hidden">
-                📦 กำลังสร้างภารกิจสำหรับห้องเรียน
-            </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-blue-900 mb-4 tracking-tight">Mission Creator ✨</h1>
-            <p class="text-slate-500 text-lg max-w-2xl mx-auto">เลือกรูปแบบบทเรียนและเกมเพื่อสร้างประสบการณ์การเรียนรู้ที่สนุกและมีคุณค่าตามแนวคิด <span class="text-orange-600 font-bold italic">GLORY Model</span></p>
-        </header>
-
-        <!-- Grid 8 Modules (5 เดิม + 3 ใหม่) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            
-            <!-- 1. AI Mission Creator (รองรับ cid) -->
-            <a href="mission-create-ai.html" class="model-card group mission-link">
-                <div class="icon-box bg-orange-500 text-white">🤖</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">AI Creator</h3>
-                <p class="text-slate-500 text-sm flex-grow">เนรมิตแอปกิจกรรมและเกมอัตโนมัติด้วยพลัง AI เพียงระบุความต้องการของคุณครู</p>
-                <div class="flex items-center text-orange-500 font-bold text-sm mt-6">
-                    เริ่มสร้างเลย <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+    <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- ฝั่งซ้าย: เครื่องมือสร้างภารกิจ -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <div class="flex flex-col gap-1 mb-6">
+                    <div id="cidIndicator" class="hidden w-fit bg-blue-100 text-blue-700 text-[10px] font-bold px-3 py-1 rounded-full mb-2">
+                        📍 เชื่อมต่อกับห้องเรียนแล้ว
+                    </div>
+                    <h2 class="text-2xl font-bold text-blue-900 flex items-center gap-3">
+                        <span class="text-3xl">🤖</span> AI Mission Creator
+                    </h2>
                 </div>
-            </a>
 
-            <!-- 2. Competition Model -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-red-500 text-white">🏆</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Competition</h3>
-                <p class="text-slate-500 text-sm">เกมประลองความเร็วแบบ Real-time พร้อม Leaderboard เพื่อสร้างความตื่นเต้นในห้องเรียน</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
+                <!-- API Key Management -->
+                <div class="mb-8">
+                    <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Gemini API Status</p>
+                                <p class="text-sm font-bold text-slate-700">เชื่อมต่อคีย์เรียบร้อยแล้ว</p>
+                            </div>
+                        </div>
+                        <button onclick="showApiKeyEdit()" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline">เปลี่ยนคีย์</button>
+                    </div>
+
+                    <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gemini API Key</label>
+                            <a href="https://aistudio.google.com/app/api-keys" target="_blank" class="text-[10px] text-blue-600 hover:underline font-bold font-sans">GET KEY ↗</a>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="relative flex-grow">
+                                <input type="password" id="apiKeyInput" 
+                                    class="w-full bg-white border border-slate-300 rounded-xl p-2.5 pr-9 focus:ring-2 focus:ring-orange-500 outline-none text-sm transition-all"
+                                    placeholder="AIzaSy...">
+                                <button onclick="toggleKeyVisibility()" class="absolute right-3 top-2.5 text-slate-400">👁️</button>
+                            </div>
+                            <button id="saveKeyBtn" class="bg-blue-900 hover:bg-black text-white px-5 rounded-xl font-bold transition-all text-sm active:scale-95">
+                                บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex flex-col gap-3">
+                        <label class="block text-sm font-bold text-slate-700">รายละเอียดภารกิจที่คุณครูต้องการ</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="btnOptimizePrompt" class="btn-ai-sparkle"><span>✨ ปรับแต่งคำสั่ง</span></button>
+                            <button id="btnSuggestIdeas" class="btn-ai-sparkle"><span>✨ ขอไอเดียใหม่</span></button>
+                            <button id="btnAddContext" class="btn-ai-sparkle"><span>✨ เพิ่มเนื้อหา</span></button>
+                        </div>
+                    </div>
+                    
+                    <textarea id="promptInput" 
+                        class="w-full h-44 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 focus:ring-2 focus:ring-blue-600 outline-none transition-all resize-none text-slate-700 shadow-inner"
+                        placeholder="เช่น: สร้างเกมแยกประเภทขยะ 3 ด่าน ธีมโลกอนาคต..."></textarea>
+
+                    <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-center gap-4 animate-pulse">
+                        <div class="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full spinner"></div>
+                        <span id="loadingMessage" class="text-sm font-bold text-orange-700 italic">AI กำลังเนรมิตภารกิจ...</span>
+                    </div>
+
+                    <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 transform active:scale-95">
+                        🚀 เริ่มเนรมิตภารกิจ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ฝั่งขวา: พื้นที่ Preview -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+            <!-- Preview Controls -->
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 gap-4">
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="changeView('mobile')" id="btn-mobile" class="p-2 bg-white shadow-sm rounded-lg transition-all">📱</button>
+                    <button onclick="changeView('tablet')" id="btn-tablet" class="p-2 hover:bg-white transition-all rounded-lg">📑</button>
+                    <button onclick="changeView('desktop')" id="btn-desktop" class="p-2 hover:bg-white transition-all rounded-lg">💻</button>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer">
+                        <input type="checkbox" id="orientSwitch" class="w-4 h-4 accent-orange-500"> แนวนอน
+                    </label>
+                    <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all hidden shadow-md active:scale-95">
+                        📌 บันทึกลงคลังห้องเรียน
+                    </button>
+                </div>
             </div>
 
-            <!-- 3. Journey Model -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-emerald-500 text-white">🗺️</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Journey</h3>
-                <p class="text-slate-500 text-sm">สร้างแผนที่การเรียนรู้ (Roadmap) ผจญภัยผ่านภารกิจตามเนื้อหาบทเรียนที่กำหนด</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
+            <div class="preview-outer-container">
+                <div id="previewWrapper" class="preview-frame-wrapper device-mobile">
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" name="missionFrame" title="พรีวิวภารกิจ"></iframe>
+                </div>
             </div>
-
-            <!-- 4. Mastery Model -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-blue-500 text-white">🎯</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Mastery</h3>
-                <p class="text-slate-500 text-sm">คลังข้อสอบสุ่มวนจนกว่าจะผ่านเกณฑ์ เหมาะสำหรับการทดสอบก่อนและหลังเรียน</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
-            </div>
-
-            <!-- 5. Flashcard Hero (NEW) -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-violet-500 text-white">🃏</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Flashcard Hero</h3>
-                <p class="text-slate-500 text-sm">บัตรคำจำแม่น สำหรับเน้นการจำคำศัพท์ นิยาม หรือจับคู่ความหมายที่สำคัญ</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
-            </div>
-
-            <!-- 6. Narrative Choice (NEW) -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-amber-500 text-white">🎭</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Narrative Choice</h3>
-                <p class="text-slate-500 text-sm">สร้างเนื้อเรื่องแบบเลือกเส้นทางเอง ฝึกทักษะการตัดสินใจตามบทบาทสมมติ</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
-            </div>
-
-            <!-- 7. Sorting Quest (NEW) -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-cyan-500 text-white">📦</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Sorting Quest</h3>
-                <p class="text-slate-500 text-sm">เกมจำแนกหมวดหมู่ ลากวางวัตถุลงกลุ่มที่ถูกต้องภายใต้การแข่งขันกับเวลา</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
-            </div>
-
-            <!-- 8. Creative Sandbox -->
-            <div class="model-card coming-soon border-dashed">
-                <div class="icon-box bg-pink-500 text-white">🎨</div>
-                <h3 class="text-xl font-bold text-blue-900 mb-2">Creative Sandbox</h3>
-                <p class="text-slate-500 text-sm">ระบบสะสมแต้มเพื่อนำไปแลกรางวัลหรือตกแต่งพื้นที่ส่วนตัวของนักเรียน</p>
-                <span class="mt-6 text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full w-fit">เร็วๆ นี้</span>
-            </div>
-
         </div>
     </main>
 
-    <!-- ✅ Footer: รูปแบบเหมือน index.html -->
-    <footer class="bg-white border-t border-slate-200 py-10 mt-12">
-        <div class="container mx-auto px-6 text-center">
-            <p class="text-blue-900 font-bold mb-2">© 2026 FlipSchool. นวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model</p>
-            <p class="text-slate-500 text-sm">ออกแบบและพัฒนาโดย ครูไพรัช อินควรชุม</p>
-            <p class="text-slate-400 text-xs mt-2 italic">โรงเรียนเทศบาล 1 (ถนนนครนอก) เทศบาลนครสงขลา</p>
-        </div>
+    <footer class="bg-white border-t border-slate-200 py-8 mt-auto text-center">
+        <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 FlipSchool. นวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model</p>
+        <p class="text-slate-400 text-[10px]">ออกแบบและพัฒนาโดย ครูไพรัช อินควรชุม</p>
     </footer>
 
     <script>
-        /**
-         * ฟังก์ชันดึงค่า Classroom ID (cid) จาก URL และอัปเดตลิงก์ทั้งหมด
-         */
-        function updateMissionLinks() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const cid = urlParams.get('cid');
-            
-            if (cid) {
-                console.log("📍 Classroom ID Detected:", cid);
-                
-                // แสดงแถบข้อมูลห้องเรียน
-                const infoBox = document.getElementById('classroomInfo');
-                if (infoBox) infoBox.classList.remove('hidden');
+        const apiKeyEnv = ""; 
+        const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
+        let currentSize = 'mobile';
+        let generatedCode = "";
+        let targetCid = null;
 
-                // ค้นหาลิงก์ทั้งหมดที่มีคลาส mission-link และเติม cid ลงไป
-                const links = document.querySelectorAll('.mission-link');
-                links.forEach(link => {
-                    const originalHref = link.getAttribute('href');
-                    if (originalHref && !originalHref.includes('cid=')) {
-                        // ตรวจสอบว่ามี query string เดิมหรือไม่
-                        const separator = originalHref.includes('?') ? '&' : '?';
-                        link.setAttribute('href', `${originalHref}${separator}cid=${cid}`);
+        const frame = document.getElementById("missionFrame");
+        const wrapper = document.getElementById("previewWrapper");
+        const keyInput = document.getElementById("apiKeyInput");
+        const orientSwitch = document.getElementById("orientSwitch");
+        const promptInput = document.getElementById("promptInput");
+        const loadingStatus = document.getElementById("loadingStatus");
+        const loadingMessage = document.getElementById("loadingMessage");
+        const msgBox = document.getElementById("msgBox");
+        const msgText = document.getElementById("msgText");
+
+        function showMessage(text) {
+            msgText.innerText = text;
+            msgBox.style.display = "block";
+            setTimeout(() => { msgBox.style.display = "none"; }, 5000);
+        }
+
+        async function waitForDB(maxAttempts = 10) {
+            for (let i = 0; i < maxAttempts; i++) {
+                if (window.sysDB) return window.sysDB;
+                if (window.initSupabase) window.initSupabase();
+                await new Promise(r => setTimeout(r, 500));
+            }
+            return null;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const db = await waitForDB();
+            if (db) await loadKeyFromDB();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            targetCid = urlParams.get('cid');
+            if (targetCid) {
+                document.getElementById('cidIndicator').classList.remove('hidden');
+            }
+
+            document.getElementById("saveKeyBtn").addEventListener("click", saveKeyToDB);
+            document.getElementById("generateBtn").addEventListener("click", handleGenerate);
+            document.getElementById("saveToCloudBtn").addEventListener("click", saveMissionToClassroom);
+            document.getElementById("btnOptimizePrompt").addEventListener("click", optimizePrompt);
+            document.getElementById("btnSuggestIdeas").addEventListener("click", suggestIdeas);
+            document.getElementById("btnAddContext").addEventListener("click", addContext);
+            
+            orientSwitch.addEventListener("change", applyViewSettings);
+            window.addEventListener('resize', applyViewSettings);
+            initPreviewFrame();
+        });
+
+        async function saveKeyToDB() {
+            const key = keyInput.value.trim();
+            if(!key) return showMessage("กรุณาระบุ API Key");
+            const db = window.sysDB;
+            try {
+                const { data: { user } } = await db.auth.getUser();
+                if(!user) return showMessage("กรุณาเข้าสู่ระบบก่อน");
+                const { error } = await db.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
+                if(error) throw error;
+                showMessage("บันทึก API Key สำเร็จ! ✨");
+                updateApiKeyUI(true);
+            } catch (err) { showMessage("Error: " + err.message); }
+        }
+
+        async function loadKeyFromDB() {
+            const db = window.sysDB;
+            if (!db) return;
+            try {
+                const { data: { user } } = await db.auth.getUser();
+                if(user) {
+                    const { data } = await db.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
+                    if(data?.gemini_api_key) {
+                        keyInput.value = data.gemini_api_key;
+                        updateApiKeyUI(true);
                     }
+                }
+            } catch (e) {}
+        }
+
+        function updateApiKeyUI(hasKey) {
+            document.getElementById("apiKeyEditView").classList.toggle('hidden-el', hasKey);
+            document.getElementById("apiKeyStatusView").classList.toggle('hidden-el', !hasKey);
+        }
+
+        function showApiKeyEdit() { updateApiKeyUI(false); keyInput.focus(); }
+
+        /**
+         * ฟังก์ชันเรียกใช้ Gemini API พร้อมการจัดการ Error 429 (Quota Exceeded)
+         */
+        async function callGemini(userPrompt, systemPrompt = "") {
+            const teacherKey = keyInput.value.trim();
+            const targetKey = apiKeyEnv || teacherKey;
+            if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key"); }
+
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${targetKey}`;
+            
+            const maxRetries = 5;
+            let lastError = null;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userPrompt }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        })
+                    });
+
+                    if (response.status === 429) {
+                        // กรณี Quota Exceeded
+                        if (i === maxRetries - 1) {
+                            throw new Error("ขออภัยครับ โควตาการใช้งาน AI ของคุณครูเต็มชั่วคราว (Quota Exceeded) กรุณารอสักครู่ (ประมาณ 30-60 วินาที) แล้วลองกดเนรมิตอีกครั้งครับ");
+                        }
+                        // รอเพิ่มขึ้นแบบ Exponential
+                        await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                        continue;
+                    }
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error.message);
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                } catch (err) {
+                    lastError = err;
+                    if (i === maxRetries - 1) throw err;
+                }
+            }
+            throw lastError;
+        }
+
+        async function handleGenerate() {
+            const prompt = promptInput.value.trim();
+            if(!prompt) return showMessage("กรุณาระบุรายละเอียดภารกิจ");
+            toggleLoading(true, "กำลังเนรมิตบทเรียน... หากช้ากรุณารอสักครู่");
+            
+            const sys = `คุณคือ FlipSchool AI สร้างสื่อการสอน Single HTML (Tailwind + Sarabun Font). 
+            กฎสำคัญ:
+            1. ส่งเฉพาะโค้ด HTML เท่านั้น ห้ามมี Markdown
+            2. ต้องมีฟังก์ชัน JavaScript ชื่อ saveResult(score, answers)
+            3. เมื่อจบต้องส่ง: window.parent.postMessage({ type: 'MISSION_COMPLETE', score, answers }, '*')
+            4. ดีไซน์ต้อง Responsive และสวยงาม 
+            5. ใช้ภาษาไทยที่ถูกต้อง (Noto Sans Thai หรือ Sarabun)`;
+
+            try {
+                const code = await callGemini(prompt, sys);
+                const cleanCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                generatedCode = cleanCode;
+                frame.srcdoc = cleanCode;
+                document.getElementById("saveToCloudBtn").classList.remove("hidden");
+                showMessage("เนรมิตภารกิจสำเร็จ! ทดสอบเล่นได้ทางขวา 🚀");
+            } catch (err) { 
+                showMessage(err.message); 
+            }
+            finally { toggleLoading(false); }
+        }
+
+        async function saveMissionToClassroom() {
+            if(!generatedCode) return;
+            const title = prompt("กรุณาระบุชื่อภารกิจนี้:");
+            if(!title) return;
+
+            const db = window.sysDB;
+            try {
+                const { data: { user } } = await db.auth.getUser();
+                if(!user) throw new Error("ไม่พบข้อมูลผู้ใช้");
+
+                const { error } = await db.from('missions').insert({
+                    teacher_id: user.id,
+                    classroom_id: targetCid,
+                    title: title,
+                    html_content: generatedCode,
+                    created_at: new Date()
                 });
+
+                if(error) throw error;
+                showMessage("บันทึกลงคลังห้องเรียนสำเร็จ! 🚀");
+            } catch (err) { showMessage("ไม่สามารถบันทึกได้: " + err.message); }
+        }
+
+        function toggleLoading(show, message = "") {
+            loadingStatus.classList.toggle('hidden-el', !show);
+            if (message) loadingMessage.innerText = message;
+            document.getElementById("generateBtn").disabled = show;
+        }
+
+        function changeView(size) {
+            currentSize = size;
+            ['mobile', 'tablet', 'desktop'].forEach(b => {
+                document.getElementById(`btn-${b}`).classList.toggle('bg-white', b === size);
+                document.getElementById(`btn-${b}`).classList.toggle('shadow-sm', b === size);
+            });
+            applyViewSettings();
+        }
+
+        function applyViewSettings() {
+            const isLand = orientSwitch.checked;
+            wrapper.className = `preview-frame-wrapper device-${currentSize} ${isLand ? 'is-landscape' : ''}`;
+            
+            const containerWidth = document.querySelector('.preview-outer-container').offsetWidth - 40;
+            let targetWidth = currentSize === 'mobile' ? (isLand ? 667 : 375) : (currentSize === 'tablet' ? (isLand ? 1024 : 768) : containerWidth);
+            
+            if (targetWidth > containerWidth && currentSize !== 'desktop') {
+                const scale = containerWidth / targetWidth;
+                wrapper.style.transform = `scale(${scale})`;
+            } else {
+                wrapper.style.transform = `scale(1)`;
             }
         }
 
-        // เริ่มทำงานเมื่อโหลดหน้าจอเสร็จ
-        window.addEventListener('DOMContentLoaded', () => {
-            updateMissionLinks();
-            
-            // เรียกใช้ฟังก์ชันปรับแต่ง UI พื้นฐานจาก config.js (ถ้ามี)
-            if (typeof initAppUI === 'function') initAppUI();
-        });
+        function initPreviewFrame() {
+            frame.srcdoc = `<html><body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun'; color:#94a3b8; text-align:center; padding:20px; background:white;"><div><h1 style="font-size:3rem; margin:0;">🎮</h1><p>รอรับผลงานจากคุณครูครับ</p></div></body></html>`;
+        }
+
+        function toggleKeyVisibility() { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; }
+        
+        async function optimizePrompt() {
+            const input = promptInput.value.trim();
+            if (!input) return showMessage("กรุณาใส่หัวข้อที่ต้องการปรับแต่ง");
+            toggleLoading(true, "AI กำลังขัดเกลาคำสั่ง...");
+            try {
+                const res = await callGemini(input, "Expand this idea into a detailed educational game prompt in Thai.");
+                if (res) promptInput.value = res.trim();
+            } catch (err) { showMessage(err.message); }
+            finally { toggleLoading(false); }
+        }
+
+        async function suggestIdeas() {
+            toggleLoading(true, "AI กำลังคิดไอเดีย...");
+            try {
+                const res = await callGemini("ขอไอเดียภารกิจสนุกๆ", "Suggest a creative educational game idea in Thai.");
+                if (res) promptInput.value = res.trim();
+            } catch (err) { showMessage(err.message); }
+            finally { toggleLoading(false); }
+        }
+
+        async function addContext() {
+            const input = promptInput.value.trim();
+            if (!input) return showMessage("กรุณาใส่หัวข้อ");
+            toggleLoading(true, "AI กำลังเพิ่มข้อมูล...");
+            try {
+                const res = await callGemini(input, "Add 5 educational facts or quiz questions to this topic in Thai.");
+                if (res) promptInput.value += "\n\n[สาระเพิ่มเติม]\n" + res.trim();
+            } catch (err) { showMessage(err.message); }
+            finally { toggleLoading(false); }
+        }
     </script>
 </body>
 </html>
