@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mission Create ✨ | FlipSchool</title>
+    <script src="js/env-config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: #0f172a;
+        }
+        .phone-shadow {
+            box-shadow: 0 0 0 12px #1e293b, 0 0 0 14px #334155, 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col">
+
+    <header class="py-8 px-6 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400 mb-2">
+            Mission Create ✨
+        </h1>
+        <p class="text-slate-400">เนรมิตแอปเกมและสื่อการสอนด้วยพลัง AI โดย FlipSchool</p>
+    </header>
+
+    <main class="container mx-auto px-4 pb-12 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl">
+        
+        <!-- Left Panel -->
+        <div class="lg:col-span-6 flex flex-col gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl backdrop-blur-sm shadow-xl">
+                
+                <!-- API Key Section -->
+                <div class="mb-6 p-4 bg-slate-900/50 rounded-2xl border border-slate-700">
+                    <label for="apiKeyInput" class="block text-xs font-semibold mb-2 text-violet-300 uppercase tracking-wider">
+                        Google Gemini API Key
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="password" id="apiKeyInput" 
+                            class="flex-grow bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all text-sm"
+                            placeholder="AIzaSy...">
+                        <button id="testBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 rounded-xl font-bold transition-all whitespace-nowrap text-xs">
+                            🧪 ทดสอบ
+                        </button>
+                    </div>
+                </div>
+
+                <label for="prompt" class="block text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span class="text-2xl">🎮</span> คำสั่งสร้าง Mission (แอป/เกม)
+                </label>
+                <textarea id="prompt" 
+                    class="w-full h-48 bg-slate-900/50 border border-slate-600 rounded-2xl p-4 text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all resize-none"
+                    placeholder="ระบุสิ่งที่ต้องการสร้าง เช่น: เกมจับคู่สัตว์กับพยัญชนะไทย ธีมสวนสนุกสีสันสดใส">สร้างเกมจับคู่พยัญชนะไทย ก-ซ กับรูปภาพสัตว์ โดยใช้ธีมสวนสนุก สีสันสดใส มีปุ่มกดเล่นใหม่และระบบคะแนน</textarea>
+                
+                <div id="statusBox" class="mt-4 p-4 rounded-xl bg-slate-900/30 border border-slate-700 hidden">
+                    <p id="statusText" class="text-sm font-medium text-slate-300 flex items-center gap-3">
+                        <span>พร้อมใช้งาน</span>
+                    </p>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-4">
+                    <button id="generateBtn" class="flex-grow bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 px-8 rounded-2xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-violet-900/20">
+                        <span>🚀 เนรมิต Mission ทันที</span>
+                    </button>
+                    <button id="clearBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all">
+                        ล้างข้อมูล
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-indigo-900/20 border border-indigo-500/30 p-5 rounded-3xl">
+                <h3 class="font-bold text-indigo-300 mb-1 text-sm">💡 ทิปส์:</h3>
+                <p class="text-xs text-slate-400">
+                    ระบุ <b>"ธีม"</b> และ <b>"ฟีเจอร์"</b> ที่ต้องการ (เช่น มีระบบเสียง, มีเวลาถอยหลัง) AI จะเขียนโค้ดแอปให้เล่นได้ทันที
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Panel (Preview) -->
+        <div class="lg:col-span-6 flex justify-center">
+            <div class="relative w-full max-w-[400px]">
+                <div class="phone-shadow bg-slate-900 w-full aspect-[9/19] rounded-[3rem] overflow-hidden border-[8px] border-slate-800 relative">
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-2xl z-20"></div>
+                    <iframe id="preview" class="w-full h-full border-none bg-white" name="preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const MODEL_ID = "gemini-2.5-flash-preview-09-2025";
+        
+        // References
+        let promptEl, apiKeyInput, generateBtn, testBtn, clearBtn, statusBox, statusText, previewFrame;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            promptEl = document.getElementById("prompt");
+            apiKeyInput = document.getElementById("apiKeyInput");
+            generateBtn = document.getElementById("generateBtn");
+            testBtn = document.getElementById("testBtn");
+            clearBtn = document.getElementById("clearBtn");
+            statusBox = document.getElementById("statusBox");
+            statusText = document.getElementById("statusText");
+            previewFrame = document.getElementById("preview");
+
+            // Load saved key
+            try {
+                const savedKey = localStorage.getItem("flipschool_api_key");
+                if (savedKey) apiKeyInput.value = savedKey;
+            } catch (e) { console.warn("LocalStorage blocked"); }
+
+            // Initial Preview
+            previewFrame.srcdoc = `
+                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun', sans-serif; color:#64748b; text-align:center; padding:20px; background:#f8fafc;">
+                    <div style="font-size:50px; margin-bottom:15px;">🎮</div>
+                    <h2 style="margin:0; color:#1e293b;">พร้อมสร้างความสนุก!</h2>
+                    <p>ระบุคำสั่งแล้วกดปุ่ม "เนรมิต Mission" ได้เลย</p>
+                </div>
+            `;
+
+            // Listeners
+            generateBtn.addEventListener("click", generateMission);
+            testBtn.addEventListener("click", testConnection);
+            clearBtn.addEventListener("click", () => {
+                promptEl.value = "";
+                statusBox.classList.add('hidden');
+                previewFrame.srcdoc = "";
+            });
+        });
+
+        const updateStatus = (message, type = 'info') => {
+            if (!statusBox) return;
+            statusBox.classList.remove('hidden');
+            let icon = '';
+            let color = 'text-slate-300';
+            
+            if (type === 'loading') {
+                icon = '<div class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full spinner"></div>';
+                color = 'text-violet-400';
+            } else if (type === 'success') {
+                icon = '✅';
+                color = 'text-emerald-400';
+            } else if (type === 'error') {
+                icon = '❌';
+                color = 'text-rose-400';
+            }
+
+            statusText.className = `text-sm font-medium ${color} flex items-center gap-3`;
+            statusText.innerHTML = `${icon} <span>${message}</span>`;
+        };
+
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return await response.json();
+                    
+                    let errorMsg = `Error ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.error?.message || errorMsg;
+                    } catch (e) {}
+
+                    if (response.status === 403 || response.status === 401) throw new Error("API Key ไม่ถูกต้อง");
+                    if (response.status < 500 && response.status !== 429) throw new Error(errorMsg);
+                } catch (err) {
+                    if (i === maxRetries - 1) throw err;
+                }
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
+            }
+        }
+
+        async function testConnection() {
+            const userKey = apiKeyInput.value.trim();
+            if (!userKey) { updateStatus("กรุณาใส่ API Key", "error"); return; }
+            
+            testBtn.disabled = true;
+            updateStatus("กำลังตรวจสอบ Key...", "loading");
+            
+            try {
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${userKey}`;
+                await fetchWithRetry(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
+                });
+                
+                try { localStorage.setItem("flipschool_api_key", userKey); } catch(e){}
+                updateStatus("เชื่อมต่อสำเร็จ! พร้อมใช้งาน", "success");
+            } catch (error) {
+                updateStatus(error.message, "error");
+            } finally { testBtn.disabled = false; }
+        }
+
+        async function generateMission() {
+            const userPrompt = promptEl.value.trim();
+            const userKey = apiKeyInput.value.trim();
+
+            if (!userKey || !userPrompt) { updateStatus("กรุณากรอกข้อมูลให้ครบ", "error"); return; }
+
+            try { localStorage.setItem("flipschool_api_key", userKey); } catch(e){}
+            
+            generateBtn.disabled = true;
+            updateStatus("AI กำลังเนรมิตแอปกิจกรรม...", "loading");
+            
+            previewFrame.srcdoc = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun'; flex-direction:column; gap:15px; background:#f8fafc; text-align:center; padding:20px;">
+                    <div style="width:40px; height:40px; border:4px solid #7c3aed; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
+                    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+                    <div style="color:#7c3aed; font-weight:600;">กำลังรังสรรค์ธีมและระบบเกม...</div>
+                    <p style="font-size:12px; color:#94a3b8;">อาจใช้เวลา 10-20 วินาที</p>
+                </div>
+            `;
+
+            const systemInstruction = `
+                You are FlipSchool AI, a creator of interactive educational web "Missions". 
+                Your task is to generate a SINGLE, complete, standalone HTML/CSS/JS file.
+                
+                RULES:
+                1. Return ONLY raw HTML code. NO explanations, NO markdown backticks.
+                2. Use Tailwind CSS via CDN.
+                3. Design must be beautiful, interactive, and mobile-responsive.
+                4. Use 'Sarabun' font for Thai text. Ensure all Thai characters are correct (Thai font, not Lao).
+                5. Create the actual game/activity UI that is ready to play.
+            `;
+
+            try {
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${userKey}`;
+                const data = await fetchWithRetry(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    })
+                });
+
+                let content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                
+                // Clean markdown tags if present
+                content = content.replace(/```html/gi, "").replace(/```/g, "").trim();
+
+                if (content.length < 50) throw new Error("AI ตอบกลับข้อมูลไม่สมบูรณ์ กรุณาลองใหม่");
+
+                previewFrame.srcdoc = content;
+                updateStatus("เนรมิตแอปสำเร็จ!", "success");
+            } catch (error) {
+                updateStatus(error.message, "error");
+                previewFrame.srcdoc = `<div style="padding:20px; color:#e11d48; font-family:'Sarabun';"><h3>❌ เกิดข้อผิดพลาด</h3><p>${error.message}</p></div>`;
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
