@@ -93,7 +93,6 @@
         .quota-free { background: #e0f2fe; color: #0369a1; }
         .quota-pay { background: #dcfce7; color: #15803d; }
 
-        /* Modal Styles */
         .modal-overlay {
             background-color: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(4px);
@@ -238,7 +237,7 @@
 
                     <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-center gap-4 animate-pulse">
                         <div class="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-sm font-bold text-orange-700 italic">AI กำลังดำเนินการ...</span>
+                        <span id="loadingMessage" class="text-sm font-bold text-orange-700 italic text-center">AI กำลังดำเนินการ...</span>
                     </div>
 
                     <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-orange-200 transform active:scale-95">
@@ -400,6 +399,9 @@
 
         function showApiKeyEdit() { updateApiKeyUI(false); keyInput.focus(); }
 
+        /**
+         * ปรับปรุงฟังก์ชันเรียก Gemini ให้ทนทานต่อ Error มากขึ้น
+         */
         async function callGemini(userPrompt, systemPrompt = "") {
             const teacherKey = keyInput.value.trim();
             const targetKey = apiKeyEnv || teacherKey;
@@ -407,38 +409,90 @@
             if (!targetKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ก่อนเริ่มงานครับ"); }
 
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${targetKey}`;
-            const maxRetries = 3;
-            for (let i = 0; i < maxRetries; i++) {
+            
+            // เพิ่ม Retry Logic
+            let lastError = null;
+            for (let i = 0; i < 3; i++) {
                 try {
                     const res = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } })
+                        body: JSON.stringify({ 
+                            contents: [{ parts: [{ text: userPrompt }] }], 
+                            systemInstruction: { parts: [{ text: systemPrompt }] },
+                            generationConfig: {
+                                temperature: 0.7,
+                                topP: 0.95,
+                                topK: 40,
+                                maxOutputTokens: 8192,
+                            }
+                        })
                     });
+
                     const result = await res.json();
-                    if (res.status === 429) { await new Promise(r => setTimeout(r, 2000)); continue; }
+                    
+                    if (res.status === 429) { 
+                        const waitSec = Math.pow(2, i);
+                        toggleLoading(true, `ระบบหนาแน่น... กำลังลองใหม่ในอีก ${waitSec} วินาที`);
+                        await new Promise(r => setTimeout(r, waitSec * 1000)); 
+                        continue; 
+                    }
+
                     if (result.error) throw new Error(result.error.message);
-                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
-                } catch (err) { if (i === maxRetries - 1) throw err; }
+
+                    // ตรวจสอบว่ามีการบล็อกเนื้อหาหรือไม่
+                    if (!result.candidates || result.candidates.length === 0) {
+                        if (result.promptFeedback?.blockReason) {
+                            throw new Error(`คำสั่งถูกระงับเนื่องจาก: ${result.promptFeedback.blockReason} กรุณาปรับเปลี่ยนคำสั่งใหม่ครับ`);
+                        }
+                        throw new Error("AI ไม่สามารถสร้างเนื้อหาได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ");
+                    }
+
+                    const content = result.candidates[0]?.content?.parts?.[0]?.text;
+                    if (!content) throw new Error("AI ส่งข้อมูลกลับมาเป็นค่าว่าง กรุณาลองใหม่อีกครั้งครับ");
+                    
+                    return content;
+
+                } catch (err) { 
+                    lastError = err;
+                    if (i === 2) throw err; 
+                }
             }
         }
 
         async function handleGenerate() {
             const prompt = promptInput.value.trim();
-            if(!prompt) return showMessage("ใส่หัวข้อสิ่งที่ต้องการเนรมิตก่อนครับ");
-            toggleLoading(true, "กำลังเนรมิตภารกิจ... ระบบจะพยายามจนสำเร็จครับ");
-            const sys = `คุณคือ FlipSchool AI ผู้เชี่ยวชาญการสร้างสื่อการสอน Single HTML (Tailwind + Noto Sans Thai). กฎ: ส่งเฉพาะโค้ด HTML ที่สมบูรณ์ ห้ามมี Markdown. ต้องมีฟังก์ชัน saveResult(score, answers) เพื่อส่ง message 'MISSION_COMPLETE' กลับมา`;
+            if(!prompt) return showMessage("กรุณาระบุสิ่งที่ต้องการเนรมิตก่อนครับ");
+            
+            toggleLoading(true, "กำลังรังสรรค์ภารกิจอัจฉริยะ... ขั้นตอนนี้อาจใช้เวลา 10-30 วินาทีครับ");
+            
+            const sys = `คุณคือ FlipSchool AI ผู้เชี่ยวชาญการสร้างสื่อการสอน Single HTML (Tailwind + Noto Sans Thai). 
+            กฎเหล็ก:
+            1. ส่งโค้ด HTML ที่สมบูรณ์และเล่นได้ทันที
+            2. ห้ามมีคำอธิบาย หรือ Markdown Backticks (\`\`\`html) มาเด็ดขาด
+            3. ต้องมีฟังก์ชัน JavaScript ชื่อ saveResult(score, answers) เพื่อส่ง message 'MISSION_COMPLETE' กลับมา
+            4. ดีไซน์ต้องสวยงาม พรีเมียม และใช้ภาษาไทยที่ถูกต้อง (ไม่มีอักษรลาวปน)`;
+
             try {
                 const code = await callGemini(prompt, sys);
-                // ตรวจสอบค่า code ป้องกัน Error replace
-                if (!code) throw new Error("AI ไม่สามารถส่งข้อมูลกลับมาได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ");
                 
+                // ตรวจสอบความปลอดภัยก่อนเรียก .replace
+                if (typeof code !== 'string') {
+                    throw new Error("ข้อมูลที่ได้รับจาก AI ไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับ");
+                }
+                
+                // คลีนโค้ดให้สะอาดที่สุด
                 generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                
+                if (generatedCode.length < 100) {
+                    throw new Error("โค้ดที่สร้างไม่สมบูรณ์ กรุณากดปุ่มเนรมิตอีกครั้งครับ");
+                }
+
                 frame.srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตภารกิจสำเร็จ! ✨");
+                showMessage("เนรมิตภารกิจสำเร็จ! สามารถทดสอบเล่นได้ทางขวาครับ ✨");
             } catch (err) { 
-                console.error(err);
+                console.error("Generate Error:", err);
                 showMessage("เกิดข้อผิดพลาด: " + err.message); 
             }
             finally { toggleLoading(false); }
@@ -482,11 +536,10 @@
                     setTimeout(() => history.back(), 1500);
                 } else {
                     setTimeout(() => {
-                        // คงค่า cid ไว้ ล้างค่าที่เหลือเพื่อทำภารกิจถัดไป
                         window.location.href = `mission-create-ai.html?cid=${targetCid}`;
                     }, 1000);
                 }
-            } catch (err) { showMessage("Error: " + err.message); }
+            } catch (err) { showMessage("ไม่สามารถบันทึกได้: " + err.message); }
         }
 
         function toggleLoading(show, message = "") {
@@ -523,7 +576,7 @@
         
         async function optimizePrompt() {
             const input = promptInput.value.trim();
-            if (!input) return showMessage("ใส่หัวข้อสั้นๆ ก่อนครับ");
+            if (!input) return showMessage("กรุณาใส่หัวข้อสั้นๆ ก่อนครับ");
             toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่งให้คมชัดขึ้น...");
             try {
                 const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียดเพื่อสร้างภารกิจการศึกษาที่สนุกสนาน สวยงาม และได้สาระ ตอบเป็นภาษาไทย");
