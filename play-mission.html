@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เข้าสู่ภารกิจ | FlipSchool</title>
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: #f1f5f9; 
+            overflow: hidden; /* ป้องกัน scroll ของหน้าหลักเพื่อให้ iframe คุมพื้นที่ */
+        }
+        .nav-gradient { 
+            background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); 
+        }
+        .mission-container {
+            height: calc(100vh - 70px); /* ลบความสูง Navbar */
+            width: 100%;
+            position: relative;
+        }
+        #missionIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        /* สำหรับหน้าจอตอนโหลด */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #FF8C00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <div id="loader" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse">กำลังเตรียมภารกิจ...</p>
+    </div>
+
+    <nav class="nav-gradient text-white shadow-lg z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button onclick="history.back()" class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-all">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="hidden md:block">
+                    <h1 id="missionTitle" class="text-lg font-bold leading-tight truncate max-w-[200px] md:max-w-md">กำลังโหลดภารกิจ...</h1>
+                    <p id="missionSubtitle" class="text-xs text-blue-200">FlipSchool Mission</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="bg-white/10 px-4 py-1.5 rounded-full text-sm font-bold border border-white/20">
+                    <i class="fas fa-trophy text-orange-400 mr-2"></i><span id="scoreText">0</span> แต้ม
+                </div>
+                <button onclick="toggleFullscreen()" class="p-2 hover:bg-white/10 rounded-lg hidden md:block">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="mission-container">
+        <iframe id="missionIframe" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Play Area"></iframe>
+    </main>
+
+    <script>
+        let currentMissionId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            currentMissionId = params.get('mid');
+
+            if (!currentMissionId) {
+                alert('ไม่พบรหัสภารกิจ');
+                history.back();
+                return;
+            }
+
+            // รอการเชื่อมต่อ Database
+            if (window.sysDB) {
+                loadMissionData();
+            } else {
+                // กรณีโหลดไฟล์ db ไม่ทัน
+                setTimeout(loadMissionData, 1000);
+            }
+        });
+
+        async function loadMissionData() {
+            try {
+                const { data: mission, error } = await window.sysDB
+                    .from('missions')
+                    .select('*, classrooms(subject_name)')
+                    .eq('mission_id', currentMissionId)
+                    .single();
+
+                if (error || !mission) throw new Error('ไม่สามารถโหลดข้อมูลภารกิจได้');
+
+                // อัปเดต UI
+                document.getElementById('missionTitle').innerText = mission.title;
+                document.getElementById('missionSubtitle').innerText = mission.classrooms?.subject_name || 'FlipSchool';
+                document.title = `${mission.title} | FlipSchool`;
+
+                // โหลดเนื้อหาลง Iframe
+                const iframe = document.getElementById('missionIframe');
+                if (mission.mission_type === 'ai_generated' && mission.content_data?.html) {
+                    iframe.srcdoc = mission.content_data.html;
+                } else {
+                    iframe.srcdoc = `<html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
+                        <div style="text-align:center;">
+                            <h2>🚧 ภารกิจรูปแบบนี้ยังไม่รองรับการแสดงผล</h2>
+                            <p>รูปแบบ: ${mission.mission_type}</p>
+                        </div>
+                    </body></html>`;
+                }
+
+                // ซ่อน Loader เมื่อ Iframe โหลดเสร็จ
+                iframe.onload = () => {
+                    document.getElementById('loader').style.display = 'none';
+                };
+
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+                history.back();
+            }
+        }
+
+        // ฟังคำสั่งจาก Iframe (เช่น เมื่อทำภารกิจสำเร็จและส่งคะแนนกลับมา)
+        window.addEventListener('message', (event) => {
+            // ป้องกันความปลอดภัยโดยการเช็คข้อมูลที่ส่งมา
+            if (event.data && event.data.type === 'SAVE_RESULT') {
+                const { score, answers } = event.data;
+                document.getElementById('scoreText').innerText = score;
+                console.log('บันทึกผลการเรียนรู้:', score, answers);
+                // ในอนาคตสามารถใช้ sysDB บันทึกคะแนนลงตาราง student_missions_results ได้ที่นี่
+            }
+        });
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
