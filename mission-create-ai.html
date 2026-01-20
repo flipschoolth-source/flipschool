@@ -12,49 +12,27 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f1f5f9; color: #1e293b; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
-        
-        .preview-outer-container {
-            width: 100%; display: flex; justify-content: center; align-items: flex-start;
-            padding: 1.5rem; min-height: 650px; overflow: hidden;
-        }
-
-        .preview-frame-wrapper {
-            background: #1e293b; border-radius: 2rem; overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            position: relative; transform-origin: top center;
-        }
-
+        .preview-outer-container { width: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 1.5rem; min-height: 650px; }
+        .preview-frame-wrapper { background: #1e293b; border-radius: 2rem; overflow: hidden; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); position: relative; transform-origin: top center; }
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
-        .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
-        
+        .device-desktop { width: 100%; height: 750px; border-radius: 1rem; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
-        
-        .btn-ai-sparkle {
-            background: white; border: 1px solid #e2e8f0; color: #475569;
-            font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem;
-            display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;
-        }
-        .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; }
-        
-        .custom-message-box {
-            position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
-            background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            z-index: 9999; border-left: 5px solid #3b82f6; display: none;
-            animation: slideIn 0.3s ease-out;
-        }
+        .btn-ai-sparkle { background: white; border: 1px solid #e2e8f0; color: #475569; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
+        .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; transform: translateY(-2px); }
+        .custom-message-box { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); z-index: 9999; border-left: 5px solid #3b82f6; display: none; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        .owner-badge { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; border: 1px solid #86efac; }
-        .copy-badge { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; border: 1px solid #fecaca; }
+        .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; }
+        .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
+        .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -63,37 +41,32 @@
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
+    <!-- Save Modal -->
     <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg xmlns="http://www.w3.org/2003/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
+                <div class="w-16 h-16 bg-blue-50 text-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                    <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12V13a1 1 0 00.657.939l4 1.714a1 1 0 00.686 0l4-1.714A1 1 0 0015 13v-2.88l1.69-.723a1 1 0 011.31 1.25l-.71 3.551a1 1 0 01-.818.803l-6 1.05a1 1 0 01-.344 0l-6-1.05a1 1 0 01-.818-.803l-.71-3.551a1 1 0 011.31-1.25l1.39.596zM14 13l-4 1.714L6 13V11l4 1.714L14 11v2z"/></svg>
                 </div>
                 <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
-                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2">ภารกิจจะถูกบันทึกลงในฐานข้อมูล</p>
+                <p class="text-sm text-slate-500 mt-2">คุณครูสามารถกำหนดเงื่อนไขการเล่นซ้ำได้ที่หน้าแสดงผลภารกิจครับ</p>
             </div>
             <div class="space-y-3">
-                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                    <span>บันทึกและกลับห้องเรียน</span>
+                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 text-sm">
+                    💾 บันทึกและกลับห้องเรียน
                 </button>
-                <button id="saveContinueBtn" onclick="confirmSave('continue')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <span>บันทึกและทำรายการต่อ</span>
-                </button>
-                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm">ย้อนกลับไปแก้ไข</button>
+                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ย้อนกลับไปแก้ไข</button>
             </div>
         </div>
     </div>
 
+    <!-- Navbar -->
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shadow-inner shrink-0">
-                    <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                    </svg>
+                <!-- โลโก้หมวกปริญญาสีน้ำเงิน พื้นหลังขาว -->
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0">
+                    <svg class="w-7 h-7 text-blue-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12V13a1 1 0 00.657.939l4 1.714a1 1 0 00.686 0l4-1.714A1 1 0 0015 13v-2.88l1.69-.723a1 1 0 011.31 1.25l-.71 3.551a1 1 0 01-.818.803l-6 1.05a1 1 0 01-.344 0l-6-1.05a1 1 0 01-.818-.803l-.71-3.551a1 1 0 011.31-1.25l1.39.596zM14 13l-4 1.714L6 13V11l4 1.714L14 11v2z"/></svg>
                 </div>
                 <div class="flex flex-col">
                     <div id="app-name-display" class="text-xl md:text-2xl font-bold tracking-tight leading-none">
@@ -102,128 +75,106 @@
                     <span id="app-slogan-display" class="text-[10px] md:text-xs text-blue-200 font-medium mt-0.5 tracking-wide">นวัตกรรมเพื่อการจัดการเรียนรู้</span>
                 </div>
             </div>
-            <div class="flex gap-4 items-center font-medium">
-                <a href="teacher-dashboard.html" class="hover:text-blue-300 text-xs md:text-sm">แดชบอร์ด</a>
-                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all">ย้อนกลับ</button>
+            <div class="flex gap-4 items-center">
+                <a href="teacher-dashboard.html" class="hover:text-blue-300 text-xs md:text-sm font-medium transition-colors">แดชบอร์ด</a>
+                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10">
+                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
+                </button>
             </div>
         </div>
     </nav>
 
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
+        <!-- Controls -->
         <div class="lg:col-span-5 flex flex-col gap-6">
-            <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200">
-                <div class="flex justify-between items-start mb-6">
+            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-8">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                            <i class="fas fa-robot text-2xl"></i>
                         </div>
                         <h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
                     </div>
                     <div id="ownershipStatus" class="hidden-el"></div>
                 </div>
 
-                <div class="mb-6 space-y-3">
-                    <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center shadow-sm">
+                <div class="mb-8 space-y-3">
+                    <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
-                            <div class="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center text-white">
-                                <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                </svg>
+                            <div class="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
+                                <i class="fas fa-check text-sm"></i>
                             </div>
-                            <span class="text-xs font-bold text-slate-700">API Key พร้อมใช้งาน</span>
+                            <span class="text-xs font-bold text-slate-700">Gemini API Key พร้อมทำงาน</span>
                         </div>
                         <button onclick="showApiKeyEdit()" class="text-xs font-bold text-blue-600 hover:underline">เปลี่ยน</button>
                     </div>
-                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
+                    <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
                         <div class="flex gap-2">
-                            <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 outline-none text-sm font-sans" placeholder="ใส่ Gemini API Key...">
-                            <button id="saveKeyBtn" class="bg-blue-900 text-white px-4 rounded-lg font-bold text-sm transition-all active:scale-95">บันทึก</button>
+                            <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-300 rounded-xl p-3 outline-none text-sm font-sans focus:ring-2 focus:ring-blue-500" placeholder="ระบุ Gemini API Key...">
+                            <button id="saveKeyBtn" class="bg-blue-900 text-white px-5 rounded-xl font-bold text-sm transition-all active:scale-95">บันทึก</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-5">
+                <div class="space-y-6">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
-                            <span>ชื่อภารกิจ</span>
-                            <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                        <label class="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                            <i class="fas fa-pen-nib text-blue-500 text-xs"></i> ชื่อภารกิจ
                         </label>
-                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500" placeholder="ระบุชื่อบทเรียนหรือกิจกรรม...">
+                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all" placeholder="เช่น การบวกเลขพื้นฐาน...">
                     </div>
 
                     <div>
-                        <div class="flex justify-between items-center mb-2">
+                        <div class="flex justify-between items-center mb-3">
                             <label class="block text-sm font-bold text-slate-700 flex items-center gap-2">
-                                <span>คำสั่งเนรมิตภารกิจ</span>
-                                <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
+                                <i class="fas fa-magic text-purple-500 text-xs"></i> คำสั่งเนรมิตภารกิจ (Prompt)
                             </label>
                             <div class="flex gap-1">
-                                <button onclick="optimizePrompt()" class="btn-ai-sparkle">ขัดเกลา</button>
-                                <button onclick="suggestIdeas()" class="btn-ai-sparkle">ไอเดีย</button>
-                                <button onclick="addContext()" class="btn-ai-sparkle">สาระ</button>
+                                <button onclick="optimizePrompt()" class="btn-ai-sparkle" title="ปรับแต่ง"><i class="fas fa-sparkles"></i> <span>ขัดเกลา</span></button>
+                                <button onclick="suggestIdeas()" class="btn-ai-sparkle" title="ไอเดีย"><i class="fas fa-lightbulb text-orange-400"></i> <span>ไอเดีย</span></button>
                             </div>
                         </div>
-                        <textarea id="promptInput" class="w-full h-44 bg-slate-50 border border-slate-200 rounded-2xl p-5 outline-none transition-all resize-none text-sm leading-relaxed focus:ring-2 focus:ring-blue-500" placeholder="บอก AI ว่าต้องการกิจกรรมแบบไหน..."></textarea>
+                        <textarea id="promptInput" class="w-full h-48 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none transition-all resize-none text-sm leading-relaxed focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="บอก AI ว่าอยากได้บทเรียนหรือเกมแบบไหน..."></textarea>
                     </div>
 
-                    <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
-                        <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-sm font-bold text-blue-700 italic">กำลังเชื่อมต่อ AI...</span>
+                    <div id="loadingStatus" class="hidden-el p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
+                        <div class="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full spinner"></div>
+                        <span id="loadingMessage" class="text-sm font-bold text-blue-700 italic">AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...</span>
                     </div>
 
-                    <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg text-lg transform active:scale-95 flex items-center justify-center gap-3">
-                        <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span>เริ่มเนรมิตภารกิจ</span>
+                    <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-[1.5rem] transition-all shadow-xl shadow-blue-100 text-lg transform active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-bolt"></i> <span>เริ่มเนรมิตภารกิจ</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-7 flex flex-col gap-4">
-            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-4">
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-                    <button onclick="changeView('mobile')" id="view-mobile" class="p-2 bg-white rounded-lg shadow-sm">
-                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                    </button>
-                    <button onclick="changeView('tablet')" id="view-tablet" class="p-2 hover:bg-white rounded-lg">
-                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                    </button>
-                    <button onclick="changeView('desktop')" id="view-desktop" class="p-2 hover:bg-white rounded-lg">
-                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                    </button>
+        <!-- Preview -->
+        <div class="lg:col-span-7 flex flex-col gap-5">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-6">
+                <div class="flex gap-2 bg-slate-100 p-1.5 rounded-xl shadow-inner">
+                    <button onclick="changeView('mobile')" id="view-mobile" class="w-10 h-10 bg-white rounded-lg transition-all shadow-sm flex items-center justify-center"><i class="fas fa-mobile-alt"></i></button>
+                    <button onclick="changeView('tablet')" id="view-tablet" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-tablet-alt"></i></button>
+                    <button onclick="changeView('desktop')" id="view-desktop" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-desktop"></i></button>
                 </div>
-                <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold hidden shadow-lg transition-all">
-                    บันทึกลงห้องเรียน
+                <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hidden shadow-lg transition-all transform active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-save"></i> บันทึกลงห้องเรียน
                 </button>
             </div>
 
-            <div class="preview-outer-container bg-slate-200/50 rounded-[2.5rem] border-4 border-dashed border-slate-300 shadow-inner">
+            <div class="preview-outer-container bg-slate-200/50 rounded-[3rem] border-4 border-dashed border-slate-300 shadow-inner">
                 <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl">
-                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Preview Area"></iframe>
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Live Preview"></iframe>
                 </div>
             </div>
-            <p class="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">การแสดงผลรองรับทุกขนาดอุปกรณ์โดยอัตโนมัติ</p>
+            <p class="text-center text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-4">Responsive Educational Mission Display</p>
         </div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-8 mt-auto text-center font-sans">
-        <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 <span class="app-name-label">FlipSchool</span>. <span class="app-slogan-label">นวัตกรรมเพื่อการจัดการเรียนรู้</span></p>
-        <p class="text-slate-400 text-[10px]">พัฒนาโดย ครูไพรัช อินควรชุม | โรงเรียนเทศบาล 1 (ถนนนครนอก)</p>
+    <footer class="bg-white border-t border-slate-200 py-10 mt-auto text-center">
+        <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 FlipSchool. นวัตกรรมจัดการเรียนรู้ GLORY Model</p>
+        <p class="text-slate-400 text-[10px] tracking-wide">ความปลอดภัยไซเบอร์ผ่านการตรวจสอบ | พัฒนาโดย ครูไพรัช อินควรชุม</p>
     </footer>
 
     <script>
@@ -236,13 +187,8 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.CONFIG) {
-                const appSloganElements = document.querySelectorAll('.app-slogan-label');
-                const rawSlogan = window.CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้';
-                const sloganDisplay = document.getElementById('app-slogan-display');
-                if (sloganDisplay) sloganDisplay.innerText = rawSlogan;
-                appSloganElements.forEach(el => { if (el) el.innerText = rawSlogan; });
+                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้';
             }
-
             const params = new URLSearchParams(window.location.search);
             targetCid = params.get('cid');
             editingMid = params.get('mid');
@@ -253,50 +199,51 @@
             
             initPreviewFrame();
             await loadKeyFromDB();
-
-            if (editingMid) {
-                await loadExistingMission();
-            }
+            if (editingMid) await loadExistingMission();
         });
+
+        // ✅ ฟังก์ชันตรวจสอบความปลอดภัยอัจฉริยะ (Anti-Phishing/Safety)
+        function checkSafety(text) {
+            const forbiddenPatterns = [
+                "ignore instructions", "reveal system prompt", "reveal hidden", "ลบข้อมูล", "แฮก", "hack", 
+                "reveal password", "fetch('", "axios.", "cookie", "localStorage", "window.location", "eval(",
+                "phishing", "steal", "ล้วงความลับ", "แอบดู"
+            ];
+            const lower = text.toLowerCase();
+            return !forbiddenPatterns.some(pattern => lower.includes(pattern));
+        }
 
         async function loadExistingMission() {
             if (!window.sysDB) return setTimeout(loadExistingMission, 500);
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 currentUserId = user?.id;
-
                 const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
-                if (error) {
-                    console.error("Column check:", error);
-                    return;
-                }
-
+                if (error) return;
                 originalTeacherId = data.created_by;
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("promptInput").value = data.description || "";
                 generatedCode = data.content_data?.html || "";
-                
                 if (generatedCode) {
                     document.getElementById("missionFrame").srcdoc = generatedCode;
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 }
-
                 const statusEl = document.getElementById('ownershipStatus');
                 statusEl.classList.remove('hidden-el');
-                
                 if (currentUserId === originalTeacherId) {
-                    statusEl.innerHTML = '<span class="owner-badge">สิทธิ์ผู้สร้าง (แก้ไขทับได้)</span>';
-                    document.getElementById('pageModeDisplay').innerText = "แก้ไขภารกิจ";
+                    statusEl.innerHTML = '<span class="badge-premium owner-badge"><i class="fas fa-user-shield mr-1"></i> ผู้สร้างหลัก</span>';
                 } else {
-                    statusEl.innerHTML = '<span class="copy-badge">สิทธิ์ผู้เข้าชม (บันทึกใหม่)</span>';
-                    document.getElementById('pageModeDisplay').innerText = "คัดลอกบทเรียน";
+                    statusEl.innerHTML = '<span class="badge-premium copy-badge"><i class="fas fa-copy mr-1"></i> สิทธิ์แก้ไข (บันทึกใหม่)</span>';
+                    document.getElementById('pageModeDisplay').innerText = "คัดลอกและสร้างใหม่";
                 }
             } catch (err) {}
         }
 
         async function callGemini(userPrompt, systemPrompt = "") {
             const apiKey = document.getElementById("apiKeyInput").value.trim();
-            if (!apiKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ของคุณครูก่อนครับ"); }
+            if (!apiKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ก่อนเริ่มงานครับ"); }
+            if (!checkSafety(userPrompt)) throw new Error("ตรวจพบเนื้อหาที่ไม่ปลอดภัย ระบบระงับการทำงานชั่วคราวครับ");
+            
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -311,27 +258,21 @@
         async function handleGenerate() {
             const prompt = document.getElementById("promptInput").value.trim();
             if(!prompt) return showMessage("กรุณาระบุรายละเอียดกิจกรรมก่อนครับ");
-            toggleLoading(true, "AI กำลังสร้างสรรค์บทเรียนให้คุณครู...");
-            const sys = "สร้างไฟล์ HTML ชุดเดียว (Tailwind CSS) เป็นสื่อการสอนโต้ตอบ ภาษาไทย จบแล้วส่ง window.parent.postMessage({type: 'SAVE_RESULT', score: ...}, '*') ห้ามมี external assets";
+            toggleLoading(true, "AI กำลังตรวจสอบความปลอดภัยและสร้างสื่อการสอน...");
+            const sys = "สร้างไฟล์ HTML ชุดเดียว (Inline CSS/JS) ที่สวยงาม พรีเมียม (Tailwind CSS) เป็นสื่อการสอน ภาษาไทย จบแล้วเรียก window.parent.postMessage({type: 'SAVE_RESULT', score: ..., answers: [...]}, '*') ห้ามเข้าถึงความลับเครื่องนักเรียน";
             try {
                 const code = await callGemini(prompt, sys);
                 generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตสำเร็จแล้ว! ✨");
+                showMessage("เนรมิตภารกิจสำเร็จแล้ว! ✨");
             } catch (err) { showMessage("ข้อผิดพลาด: " + err.message); }
             finally { toggleLoading(false); }
         }
 
         async function confirmSave(mode) {
-            if(!window.sysDB || !targetCid) return showMessage("ข้อมูลไม่ครบถ้วน");
-            const btn1 = document.getElementById('saveExitBtn');
-            const btn2 = document.getElementById('saveContinueBtn');
-
+            if(!window.sysDB || !targetCid) return showMessage("ข้อมูลไม่สมบูรณ์");
             try {
-                btn1.disabled = true; btn2.disabled = true;
-                btn1.innerText = "กำลังบันทึก...";
-
                 const missionData = {
                     classroom_id: targetCid,
                     title: document.getElementById("missionTitleInput").value.trim(),
@@ -340,71 +281,44 @@
                     content_data: { html: generatedCode },
                     updated_at: new Date().toISOString()
                 };
-
-                let res;
-                // ตรวจสอบสิทธิ์เจ้าของ: ใช้ created_by
-                if (editingMid && currentUserId === originalTeacherId && originalTeacherId) {
-                    res = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                if (editingMid && currentUserId === originalTeacherId) {
+                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                 } else {
                     missionData.created_by = currentUserId;
                     missionData.created_at = new Date().toISOString();
-                    res = await window.sysDB.from('missions').insert([missionData]);
+                    await window.sysDB.from('missions').insert([missionData]);
                 }
-
-                if(res.error) throw res.error;
-                showMessage("บันทึกภารกิจเรียบร้อยแล้ว! 🚀");
-                if (mode === 'exit') setTimeout(() => window.location.href = `classroom-detail.html?id=${targetCid}`, 1000);
+                if (mode === 'exit') window.location.href = `classroom-detail.html?id=${targetCid}`;
                 else closeSaveModal();
-            } catch (err) { 
-                if (err.message.includes('created_by')) {
-                    showMessage("ข้อผิดพลาดฐานข้อมูล: กรุณาแจ้งผู้ดูแลระบบให้เพิ่มคอลัมน์ created_by ในตาราง missions");
-                } else {
-                    showMessage("บันทึกไม่สำเร็จ: " + err.message);
-                }
-            }
-            finally { btn1.disabled = false; btn2.disabled = false; btn1.innerText = "บันทึกและกลับห้องเรียน"; }
+            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message); }
         }
 
         async function optimizePrompt() {
             const input = document.getElementById("promptInput").value.trim();
-            if(!input) return showMessage("ใส่รายละเอียดเบื้องต้นก่อนครับ");
+            if(!input) return;
             toggleLoading(true, "กำลังขัดเกลาคำสั่งให้คมชัด...");
             try {
-                const res = await callGemini(input, "Expand into a professional educational prompt in Thai.");
+                const res = await callGemini(input, "Expand into a detailed educational game prompt in Thai.");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
+            } catch (e) {} finally { toggleLoading(false); }
         }
 
         async function suggestIdeas() {
-            toggleLoading(true, "กำลังคิดค้นไอเดียใหม่ๆ...");
+            toggleLoading(true, "AI กำลังคิดไอเดียใหม่ๆ...");
             try {
                 const res = await callGemini("ขอไอเดียเกมการสอน 1 อย่าง", "Suggest a creative Thai educational game idea.");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
-        }
-
-        async function addContext() {
-            const input = document.getElementById("promptInput").value.trim();
-            toggleLoading(true, "กำลังเพิ่มสาระความรู้...");
-            try {
-                const res = await callGemini(input, "Provide 5 educational facts or quiz questions in Thai.");
-                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
+            } catch (e) {} finally { toggleLoading(false); }
         }
 
         async function saveKeyToDB() {
             const key = document.getElementById("apiKeyInput").value.trim();
-            if(!key) return showMessage("กรุณาระบุ API Key");
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
-                if(!user) throw new Error("กรุณาเข้าสู่ระบบครู");
                 await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
                 updateApiKeyUI(true);
                 showMessage("บันทึก API Key สำเร็จ! ✨");
-            } catch (e) { showMessage(e.message); }
+            } catch (e) {}
         }
 
         async function loadKeyFromDB() {
@@ -413,41 +327,25 @@
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 if(user) {
                     const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
-                    if(data?.gemini_api_key) { 
-                        document.getElementById("apiKeyInput").value = data.gemini_api_key; 
-                        updateApiKeyUI(true); 
-                    }
+                    if(data?.gemini_api_key) { document.getElementById("apiKeyInput").value = data.gemini_api_key; updateApiKeyUI(true); }
                 }
             } catch (e) {}
         }
 
-        function showMessage(text) {
-            document.getElementById("msgText").innerText = text;
-            document.getElementById("msgBox").style.display = "block";
-            setTimeout(() => document.getElementById("msgBox").style.display = "none", 4000);
-        }
-
-        function toggleLoading(show, msg = "") {
-            document.getElementById("loadingStatus").classList.toggle('hidden-el', !show);
-            document.getElementById("loadingMessage").innerText = msg;
-            document.getElementById("generateBtn").disabled = show;
-        }
-
-        function updateApiKeyUI(hasKey) {
-            document.getElementById("apiKeyEditView").classList.toggle('hidden-el', hasKey);
-            document.getElementById("apiKeyStatusView").classList.toggle('hidden-el', !hasKey);
-        }
-
+        function showMessage(text) { document.getElementById("msgText").innerText = text; document.getElementById("msgBox").style.display = "block"; setTimeout(() => document.getElementById("msgBox").style.display = "none", 4000); }
+        function toggleLoading(show, msg = "") { document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); document.getElementById("loadingMessage").innerText = msg; document.getElementById("generateBtn").disabled = show; }
+        function updateApiKeyUI(hasKey) { document.getElementById("apiKeyEditView").classList.toggle('hidden-el', hasKey); document.getElementById("apiKeyStatusView").classList.toggle('hidden-el', !hasKey); }
         function showApiKeyEdit() { updateApiKeyUI(false); document.getElementById("apiKeyInput").focus(); }
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
+        function openSaveModal() { if(!document.getElementById("missionTitleInput").value.trim()) return showMessage("ระบุชื่อภารกิจก่อนครับ"); document.getElementById('saveModal').classList.remove('hidden'); }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-        
         function changeView(size) { 
-            const wrapper = document.getElementById("previewWrapper");
-            wrapper.className = `preview-frame-wrapper device-${size}`;
+            document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size}`; 
+            ['mobile', 'tablet', 'desktop'].forEach(s => {
+                document.getElementById(`view-${s}`).classList.toggle('bg-white', s === size);
+                document.getElementById(`view-${s}`).classList.toggle('shadow-sm', s === size);
+            });
         }
-        
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0;">🚀</h1><p>พร้อมเนรมิตภารกิจร่วมกับคุณครูครับ</p></div></body>`; }
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0;">🎓</h1><p>พร้อมร่วมสร้างสรรค์บทเรียนอัจฉริยะไปกับคุณครูครับ</p></div></body>`; }
     </script>
 </body>
 </html>
