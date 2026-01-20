@@ -15,9 +15,10 @@
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         .category-card { transition: all 0.3s ease; cursor: pointer; border: 2px solid white; border-radius: 1.5rem; }
-        .category-card.active { border-color: #3b82f6; background-color: #eff6ff; transform: scale(1.05); }
+        .category-card.active { border-color: #3b82f6; background-color: #eff6ff; transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); }
         .mission-item-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 2.5rem; }
         .mission-item-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -33,7 +34,7 @@
                     <div class="text-xl md:text-2xl font-bold tracking-tight leading-none">
                         <span class="text-white">Flip</span><span class="text-orange-400">School</span>
                     </div>
-                    <span class="app-slogan-label text-[10px] text-blue-200 font-medium mt-1 tracking-wide"></span>
+                    <span class="app-slogan-label text-[10px] text-blue-200 font-medium mt-1 tracking-wide opacity-90"></span>
                 </div>
             </div>
             <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
@@ -47,7 +48,7 @@
         <section class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
                 <h1 class="text-3xl md:text-4xl font-black text-blue-900 mb-2">คลังภารกิจอัจฉริยะ</h1>
-                <p class="text-slate-500">รวมรวมบทเรียนคุณภาพเพื่อก้าวสู่ห้องเรียนยุคใหม่</p>
+                <p id="libraryContextDesc" class="text-slate-500">รวมรวมบทเรียนคุณภาพเพื่อก้าวสู่ห้องเรียนยุคใหม่</p>
             </div>
             <div class="relative w-full md:w-96">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -58,16 +59,19 @@
         <!-- Categories -->
         <section class="mb-10 overflow-x-auto pb-4 no-scrollbar">
             <div class="flex gap-4 min-w-max" id="categoryContainer">
-                <div onclick="setCategory('ทั้งหมด')" class="category-card active px-6 py-4 bg-white shadow-sm flex items-center gap-3">
+                <div onclick="setCategory('ทั้งหมด')" id="cat-all" class="category-card active px-6 py-4 bg-white shadow-sm flex items-center gap-3">
                     <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i class="fas fa-th-large"></i></div>
                     <span class="text-sm font-bold text-slate-700">ทั้งหมด</span>
                 </div>
-                <!-- Dymamic categories -->
             </div>
         </section>
 
+        <!-- Mission Grid -->
         <section id="missionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Data injected here -->
+            <div class="col-span-full py-20 text-center opacity-30">
+                <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
+                <p class="font-bold">กำลังเตรียมภารกิจแสนสนุก...</p>
+            </div>
         </section>
     </main>
 
@@ -82,21 +86,26 @@
         let targetCid = new URLSearchParams(window.location.search).get('cid');
 
         const categories = [
-            { name: "ภาษาไทย", icon: "fas fa-font", color: "rose" },
-            { name: "คณิตศาสตร์", icon: "fas fa-calculator", color: "blue" },
-            { name: "วิทยาศาสตร์และเทคโนโลยี", icon: "fas fa-flask", color: "emerald" },
-            { name: "สังคมศึกษา ศาสนา และวัฒนธรรม", icon: "fas fa-globe-asia", color: "amber" },
-            { name: "สุขศึกษาและพลศึกษา", icon: "fas fa-running", color: "orange" },
-            { name: "ศิลปะ", icon: "fas fa-palette", color: "pink" },
-            { name: "การงานอาชีพ", icon: "fas fa-tools", color: "slate" },
-            { name: "ภาษาต่างประเทศ", icon: "fas fa-language", color: "indigo" }
+            { name: "ภาษาไทย", icon: "fas fa-font", color: "rose", keywords: ["ไทย", "ภาษาไทย", "วรรณคดี", "การอ่าน", "การเขียน"] },
+            { name: "คณิตศาสตร์", icon: "fas fa-calculator", color: "blue", keywords: ["คณิต", "เลข", "คำนวณ", "คณิตศาสตร์", "เรขาคณิต", "สถิติ"] },
+            { name: "วิทยาศาสตร์และเทคโนโลยี", icon: "fas fa-flask", color: "emerald", keywords: ["วิทย์", "วิทยาศาสตร์", "ฟิสิกส์", "เคมี", "ชีวะ", "เทคโนโลยี", "คอม", "คำนวณ"] },
+            { name: "สังคมศึกษา ศาสนา และวัฒนธรรม", icon: "fas fa-globe-asia", color: "amber", keywords: ["สังคม", "ประวัติ", "ภูมิศาสตร์", "ศาสนา", "หน้าที่พลเมือง", "เศรษฐศาสตร์"] },
+            { name: "สุขศึกษาและพลศึกษา", icon: "fas fa-running", color: "orange", keywords: ["สุข", "พละ", "ร่างกาย", "กีฬา", "สุขภาพ"] },
+            { name: "ศิลปะ", icon: "fas fa-palette", color: "pink", keywords: ["ศิลปะ", "วาด", "ดนตรี", "นาฏศิลป์", "แสดง"] },
+            { name: "การงานอาชีพ", icon: "fas fa-tools", color: "slate", keywords: ["การงาน", "อาชีพ", "ทักษะชีวิต", "เกษตร"] },
+            { name: "ภาษาต่างประเทศ", icon: "fas fa-language", color: "indigo", keywords: ["อังกฤษ", "english", "จีน", "ญี่ปุ่น", "ภาษาอื่น"] }
         ];
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.CONFIG) document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
             renderCategories();
-            const checkDB = setInterval(() => {
-                if (window.sysDB) { clearInterval(checkDB); loadLibraryMissions(); }
+            
+            const checkDB = setInterval(async () => {
+                if (window.sysDB) { 
+                    clearInterval(checkDB); 
+                    await loadLibraryMissions();
+                    if (targetCid) await handleClassroomContext();
+                }
             }, 500);
         });
 
@@ -104,18 +113,60 @@
             const container = document.getElementById('categoryContainer');
             categories.forEach(cat => {
                 const div = document.createElement('div');
+                div.id = `cat-${cat.name}`;
                 div.onclick = () => setCategory(cat.name);
-                div.className = `category-card px-6 py-4 bg-white shadow-sm flex items-center gap-3 category-item-${cat.name}`;
-                div.innerHTML = `<div class="w-10 h-10 bg-${cat.color}-50 text-${cat.color}-500 rounded-xl flex items-center justify-center"><i class="${cat.icon}"></i></div><span class="text-sm font-bold text-slate-700">${cat.name}</span>`;
+                div.className = `category-card px-6 py-4 bg-white shadow-sm flex items-center gap-3`;
+                div.innerHTML = `
+                    <div class="w-10 h-10 bg-${cat.color}-50 text-${cat.color}-500 rounded-xl flex items-center justify-center">
+                        <i class="${cat.icon}"></i>
+                    </div>
+                    <span class="text-sm font-bold text-slate-700">${cat.name}</span>
+                `;
                 container.appendChild(div);
             });
+        }
+
+        // ✅ วิเคราะห์และเลือกหมวดหมู่ที่เหมาะสมจากวิชาในห้องเรียน
+        async function handleClassroomContext() {
+            try {
+                const { data: classroom, error } = await window.sysDB.from('classrooms').select('subject_name').eq('classroom_id', targetCid).single();
+                if (error || !classroom) return;
+
+                const subjectName = classroom.subject_name.toLowerCase();
+                document.getElementById('libraryContextDesc').innerHTML = `ค้นหาภารกิจที่เหมาะสมกับรายวิชา <span class="text-blue-600 font-bold">"${classroom.subject_name}"</span>`;
+
+                // ค้นหาหมวดหมู่ที่ตรงหรือใกล้เคียงที่สุด
+                let bestMatch = 'ทั้งหมด';
+                
+                // ลองค้นแบบตรงตัวก่อน
+                const exactMatch = categories.find(c => subjectName.includes(c.name.toLowerCase()));
+                if (exactMatch) {
+                    bestMatch = exactMatch.name;
+                } else {
+                    // ลองค้นหาจาก Keywords
+                    for (const cat of categories) {
+                        if (cat.keywords.some(k => subjectName.includes(k.toLowerCase()))) {
+                            bestMatch = cat.name;
+                            break;
+                        }
+                    }
+                }
+
+                setCategory(bestMatch);
+                
+                // Scroll ไปที่หมวดหมู่ที่เลือก (กรณีมีหลายหมวดหมู่บนมือถือ)
+                const targetEl = document.getElementById(`cat-${bestMatch === 'ทั้งหมด' ? 'all' : bestMatch}`);
+                if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+
+            } catch (err) { console.error("Context error:", err); }
         }
 
         function setCategory(name) {
             currentCategory = name;
             document.querySelectorAll('.category-card').forEach(el => el.classList.remove('active'));
-            if(name === 'ทั้งหมด') document.querySelector('.category-card').classList.add('active');
-            else document.querySelector(`.category-item-${name}`).classList.add('active');
+            const targetId = (name === 'ทั้งหมด') ? 'cat-all' : `cat-${name}`;
+            const el = document.getElementById(targetId);
+            if (el) el.classList.add('active');
             filterMissions();
         }
 
@@ -130,39 +181,59 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const grid = document.getElementById('missionGrid');
             const filtered = allMissions.filter(m => {
-                const matchSearch = m.title.toLowerCase().includes(search) || (m.subject_name && m.subject_name.toLowerCase().includes(search));
+                const matchSearch = m.title.toLowerCase().includes(search) || 
+                                  (m.subject_name && m.subject_name.toLowerCase().includes(search)) ||
+                                  (m.subject_group && m.subject_group.toLowerCase().includes(search));
                 const matchCat = currentCategory === 'ทั้งหมด' || m.subject_group === currentCategory;
                 return matchSearch && matchCat;
             });
 
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-20 text-center opacity-40"><i class="fas fa-search-minus text-8xl mb-4"></i><h3 class="text-2xl font-bold">ไม่พบภารกิจที่ตรงตามเงื่อนไข</h3></div>`;
+                return;
+            }
+
             grid.innerHTML = filtered.map(m => `
                 <div class="mission-item-card bg-white p-8 border border-slate-100 flex flex-col h-full relative overflow-hidden">
-                    <div class="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full opacity-50"></div>
+                    <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-50 rounded-full opacity-40"></div>
                     <div class="flex justify-between items-start mb-6 relative z-10">
                         <span class="text-[10px] font-black uppercase px-3 py-1.5 bg-blue-600 text-white rounded-full shadow-md">${m.subject_group || 'ทั่วไป'}</span>
-                        <div class="text-orange-500 font-black text-sm"><i class="fas fa-crown"></i> ${m.reward_points}</div>
+                        <div class="text-orange-500 font-black text-sm flex items-center gap-1"><i class="fas fa-crown"></i> ${m.reward_points}</div>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">${m.title}</h3>
-                    <p class="text-slate-500 text-sm mb-8 flex-grow line-clamp-2">${m.description || 'เข้าร่วมการเรียนรู้ผ่านกิจกรรมนี้'}</p>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${m.title}</h3>
+                    <div class="text-[10px] font-bold text-blue-500 mb-4 bg-blue-50 w-fit px-2 py-0.5 rounded-md">
+                        <i class="fas fa-book-open mr-1"></i>${m.subject_name || 'วิชาทั่วไป'}
+                    </div>
+                    <p class="text-slate-500 text-sm mb-8 flex-grow line-clamp-2 leading-relaxed">${m.description || 'เข้าร่วมการเรียนรู้ผ่านกิจกรรมที่น่าตื่นเต้นนี้'}</p>
                     <div class="flex items-center justify-between mt-auto pt-6 border-t border-slate-50 relative z-10">
                         <div class="flex items-center gap-3">
-                            <img src="${m.teachers?.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.teachers?.first_name}" class="w-10 h-10 rounded-full border-2 border-slate-100">
+                            <img src="${m.teachers?.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.teachers?.first_name}" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm">
                             <div class="flex flex-col">
-                                <span class="text-[10px] text-slate-400 font-black uppercase">ผู้สร้าง</span>
+                                <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">ผู้สร้าง</span>
                                 <span class="text-sm font-bold text-slate-700 leading-none">ครู${m.teachers?.first_name || 'ไม่ระบุ'}</span>
                             </div>
                         </div>
-                        <button onclick="assignMission('${m.mission_id}')" class="bg-slate-900 hover:bg-blue-900 text-white px-6 py-3 rounded-2xl text-xs font-black transition-all">เลือกใช้</button>
+                        <button onclick="assignMission('${m.mission_id}')" class="bg-slate-900 hover:bg-blue-900 text-white px-6 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 shadow-xl shadow-slate-100">เลือกใช้</button>
                     </div>
                 </div>
             `).join('');
         }
 
         async function assignMission(mid) {
-            if(!targetCid) return alert('กรุณาเข้าจากหน้าห้องเรียนครับ');
-            if(!confirm('ยืนยันการนำเข้าห้องเรียน?')) return;
-            const { error } = await window.sysDB.from('classroom_missions').upsert({ classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString() }, { onConflict: 'classroom_id, mission_id' });
-            if (!error) { alert('เพิ่มสำเร็จ! 🚀'); location.href = `classroom-detail.html?id=${targetCid}`; }
+            if(!targetCid) return alert('กรุณาเข้าใช้งานผ่านหน้าห้องเรียนเพื่อมอบหมายภารกิจครับ');
+            if(!confirm('คุณครูต้องการนำภารกิจนี้ไปใช้ในห้องเรียนใช่หรือไม่?')) return;
+            try {
+                const { error } = await window.sysDB.from('classroom_missions').upsert({ 
+                    classroom_id: targetCid, 
+                    mission_id: mid, 
+                    assigned_at: new Date().toISOString(),
+                    is_visible: true 
+                }, { onConflict: 'classroom_id, mission_id' });
+
+                if (error) throw error;
+                alert('เพิ่มภารกิจลงห้องเรียนสำเร็จ! 🚀');
+                location.href = `classroom-detail.html?id=${targetCid}`;
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
     </script>
 </body>
