@@ -26,114 +26,90 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <!-- Loading Overlay -->
     <div id="loader" class="loading-overlay">
         <div class="spinner"></div>
-        <p class="mt-4 text-blue-900 font-bold animate-pulse text-center text-sm">กำลังเตรียมภารกิจแสนสนุก...</p>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse text-center text-sm">กำลังเตรียมความพร้อม...</p>
     </div>
 
-    <!-- Blocker สำหรับไม่อนุญาตให้เล่นซ้ำ -->
+    <!-- Blocker -->
     <div id="blocker" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center border border-slate-100">
-            <div class="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 border border-orange-100">🚫</div>
-            <h3 class="text-xl font-bold text-slate-800">ภารกิจสำเร็จแล้ว</h3>
-            <p class="text-sm text-slate-500 mt-2">คุณครูไม่อนุญาตให้นักเรียนทำภารกิจนี้ซ้ำครับ<br>เก่งมากที่ทำสำเร็จในครั้งเดียว!</p>
-            <button onclick="history.back()" class="mt-8 w-full bg-blue-900 text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 transition-all text-sm">กลับสู่ห้องเรียน</button>
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center">
+            <div class="text-5xl mb-4">🚫</div>
+            <h3 class="text-xl font-bold text-slate-800">ทำภารกิจสำเร็จแล้ว</h3>
+            <p class="text-sm text-slate-500 mt-2">คุณครูไม่อนุญาตให้นักเรียนทำภารกิจนี้ซ้ำครับ</p>
+            <button onclick="history.back()" class="mt-8 w-full bg-blue-900 text-white font-bold py-3.5 rounded-2xl">กลับสู่ห้องเรียน</button>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Delete/Remove Modal -->
     <div id="deleteModal" class="fixed inset-0 z-[130] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100 text-center">
             <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
                 <i class="fas fa-trash-alt text-2xl"></i>
             </div>
-            <h3 class="text-xl font-bold text-slate-800">ยืนยันการลบภารกิจ?</h3>
-            <p class="text-sm text-slate-500 mt-2 px-4">ภารกิจนี้จะถูกลบออกจากห้องเรียนอย่างถาวรและไม่สามารถเรียกคืนได้</p>
+            <h3 class="text-xl font-bold text-slate-800">ถอนภารกิจออกจากห้อง?</h3>
+            <p class="text-sm text-slate-500 mt-2">ภารกิจจะถูกนำออกจากการแสดงผลในห้องเรียนนี้ แต่จะยังคงอยู่ใน <b>คลังภารกิจ</b> ของคุณครูครับ</p>
             <div class="mt-8 space-y-2">
-                <button onclick="confirmDelete()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 transition-all text-sm">
-                    ยืนยันการลบ
-                </button>
+                <button onclick="confirmRemoveFromClass()" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm">ยืนยันการนำออก</button>
                 <button onclick="closeDeleteModal()" class="w-full text-slate-400 font-semibold py-2 text-sm">ยกเลิก</button>
             </div>
         </div>
     </div>
 
-    <!-- Settings Modal (เฉพาะครู) -->
+    <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center mb-8">
-                <h3 class="text-xl font-bold text-blue-900">การจัดการห้องเรียน</h3>
-                <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold text-blue-900">ตั้งค่าห้องเรียน</h3>
+                <button onclick="closeSettings()" class="text-slate-400"><i class="fas fa-times"></i></button>
             </div>
-            <div class="space-y-6">
-                <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">อนุญาตให้นักเรียนเล่นซ้ำ</p>
-                        <p class="text-[10px] text-slate-400 leading-tight mt-1">สามารถทำซ้ำเพื่อพัฒนาคะแนนได้</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="replayToggle" class="sr-only peer" onchange="toggleReplayInDB()">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
+            <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div>
+                    <p class="text-sm font-bold text-slate-700">อนุญาตให้เล่นซ้ำ</p>
                 </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="replayToggle" class="sr-only peer" onchange="updateAssignmentSetting()">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
             </div>
-            <p class="mt-6 text-[10px] text-slate-400 italic text-center">ครูผู้สอนเป็นผู้กำหนดเงื่อนไขในห้องเรียนตนเอง</p>
         </div>
     </div>
 
     <nav class="nav-gradient text-white shadow-lg z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <!-- โลโก้หมวกปริญญา พื้นหลังขาว -->
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md shrink-0">
                     <svg class="w-7 h-7 text-blue-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12V13a1 1 0 00.657.939l4 1.714a1 1 0 00.686 0l4-1.714A1 1 0 0015 13v-2.88l1.69-.723a1 1 0 011.31 1.25l-.71 3.551a1 1 0 01-.818.803l-6 1.05a1 1 0 01-.344 0l-6-1.05a1 1 0 01-.818-.803l-.71-3.551a1 1 0 011.31-1.25l1.39.596zM14 13l-4 1.714L6 13V11l4 1.714L14 11v2z"/></svg>
                 </div>
-                <div class="flex flex-col overflow-hidden">
-                    <div class="flex items-center gap-2">
-                        <div class="text-base md:text-lg font-bold tracking-tight leading-none">
-                            <span class="text-white">Flip</span><span class="text-orange-400">School</span>
-                        </div>
-                        <span class="text-white/30 text-[10px]">|</span>
-                        <span id="missionSubtitle" class="text-[10px] text-blue-200 truncate font-medium uppercase tracking-wider">Mission Player</span>
+                <div class="flex flex-col">
+                    <div class="text-base md:text-lg font-bold tracking-tight leading-none">
+                        <span class="text-white">Flip</span><span class="text-orange-400">School</span>
                     </div>
-                    <h1 id="missionTitle" class="text-xs font-bold text-white/80 truncate max-w-[150px] md:max-w-md mt-0.5">กำลังโหลด...</h1>
+                    <span id="missionSubtitle" class="text-[10px] text-blue-200 truncate mt-0.5">...</span>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 shrink-0">
-                <!-- Teacher Tools Menu -->
+            <div class="flex items-center gap-2">
                 <div id="teacherTools" class="hidden flex items-center gap-1 bg-white/10 p-1 rounded-full border border-white/20">
-                    <button onclick="openSettings()" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="ตั้งค่าเงื่อนไข">
-                        <i class="fas fa-cog text-[10px] text-blue-200"></i>
-                    </button>
-                    <button id="editBtn" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="แก้ไขโค้ดภารกิจ">
-                        <i class="fas fa-code text-[10px] text-blue-200"></i>
-                    </button>
-                    <!-- ปุ่มลบภารกิจ (เพิ่มเข้ามาใหม่) -->
-                    <button onclick="openDeleteModal()" class="w-8 h-8 flex items-center justify-center hover:bg-red-500/30 rounded-full" title="ลบภารกิจนี้">
-                        <i class="fas fa-trash-alt text-[10px] text-red-300"></i>
-                    </button>
+                    <button onclick="openSettings()" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="ตั้งค่า"><i class="fas fa-cog text-[10px]"></i></button>
+                    <button id="editBtn" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="แก้ไข"><i class="fas fa-code text-[10px]"></i></button>
+                    <button onclick="openDeleteModal()" class="w-8 h-8 flex items-center justify-center hover:bg-red-500/30 rounded-full text-red-300" title="ถอนออก"><i class="fas fa-trash-alt text-[10px]"></i></button>
                 </div>
-
-                <div class="bg-white/10 px-4 py-1.5 rounded-full text-xs font-bold border border-white/20 flex items-center gap-2">
-                    <i class="fas fa-trophy text-orange-400"></i><span id="scoreText">0</span> แต้ม
-                </div>
+                <div class="bg-white/10 px-4 py-1.5 rounded-full text-xs font-bold border border-white/20"><i class="fas fa-trophy text-orange-400 mr-2"></i><span id="scoreText">0</span> แต้ม</div>
             </div>
         </div>
     </nav>
 
     <main class="mission-container">
-        <iframe id="missionIframe" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Workspace"></iframe>
+        <iframe id="missionIframe" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Player"></iframe>
     </main>
 
     <script>
-        let currentMissionId = null, currentUserId = null, missionData = null, isTeacher = false;
+        let currentMissionId = null, currentUserId = null, assignmentData = null, isTeacher = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             currentMissionId = params.get('mid');
-            if (!currentMissionId) { history.back(); return; }
             if (window.sysDB) initPage();
             else { const c = setInterval(() => { if(window.sysDB){ clearInterval(c); initPage(); }}, 500); }
         });
@@ -141,102 +117,58 @@
         async function initPage() {
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
-                if (!user) throw new Error('กรุณาเข้าสู่ระบบก่อนครับ');
                 currentUserId = user.id;
 
-                const { data: mission, error } = await window.sysDB
-                    .from('missions')
-                    .select('*, classrooms(subject_name, teacher_id)')
-                    .eq('mission_id', currentMissionId)
-                    .single();
+                // ดึงข้อมูลเชื่อมโยงห้องเรียน
+                const { data: assign } = await window.sysDB.from('classroom_missions').select('*, missions(*), classrooms(teacher_id, subject_name)').eq('mission_id', currentMissionId).single();
+                assignmentData = assign;
 
-                if (error || !mission) throw new Error('ไม่พบข้อมูล');
-                missionData = mission;
-
-                // ตรวจสอบสิทธิ์: เป็นเจ้าของห้องเรียนหรือไม่
-                isTeacher = (mission.classrooms?.teacher_id === currentUserId);
+                isTeacher = (assign.classrooms.teacher_id === currentUserId);
                 if (isTeacher) {
                     document.getElementById('teacherTools').classList.remove('hidden');
-                    document.getElementById('replayToggle').checked = mission.can_replay !== false;
-                    document.getElementById('editBtn').onclick = () => {
-                        window.location.href = `mission-create-ai.html?cid=${mission.classroom_id}&mid=${currentMissionId}`;
-                    };
+                    document.getElementById('replayToggle').checked = assign.can_replay;
+                    document.getElementById('editBtn').onclick = () => window.location.href = `mission-create-ai.html?cid=${assign.classroom_id}&mid=${currentMissionId}`;
                 }
 
-                document.getElementById('missionTitle').innerText = mission.title;
-                document.getElementById('missionSubtitle').innerText = mission.classrooms?.subject_name || 'FlipSchool';
+                document.title = assign.missions.title;
+                document.getElementById('missionSubtitle').innerText = assign.classrooms.subject_name;
 
-                // ตรวจสอบสิทธิ์การเล่นซ้ำ (สำหรับนักเรียน)
-                if (!isTeacher && mission.can_replay === false) {
+                if (!isTeacher && !assign.can_replay) {
                     const { data: ex } = await window.sysDB.from('student_missions').select('id').eq('mission_id', currentMissionId).eq('student_id', currentUserId).maybeSingle();
-                    if (ex) { 
-                        document.getElementById('blocker').classList.remove('hidden'); 
-                        document.getElementById('loader').style.display = 'none'; 
-                        return; 
-                    }
+                    if (ex) { document.getElementById('blocker').classList.remove('hidden'); document.getElementById('loader').style.display = 'none'; return; }
                 }
 
-                if (mission.content_data?.html) document.getElementById('missionIframe').srcdoc = mission.content_data.html;
+                document.getElementById('missionIframe').srcdoc = assign.missions.content_data.html;
                 document.getElementById('missionIframe').onload = () => document.getElementById('loader').style.display = 'none';
-            } catch (err) { alert(err.message); history.back(); }
+            } catch (err) { history.back(); }
         }
 
-        // ระบบบันทึกคะแนน (Upsert)
+        // ✅ ลบออกจากตารางเชื่อมโยง (ถอนจากห้องเรียน)
+        async function confirmRemoveFromClass() {
+            await window.sysDB.from('classroom_missions').delete().eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id);
+            window.location.href = `classroom-detail.html?id=${assignmentData.classroom_id}`;
+        }
+
+        // ✅ บันทึกคะแนนแบบ Upsert
         window.addEventListener('message', async (e) => {
             if (e.data?.type === 'SAVE_RESULT') {
                 document.getElementById('scoreText').innerText = e.data.score;
-                if (!currentUserId) return;
-                
-                try {
-                    await window.sysDB.from('student_missions').upsert({
-                        student_id: currentUserId,
-                        mission_id: currentMissionId,
-                        score: e.data.score,
-                        answers: e.data.answers || [],
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'student_id, mission_id' });
-                } catch (err) { console.error("Database save failed:", err); }
+                await window.sysDB.from('student_missions').upsert({
+                    student_id: currentUserId, mission_id: currentMissionId,
+                    score: e.data.score, answers: e.data.answers || [], updated_at: new Date().toISOString()
+                }, { onConflict: 'student_id, mission_id' });
             }
         });
 
-        // Settings Menu
+        async function updateAssignmentSetting() {
+            const v = document.getElementById('replayToggle').checked;
+            await window.sysDB.from('classroom_missions').update({ can_replay: v }).eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id);
+        }
+
         function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
         function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
-        
-        async function toggleReplayInDB() {
-            const v = document.getElementById('replayToggle').checked;
-            try {
-                await window.sysDB.from('missions').update({ can_replay: v }).eq('mission_id', currentMissionId);
-                missionData.can_replay = v;
-            } catch (e) { document.getElementById('replayToggle').checked = !v; }
-        }
-
-        // Delete Logic (ใหม่)
         function openDeleteModal() { document.getElementById('deleteModal').classList.remove('hidden'); }
         function closeDeleteModal() { document.getElementById('deleteModal').classList.add('hidden'); }
-
-        async function confirmDelete() {
-            if (!currentMissionId) return;
-            try {
-                const { error } = await window.sysDB
-                    .from('missions')
-                    .delete()
-                    .eq('mission_id', currentMissionId);
-
-                if (error) throw error;
-
-                alert('ลบภารกิจสำเร็จแล้ว');
-                // กลับไปยังหน้ารายละเอียดห้องเรียน
-                if (missionData && missionData.classroom_id) {
-                    window.location.href = `classroom-detail.html?id=${missionData.classroom_id}`;
-                } else {
-                    window.location.href = 'teacher-dashboard.html';
-                }
-            } catch (err) {
-                alert('ไม่สามารถลบภารกิจได้: ' + err.message);
-                closeDeleteModal();
-            }
-        }
     </script>
 </body>
 </html>
