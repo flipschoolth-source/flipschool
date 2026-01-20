@@ -4,35 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการภารกิจห้องเรียน | FlipSchool</title>
-    
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-    
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
-        
-        /* สไตล์แผนที่ภารกิจ */
         .mission-path { position: relative; padding: 40px 0; display: flex; flex-direction: column; align-items: center; }
         .mission-path::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8px; background: #e2e8f0; transform: translateX(-50%); border-radius: 4px; }
-        
         .mission-node { position: relative; z-index: 10; margin-bottom: 60px; display: flex; flex-direction: column; align-items: center; width: 100%; transition: all 0.3s ease; }
-        .node-circle { width: 80px; height: 80px; background: white; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #1e3a8a; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 4px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
-        .mission-node:hover .node-circle { transform: scale(1.1) rotate(5deg); border-color: #FF8C00; color: #FF8C00; }
-        .node-content { background: white; padding: 15px 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-top: 15px; text-align: center; max-width: 280px; border: 1px solid #f1f5f9; }
-
+        .node-circle { width: 80px; height: 80px; background: white; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #1e3a8a; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 4px solid white; cursor: pointer; }
         .reorder-controls { display: none; position: absolute; right: -60px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 5px; }
         .reorder-active .reorder-controls { display: flex; }
-        .reorder-btn { width: 35px; height: 35px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; color: #64748b; transition: 0.2s; }
-        .reorder-btn:hover { background: #1e3a8a; color: white; }
-
-        .drawer-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .reorder-btn { width: 35px; height: 35px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; color: #64748b; }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -41,42 +29,21 @@
 
     <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
         <div class="spinner"></div>
-        <p class="mt-4 text-blue-900 font-bold animate-pulse">กำลังจัดเตรียมพื้นที่การเรียนรู้...</p>
-    </div>
-
-    <!-- Side Drawer -->
-    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1000] hidden drawer-overlay transition-opacity duration-300"></div>
-    <div id="sideDrawer" class="fixed top-0 left-0 h-full w-80 bg-white z-[1001] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out">
-        <div class="p-6 border-b border-slate-100 flex items-center gap-4">
-            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg border border-slate-100">
-                <span class="text-2xl text-blue-900">🎓</span>
-            </div>
-            <div>
-                <h2 class="font-bold text-slate-800 text-lg">Flip<span class="text-orange-500">School</span></h2>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Teacher Panel</p>
-            </div>
-        </div>
-        <nav class="mt-4 px-4 space-y-2">
-            <a href="teacher-dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 font-bold transition-all"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
-            <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 font-bold transition-all"><i class="fas fa-users"></i> รายชื่อนักเรียน</a>
-            <hr class="my-4 border-slate-100">
-            <button onclick="handleLogout()" class="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 text-red-500 font-bold transition-all"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
-        </nav>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse text-sm">กำลังจัดเตรียมพื้นที่...</p>
     </div>
 
     <!-- ✅ Unified Navbar -->
     <nav class="bg-white h-20 shadow-sm sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <button onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full transition-all text-slate-600"><i class="fas fa-bars text-xl"></i></button>
             <div class="flex items-center gap-3 cursor-pointer" onclick="location.href='teacher-dashboard.html'">
                 <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border border-slate-50">
                     <span class="text-2xl text-blue-900">🎓</span>
                 </div>
                 <div class="flex flex-col">
                     <div class="text-xl md:text-2xl font-bold tracking-tight leading-none text-slate-800">
-                        <span class="text-blue-900">Flip</span><span class="text-orange-500">School</span>
+                        <span class="text-blue-900">Flip</span><span class="text-orange-400">School</span>
                     </div>
-                    <span class="app-slogan-label text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 leading-none"></span>
+                    <span id="app-slogan-display" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 leading-none">...</span>
                 </div>
             </div>
         </div>
@@ -84,30 +51,23 @@
             <button onclick="toggleReorder()" id="reorderMainBtn" class="hidden md:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 transition-all">
                 <i class="fas fa-sort"></i> จัดลำดับ
             </button>
-            <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm cursor-pointer" onclick="toggleDrawer()">
+            <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm cursor-pointer" onclick="location.href='teacher-dashboard.html'">
         </div>
     </nav>
 
-    <!-- Header -->
     <header class="nav-gradient text-white py-12 px-6 md:px-12 relative overflow-hidden">
         <div class="container mx-auto relative z-10">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 id="subjectName" class="text-3xl md:text-5xl font-extrabold tracking-tight">...</h1>
                     <p class="mt-3 opacity-90 font-medium flex items-center gap-4">
-                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm"><i class="fas fa-door-open mr-2"></i>ห้อง <span id="roomName">...</span></span>
-                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm"><i class="fas fa-calendar-alt mr-2"></i><span id="termText">...</span></span>
+                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm">ห้อง <span id="roomName">...</span></span>
+                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm"><span id="termText">...</span></span>
                     </p>
                 </div>
-                <div class="flex gap-4">
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px]">
-                        <p class="text-[10px] font-bold uppercase opacity-70">นักเรียน</p>
-                        <p id="studentCount" class="text-2xl font-black">0</p>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px]">
-                        <p class="text-[10px] font-bold uppercase opacity-70">ภารกิจ</p>
-                        <p id="missionCount" class="text-2xl font-black">0</p>
-                    </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[120px]">
+                    <p class="text-[10px] font-bold uppercase opacity-70">นักเรียน</p>
+                    <p id="studentCount" class="text-2xl font-black">0</p>
                 </div>
             </div>
         </div>
@@ -115,9 +75,7 @@
 
     <main class="flex-grow container mx-auto px-4 py-12 max-w-5xl">
         <div id="missionPath" class="mission-path">
-            <div id="missionListContent" class="w-full flex flex-col items-center">
-                <!-- Data injected by JS -->
-            </div>
+            <div id="missionListContent" class="w-full flex flex-col items-center"></div>
         </div>
     </main>
 
@@ -126,8 +84,7 @@
     </button>
 
     <footer class="bg-white border-t border-slate-100 py-10 text-center mt-auto">
-        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
-        <p id="footerOwnerText" class="text-slate-400 text-[10px]"></p>
+        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. <span id="footer-slogan"></span></p>
     </footer>
 
     <script>
@@ -136,16 +93,11 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             currentClassId = params.get('id');
-            if (!currentClassId) return location.href = 'teacher-dashboard.html';
-
             if (window.CONFIG) {
-                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
-                document.getElementById('footerOwnerText').innerText = `${window.CONFIG.OWNER.NAME} | ${window.CONFIG.OWNER.SCHOOL}`;
+                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
+                document.getElementById('footer-slogan').innerText = window.CONFIG.APP_SLOGAN;
             }
-
-            const checkDB = setInterval(() => {
-                if (window.sysDB) { clearInterval(checkDB); initApp(); }
-            }, 500);
+            const check = setInterval(() => { if(window.sysDB){ clearInterval(check); initApp(); }}, 500);
         });
 
         async function initApp() {
@@ -153,10 +105,9 @@
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 if (!user) return location.href = 'teacher-login.html';
                 currentUserId = user.id;
-
                 await Promise.all([fetchProfile(), fetchClassroomData(), fetchMissions()]);
                 document.getElementById('loadingOverlay').style.display = 'none';
-            } catch (err) { console.error(err); }
+            } catch (err) {}
         }
 
         async function fetchProfile() {
@@ -176,15 +127,9 @@
         }
 
         async function fetchMissions() {
-            const { data, error } = await window.sysDB
-                .from('classroom_missions')
-                .select('*, missions(*)')
-                .eq('classroom_id', currentClassId)
-                .order('order_index', { ascending: true });
-
+            const { data } = await window.sysDB.from('classroom_missions').select('*, missions(*)').eq('classroom_id', currentClassId).order('order_index', { ascending: true });
             if (data) {
                 missions = data;
-                document.getElementById('missionCount').innerText = data.length;
                 document.getElementById('reorderMainBtn').classList.toggle('hidden', data.length < 2);
                 renderMissions();
             }
@@ -196,72 +141,45 @@
                 container.innerHTML = `<div class="py-20 opacity-20 text-center"><i class="fas fa-map-marked-alt text-8xl mb-4"></i><h3 class="text-xl font-bold">ยังไม่มีภารกิจ</h3></div>`;
                 return;
             }
-
             container.innerHTML = missions.map((m, idx) => `
-                <div class="mission-node ${isReorderMode ? 'reorder-active' : ''}" data-id="${m.mission_id}">
+                <div class="mission-node ${isReorderMode ? 'reorder-active' : ''}">
                     <div class="node-circle" onclick="${isReorderMode ? '' : `location.href='play-mission.html?mid=${m.mission_id}'`}">
                         <i class="${getIcon(m.missions.mission_type)}"></i>
                     </div>
                     <div class="reorder-controls">
-                        <button onclick="moveMission(${idx}, -1)" class="reorder-btn"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                        <button onclick="moveMission(${idx}, 1)" class="reorder-btn"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                        <button onclick="move(${idx}, -1)" class="reorder-btn"><i class="fas fa-chevron-up"></i></button>
+                        <button onclick="move(${idx}, 1)" class="reorder-btn"><i class="fas fa-chevron-down"></i></button>
                     </div>
-                    <div class="node-content">
-                        <p class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">ภารกิจที่ ${idx + 1}</p>
-                        <h3 class="font-bold text-slate-800 text-sm mt-1">${m.missions.title}</h3>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm mt-3 border border-slate-100 text-center min-w-[250px]">
+                        <p class="text-[10px] font-bold text-orange-500 uppercase">ภารกิจที่ ${idx + 1}</p>
+                        <h3 class="font-bold text-slate-800 text-sm">${m.missions.title}</h3>
                     </div>
                 </div>
             `).join('');
         }
 
-        function getIcon(type) {
-            const map = { quiz: 'fas fa-tasks', ai_generated: 'fas fa-robot', match: 'fas fa-clone' };
-            return map[type] || 'fas fa-star';
-        }
+        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', match:'fas fa-clone' }[t] || 'fas fa-star'; }
 
         function toggleReorder() {
             isReorderMode = !isReorderMode;
             const btn = document.getElementById('reorderMainBtn');
             btn.innerHTML = isReorderMode ? '<i class="fas fa-check"></i> บันทึกลำดับ' : '<i class="fas fa-sort"></i> จัดลำดับ';
-            btn.classList.toggle('bg-blue-600', isReorderMode);
-            btn.classList.toggle('text-white', isReorderMode);
-            
+            btn.classList.toggle('bg-blue-600', isReorderMode); btn.classList.toggle('text-white', isReorderMode);
             if (!isReorderMode) saveNewOrder();
             renderMissions();
         }
 
-        function moveMission(index, direction) {
-            const newIndex = index + direction;
-            if (newIndex < 0 || newIndex >= missions.length) return;
-            const temp = missions[index];
-            missions[index] = missions[newIndex];
-            missions[newIndex] = temp;
+        function move(idx, d) {
+            const n = idx + d;
+            if (n < 0 || n >= missions.length) return;
+            const t = missions[idx]; missions[idx] = missions[n]; missions[n] = t;
             renderMissions();
         }
 
         async function saveNewOrder() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            try {
-                const updates = missions.map((m, idx) => 
-                    window.sysDB.from('classroom_missions')
-                    .update({ order_index: idx })
-                    .eq('assignment_id', m.assignment_id)
-                );
-                await Promise.all(updates);
-                await fetchMissions();
-            } catch (e) { alert('เกิดข้อผิดพลาดในการบันทึกลำดับ'); }
-            document.getElementById('loadingOverlay').style.display = 'none';
+            const updates = missions.map((m, i) => window.sysDB.from('classroom_missions').update({ order_index: i }).eq('assignment_id', m.assignment_id));
+            await Promise.all(updates); fetchMissions();
         }
-
-        function toggleDrawer() {
-            const dr = document.getElementById('sideDrawer');
-            const ov = document.getElementById('drawerOverlay');
-            dr.classList.toggle('-translate-x-full');
-            ov.classList.toggle('hidden');
-        }
-
-        function goToStudents() { location.href = `student-list.html?id=${currentClassId}`; }
-        async function handleLogout() { if(confirm('ออกจากระบบ?')) { await window.sysDB.auth.signOut(); location.href='teacher-login.html'; } }
     </script>
 </body>
 </html>
