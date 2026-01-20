@@ -3,271 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>จัดการภารกิจห้องเรียน - FlipSchool</title>
+    <title>จัดการภารกิจห้องเรียน | FlipSchool</title>
+    
     <script src="js/env-config.js"></script>
-    <link rel="icon" type="image/png" href="img/favicon.png">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-
+    
     <style>
-        :root { 
-            --primary-dark: #000046; --primary: #00008B; --primary-light: #0052D4;
-            --accent: #FF8C00; --bg-body: #f4f7fe; --white: #ffffff;
-            --sidebar-width: 380px;
-            --drawer-width: 320px;
-        }
-
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
-
-        /* --- Navbar --- */
-        nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 50px; height: 90px; background: var(--white);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.04);
-            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
-        }
-        .nav-left-group { display: flex; align-items: center; gap: 15px; }
-        .menu-toggle-btn { 
-            background: none; border: none; font-size: 22px; color: var(--primary-dark); 
-            cursor: pointer; width: 45px; height: 45px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; transition: 0.3s;
-        }
-        .menu-toggle-btn:hover { background: #f0f4ff; }
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: inherit; }
-        .logo-container img { height: 55px; }
-        .brand-name { font-size: 26px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; }
-        .brand-name span { color: var(--primary); }
-        .nav-profile-trigger { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; transition: 0.3s ease; }
-
-        /* --- Side Drawer (หัวสไลด์บาร์แก้ตาม Title Bar) --- */
-        .drawer-overlay, .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1990; backdrop-filter: blur(2px); }
-        .side-drawer { 
-            position: fixed; top: 0; left: calc(var(--drawer-width) * -1.1); width: var(--drawer-width); height: 100%; 
-            background: white; z-index: 2000; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 5px 0 25px rgba(0,0,0,0.1); padding: 0; box-sizing: border-box;
+        /* สไตล์แผนที่ภารกิจ (Gamification Map) */
+        .mission-path {
+            position: relative;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .side-drawer.active { left: 0; }
+        .mission-path::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            width: 8px;
+            background: #e2e8f0;
+            transform: translateX(-50%);
+            border-radius: 4px;
+        }
         
-        .drawer-header {
-            height: 90px; padding: 0 20px; display: flex; align-items: center;
-            border-bottom: 1px solid #f0f4ff; margin-bottom: 20px;
-        }
-
-        .drawer-menu-item { padding: 14px 20px; border-radius: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #444; font-weight: 500; margin: 0 15px 5px 15px; font-family: 'Kanit'; }
-        .drawer-menu-item:hover { background: #f0f4ff; color: var(--primary); }
-
-        /* --- Class Header --- */
-        .class-header {
-            min-height: 140px; padding: 25px 50px; box-sizing: border-box;
-            color: white; display: flex; flex-direction: column; justify-content: center;
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-            border-radius: 0 0 40px 40px; box-shadow: 0 10px 30px rgba(0, 0, 70, 0.1);
-            position: relative; transition: background 0.5s ease;
-        }
-        .class-header h1 { margin: 0; font-family: 'Kanit'; font-size: 32px; line-height: 1.2; }
-        .class-header p { margin: 5px 0 0; font-size: 16px; opacity: 0.9; }
-        .student-count {
-            position: absolute; right: 50px; top: 50%; transform: translateY(-50%);
-            background: rgba(255,255,255,0.2); padding: 8px 20px;
-            border-radius: 50px; backdrop-filter: blur(8px); font-size: 15px; font-weight: 600;
-        }
-
-        /* --- Gamification Map Styles --- */
-        .mission-map { display: flex; flex-direction: column; align-items: center; padding: 50px 0; position: relative; min-height: 400px; }
-        .mission-line { position: absolute; width: 6px; background: #e0e6ed; top: 0; bottom: 0; z-index: 1; border-radius: 10px; }
-        .mission-node { 
-            width: 90px; height: 90px; border-radius: 50%; background: white; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 30px; color: var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            cursor: pointer; position: relative; z-index: 2; border: 6px solid #fff; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .mission-node {
+            position: relative;
+            z-index: 10;
             margin-bottom: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
-        .mission-node:hover { transform: scale(1.15) rotate(5deg); border-color: var(--accent); color: var(--accent); }
-        .mission-label { position: absolute; left: 120px; width: 280px; text-align: left; pointer-events: none; }
 
-        .main-content { padding: 40px 50px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; flex: 1; }
+        .node-circle {
+            width: 80px; height: 80px;
+            background: white;
+            border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+            color: #1e3a8a;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 4px solid white;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
         
-        .fab-add-mission { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,140,0,0.4); z-index: 999; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-        .fab-add-mission:hover { transform: scale(1.1) rotate(90deg); }
-
-        .sidebar { 
-            position: fixed; top: 0; right: calc(var(--sidebar-width) * -1.1); width: var(--sidebar-width); height: 100%; 
-            background: rgba(255, 255, 255, 0.98); box-shadow: -15px 0 45px rgba(0,0,0,0.1); transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2000; padding: 40px 30px; box-sizing: border-box; border-radius: 40px 0 0 40px;
+        .mission-node:hover .node-circle {
+            transform: scale(1.15) rotate(5deg);
+            border-color: #fb923c;
+            color: #fb923c;
         }
-        .sidebar.active { right: 0; }
-        .footer { width: 100%; padding: 30px; text-align: center; color: #b2bec3; font-size: 13px; }
+
+        .node-content {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 15px;
+            text-align: center;
+            max-width: 280px;
+            border: 1px solid #f1f5f9;
+        }
+
+        /* Side Drawer Custom */
+        .drawer-active { transform: translateX(0) !important; }
+        .drawer-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+
+        /* Loading Spinner */
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-    <div id="loadingOverlay"><div class="spinner-lg"></div></div>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
+        <div class="spinner"></div>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse">กำลังโหลดข้อมูลห้องเรียน...</p>
+    </div>
 
-    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-    
-    <div class="side-drawer" id="sideDrawer">
-        <div class="drawer-header">
-            <div class="logo-container">
-                <img src="img/favicon.png" alt="Logo">
-                <div class="logo-text-group">
-                    <div class="brand-name">Flip<span>School</span></div>
-                    <div style="font-size:12px; color:#636e72;">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+    <!-- Side Drawer (เมนูข้าง) -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1000] hidden drawer-overlay transition-opacity duration-300"></div>
+    <div id="sideDrawer" class="fixed top-0 left-0 h-full w-80 bg-white z-[1001] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="p-6 border-bottom border-slate-100 flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center shadow-lg">
+                <span class="text-2xl text-white">🎓</span>
+            </div>
+            <div>
+                <h2 class="font-bold text-slate-800 text-lg">FlipSchool</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Teacher Panel</p>
+            </div>
+        </div>
+        
+        <nav class="mt-4 px-4 space-y-2">
+            <a href="teacher-dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 hover:text-blue-900 font-bold transition-all">
+                <i class="fas fa-th-large w-6"></i> แดชบอร์ด
+            </a>
+            <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 hover:text-blue-900 font-bold transition-all">
+                <i class="fas fa-users w-6"></i> รายชื่อนักเรียน
+            </a>
+            <a href="#" onclick="alert('เร็วๆ นี้')" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 hover:text-blue-900 font-bold transition-all">
+                <i class="fas fa-chart-line w-6"></i> รายงานผลการเรียน
+            </a>
+            <hr class="my-4 border-slate-100">
+            <button onclick="handleLogout()" class="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 text-red-500 font-bold transition-all">
+                <i class="fas fa-sign-out-alt w-6"></i> ออกจากระบบ
+            </button>
+        </nav>
+    </div>
+
+    <!-- ✅ Navbar -->
+    <nav class="bg-white h-20 shadow-sm sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full transition-all text-slate-600">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="location.href='teacher-dashboard.html'">
+                <!-- โลโก้ 🎓 พื้นหลังขาวตามสไตล์ใหม่ -->
+                <div class="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                    <span class="text-2xl">🎓</span>
+                </div>
+                <div class="flex flex-col">
+                    <div class="text-xl md:text-2xl font-bold tracking-tight leading-none text-slate-800">
+                        <span class="text-blue-900">Flip</span><span class="text-orange-400">School</span>
+                    </div>
+                    <span id="app-slogan-display" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">...</span>
                 </div>
             </div>
         </div>
-        <div class="drawer-menu-item" onclick="location.href='teacher-dashboard.html'">
-            <i class="fas fa-th-large"></i> แดชบอร์ด
-        </div>
-        <hr style="border:none; border-top:1px solid #f0f4ff; margin:15px 15px;">
-        <div class="drawer-menu-item" onclick="goToStudents()">
-            <i class="fas fa-users"></i> รายชื่อนักเรียน
-        </div>
-        <div class="drawer-menu-item" onclick="openEditModal()">
-            <i class="fas fa-cog"></i> ตั้งค่าห้องเรียน
-        </div>
-    </div>
-
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-    <div class="sidebar" id="profileSidebar">
-        <div style="text-align: center; margin-bottom: 25px;">
-            <img src="" id="sidebarImg" style="width:110px; height:110px; border-radius:50%; border:5px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.05); object-fit: cover;">
-            <h3 id="sideDisplayName" style="font-family:'Kanit'; color:var(--primary-dark); margin:15px 0 5px; font-size: 24px;">...</h3>
-            <p id="dispSchoolName" style="font-size: 14px; color: #b2bec3; margin: 0;">...</p>
-        </div>
-        <button class="btn-save" style="background:#f8f9fa; color:#333; width:100%; border:none; padding:12px; border-radius:15px; cursor:pointer;" onclick="location.href='teacher-dashboard.html'"><i class="fas fa-arrow-left"></i> กลับสู่หน้าหลัก</button>
-        <button class="btn-delete" style="width:100%; padding:15px; border:none; border-radius:20px; background:#fff5f5; color:#ff4757; font-weight:600; cursor:pointer; margin-top:15px; font-family:'Kanit';" onclick="handleLogout()"><i class="fas fa-power-off"></i> ออกจากระบบ</button>
-    </div>
-
-    <nav>
-        <div class="nav-left-group">
-            <button class="menu-toggle-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
-            <div class="logo-container" onclick="location.href='teacher-dashboard.html'">
-                <img src="img/favicon.png" alt="Logo">
-                <div class="logo-text-group">
-                    <div class="brand-name">Flip<span>School</span></div>
-                    <div style="font-size:12px; color:#636e72;">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
-                </div>
+        
+        <div class="flex items-center gap-4">
+            <div id="userInfo" class="hidden md:flex flex-col items-end mr-2">
+                <span id="userNameDisplay" class="text-sm font-bold text-slate-700">กำลังโหลด...</span>
+                <span class="text-[10px] text-slate-400">ครูผู้สอน</span>
             </div>
+            <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm cursor-pointer hover:scale-105 transition-transform" onclick="toggleSidebar()">
         </div>
-        <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
     </nav>
 
-    <div class="class-header" id="headerBg">
-        <div>
-            <h1 id="subjectName">กำลังโหลด...</h1>
-            <p><i class="fas fa-door-open"></i> <span id="roomName">...</span> | <span id="termText">...</span></p>
+    <!-- ✅ Class Header -->
+    <header class="nav-gradient text-white py-12 px-6 md:px-12 relative overflow-hidden">
+        <div class="container mx-auto relative z-10">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 id="subjectName" class="text-3xl md:text-5xl font-extrabold tracking-tight">กำลังโหลด...</h1>
+                    <div class="flex flex-wrap items-center gap-4 mt-3 opacity-90 font-medium">
+                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm flex items-center gap-2">
+                            <i class="fas fa-door-open"></i> <span id="roomName">...</span>
+                        </span>
+                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm flex items-center gap-2">
+                            <i class="fas fa-calendar-alt"></i> <span id="termText">...</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 flex items-center gap-6 shadow-xl">
+                    <div class="text-center">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">นักเรียนทั้งหมด</p>
+                        <p id="studentCount" class="text-3xl font-black">0</p>
+                    </div>
+                    <div class="h-10 w-[1px] bg-white/20"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">ภารกิจที่เปิด</p>
+                        <p id="missionCount" class="text-3xl font-black">0</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="student-count"><i class="fas fa-user-graduate"></i> <span id="studentCount">0</span> คน</div>
-    </div>
+        
+        <!-- แถบตกแต่งพื้นหลัง -->
+        <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+        <div class="absolute -left-10 top-0 w-32 h-32 bg-orange-400/10 rounded-full blur-2xl"></div>
+    </header>
 
-    <main class="main-content">
-        <div class="mission-map">
-            <div class="mission-line"></div>
-            <div id="missionListContent" style="width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 2;">
-                <div class="empty-state">
-                    <i class="fas fa-flag-checkered" style="font-size: 50px; opacity: 0.1; margin-bottom: 15px;"></i>
-                    <h3 style="font-family: 'Kanit';">เริ่มต้นเส้นทางภารกิจ</h3>
-                    <p>กดปุ่ม + เพื่อเพิ่มบทเรียนหรือเกมใหม่ลงในห้องเรียน</p>
+    <main class="flex-grow container mx-auto px-4 py-12 max-w-5xl">
+        <div class="mission-path">
+            <!-- เส้นทางหลัก -->
+            <div id="missionListContent" class="w-full flex flex-col items-center">
+                <!-- ข้อมูลภารกิจจะมาแสดงตรงนี้ -->
+                <div class="flex flex-col items-center py-20 opacity-20">
+                    <i class="fas fa-map-marked-alt text-8xl mb-4"></i>
+                    <h3 class="text-2xl font-bold">ยังไม่มีภารกิจในห้องเรียนนี้</h3>
                 </div>
             </div>
         </div>
     </main>
 
-    <button class="fab-add-mission" onclick="location.href='mission-create.html?cid=' + currentClassId">
-        <i class="fas fa-plus"></i>
+    <!-- ปุ่มเพิ่มภารกิจ (FAB) -->
+    <button onclick="goToCreateMission()" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 group z-40">
+        <i class="fas fa-plus transition-transform group-hover:rotate-90"></i>
+        <!-- Tooltip -->
+        <span class="absolute right-20 bg-slate-800 text-white text-xs py-2 px-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-now-out">เพิ่มภารกิจใหม่</span>
     </button>
 
-    <footer class="footer"></footer>
+    <footer class="bg-white border-t border-slate-100 py-10 text-center">
+        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. นวัตกรรมจัดการเรียนรู้ GLORY Model</p>
+        <p class="text-slate-400 text-[10px]">ออกแบบและพัฒนาโดย ครูไพรัช อินควรชุม</p>
+    </footer>
 
     <script>
-        let currentUser = null;
+        let currentUserId = null;
         let currentClassId = null;
-        let currentClassData = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             currentClassId = params.get('id');
             if (!currentClassId) { location.href = 'teacher-dashboard.html'; return; }
 
-            const { data: { user } } = await sysDB.auth.getUser();
-            if (!user) { location.href = 'teacher-login.html'; return; }
-            currentUser = user;
+            // ตั้งค่าสโลแกน
+            if (window.CONFIG) {
+                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้';
+            }
 
-            await fetchProfile();
-            await fetchClassroomData();
-            await fetchMissions();
-
-            document.getElementById('loadingOverlay').style.display = 'none';
+            if (window.sysDB) initApp();
+            else {
+                const check = setInterval(() => { if(window.sysDB){ clearInterval(check); initApp(); }}, 500);
+            }
         });
 
-        function toggleDrawer() {
-            const dr = document.getElementById('sideDrawer');
-            const ov = document.getElementById('drawerOverlay');
-            dr.classList.toggle('active');
-            ov.style.display = dr.classList.contains('active') ? 'block' : 'none';
-        }
+        async function initApp() {
+            try {
+                const { data: { user } } = await window.sysDB.auth.getUser();
+                if (!user) { location.href = 'teacher-login.html'; return; }
+                currentUserId = user.id;
 
-        function toggleSidebar() {
-            const sb = document.getElementById('profileSidebar');
-            const ov = document.getElementById('sidebarOverlay');
-            sb.classList.toggle('active');
-            ov.style.display = sb.classList.contains('active') ? 'block' : 'none';
+                await Promise.all([
+                    fetchProfile(),
+                    fetchClassroomData(),
+                    fetchAssignedMissions()
+                ]);
+
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+            }
         }
 
         async function fetchProfile() {
-            const { data } = await sysDB.from('teachers').select('*, schools:school_id(school_name)').eq('teacher_id', currentUser.id).single();
-            if (data) {
-                const img = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
+            const { data: teacher } = await window.sysDB.from('teachers').select('*').eq('teacher_id', currentUserId).single();
+            if (teacher) {
+                const img = teacher.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.first_name}`;
                 document.getElementById('navProfileImg').src = img;
-                document.getElementById('sidebarImg').src = img;
-                document.getElementById('sideDisplayName').innerText = `ครู${data.first_name}`;
-                document.getElementById('dispSchoolName').innerText = data.schools?.school_name || "ยังไม่ได้ระบุสถานศึกษา";
+                document.getElementById('userNameDisplay').innerText = `ครู${teacher.first_name}`;
             }
         }
 
         async function fetchClassroomData() {
-            const { data: classroom } = await sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+            const { data: classroom } = await window.sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
             if (classroom) {
-                currentClassData = classroom;
                 document.getElementById('subjectName').innerText = classroom.subject_name;
-                document.getElementById('roomName').innerText = classroom.room_name;
-                document.getElementById('termText').innerText = `ปี ${classroom.academic_year} | เทอม ${classroom.semester}`;
-                document.getElementById('headerBg').style.background = classroom.color_code || 'linear-gradient(135deg, var(--primary-dark), var(--primary))';
-
-                // นับจำนวนนักเรียนจากตาราง classroom_students ที่ถูกต้อง
-                const { count, error: countError } = await sysDB
-                    .from('classroom_students')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('classroom_id', currentClassId);
-
-                if (!countError) {
-                    document.getElementById('studentCount').innerText = count || 0;
-                }
+                document.getElementById('roomName').innerText = `ห้อง ${classroom.room_name}`;
+                document.getElementById('termText').innerText = `ปีการศึกษา ${classroom.academic_year} / ${classroom.semester}`;
+                
+                // นับจำนวนนักเรียน
+                const { count } = await window.sysDB.from('classroom_students').select('*', { count: 'exact', head: true }).eq('classroom_id', currentClassId);
+                document.getElementById('studentCount').innerText = count || 0;
             }
         }
 
-        async function fetchMissions() {
-            const { data: missions } = await sysDB.from('missions')
-                .select('*')
+        // ✅ ฟังก์ชันดึงภารกิจผ่านตารางเชื่อมโยง (Assignment Logic)
+        async function fetchAssignedMissions() {
+            // ดึงจาก classroom_missions เชื่อมกับ missions
+            const { data: assignments, error } = await window.sysDB
+                .from('classroom_missions')
+                .select(`
+                    assigned_at,
+                    can_replay,
+                    missions (
+                        mission_id,
+                        title,
+                        mission_type,
+                        reward_points
+                    )
+                `)
                 .eq('classroom_id', currentClassId)
-                .order('order_index');
+                .eq('is_visible', true)
+                .order('assigned_at', { ascending: true });
 
             const container = document.getElementById('missionListContent');
             
-            if (missions && missions.length > 0) {
+            if (assignments && assignments.length > 0) {
                 container.innerHTML = '';
-                missions.forEach((m, idx) => {
-                    const icon = getMissionIcon(m.mission_type);
+                document.getElementById('missionCount').innerText = assignments.length;
+
+                assignments.forEach((assign, idx) => {
+                    const mission = assign.missions;
+                    const icon = getMissionIcon(mission.mission_type);
+                    
+                    // จัดรูปแบบโหนดภารกิจ
                     container.innerHTML += `
-                        <div class="mission-node" onclick="location.href='play-mission.html?mid=${m.mission_id}'">
-                            <i class="${icon}"></i>
-                            <div class="mission-label">
-                                <strong style="color:var(--primary-dark)">ภารกิจที่ ${idx + 1}</strong><br>
-                                <span style="font-size:15px; color:#444;">${m.title}</span>
+                        <div class="mission-node">
+                            <div class="node-circle shadow-blue-200" onclick="goToMission('${mission.mission_id}')">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div class="node-content">
+                                <div class="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">ภารกิจที่ ${idx + 1}</div>
+                                <h3 class="font-bold text-slate-800 leading-tight">${mission.title}</h3>
+                                <div class="flex items-center justify-center gap-3 mt-2">
+                                    <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold">
+                                        <i class="fas fa-trophy mr-1"></i>${mission.reward_points} แต้ม
+                                    </span>
+                                    ${assign.can_replay ? '<span class="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded-md font-bold">เล่นซ้ำได้</span>' : '<span class="text-[10px] bg-slate-50 text-slate-400 px-2 py-1 rounded-md font-bold">ครั้งเดียว</span>'}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -276,13 +324,42 @@
         }
 
         function getMissionIcon(type) {
-            const icons = { quiz: 'fas fa-tasks', speech: 'fas fa-microphone', match: 'fas fa-clone', order: 'fas fa-sort-amount-down' };
+            const icons = { 
+                quiz: 'fas fa-tasks', 
+                speech: 'fas fa-microphone', 
+                match: 'fas fa-clone', 
+                ai_generated: 'fas fa-robot' 
+            };
             return icons[type] || 'fas fa-star';
         }
 
-        function goToStudents() { location.href = `student-list.html?id=${currentClassId}`; }
-        function openEditModal() { alert('ฟังก์ชันการตั้งค่าห้องเรียนจะอัปเดตเร็วๆ นี้'); }
-        async function handleLogout() { if(confirm('ต้องการออกจากระบบ?')) { await sysDB.auth.signOut(); location.href='teacher-login.html'; } }
+        // ✅ ลิงก์ไปยังหน้าเล่นภารกิจ (แก้ไขลิงก์ที่พัง)
+        function goToMission(mid) {
+            location.href = `play-mission.html?mid=${mid}`;
+        }
+
+        function goToCreateMission() {
+            location.href = `mission-create.html?cid=${currentClassId}`;
+        }
+
+        function goToStudents() {
+            location.href = `student-list.html?id=${currentClassId}`;
+        }
+
+        function toggleDrawer() {
+            const drawer = document.getElementById('sideDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            drawer.classList.toggle('active');
+            drawer.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        async function handleLogout() {
+            if(confirm('ต้องการออกจากระบบ?')) {
+                await window.sysDB.auth.signOut();
+                location.href = 'teacher-login.html';
+            }
+        }
     </script>
 </body>
 </html>
