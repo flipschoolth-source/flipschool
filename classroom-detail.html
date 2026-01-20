@@ -4,100 +4,178 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการภารกิจห้องเรียน | FlipSchool</title>
+    
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
+        
+        /* สไตล์แผนที่เส้นทางภารกิจ (Gamification Map) */
         .mission-path { position: relative; padding: 40px 0; display: flex; flex-direction: column; align-items: center; }
         .mission-path::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8px; background: #e2e8f0; transform: translateX(-50%); border-radius: 4px; }
+        
         .mission-node { position: relative; z-index: 10; margin-bottom: 60px; display: flex; flex-direction: column; align-items: center; width: 100%; transition: all 0.3s ease; }
-        .node-circle { width: 80px; height: 80px; background: white; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #1e3a8a; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 4px solid white; cursor: pointer; }
-        .reorder-controls { display: none; position: absolute; right: -60px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 5px; }
+        .node-circle { width: 85px; height: 85px; background: white; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #1e3a8a; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 4px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .mission-node:hover .node-circle { transform: scale(1.1) rotate(5deg); border-color: #FF8C00; color: #FF8C00; }
+        
+        .node-content { background: white; padding: 18px 25px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-top: 15px; text-align: center; min-width: 260px; max-width: 320px; border: 1px solid #f1f5f9; }
+
+        /* การจัดลำดับ */
+        .reorder-controls { display: none; position: absolute; right: -70px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 8px; }
         .reorder-active .reorder-controls { display: flex; }
-        .reorder-btn { width: 35px; height: 35px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; color: #64748b; }
+        .reorder-btn { width: 40px; height: 40px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; color: #64748b; transition: 0.2s; border: 1px solid #f1f5f9; }
+        .reorder-btn:hover { background: #1e3a8a; color: white; transform: scale(1.1); }
+
+        .drawer-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
         <div class="spinner"></div>
-        <p class="mt-4 text-blue-900 font-bold animate-pulse text-sm">กำลังจัดเตรียมพื้นที่...</p>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse text-sm">กำลังจัดเตรียมพื้นที่การเรียนรู้...</p>
     </div>
 
-    <!-- ✅ Unified Navbar -->
-    <nav class="bg-white h-20 shadow-sm sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
+    <!-- Side Drawer -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1000] hidden drawer-overlay transition-opacity duration-300"></div>
+    <div id="sideDrawer" class="fixed top-0 left-0 h-full w-80 bg-white z-[1001] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="p-6 border-b border-slate-100 flex items-center gap-4">
+            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg border border-slate-100">
+                <span class="text-2xl text-blue-900">🎓</span>
+            </div>
+            <div>
+                <h2 class="font-bold text-slate-800 text-lg">Flip<span class="text-orange-500">School</span></h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Teacher Panel</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-4 space-y-2">
+            <a href="teacher-dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 font-bold transition-all"><i class="fas fa-th-large w-5"></i> แดชบอร์ด</a>
+            <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-blue-50 text-slate-600 font-bold transition-all"><i class="fas fa-users w-5"></i> รายชื่อนักเรียน</a>
+            <hr class="my-4 border-slate-100">
+            <button onclick="handleLogout()" class="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 text-red-500 font-bold transition-all"><i class="fas fa-sign-out-alt w-5"></i> ออกจากระบบ</button>
+        </nav>
+    </div>
+
+    <!-- ✅ Navbar: Unified Design -->
+    <nav class="nav-gradient h-20 shadow-lg sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
+            <button onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-all text-white">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
             <div class="flex items-center gap-3 cursor-pointer" onclick="location.href='teacher-dashboard.html'">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border border-slate-50">
+                <!-- โลโก้หมวกปริญญา พื้นหลังสีขาว -->
+                <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border-2 border-white/20">
                     <span class="text-2xl text-blue-900">🎓</span>
                 </div>
                 <div class="flex flex-col">
-                    <div class="text-xl md:text-2xl font-bold tracking-tight leading-none text-slate-800">
-                        <span class="text-blue-900">Flip</span><span class="text-orange-400">School</span>
+                    <div id="app-name-display" class="text-xl md:text-2xl font-bold tracking-tight leading-none">
+                        <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
                     </div>
-                    <span id="app-slogan-display" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 leading-none">...</span>
+                    <!-- สโลแกนใต้ชื่อแอป -->
+                    <span class="app-slogan-label text-[10px] md:text-xs text-blue-100 font-medium mt-0.5 tracking-wide opacity-90 italic"></span>
                 </div>
             </div>
         </div>
+        
         <div class="flex items-center gap-3">
-            <button onclick="toggleReorder()" id="reorderMainBtn" class="hidden md:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 transition-all">
-                <i class="fas fa-sort"></i> จัดลำดับ
+            <button onclick="toggleReorder()" id="reorderMainBtn" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all border border-white/20">
+                <i class="fas fa-sort"></i> จัดลำดับภารกิจ
             </button>
-            <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm cursor-pointer" onclick="location.href='teacher-dashboard.html'">
+            <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-white/30 shadow-sm cursor-pointer hover:scale-105 transition-transform" onclick="toggleDrawer()">
         </div>
     </nav>
 
+    <!-- Class Header Section -->
     <header class="nav-gradient text-white py-12 px-6 md:px-12 relative overflow-hidden">
         <div class="container mx-auto relative z-10">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div>
-                    <h1 id="subjectName" class="text-3xl md:text-5xl font-extrabold tracking-tight">...</h1>
-                    <p class="mt-3 opacity-90 font-medium flex items-center gap-4">
-                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm">ห้อง <span id="roomName">...</span></span>
-                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm"><span id="termText">...</span></span>
-                    </p>
+                    <h1 id="subjectName" class="text-3xl md:text-5xl font-extrabold tracking-tight">กำลังโหลด...</h1>
+                    <div class="flex flex-wrap items-center gap-4 mt-4 opacity-90 font-medium">
+                        <span class="bg-white/20 px-4 py-1.5 rounded-xl text-sm flex items-center gap-2">
+                            <i class="fas fa-door-open"></i> ห้อง <span id="roomName">...</span>
+                        </span>
+                        <span class="bg-white/20 px-4 py-1.5 rounded-xl text-sm flex items-center gap-2">
+                            <i class="fas fa-calendar-alt"></i> <span id="termText">...</span>
+                        </span>
+                    </div>
                 </div>
-                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[120px]">
-                    <p class="text-[10px] font-bold uppercase opacity-70">นักเรียน</p>
-                    <p id="studentCount" class="text-2xl font-black">0</p>
+                <div class="flex gap-4">
+                    <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 text-center min-w-[120px] shadow-xl">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">นักเรียน</p>
+                        <p id="studentCount" class="text-3xl font-black">0</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 text-center min-w-[120px] shadow-xl">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">ภารกิจ</p>
+                        <p id="missionCount" class="text-3xl font-black">0</p>
+                    </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Decoration -->
+        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+        <div class="absolute left-1/4 top-0 w-40 h-40 bg-orange-400/10 rounded-full blur-2xl"></div>
     </header>
 
+    <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 py-12 max-w-5xl">
         <div id="missionPath" class="mission-path">
-            <div id="missionListContent" class="w-full flex flex-col items-center"></div>
+            <div id="missionListContent" class="w-full flex flex-col items-center">
+                <!-- รายการภารกิจจะถูกแทรกที่นี่โดย JavaScript -->
+            </div>
         </div>
     </main>
 
-    <button onclick="location.href='mission-create.html?cid=' + currentClassId" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 z-40">
+    <!-- Floating Action Button (เพิ่มภารกิจ) -->
+    <button onclick="location.href='mission-create.html?cid=' + currentClassId" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 hover:rotate-90 active:scale-95 z-40">
         <i class="fas fa-plus"></i>
     </button>
 
+    <!-- Footer -->
     <footer class="bg-white border-t border-slate-100 py-10 text-center mt-auto">
-        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. <span id="footer-slogan"></span></p>
+        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
+        <p id="footerOwnerText" class="text-slate-400 text-[10px] font-medium tracking-wide uppercase"></p>
     </footer>
 
     <script>
-        let currentUserId = null, currentClassId = null, missions = [], isReorderMode = false;
+        let currentUserId = null;
+        let currentClassId = null;
+        let missions = [];
+        let isReorderMode = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             currentClassId = params.get('id');
+            
+            if (!currentClassId) return location.href = 'teacher-dashboard.html';
+
+            // ตั้งค่าแบรนด์จาก config.js
             if (window.CONFIG) {
-                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
-                document.getElementById('footer-slogan').innerText = window.CONFIG.APP_SLOGAN;
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
+                document.getElementById('footerOwnerText').innerText = `${window.CONFIG.OWNER.NAME} | ${window.CONFIG.OWNER.SCHOOL}`;
             }
-            const check = setInterval(() => { if(window.sysDB){ clearInterval(check); initApp(); }}, 500);
+
+            // รอ Supabase พร้อมใช้งาน
+            const checkDB = setInterval(() => {
+                if (window.sysDB) { 
+                    clearInterval(checkDB); 
+                    initApp(); 
+                }
+            }, 500);
         });
 
         async function initApp() {
@@ -105,14 +183,24 @@
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 if (!user) return location.href = 'teacher-login.html';
                 currentUserId = user.id;
-                await Promise.all([fetchProfile(), fetchClassroomData(), fetchMissions()]);
+
+                await Promise.all([
+                    fetchProfile(),
+                    fetchClassroomData(),
+                    fetchMissions()
+                ]);
+
                 document.getElementById('loadingOverlay').style.display = 'none';
-            } catch (err) {}
+            } catch (err) {
+                console.error("Initialization Error:", err);
+            }
         }
 
         async function fetchProfile() {
             const { data } = await window.sysDB.from('teachers').select('*').eq('teacher_id', currentUserId).single();
-            if (data) document.getElementById('navProfileImg').src = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
+            if (data) {
+                document.getElementById('navProfileImg').src = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name}`;
+            }
         }
 
         async function fetchClassroomData() {
@@ -120,65 +208,164 @@
             if (data) {
                 document.getElementById('subjectName').innerText = data.subject_name;
                 document.getElementById('roomName').innerText = data.room_name;
-                document.getElementById('termText').innerText = `${data.academic_year} / ${data.semester}`;
+                document.getElementById('termText').innerText = `ปีการศึกษา ${data.academic_year} / เทอม ${data.semester}`;
+                
                 const { count } = await window.sysDB.from('classroom_students').select('*', { count: 'exact', head: true }).eq('classroom_id', currentClassId);
                 document.getElementById('studentCount').innerText = count || 0;
             }
         }
 
+        // ✅ ฟังก์ชันดึงภารกิจที่นำเข้าห้องเรียน (แก้ไขการแสดงผล)
         async function fetchMissions() {
-            const { data } = await window.sysDB.from('classroom_missions').select('*, missions(*)').eq('classroom_id', currentClassId).order('order_index', { ascending: true });
+            const { data, error } = await window.sysDB
+                .from('classroom_missions')
+                .select(`
+                    assignment_id,
+                    order_index,
+                    mission_id,
+                    missions (
+                        mission_id,
+                        title,
+                        mission_type,
+                        reward_points
+                    )
+                `)
+                .eq('classroom_id', currentClassId)
+                .order('order_index', { ascending: true });
+
+            if (error) {
+                console.error("Fetch Missions Error:", error);
+                return;
+            }
+
             if (data) {
-                missions = data;
-                document.getElementById('reorderMainBtn').classList.toggle('hidden', data.length < 2);
+                // กรองเฉพาะที่มีข้อมูลภารกิจ (ป้องกันปัญหาข้อมูลไม่สมบูรณ์)
+                missions = data.filter(item => item.missions !== null);
+                document.getElementById('missionCount').innerText = missions.length;
+                
+                // แสดงปุ่มจัดลำดับถ้ามีมากกว่า 1 ภารกิจ
+                document.getElementById('reorderMainBtn').classList.toggle('hidden', missions.length < 2);
                 renderMissions();
             }
         }
 
         function renderMissions() {
             const container = document.getElementById('missionListContent');
+            
             if (missions.length === 0) {
-                container.innerHTML = `<div class="py-20 opacity-20 text-center"><i class="fas fa-map-marked-alt text-8xl mb-4"></i><h3 class="text-xl font-bold">ยังไม่มีภารกิจ</h3></div>`;
+                container.innerHTML = `
+                    <div class="py-24 opacity-20 text-center">
+                        <i class="fas fa-map-marked-alt text-9xl mb-6"></i>
+                        <h3 class="text-2xl font-bold font-sans">ยังไม่มีภารกิจถูกนำเข้า</h3>
+                        <p class="text-sm">กดปุ่ม + เพื่อเพิ่มภารกิจใหม่หรือเลือกจากคลัง</p>
+                    </div>`;
                 return;
             }
+
             container.innerHTML = missions.map((m, idx) => `
                 <div class="mission-node ${isReorderMode ? 'reorder-active' : ''}">
-                    <div class="node-circle" onclick="${isReorderMode ? '' : `location.href='play-mission.html?mid=${m.mission_id}'`}">
+                    <!-- โหนดวงกลม -->
+                    <div class="node-circle shadow-lg" onclick="${isReorderMode ? '' : `location.href='play-mission.html?mid=${m.missions.mission_id}'`}">
                         <i class="${getIcon(m.missions.mission_type)}"></i>
                     </div>
+
+                    <!-- ปุ่มจัดลำดับ -->
                     <div class="reorder-controls">
-                        <button onclick="move(${idx}, -1)" class="reorder-btn"><i class="fas fa-chevron-up"></i></button>
-                        <button onclick="move(${idx}, 1)" class="reorder-btn"><i class="fas fa-chevron-down"></i></button>
+                        <button onclick="moveMission(${idx}, -1)" class="reorder-btn" title="เลื่อนขึ้น">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <button onclick="moveMission(${idx}, 1)" class="reorder-btn" title="เลื่อนลง">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </div>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm mt-3 border border-slate-100 text-center min-w-[250px]">
-                        <p class="text-[10px] font-bold text-orange-500 uppercase">ภารกิจที่ ${idx + 1}</p>
-                        <h3 class="font-bold text-slate-800 text-sm">${m.missions.title}</h3>
+
+                    <!-- เนื้อหาข้อมูลภารกิจ -->
+                    <div class="node-content">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">ภารกิจที่ ${idx + 1}</span>
+                            <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg font-bold">
+                                <i class="fas fa-star mr-1"></i>${m.missions.reward_points}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm leading-tight">${m.missions.title}</h3>
                     </div>
                 </div>
             `).join('');
         }
 
-        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', match:'fas fa-clone' }[t] || 'fas fa-star'; }
+        function getIcon(type) {
+            const map = { 
+                quiz: 'fas fa-tasks', 
+                ai_generated: 'fas fa-robot', 
+                match: 'fas fa-clone',
+                competition: 'fas fa-trophy' 
+            };
+            return map[type] || 'fas fa-star';
+        }
 
+        // ✅ ฟังก์ชันสลับโหมดจัดลำดับ
         function toggleReorder() {
             isReorderMode = !isReorderMode;
             const btn = document.getElementById('reorderMainBtn');
-            btn.innerHTML = isReorderMode ? '<i class="fas fa-check"></i> บันทึกลำดับ' : '<i class="fas fa-sort"></i> จัดลำดับ';
-            btn.classList.toggle('bg-blue-600', isReorderMode); btn.classList.toggle('text-white', isReorderMode);
-            if (!isReorderMode) saveNewOrder();
+            
+            if (isReorderMode) {
+                btn.innerHTML = '<i class="fas fa-check"></i> บันทึกลำดับ';
+                btn.classList.replace('bg-white/10', 'bg-emerald-500');
+                btn.classList.replace('hover:bg-white/20', 'hover:bg-emerald-600');
+                btn.classList.remove('border-white/20');
+            } else {
+                btn.innerHTML = '<i class="fas fa-sort"></i> จัดลำดับภารกิจ';
+                btn.classList.replace('bg-emerald-500', 'bg-white/10');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
+                btn.classList.add('border-white/20');
+                saveNewOrder(); // บันทึกเมื่อปิดโหมด
+            }
             renderMissions();
         }
 
-        function move(idx, d) {
-            const n = idx + d;
-            if (n < 0 || n >= missions.length) return;
-            const t = missions[idx]; missions[idx] = missions[n]; missions[n] = t;
+        function moveMission(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= missions.length) return;
+            
+            const temp = missions[index];
+            missions[index] = missions[newIndex];
+            missions[newIndex] = temp;
             renderMissions();
         }
 
+        // ✅ บันทึกลำดับใหม่ลงฐานข้อมูล
         async function saveNewOrder() {
-            const updates = missions.map((m, i) => window.sysDB.from('classroom_missions').update({ order_index: i }).eq('assignment_id', m.assignment_id));
-            await Promise.all(updates); fetchMissions();
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                const updates = missions.map((m, idx) => 
+                    window.sysDB.from('classroom_missions')
+                    .update({ order_index: idx })
+                    .eq('assignment_id', m.assignment_id)
+                );
+                await Promise.all(updates);
+                await fetchMissions(); // รีโหลดข้อมูลจริง
+            } catch (err) {
+                alert('ไม่สามารถบันทึกลำดับได้: ' + err.message);
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function toggleDrawer() {
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('-translate-x-full');
+            ov.classList.toggle('hidden');
+        }
+
+        function goToStudents() { 
+            location.href = `student-list.html?id=${currentClassId}`; 
+        }
+
+        async function handleLogout() { 
+            if(confirm('คุณครูต้องการออกจากระบบใช่หรือไม่?')) { 
+                await window.sysDB.auth.signOut(); 
+                location.href = 'teacher-login.html'; 
+            } 
         }
     </script>
 </body>
