@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Mission Creator ✨ | FlipSchool</title>
+    <title>AI Mission Creator | FlipSchool</title>
 
-    <!-- ระบบความลับและ Config -->
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
-    
-    <!-- Supabase Integration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
-    <!-- UI & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     
@@ -22,30 +18,21 @@
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
         .preview-outer-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 1.5rem;
-            min-height: 700px;
+            width: 100%; display: flex; justify-content: center; align-items: flex-start;
+            padding: 1.5rem; min-height: 650px; overflow: hidden;
         }
 
         .preview-frame-wrapper {
-            background: #1e293b;
-            border-radius: 2.5rem;
-            overflow: hidden;
+            background: #1e293b; border-radius: 2rem; overflow: hidden;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 10px solid #0f172a;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            position: relative;
-            transform-origin: top center;
+            border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            position: relative; transform-origin: top center;
         }
 
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
         .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
-        .is-landscape.device-mobile { width: 667px; height: 375px; }
-
+        
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
         
@@ -54,46 +41,47 @@
             font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem;
             display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;
         }
-        .btn-ai-sparkle:hover { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
+        .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; }
         
         .custom-message-box {
             position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
             background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            z-index: 9999; border-left: 5px solid #FF8C00; display: none;
+            z-index: 9999; border-left: 5px solid #3b82f6; display: none;
             animation: slideIn 0.3s ease-out;
         }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-
-        .edit-badge {
-            background: #fef3c7; color: #92400e; padding: 2px 10px;
-            border-radius: 999px; font-size: 10px; font-weight: bold; border: 1px solid #f59e0b;
-        }
+        .owner-badge { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; border: 1px solid #86efac; }
+        .copy-badge { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; border: 1px solid #fecaca; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- การแจ้งเตือน -->
+    <!-- Notification Box -->
     <div id="msgBox" class="custom-message-box">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
-    <!-- Modal บันทึก -->
+    <!-- Save Modal -->
     <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">💾</div>
-                <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึกภารกิจ</h3>
-                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2">ผลงานจาก AI พร้อมเข้าสู่ห้องเรียนแล้วครับ</p>
+                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2003/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                </div>
+                <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
+                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2">ภารกิจของคุณครูจะถูกจัดเก็บเข้าสู่ระบบ</p>
             </div>
             <div class="space-y-3">
-                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95">
-                    ✅ บันทึกและกลับห้องเรียน
+                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                    <span>บันทึกและกลับห้องเรียน</span>
                 </button>
-                <button id="saveContinueBtn" onclick="confirmSave('continue')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95">
-                    🚀 บันทึกและทำรายการต่อ
+                <button id="saveContinueBtn" onclick="confirmSave('continue')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <span>บันทึกและทำรายการต่อ</span>
                 </button>
                 <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm">ย้อนกลับไปแก้ไข</button>
             </div>
@@ -104,117 +92,186 @@
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-inner">
-                    <span class="text-blue-900 text-xl">🎓</span>
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shadow-inner shrink-0">
+                    <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                    </svg>
                 </div>
-                <span class="text-xl md:text-2xl font-bold tracking-tight">Flip<span class="text-orange-400">School</span></span>
+                <div class="flex flex-col">
+                    <div id="app-name-display" class="text-xl md:text-2xl font-bold tracking-tight leading-none">
+                        <span class="text-white">Flip</span><span class="text-orange-400">School</span>
+                    </div>
+                    <span id="app-slogan-display" class="text-[10px] md:text-xs text-blue-200 font-medium mt-0.5">นวัตกรรมเพื่อการจัดการเรียนรู้</span>
+                </div>
             </div>
             <div class="flex gap-4 items-center">
-                <a href="teacher-dashboard.html" class="hover:text-orange-300 text-xs md:text-sm">แดชบอร์ด</a>
-                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs">ย้อนกลับ</button>
+                <a href="teacher-dashboard.html" class="hover:text-blue-300 text-xs md:text-sm">แดชบอร์ด</a>
+                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all">ย้อนกลับ</button>
             </div>
         </div>
     </nav>
 
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <!-- แผงควบคุม (ซ้าย) -->
+        <!-- Left Section: Controls -->
         <div class="lg:col-span-5 flex flex-col gap-6">
-            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+            <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200">
                 <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-2xl font-bold text-blue-900 flex items-center gap-3">
-                        <span class="text-3xl">🤖</span> 
-                        <span id="pageModeDisplay">AI Mission Creator</span>
-                    </h2>
-                    <div id="editModeBadge" class="hidden-el">
-                        <span class="edit-badge">EDIT MODE</span>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                            </svg>
+                        </div>
+                        <h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
                     </div>
+                    <div id="ownershipStatus" class="hidden-el"></div>
                 </div>
 
                 <!-- API Key Management -->
                 <div class="mb-6 space-y-3">
-                    <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
+                    <div id="apiKeyStatusView" class="hidden-el p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
-                            <div class="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                            <div class="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center text-white">
+                                <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
                             <span class="text-xs font-bold text-slate-700">API Key พร้อมใช้งาน</span>
                         </div>
                         <button onclick="showApiKeyEdit()" class="text-xs font-bold text-blue-600 hover:underline">เปลี่ยน</button>
                     </div>
-
-                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
+                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
                         <div class="flex gap-2">
-                            <input type="password" id="apiKeyInput" 
-                                class="w-full bg-white border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-orange-500 outline-none text-sm"
-                                placeholder="ใส่ Gemini API Key...">
-                            <button id="saveKeyBtn" class="bg-blue-900 text-white px-4 rounded-xl font-bold text-sm">บันทึก</button>
+                            <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 outline-none text-sm font-sans" placeholder="ใส่ Gemini API Key...">
+                            <button id="saveKeyBtn" class="bg-blue-900 text-white px-4 rounded-lg font-bold text-sm transition-all active:scale-95">บันทึก</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
-                        <input type="text" id="missionTitleInput" 
-                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 focus:ring-2 focus:ring-blue-600 outline-none text-sm font-bold"
-                            placeholder="เช่น ผจญภัยในเกาะคำนาม">
+                        <label class="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+                            <span>ชื่อภารกิจ</span>
+                            <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </label>
+                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500" placeholder="ระบุชื่อบทเรียนหรือกิจกรรม...">
                     </div>
 
                     <div>
                         <div class="flex justify-between items-center mb-2">
-                            <label class="block text-sm font-bold text-slate-700">คำสั่งเนรมิตภารกิจ</label>
+                            <label class="block text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <span>คำสั่งเนรมิตภารกิจ</span>
+                                <svg xmlns="http://www.w3.org/2003/svg" class="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </label>
                             <div class="flex gap-1">
-                                <button onclick="optimizePrompt()" class="btn-ai-sparkle" title="ช่วยขัดเกลาคำสั่ง">✨ ปรับแต่ง</button>
-                                <button onclick="suggestIdeas()" class="btn-ai-sparkle" title="ขอไอเดียจาก AI">✨ ขอไอเดีย</button>
-                                <button onclick="addContext()" class="btn-ai-sparkle" title="เพิ่มเนื้อหาสาระ">✨ เพิ่มสาระ</button>
+                                <button onclick="optimizePrompt()" class="btn-ai-sparkle" title="ปรับแต่งคำสั่ง">ขัดเกลา</button>
+                                <button onclick="suggestIdeas()" class="btn-ai-sparkle" title="ขอไอเดีย">ไอเดีย</button>
+                                <button onclick="addContext()" class="btn-ai-sparkle" title="เพิ่มเนื้อหา">เพิ่มสาระ</button>
                             </div>
                         </div>
-                        <textarea id="promptInput" 
-                            class="w-full h-44 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 focus:ring-2 focus:ring-blue-600 outline-none transition-all resize-none text-sm leading-relaxed"
-                            placeholder="บอก AI ว่าอยากได้กิจกรรมแบบไหน..."></textarea>
+                        <textarea id="promptInput" class="w-full h-44 bg-slate-50 border border-slate-200 rounded-2xl p-5 outline-none transition-all resize-none text-sm leading-relaxed focus:ring-2 focus:ring-blue-500" placeholder="บอก AI ว่าต้องการกิจกรรมแบบไหน..."></textarea>
                     </div>
 
-                    <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-center gap-4 animate-pulse">
-                        <div class="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-sm font-bold text-orange-700 italic">กำลังเชื่อมต่อกับ AI...</span>
+                    <div id="loadingStatus" class="hidden-el p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
+                        <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full spinner"></div>
+                        <span id="loadingMessage" class="text-sm font-bold text-blue-700 italic">กำลังเชื่อมต่อ AI...</span>
                     </div>
 
-                    <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg text-lg transform active:scale-95">
-                        🚀 เริ่มเนรมิตภารกิจ
+                    <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg text-lg transform active:scale-95 flex items-center justify-center gap-3">
+                        <svg xmlns="http://www.w3.org/2003/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>เริ่มเนรมิตภารกิจ</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- พรีวิว (ขวา) -->
+        <!-- Right Section: Preview -->
         <div class="lg:col-span-7 flex flex-col gap-4">
             <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-4">
-                <div class="flex gap-2">
-                    <button onclick="changeView('mobile')" class="p-2 hover:bg-slate-100 rounded-lg">📱</button>
-                    <button onclick="changeView('tablet')" class="p-2 hover:bg-slate-100 rounded-lg">📑</button>
-                    <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold hidden shadow-md">
-                        📌 บันทึกข้อมูล
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="changeView('mobile')" id="view-mobile" class="p-2 bg-white rounded-lg transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 002-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                    <button onclick="changeView('tablet')" id="view-tablet" class="p-2 hover:bg-white rounded-lg transition-all">
+                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                    <button onclick="changeView('desktop')" id="view-desktop" class="p-2 hover:bg-white rounded-lg transition-all">
+                        <svg xmlns="http://www.w3.org/2003/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
                     </button>
                 </div>
-                <div class="text-[10px] font-bold text-slate-400">PREVIEW AREA</div>
+                <button id="saveToCloudBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold hidden shadow-lg active:scale-95 transition-all">
+                    บันทึกลงห้องเรียน
+                </button>
             </div>
 
-            <div class="preview-outer-container bg-slate-200/50 rounded-[3rem] border-4 border-dashed border-slate-300">
+            <div class="preview-outer-container bg-slate-200/50 rounded-[2.5rem] border-4 border-dashed border-slate-300 shadow-inner">
                 <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl">
-                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" 
-                        sandbox="allow-scripts allow-forms allow-modals allow-same-origin"
-                        name="missionFrame" title="พรีวิวภารกิจ"></iframe>
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Preview Area"></iframe>
                 </div>
             </div>
+            <p class="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">การแสดงผลรองรับทุกขนาดอุปกรณ์โดยอัตโนมัติ</p>
         </div>
     </main>
+
+    <footer class="bg-white border-t border-slate-200 py-8 mt-auto text-center font-sans">
+        <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 <span class="app-name-label">FlipSchool</span>. <span class="app-slogan-label">นวัตกรรมเพื่อการจัดการเรียนรู้</span></p>
+        <p class="text-slate-400 text-[10px]">พัฒนาโดย ครูไพรัช อินควรชุม | โรงเรียนเทศบาล 1 (ถนนนครนอก)</p>
+    </footer>
 
     <script>
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "";
         let targetCid = null;
         let editingMid = null;
+        let originalTeacherId = null;
+        let currentUserId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // โหลดข้อมูลแอปจาก Config
+            if (window.CONFIG) {
+                const appNameElements = [
+                    document.getElementById('app-name-display'),
+                    ...document.querySelectorAll('.app-name-label')
+                ];
+                const appSloganElements = [
+                    document.getElementById('app-slogan-display'),
+                    ...document.querySelectorAll('.app-slogan-label')
+                ];
+
+                const rawName = window.CONFIG.APP_NAME || 'FlipSchool';
+                const rawSlogan = window.CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้';
+
+                // ฟังก์ชันจัดรูปแบบชื่อสีขาว-ส้ม สำหรับ Navbar
+                const formatName = (name) => {
+                    if (name.includes('Flip') && name.includes('School')) {
+                        return name.replace('Flip', '<span class="text-white">Flip</span>').replace('School', '<span class="text-orange-400">School</span>');
+                    }
+                    return name;
+                };
+
+                appNameElements.forEach(el => { 
+                    if (el) {
+                        if (el.id === 'app-name-display') el.innerHTML = formatName(rawName);
+                        else el.innerText = rawName;
+                    }
+                });
+                appSloganElements.forEach(el => { if (el) el.innerText = rawSlogan; });
+            }
+
             const params = new URLSearchParams(window.location.search);
             targetCid = params.get('cid');
             editingMid = params.get('mid');
@@ -227,41 +284,51 @@
             await loadKeyFromDB();
 
             if (editingMid) {
-                document.getElementById('editModeBadge').classList.remove('hidden-el');
-                document.getElementById('pageModeDisplay').innerText = "แก้ไขภารกิจเดิม";
-                loadExistingMission(editingMid);
+                await loadExistingMission();
             }
         });
 
-        async function loadExistingMission(mid) {
-            if (!window.sysDB) return setTimeout(() => loadExistingMission(mid), 500);
+        async function loadExistingMission() {
+            if (!window.sysDB) return setTimeout(loadExistingMission, 500);
             try {
-                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', mid).single();
+                const { data: { user } } = await window.sysDB.auth.getUser();
+                currentUserId = user?.id;
+
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
                 if (error) throw error;
+
+                originalTeacherId = data.created_by;
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("promptInput").value = data.description || "";
                 generatedCode = data.content_data?.html || "";
+                
                 if (generatedCode) {
                     document.getElementById("missionFrame").srcdoc = generatedCode;
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 }
-            } catch (err) { showMessage("ไม่พบข้อมูลภารกิจเดิม"); }
+
+                const statusEl = document.getElementById('ownershipStatus');
+                statusEl.classList.remove('hidden-el');
+                
+                if (currentUserId === originalTeacherId) {
+                    statusEl.innerHTML = '<span class="owner-badge">สิทธิ์ผู้สร้าง (แก้ไขทับได้)</span>';
+                    document.getElementById('pageModeDisplay').innerText = "แก้ไขภารกิจ";
+                } else {
+                    statusEl.innerHTML = '<span class="copy-badge">คัดลอกและแก้ไขใหม่</span>';
+                    document.getElementById('pageModeDisplay').innerText = "คัดลอกบทเรียน";
+                }
+            } catch (err) {}
         }
 
         async function callGemini(userPrompt, systemPrompt = "") {
             const apiKey = document.getElementById("apiKeyInput").value.trim();
-            if (!apiKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ก่อนครับ"); }
-
+            if (!apiKey) { showApiKeyEdit(); throw new Error("กรุณาระบุ API Key ของคุณครูก่อนครับ"); }
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${apiKey}`;
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: userPrompt }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] }
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } })
             });
-
             const result = await response.json();
             if (result.error) throw new Error(result.error.message);
             return result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -269,60 +336,28 @@
 
         async function handleGenerate() {
             const prompt = document.getElementById("promptInput").value.trim();
-            if(!prompt) return showMessage("กรุณาระบุรายละเอียดก่อนครับ");
-
-            toggleLoading(true, "AI กำลังเนรมิตสื่อการสอนให้คุณครู...");
-            
-            const sys = `คุณคือ FlipSchool AI สร้างไฟล์ HTML ชุดเดียวที่สวยงาม (Inline CSS/JS) 
-            - ใช้ Tailwind CSS สำหรับดีไซน์
-            - เป็นสื่อโต้ตอบหรือเกมแนว Gamification
-            - เมื่อจบให้ส่ง message: window.parent.postMessage({type: 'SAVE_RESULT', score: ...}, '*')`;
-
+            if(!prompt) return showMessage("กรุณาระบุรายละเอียดกิจกรรมก่อนครับ");
+            toggleLoading(true, "AI กำลังสร้างสรรค์บทเรียนให้คุณครู...");
+            const sys = "สร้างไฟล์ HTML ชุดเดียวที่สวยงาม (Tailwind CSS) เป็นเกมหรือสื่อการสอนโต้ตอบ ภาษาไทย จบแล้วส่ง window.parent.postMessage({type: 'SAVE_RESULT', score: ...}, '*') ห้ามมีส่วนประกอบภายนอกที่ต้องโหลดเพิ่ม";
             try {
                 const code = await callGemini(prompt, sys);
-                const cleanCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
-                generatedCode = cleanCode;
-                document.getElementById("missionFrame").srcdoc = cleanCode;
+                generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตภารกิจสำเร็จ! ✨");
+                showMessage("เนรมิตสำเร็จแล้ว! ✨");
             } catch (err) { showMessage("ข้อผิดพลาด: " + err.message); }
             finally { toggleLoading(false); }
         }
 
-        async function optimizePrompt() {
-            const input = document.getElementById("promptInput").value.trim();
-            if(!input) return showMessage("กรุณาระบุคำสั่งตั้งต้นก่อนครับ");
-            toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่ง...");
-            try {
-                const res = await callGemini(input, "Expand this educational game idea into a clear, detailed prompt in Thai.");
-                document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
-        }
-
-        async function suggestIdeas() {
-            toggleLoading(true, "AI กำลังคิดไอเดียใหม่ๆ...");
-            try {
-                const res = await callGemini("ขอไอเดียเกมการสอน 1 อย่าง", "Suggest a creative educational game idea in Thai.");
-                document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
-        }
-
-        async function addContext() {
-            const input = document.getElementById("promptInput").value.trim();
-            if(!input) return showMessage("กรุณาระบุหัวข้อก่อนครับ");
-            toggleLoading(true, "AI กำลังเพิ่มข้อมูลสาระ...");
-            try {
-                const res = await callGemini(input, "Provide 5 facts or quiz questions about this topic in Thai.");
-                document.getElementById("promptInput").value += "\n\n[สาระที่ AI แนะนำ]\n" + res;
-            } catch (e) { showMessage(e.message); }
-            finally { toggleLoading(false); }
-        }
-
         async function confirmSave(mode) {
-            if(!window.sysDB || !targetCid) return showMessage("ข้อมูลไม่สมบูรณ์");
+            if(!window.sysDB || !targetCid) return showMessage("ข้อมูลไม่ครบถ้วน");
+            const btn1 = document.getElementById('saveExitBtn');
+            const btn2 = document.getElementById('saveContinueBtn');
+
             try {
+                btn1.disabled = true; btn2.disabled = true;
+                btn1.innerText = "กำลังบันทึก...";
+
                 const missionData = {
                     classroom_id: targetCid,
                     title: document.getElementById("missionTitleInput").value.trim(),
@@ -332,15 +367,51 @@
                     updated_at: new Date().toISOString()
                 };
 
-                const res = editingMid 
-                    ? await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid)
-                    : await window.sysDB.from('missions').insert([{ ...missionData, created_at: new Date().toISOString() }]);
+                let res;
+                if (editingMid && currentUserId === originalTeacherId) {
+                    res = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                } else {
+                    missionData.created_by = currentUserId;
+                    missionData.created_at = new Date().toISOString();
+                    res = await window.sysDB.from('missions').insert([missionData]);
+                }
 
                 if(res.error) throw res.error;
-                showMessage("บันทึกสำเร็จเรียบร้อย! 🚀");
+                showMessage("บันทึกภารกิจเรียบร้อยแล้ว! 🚀");
                 if (mode === 'exit') setTimeout(() => window.location.href = `classroom-detail.html?id=${targetCid}`, 1000);
                 else closeSaveModal();
-            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message); }
+            } catch (err) { showMessage(err.message); }
+            finally { btn1.disabled = false; btn2.disabled = false; btn1.innerText = "บันทึกและกลับห้องเรียน"; }
+        }
+
+        async function optimizePrompt() {
+            const input = document.getElementById("promptInput").value.trim();
+            if(!input) return showMessage("ใส่รายละเอียดเบื้องต้นก่อนครับ");
+            toggleLoading(true, "กำลังขัดเกลาคำสั่งให้คมชัด...");
+            try {
+                const res = await callGemini(input, "Expand into a professional educational prompt in Thai.");
+                document.getElementById("promptInput").value = res;
+            } catch (e) { showMessage(e.message); }
+            finally { toggleLoading(false); }
+        }
+
+        async function suggestIdeas() {
+            toggleLoading(true, "กำลังคิดค้นไอเดียใหม่ๆ...");
+            try {
+                const res = await callGemini("ขอไอเดียเกมการสอน 1 อย่าง", "Suggest a creative Thai educational game idea.");
+                document.getElementById("promptInput").value = res;
+            } catch (e) { showMessage(e.message); }
+            finally { toggleLoading(false); }
+        }
+
+        async function addContext() {
+            const input = document.getElementById("promptInput").value.trim();
+            toggleLoading(true, "กำลังเพิ่มสาระความรู้...");
+            try {
+                const res = await callGemini(input, "Provide 5 educational facts or quiz questions in Thai.");
+                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
+            } catch (e) { showMessage(e.message); }
+            finally { toggleLoading(false); }
         }
 
         async function saveKeyToDB() {
@@ -348,10 +419,10 @@
             if(!key) return showMessage("กรุณาระบุ API Key");
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
-                if(!user) throw new Error("กรุณาเข้าสู่ระบบก่อน");
+                if(!user) throw new Error("กรุณาเข้าสู่ระบบครู");
                 await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
-                showMessage("บันทึก API Key สำเร็จ! ✨");
                 updateApiKeyUI(true);
+                showMessage("บันทึก API Key สำเร็จ! ✨");
             } catch (e) { showMessage(e.message); }
         }
 
@@ -389,8 +460,17 @@
         function showApiKeyEdit() { updateApiKeyUI(false); document.getElementById("apiKeyInput").focus(); }
         function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-        function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size}`; }
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; text-align:center;"><div><h1>🤖</h1><p>พร้อมสร้างสรรค์ภารกิจร่วมกับคุณครูครับ</p></div></body>`; }
+        
+        function changeView(size) { 
+            const wrapper = document.getElementById("previewWrapper");
+            wrapper.className = `preview-frame-wrapper device-${size}`;
+            ['mobile', 'tablet', 'desktop'].forEach(s => {
+                document.getElementById(`view-${s}`).classList.toggle('bg-white', s === size);
+                document.getElementById(`view-${s}`).classList.toggle('shadow-sm', s === size);
+            });
+        }
+        
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0;">🚀</h1><p>พร้อมเนรมิตภารกิจร่วมกับคุณครูครับ</p></div></body>`; }
     </script>
 </body>
 </html>
