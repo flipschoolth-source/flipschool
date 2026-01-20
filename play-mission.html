@@ -21,15 +21,39 @@
         .loading-overlay { position: fixed; inset: 0; background: white; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #FF8C00; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* สไตล์ Modal ยืนยันการลบ */
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
+    <!-- ส่วนรอโหลด -->
     <div id="loader" class="loading-overlay">
         <div class="spinner"></div>
         <p class="mt-4 text-blue-900 font-bold animate-pulse">กำลังเตรียมภารกิจ...</p>
     </div>
 
+    <!-- Modal ยืนยันการลบ -->
+    <div id="deleteModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl border border-slate-100 text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800">ยืนยันการลบภารกิจ?</h3>
+            <p class="text-sm text-slate-500 mt-2">การลบข้อมูลนี้จะไม่สามารถย้อนคืนได้ นักเรียนในห้องเรียนจะไม่สามารถเข้าถึงภารกิจนี้ได้อีกต่อไป</p>
+            <div class="mt-6 flex flex-col gap-2">
+                <button onclick="confirmDelete()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95">
+                    ยืนยันการลบ
+                </button>
+                <button onclick="closeDeleteModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบนำทางด้านบน -->
     <nav class="nav-gradient text-white shadow-lg z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -42,19 +66,25 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 md:gap-4">
-                <!-- ปุ่มแก้ไขภารกิจ (แสดงเฉพาะครู) -->
-                <button id="editMissionBtn" class="hidden bg-orange-500 hover:bg-orange-600 px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-lg">
-                    <i class="fas fa-edit"></i> <span class="hidden sm:inline">แก้ไขภารกิจ</span>
+            <div class="flex items-center gap-2 md:gap-3">
+                <!-- ปุ่มแก้ไขภารกิจ (แสดงสำหรับครู) -->
+                <button id="editMissionBtn" class="hidden bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 border border-white/20">
+                    <i class="fas fa-edit"></i> <span class="hidden sm:inline">แก้ไข</span>
                 </button>
 
-                <div class="bg-white/10 px-4 py-1.5 rounded-full text-sm font-bold border border-white/20">
+                <!-- ปุ่มลบภารกิจ (แสดงเฉพาะผู้สร้าง) -->
+                <button id="deleteMissionBtn" onclick="openDeleteModal()" class="hidden bg-red-500/80 hover:bg-red-600 px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-trash"></i> <span class="hidden sm:inline">ลบ</span>
+                </button>
+
+                <div class="bg-white/10 px-4 py-1.5 rounded-full text-sm font-bold border border-white/20 ml-2">
                     <i class="fas fa-trophy text-orange-400 mr-2"></i><span id="scoreText">0</span> แต้ม
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- พื้นที่แสดงผลภารกิจ -->
     <main class="mission-container">
         <iframe id="missionIframe" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Play Area"></iframe>
     </main>
@@ -74,16 +104,14 @@
             }
 
             if (window.sysDB) {
-                loadMissionData();
-                checkUserRole();
+                initPage();
             } else {
                 let attempts = 0;
                 const checkDB = setInterval(() => {
                     attempts++;
                     if (window.sysDB) {
                         clearInterval(checkDB);
-                        loadMissionData();
-                        checkUserRole();
+                        initPage();
                     } else if (attempts > 20) {
                         clearInterval(checkDB);
                         alert('เชื่อมต่อฐานข้อมูลไม่สำเร็จ');
@@ -92,20 +120,35 @@
             }
         });
 
+        async function initPage() {
+            await loadMissionData();
+            await checkUserRole();
+        }
+
         async function checkUserRole() {
-            const { data: { user } } = await window.sysDB.auth.getUser();
-            if (user) {
-                // ตรวจสอบว่าเป็นครูหรือไม่จากตาราง teachers
+            try {
+                const { data: { user } } = await window.sysDB.auth.getUser();
+                if (!user || !missionData) return;
+
+                // ตรวจสอบว่าเป็นครูหรือไม่
                 const { data: teacher } = await window.sysDB.from('teachers').select('teacher_id').eq('teacher_id', user.id).single();
+                
                 if (teacher) {
+                    // แสดงปุ่มแก้ไขสำหรับครูทุกคนที่เข้าถึงได้
                     const editBtn = document.getElementById('editMissionBtn');
                     editBtn.classList.remove('hidden');
                     editBtn.onclick = () => {
-                        if (missionData) {
-                            window.location.href = `mission-create-ai.html?cid=${missionData.classroom_id}&mid=${currentMissionId}`;
-                        }
+                        window.location.href = `mission-create-ai.html?cid=${missionData.classroom_id}&mid=${currentMissionId}`;
                     };
+
+                    // แสดงปุ่มลบ เฉพาะ "ผู้สร้างภารกิจ" เท่านั้น
+                    // หมายเหตุ: ตรวจสอบจากฟิลด์ created_by ในตาราง missions
+                    if (missionData.created_by === user.id) {
+                        document.getElementById('deleteMissionBtn').classList.remove('hidden');
+                    }
                 }
+            } catch (err) {
+                console.error("Role Check Error:", err);
             }
         }
 
@@ -135,6 +178,38 @@
             } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
                 history.back();
+            }
+        }
+
+        // ระบบลบภารกิจ
+        function openDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        async function confirmDelete() {
+            if (!currentMissionId) return;
+            
+            try {
+                const { error } = await window.sysDB
+                    .from('missions')
+                    .delete()
+                    .eq('mission_id', currentMissionId);
+
+                if (error) throw error;
+
+                alert('ลบภารกิจสำเร็จแล้ว');
+                // กลับไปยังหน้ารายละเอียดห้องเรียน
+                if (missionData && missionData.classroom_id) {
+                    window.location.href = `classroom-detail.html?id=${missionData.classroom_id}`;
+                } else {
+                    window.location.href = 'teacher-dashboard.html';
+                }
+            } catch (err) {
+                alert('ไม่สามารถลบภารกิจได้: ' + err.message);
             }
         }
 
