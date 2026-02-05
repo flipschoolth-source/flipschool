@@ -166,7 +166,7 @@
                     document.getElementById('guestIndicator').classList.remove('hidden');
                 }
 
-                // 2. ดึงข้อมูล Mission (พยายามดึงแบบ Classroom context ก่อน ถ้าไม่มีดึงแบบ Raw Mission)
+                // 2. ดึงข้อมูล Mission
                 let missionData = null;
                 
                 // ลองดึงแบบ Classroom (กรณีมี Assignment)
@@ -191,11 +191,24 @@
 
                 if (!missionData) throw new Error("ไม่พบภารกิจ");
 
-                // 3. จัดการ Teacher Tools
+                // 3. จัดการ Teacher Tools และปุ่มแก้ไขตามประเภทภารกิจ
                 if (isTeacher && assignmentData) {
                     document.getElementById('teacherTools').classList.remove('hidden');
                     document.getElementById('replayToggle').checked = assignmentData.can_replay;
-                    document.getElementById('editBtn').onclick = () => window.location.href = `mission-create-ai.html?cid=${assignmentData.classroom_id}&mid=${currentMissionId}`;
+                    
+                    // ✅ Logic ปุ่มแก้ไข: แยกตาม mission_type
+                    document.getElementById('editBtn').onclick = () => {
+                        const mType = missionData.mission_type;
+                        let targetPage = 'mission-create-ai.html'; // Default: AI Creator
+                        
+                        // ถ้าเป็นแบบวางโค้ดเอง -> ไปหน้า Paste Code
+                        if (mType === 'html_custom') {
+                            targetPage = 'mission-paste-code.html';
+                        }
+                        
+                        // ส่ง cid และ mid กลับไปเพื่อแก้ไขถูกที่
+                        window.location.href = `${targetPage}?cid=${assignmentData.classroom_id}&mid=${currentMissionId}`;
+                    };
                 }
 
                 // 4. ตรวจสอบสิทธิ์การเล่นซ้ำ (เฉพาะกรณี Login แล้ว)
@@ -229,7 +242,6 @@
             } catch (err) { 
                 console.error(err);
                 alert("ไม่สามารถโหลดภารกิจได้: " + err.message);
-                // history.back(); 
             }
         }
 
