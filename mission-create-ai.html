@@ -106,8 +106,8 @@
                             <option value="ภาษาไทย">ภาษาไทย</option>
                             <option value="คณิตศาสตร์">คณิตศาสตร์</option>
                             <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-                            <option value="สังคมศึกษา">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
-                            <option value="สุขศึกษา">สุขศึกษาและพลศึกษา</option>
+                            <option value="สังคมศึกษา">สังคมศึกษา</option>
+                            <option value="สุขศึกษา">สุขศึกษา</option>
                             <option value="ศิลปะ">ศิลปะ</option>
                             <option value="การงานอาชีพ">การงานอาชีพ</option>
                             <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
@@ -177,7 +177,7 @@
     </footer>
 
     <script>
-        const MODEL_ID = "gemini-2.0-flash"; // ใช้ Model ที่ฉลาดขึ้นสำหรับการแก้ไขโค้ด
+        const MODEL_ID = "gemini-2.5-flash-preview-09-2025";
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubjectOnly = "", detectedGradeNumber = "";
 
@@ -186,7 +186,6 @@
             targetCid = params.get('cid');
             editingMid = params.get('mid');
             initPreviewFrame();
-            
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -205,8 +204,8 @@
             const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
             const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
             let missing = [];
-            if (!hasBack) missing.push("ปุ่มย้อนกลับ (Header)");
-            if (!hasScore) missing.push("ระบบบันทึกคะแนน (postMessage)");
+            if (!hasBack) missing.push("ปุ่มย้อนกลับ");
+            if (!hasScore) missing.push("ระบบบันทึกคะแนน");
             if (missing.length > 0) return { valid: false, msg: missing.join(", ") };
             return { valid: true, msg: "ครบถ้วน" };
         }
@@ -230,37 +229,42 @@
 
             if (generatedCode) {
                 // --- Safe Modify Logic ---
-                // ใช้โค้ดเดิมเป็นฐานเสมอ
                 let instruction = prompt;
                 if (!instruction) {
                     const check = validateCodeStandard(generatedCode);
-                    if (!check.valid) instruction = `Code ขาดมาตรฐาน: ${check.msg} กรุณาแก้ไขโดยด่วน`;
-                    else instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงามขึ้น";
+                    if (!check.valid) instruction = `ปรับปรุงโค้ดให้เป็นมาตรฐานด่วน ขาด: ${check.msg}`;
+                    else instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงาม";
                 }
 
-                finalPrompt = `Original Code:\n${generatedCode}\n\nModification Request:\n${instruction}\n\nTask: Return the COMPLETE modified HTML code.`;
+                // ✅ Structure the prompt to force modification
+                finalPrompt = `CONTEXT: You are updating an existing HTML5 application.
+EXISTING_SOURCE_CODE:
+\`\`\`html
+${generatedCode}
+\`\`\`
+
+CHANGE_REQUEST: "${instruction}"
+
+INSTRUCTIONS:
+1. Apply the change request to the EXISTING_SOURCE_CODE.
+2. **DO NOT** regenerate the app from scratch. Use the existing code as the base.
+3. KEEP existing features (Header, Score, Responsive) intact.
+4. Output the FULL updated HTML document.`;
                 
                 sys = `คุณคือผู้เชี่ยวชาญด้านการ Refactor Code HTML5.
-                
-                กฎเหล็กสำหรับการแก้ไข (Strict Modification Rules):
-                1. **ห้ามสร้างใหม่จากศูนย์:** ต้องอิงจาก Original Code เท่านั้น
-                2. **ห้ามตัดฟีเจอร์เดิม:** โครงสร้าง Header, ปุ่มย้อนกลับ, Logic เกม, การตัดคำ, CSS เดิม ต้องเก็บไว้ เว้นแต่ได้รับคำสั่งให้แก้ส่วนนั้น
-                3. **ต้องส่งโค้ดเต็ม:** ห้ามส่งแค่ส่วนที่แก้ (Partial snippets) ให้ส่ง Full HTML Document เสมอ
-                4. **มาตรฐานที่ต้องคงไว้:** Header (ย้อนกลับ+ชื่อ+คะแนน), Responsive เต็มจอ, ระบบส่งคะแนน (postMessage)
-                5. **Meta Description:** อัปเดต <meta name="description"> ให้ตรงกับการแก้ไข
-                
-                Output: ส่งคืนเฉพาะ Source Code HTML เท่านั้น ห้ามมีคำอธิบาย`;
+                กฎ: 
+                1. แก้ไขตามคำสั่งโดยยังคงโครงสร้างหลักและ Logic เดิม
+                2. สร้าง <meta name="description" content="..."> สรุปการเปลี่ยนแปลง (ภาษาไทย)
+                3. ส่งคืนเฉพาะ Code HTML เท่านั้น ห้ามมีคำอธิบาย`;
             } else {
                 // --- Create New Logic ---
                 finalPrompt = `${contextText}\n${prompt}`;
                 sys = `คุณคือผู้เชี่ยวชาญด้านการสร้างสื่อการสอน HTML5 Interactive
-                หน้าที่: สร้างไฟล์ HTML Single File ที่สวยงาม ทันสมัย ใช้งานได้จริง
-                
                 กฎเหล็ก (Mandatory):
                 1. **Header Bar**: สร้างแถบด้านบน (ย้อนกลับ+ชื่อ "${title}"+คะแนน)
                 2. **Scoring**: เรียก \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\` เมื่อจบ
-                3. **Responsive**: รองรับมือถือเต็มจอ (No scrollbar)
-                4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกมให้น่าสนใจ (ภาษาไทย)
+                3. **Responsive**: รองรับมือถือเต็มจอ
+                4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกมให้น่าสนใจ
                 5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
             }
 
@@ -273,21 +277,16 @@
                 if (htmlBlock) cleanCode = htmlBlock[1];
                 else { const generalBlock = code.match(/```([\s\S]*?)```/i); if (generalBlock) cleanCode = generalBlock[1]; }
                 
-                // หาจุดเริ่มต้น/สิ้นสุด HTML
                 const start = cleanCode.indexOf('<!DOCTYPE html>');
                 const end = cleanCode.lastIndexOf('</html>');
                 
                 if (start !== -1 && end !== -1) {
                     cleanCode = cleanCode.substring(start, end + 7).trim();
+                    generatedCode = cleanCode; // ✅ อัปเดตตัวแปร Global เพื่อใช้ในการแก้ครั้งต่อไป
                     
-                    // ✅ SAFE UPDATE: อัปเดตเฉพาะเมื่อได้โค้ดที่สมบูรณ์
-                    generatedCode = cleanCode; 
-                    
-                    // Update UI
                     document.getElementById("missionFrame").srcdoc = generatedCode;
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
-                    // Extract Description
                     try {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(generatedCode, 'text/html');
@@ -302,25 +301,21 @@
                         }
                     } catch (e) {}
 
-                    // Switch to Modify Mode UI
                     document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                     document.getElementById("resetBtn").classList.remove("hidden");
                     showMessage("✅ ดำเนินการสำเร็จ!");
                 } else {
-                    throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์ (Missing HTML tags)");
+                    throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์");
                 }
 
             } catch (err) { 
                 console.error(err);
                 showMessage("❌ เกิดข้อผิดพลาด: " + err.message); 
-                // ไม่ล้าง generatedCode เดิม เพื่อให้ user ลองใหม่ได้จากจุดเดิม
             } 
             finally { toggleLoading(false); }
         }
 
-        // ... (Functions อื่นๆ คงเดิม: optimizePrompt, suggestIdeas, addContext, confirmSave, saveKeyToDB, loadKeyFromDB, etc.) ...
-        
-        // Helper Functions (Same as before)
+        // --- Helper Functions ---
         function toggleKeyEdit(showEdit) {
             const editView = document.getElementById('apiKeyEditView');
             const configView = document.getElementById('apiKeyConfiguredView');
@@ -355,7 +350,7 @@
             document.getElementById("promptLabel").innerText = "คำสั่งเนรมิต (AI Prompt)";
             document.getElementById("resetBtn").classList.add("hidden");
             initPreviewFrame();
-            toggleLoading(false); // Reset button style
+            toggleLoading(false);
             document.getElementById("saveToCloudBtn").classList.add("hidden");
         }
         function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
@@ -436,6 +431,7 @@
                 };
 
                 let mid = editingMid;
+                // ✅ Ownership Check
                 if (editingMid && currentUserId === originalTeacherId) {
                     await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                     showMessage("💾 อัปเดตภารกิจเดิมเรียบร้อย!");
