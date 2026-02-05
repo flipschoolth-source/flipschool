@@ -200,7 +200,7 @@
                         <div class="flex gap-2">
                             <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
                             <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
-                                <i class="fas fa-magic"></i> เสก
+                                <i class="fas fa-magic"></i> สร้าง
                             </button>
                         </div>
                         <div id="aiLoading" class="hidden-el mt-2 text-xs text-teal-600 font-bold flex items-center gap-2">
@@ -296,7 +296,8 @@
         function toggleAILoading(show) {
             document.getElementById('aiLoading').classList.toggle('hidden-el', !show);
             document.getElementById('aiModifyBtn').disabled = show;
-            document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> เสก';
+            // เปลี่ยนปุ่มเป็น "สร้าง" เมื่อทำงานเสร็จหรือเริ่มต้นใหม่
+            document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
         }
 
         // --- Logic หลัก ---
@@ -344,7 +345,7 @@
 
             // ✅ 2. ถ้าช่องคำสั่งว่าง ให้กำหนดคำสั่งพื้นฐาน (Title Bar + Score)
             if (!prompt) {
-                prompt = "ปรับปรุงโค้ดให้มีมาตรฐาน: เพิ่ม Header และระบบบันทึกคะแนน";
+                prompt = "ปรับปรุงโค้ดให้มีมาตรฐาน: ตรวจสอบ/สร้าง Header (มีชื่อเกมและปุ่มย้อนกลับ) และระบบบันทึกคะแนน";
             }
 
             toggleAILoading(true);
@@ -356,10 +357,12 @@
             
             สิ่งที่ต้องจัดการ (Mandatory Requirements):
             1. **Header/Title Bar**:
-               - สร้างหรือแก้ไขแถบด้านบนสุดให้มีดีไซน์เข้ากับธีมเกม
-               - **ชื่อเกม (ตรงกลาง):** ต้องแสดงข้อความว่า "${title}"
-               - **ปุ่มย้อนกลับ (ซ้าย):** ต้องมีปุ่มที่เรียกคำสั่ง \`window.parent.history.back()\`
-               - **คะแนน (ขวา):** แสดงคะแนนปัจจุบัน
+               - ตรวจสอบว่าโค้ดเดิมมี Header/Title Bar หรือไม่
+               - **ถ้ามี:** ให้แทรกปุ่ม 'ย้อนกลับ' (Icon: fa-arrow-left) ไว้ด้านซ้ายสุด โดยกดแล้วเรียก \`window.parent.history.back()\`
+               - **ถ้าไม่มี:** ให้สร้าง Header ใหม่ด้านบนสุด ดีไซน์ให้เข้ากับธีมเกม ประกอบด้วย:
+                 - ซ้าย: ปุ่มย้อนกลับ (\`window.parent.history.back()\`)
+                 - กลาง: ชื่อเกม "${title}"
+                 - ขวา: คะแนนหรือสถานะ
             
             2. **Scoring System**:
                - ตรวจสอบว่ามีการส่งคะแนนกลับด้วย \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\`
