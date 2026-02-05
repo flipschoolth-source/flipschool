@@ -276,12 +276,26 @@
                     const { data: { session } } = await window.sysDB.auth.getSession();
                     if (!session) { window.location.href = 'teacher-login.html'; return; }
 
-                    await loadKeyFromDB(); // โหลด Key ก่อน
+                    await loadKeyFromDB(); 
                     if (targetCid) await fetchClassroomContext();
                     if (editingMid) await loadExistingMission();
                 }
             }, 500);
         });
+
+        // ✅ ฟังก์ชันตรวจสอบมาตรฐาน (Standard Check)
+        function validateCodeStandard(code) {
+            if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
+            const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
+            const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
+            
+            let missing = [];
+            if (!hasBack) missing.push("ปุ่มย้อนกลับ (Header)");
+            if (!hasScore) missing.push("ระบบบันทึกคะแนน");
+            
+            if (missing.length > 0) return { valid: false, msg: missing.join(", ") };
+            return { valid: true, msg: "ครบถ้วน" };
+        }
 
         // --- Functions ---
         function toggleKeyEdit(showEdit) {
@@ -336,8 +350,12 @@
             document.getElementById("promptInput").placeholder = "บอกรายละเอียดสื่อที่คุณครูต้องการให้ AI สร้างครับ...";
             document.getElementById("promptLabel").innerText = "คำสั่งเนรมิต (AI Prompt)";
             document.getElementById("resetBtn").classList.add("hidden");
+            
+            document.getElementById("generateBtn").innerHTML = '<i class="fas fa-magic"></i> <span>เริ่มเนรมิตภารกิจด้วย AI</span>';
+            document.getElementById("generateBtn").className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-[1.5rem] transition-all shadow-xl shadow-blue-100 text-lg transform active:scale-95 flex items-center justify-center gap-3";
+            
             initPreviewFrame();
-            toggleLoading(false);
+            document.getElementById("saveToCloudBtn").classList.add("hidden");
         }
 
         function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
@@ -403,7 +421,7 @@
             if(!prompt && !generatedCode) { document.getElementById("promptInput").focus(); return showMessage("⚠️ กรุณาระบุรายละเอียดให้ AI ทราบครับ"); }
             if(!key) { document.getElementById("apiKeyEditView").scrollIntoView(); toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ"); }
 
-            toggleLoading(true, generatedCode ? "✨ AI กำลังปรับปรุงโค้ดตามคำสั่ง..." : "🚀 AI กำลังวิเคราะห์และเขียนโค้ด...");
+            toggleLoading(true, generatedCode ? "✨ AI กำลังปรับปรุงโค้ด..." : "🚀 AI กำลังวิเคราะห์และเขียนโค้ด...");
             
             const prefix = document.getElementById('educationLevelSelect').value;
             const fullGrade = prefix + detectedGradeNumber;
@@ -414,12 +432,24 @@
 
             if (generatedCode) {
                 // --- Mode: Modify Existing Code ---
-                finalPrompt = `Current Code:\n${generatedCode}\n\nUser Instruction:\n${prompt || "Make standard improvements (Responsive, Header, Score)"}\n\nTask: Update the code strictly following the instruction.`;
+                let instruction = prompt;
+                
+                // ✅ ถ้าคำสั่งว่าง -> ใช้ Logic ตรวจสอบมาตรฐานอัตโนมัติ
+                if (!instruction) {
+                    const check = validateCodeStandard(generatedCode);
+                    if (!check.valid) {
+                        instruction = `ปรับปรุงโค้ดให้เป็นมาตรฐานด่วน ขาด: ${check.msg}`;
+                    } else {
+                        instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงาม";
+                    }
+                }
+
+                finalPrompt = `Current Code:\n${generatedCode}\n\nUser Instruction:\n${instruction}\n\nTask: Update the code strictly following the instruction.`;
                 sys = `คุณคือผู้เชี่ยวชาญด้านการแก้ไขโค้ด HTML5. 
                 ภารกิจ: รับโค้ดเดิม + คำสั่งแก้ไข แล้วส่งคืนโค้ดใหม่ที่สมบูรณ์
                 กฎ: 
-                1. แก้ไขตามคำสั่งโดยยังคงโครงสร้างหลักและ Logic เดิม (Header, Score, Responsive)
-                2. สร้าง <meta name="description" content="..."> สรุปการเปลี่ยนแปลงหรือรายละเอียดเกมใหม่ (ภาษาไทย)
+                1. แก้ไขตามคำสั่งโดยยังคงโครงสร้างหลักและ Logic เดิม
+                2. สร้าง <meta name="description" content="..."> สรุปการเปลี่ยนแปลงหรือรายละเอียดเกม (ภาษาไทย)
                 3. ส่งคืนเฉพาะ Code HTML เท่านั้น ห้ามมีคำอธิบาย`;
             } else {
                 // --- Mode: Create New ---
@@ -429,7 +459,7 @@
                 กฎเหล็ก (Mandatory):
                 1. **Header Bar**: สร้างแถบด้านบน (ย้อนกลับ+ชื่อ "${title}"+คะแนน)
                 2. **Scoring**: เรียก \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\` เมื่อจบ
-                3. **Responsive**: รองรับมือถือเต็มจอ (No scrollbar)
+                3. **Responsive**: รองรับมือถือเต็มจอ
                 4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกมให้น่าสนใจ (ภาษาไทย)
                 5. **Clean Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
             }
@@ -455,8 +485,7 @@
                     const doc = parser.parseFromString(generatedCode, 'text/html');
                     const metaDesc = doc.querySelector('meta[name="description"]');
                     if (metaDesc && metaDesc.content) {
-                        // ถ้าเป็นการสร้างใหม่ ให้แทนที่ description
-                        // ถ้าเป็นการแก้ไข ให้เคลียร์ช่อง Prompt เพื่อรอคำสั่งใหม่
+                        // ถ้าสร้างใหม่ ให้แทนที่ / ถ้าแก้ไข ให้เคลียร์ prompt เพื่อรอคำสั่งถัดไป
                         if (document.getElementById("generateBtn").innerText.includes("เริ่ม")) {
                             document.getElementById("promptInput").value = metaDesc.content;
                         } else {
@@ -471,7 +500,7 @@
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 
-                // เปลี่ยนสถานะ UI เป็นโหมดแก้ไข
+                // เปลี่ยนสถานะเป็นโหมดแก้ไข
                 document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                 document.getElementById("resetBtn").classList.remove("hidden");
                 showMessage("✅ ดำเนินการสำเร็จ! เช็คพรีวิวทางขวาครับ");
@@ -480,9 +509,38 @@
             finally { toggleLoading(false); }
         }
 
-        async function optimizePrompt() { /* ... */ }
-        async function suggestIdeas() { /* ... */ }
-        async function addContext() { /* ... */ }
+        async function optimizePrompt() {
+            const input = document.getElementById("promptInput").value.trim();
+            if(!input) return showMessage("⚠️ กรุณาพิมพ์คำสั่งสั้นๆ ก่อนกดขัดเกลาครับ");
+            toggleLoading(true, "✨ AI กำลังปรับแต่งคำสั่งให้เป็นมืออาชีพ...");
+            try {
+                const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียด ชัดเจน และมีโครงสร้างที่ดีสำหรับการสร้างสื่อการสอน ตอบเป็นภาษาไทย");
+                document.getElementById("promptInput").value = res;
+                showMessage("✨ ปรับแต่งคำสั่งเรียบร้อย!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
+        }
+
+        async function suggestIdeas() {
+            const grp = document.getElementById("subjectGroup").value;
+            const clsSub = document.getElementById('classroomSubjectText').innerText;
+            toggleLoading(true, "💡 AI กำลังระดมสมอง...");
+            try {
+                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถม ตอบภาษาไทยสั้นๆ");
+                document.getElementById("promptInput").value = res;
+                showMessage("💡 ได้ไอเดียแล้ว!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
+        }
+
+        async function addContext() {
+            const input = document.getElementById("promptInput").value.trim();
+            if(!input) return showMessage("⚠️ ต้องมีหัวข้อเรื่องก่อน AI ถึงจะหาสาระให้ได้ครับ");
+            toggleLoading(true, "📚 AI กำลังค้นคว้าข้อมูล...");
+            try {
+                const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
+                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
+                showMessage("📚 เพิ่มสาระความรู้เรียบร้อย!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
+        }
 
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
@@ -496,7 +554,6 @@
 
                 const subjectToSave = targetCid ? dbSubjectOnly : document.getElementById("subjectGroup").value;
                 
-                // ใช้ description จาก meta tag ใน code หรือ ถ้าไม่มีให้ใช้จาก promptInput
                 let finalDesc = "ภารกิจท้าทายความสามารถ";
                 try {
                     const parser = new DOMParser();
@@ -518,13 +575,11 @@
                 };
 
                 let mid = editingMid;
-                // ✅ Logic การบันทึกแบบฉลาด (Smart Save)
-                // ถ้ามี editingMid และผู้ใช้ปัจจุบัน คือผู้สร้างเดิม -> Update
+                // ✅ Ownership Logic
                 if (editingMid && currentUserId === originalTeacherId) {
                     await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                     showMessage("💾 อัปเดตภารกิจเดิมเรียบร้อย!");
                 } else {
-                    // ถ้าไม่มี editingMid (สร้างใหม่) หรือ ผู้ใช้ไม่ใช่ผู้สร้างเดิม (Clone) -> Insert
                     missionData.created_by = currentUserId;
                     missionData.created_at = new Date().toISOString();
                     const { data } = await window.sysDB.from('missions').insert([missionData]).select();
@@ -547,7 +602,7 @@
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
-                showMessage("✅ บันทึก Key สำเร็จ! พร้อมใช้งานแล้วครับ");
+                showMessage("✅ บันทึก Key สำเร็จ!");
                 toggleKeyEdit(false);
             } catch (e) { showMessage("❌ ไม่สามารถบันทึกได้: " + e.message); }
         }
@@ -556,7 +611,6 @@
             const { data: { user } } = await window.sysDB.auth.getUser();
             if(user) {
                 currentUserId = user.id;
-                // ✅ ดึง API Key ตาม Teacher ID
                 const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
                 if(data?.gemini_api_key) {
                     document.getElementById("apiKeyInput").value = data.gemini_api_key;
@@ -570,18 +624,17 @@
         async function loadExistingMission() {
             const { data } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
             if (data) {
-                originalTeacherId = data.created_by; // เก็บ ID เจ้าของเดิมไว้เช็ค
+                originalTeacherId = data.created_by;
                 document.getElementById("missionTitleInput").value = data.title;
-                // document.getElementById("promptInput").value = data.description || ""; // ไม่ต้องใส่ Prompt เดิม ให้เริ่มเป็น Modify Mode เลย
                 generatedCode = data.content_data?.html || "";
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 
-                // เปิด Modify Mode
-                toggleLoading(false); // เรียกเพื่ออัปเดตสถานะปุ่มเป็น "Modify"
+                // เข้าสู่โหมดแก้ไข
+                toggleLoading(false); 
                 document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                 document.getElementById("resetBtn").classList.remove("hidden");
-                document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่ (เช่น เปลี่ยนสีปุ่มเป็นสีแดง)...";
+                document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
 
                 const statusEl = document.getElementById('ownershipStatus');
                 statusEl.classList.remove('hidden-el');
