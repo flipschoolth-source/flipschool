@@ -204,7 +204,7 @@
 
                     <div>
                         <div class="flex justify-between items-center mb-3">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">คำสั่งเนรมิต (AI Prompt)</label>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">คำสั่งเนรมิต (AI Prompt) / คำอธิบาย</label>
                             <div class="flex gap-1">
                                 <button onclick="optimizePrompt()" class="btn-ai-sparkle">✨ ขัดเกลา</button>
                                 <button onclick="suggestIdeas()" class="btn-ai-sparkle">💡 ไอเดีย</button>
@@ -212,6 +212,7 @@
                             </div>
                         </div>
                         <textarea id="promptInput" class="w-full h-48 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none transition-all resize-none text-sm focus:ring-2 focus:ring-blue-500 shadow-inner leading-relaxed" placeholder="บอกรายละเอียดสื่อที่คุณครูต้องการให้ AI สร้างครับ..."></textarea>
+                        <p class="text-[10px] text-slate-400 mt-1 italic text-right">* คำอธิบายในช่องนี้จะถูกบันทึกลงในระบบด้วย</p>
                     </div>
 
                     <div id="loadingStatus" class="hidden-el p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
@@ -289,6 +290,7 @@
             }, 500);
         });
 
+        // --- UI Functions ---
         function toggleKeyEdit(showEdit) {
             const editView = document.getElementById('apiKeyEditView');
             const configView = document.getElementById('apiKeyConfiguredView');
@@ -305,12 +307,10 @@
             }
         }
 
-        // --- ส่วนแจ้งเตือนสถานะ ---
         function showMessage(text) { 
             const msgBox = document.getElementById("msgBox");
             document.getElementById("msgText").innerText = text; 
             msgBox.classList.remove('hidden'); 
-            
             if(window.msgTimeout) clearTimeout(window.msgTimeout);
             window.msgTimeout = setTimeout(() => msgBox.classList.add('hidden'), 5000); 
         }
@@ -321,10 +321,8 @@
             
             const btn = document.getElementById("generateBtn");
             btn.disabled = show;
-            
-            // เปลี่ยนหน้าตาปุ่มให้รู้ว่ากำลังทำงาน
             if(show) {
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>AI กำลังทำงาน...</span>';
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>กำลังทำงาน...</span>';
                 btn.classList.add('opacity-75', 'cursor-not-allowed');
             } else {
                 btn.innerHTML = '<i class="fas fa-magic"></i> <span>เริ่มเนรมิตภารกิจด้วย AI</span>';
@@ -337,7 +335,7 @@
         function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
         function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
 
-        // --- Logic หลัก ---
+        // --- Logic ---
 
         async function fetchClassroomContext() {
             try {
@@ -395,7 +393,7 @@
                 }
 
                 const data = await res.json();
-                if (!data.candidates || data.candidates.length === 0) throw new Error("AI ไม่ตอบกลับ (No Data)");
+                if (!data.candidates || data.candidates.length === 0) throw new Error("AI ไม่ตอบกลับ");
                 
                 return data.candidates?.[0]?.content?.parts?.[0]?.text;
             } catch (err) { 
@@ -405,26 +403,14 @@
         }
 
         async function handleGenerate() {
-            // 1. Validate
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
             const key = document.getElementById("apiKeyInput").value.trim();
 
-            if(!title) {
-                document.getElementById("missionTitleInput").focus();
-                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนครับ");
-            }
-            if(!prompt) {
-                document.getElementById("promptInput").focus();
-                return showMessage("⚠️ กรุณาระบุรายละเอียดให้ AI ทราบครับ");
-            }
-            if(!key) {
-                document.getElementById("apiKeyEditView").scrollIntoView({ behavior: 'smooth' });
-                toggleKeyEdit(true);
-                return showMessage("🔑 กรุณากรอก API Key ก่อนเริ่มงานครับ");
-            }
+            if(!title) { document.getElementById("missionTitleInput").focus(); return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนครับ"); }
+            if(!prompt) { document.getElementById("promptInput").focus(); return showMessage("⚠️ กรุณาระบุรายละเอียดให้ AI ทราบครับ"); }
+            if(!key) { document.getElementById("apiKeyEditView").scrollIntoView(); toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ"); }
 
-            // 2. Start
             toggleLoading(true, "🚀 AI กำลังวิเคราะห์และเขียนโค้ด...");
             
             const prefix = document.getElementById('educationLevelSelect').value;
@@ -433,30 +419,25 @@
             
             const finalPrompt = `${contextText}\n${prompt}`;
             
-            const sys = `คุณคือ Code Generator ที่เข้มงวด
-            หน้าที่ของคุณคือ: สร้างไฟล์ HTML5 (Single File) + Tailwind CSS สำหรับสื่อการสอน
+            // ✅ System Prompt: บังคับมาตรฐาน (Header, Score, Description)
+            const sys = `คุณคือผู้เชี่ยวชาญด้านการสร้างสื่อการสอน HTML5 Interactive
             
-            กฎการตอบกลับ (สำคัญที่สุด):
-            1. ส่งคืนเฉพาะ Source Code HTML เท่านั้น ห้ามมีคำอธิบาย ห้ามมีข้อความนำหน้า/ลงท้าย
-            2. ห้ามใช้ Markdown Block (เช่น \`\`\`html) ถ้าเลี่ยงไม่ได้ ให้เขียนแค่ Code
+            หน้าที่ของคุณ: สร้างไฟล์ HTML Single File ที่สวยงาม ทันสมัย และใช้งานได้จริง
             
-            โครงสร้างที่ต้องมี:
-            1. **Header Bar**: สร้างแถบด้านบน (Header) ที่สวยงาม สีสันสดใสเหมาะสมกับวัยเรียน 
-               - ด้านซ้าย: มีปุ่ม "ย้อนกลับ" หรือ "Home" (ใช้ icon) โดยเมื่อกดให้เรียกคำสั่ง JavaScript: window.parent.history.back()
-               - ตรงกลาง: ชื่อภารกิจ "${title}"
-               - ด้านขวา: แสดงคะแนนหรือสถานะ
-            2. เมื่อจบเกม ให้เรียกคำสั่ง: 
-               window.parent.postMessage({
-                   type: 'SAVE_RESULT', 
-                   score: (คะแนนที่ได้), 
-                   answers: [ { question: "...", student_answer: "...", is_correct: true/false }, ... ] 
-               }, '*')
-            3. ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
+            กฎเหล็ก (Mandatory Standards):
+            1. **Header Bar**: สร้างแถบด้านบนสุดให้สวยงามเข้ากับธีม
+               - ซ้าย: ปุ่มย้อนกลับ (icon) เรียกคำสั่ง \`window.parent.history.back()\`
+               - กลาง: ชื่อภารกิจ "${title}"
+               - ขวา: คะแนน
+            2. **Scoring**: เมื่อจบเกม/กิจกรรม ให้เรียก \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\`
+            3. **Responsive**: ต้องแสดงผลได้ดีบนมือถือและแท็บเล็ต (Full height, No scrollbar if possible)
+            4. **Meta Description**: ให้สร้าง tag \`<meta name="description" content="...">\` ใน <head> โดยเนื้อหาใน content ต้องเป็นการเรียบเรียงคำสั่งของผู้ใช้ใหม่ให้น่าสนใจ เชิญชวนให้เล่น และสรุปใจความสำคัญของภารกิจ (ภาษาไทย)
+            5. **Clean Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น ห้ามมีคำอธิบายอื่น`;
 
             try {
                 const code = await callGemini(finalPrompt, sys);
                 
-                // 3. Clean Code
+                // Clean Code
                 let cleanCode = code;
                 const htmlBlock = code.match(/```html([\s\S]*?)```/i);
                 if (htmlBlock) cleanCode = htmlBlock[1];
@@ -464,20 +445,25 @@
                     const generalBlock = code.match(/```([\s\S]*?)```/i);
                     if (generalBlock) cleanCode = generalBlock[1];
                 }
-                
                 const start = cleanCode.indexOf('<!DOCTYPE html>');
                 if (start !== -1) cleanCode = cleanCode.substring(start);
-                else {
-                    const startTag = cleanCode.indexOf('<html');
-                    if(startTag !== -1) cleanCode = cleanCode.substring(startTag);
-                }
-                
                 const end = cleanCode.lastIndexOf('</html>');
                 if (end !== -1) cleanCode = cleanCode.substring(0, end + 7);
 
                 generatedCode = cleanCode.trim();
                 
-                if(generatedCode.length < 50) throw new Error("AI ส่งข้อมูลไม่สมบูรณ์ โปรดลองใหม่");
+                // ✅ Auto-Extract Description from Meta Tag
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(generatedCode, 'text/html');
+                    const metaDesc = doc.querySelector('meta[name="description"]');
+                    if (metaDesc && metaDesc.content) {
+                        document.getElementById("promptInput").value = metaDesc.content;
+                        showMessage("✨ AI เรียบเรียงคำอธิบายให้ใหม่แล้ว!");
+                    }
+                } catch (e) { console.log("Description extract failed"); }
+
+                if(generatedCode.length < 50) throw new Error("AI ส่งข้อมูลไม่สมบูรณ์");
 
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
@@ -535,7 +521,7 @@
 
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
-                    description: document.getElementById("promptInput").value,
+                    description: document.getElementById("promptInput").value, // บันทึกคำอธิบายที่ AI เรียบเรียงให้แล้ว
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
                     subject_name: targetCid ? dbSubjectOnly : "วิชาทั่วไป", 
                     grade_level: targetCid ? finalGrade : "", 
