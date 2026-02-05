@@ -61,6 +61,7 @@
         .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
         .new-badge { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
         
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -248,9 +249,6 @@
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Live Preview"></iframe>
                 </div>
             </div>
-            <div class="text-center">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] italic">Responsive AI Development System</p>
-            </div>
         </div>
     </main>
 
@@ -305,9 +303,9 @@
             } catch (err) { console.error("Key Load Error:", err); }
         }
 
-        // --- Core Functions ---
+        // --- Helper Functions ---
         
-        // 1. ดึงโค้ด HTML แบบยืดหยุ่น (แก้ปัญหา AI ส่งมาไม่ครบ)
+        // 1. ดึงโค้ด HTML แบบยืดหยุ่น
         function extractHtmlCode(rawText) {
             let match = rawText.match(/```html\s*([\s\S]*?)\s*```/i);
             if (!match) match = rawText.match(/```\s*([\s\S]*?)\s*```/i);
@@ -332,6 +330,7 @@
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
                     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    
                     if (res.ok) {
                         const data = await res.json();
                         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -357,6 +356,7 @@
             return { valid: true, msg: "ครบถ้วน" };
         }
 
+        // --- Core Generator ---
         async function handleGenerate() {
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
@@ -382,7 +382,6 @@
 
             if (generatedCode) {
                 // --- Safe Modify Mode ---
-                // สำคัญ: Escape Backticks ในโค้ดเดิม
                 const safeCode = generatedCode.replace(/`/g, '\\`');
                 
                 finalPrompt = `
@@ -426,23 +425,20 @@ REQUIREMENTS:
 
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 
-                // Extract Description
+                // Extract Description & Update UI State
                 try {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(generatedCode, 'text/html');
                     const metaDesc = doc.querySelector('meta[name="description"]');
                     
                     if (!document.getElementById("resetBtn").classList.contains("hidden")) {
-                        // โหมดแก้ไข: เคลียร์ Prompt
                         document.getElementById("promptInput").value = "";
                         document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
                     } else if (metaDesc) {
-                        // โหมดสร้าง: ใส่ Description
                         document.getElementById("promptInput").value = metaDesc.content;
                     }
                 } catch (e) {}
 
-                // Update UI State
                 document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                 document.getElementById("resetBtn").classList.remove("hidden");
                 showMessage("✅ ดำเนินการสำเร็จ!");
@@ -454,7 +450,7 @@ REQUIREMENTS:
             finally { toggleLoading(false); }
         }
 
-        // --- Helper Functions ---
+        // --- Other Functions ---
         function updateUIMode(mode) {
             const titleEl = document.getElementById('pageModeDisplay');
             const subTitleEl = document.getElementById('pageSubDisplay');
@@ -516,7 +512,6 @@ REQUIREMENTS:
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
         function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
         function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
-        
         async function fetchClassroomContext() { /* Logic เดิม */ }
         async function optimizePrompt() { /* Logic เดิม */ }
         async function suggestIdeas() { /* Logic เดิม */ }
@@ -529,7 +524,6 @@ REQUIREMENTS:
                 let finalGrade = prefix + detectedGradeNumber;
                 if (!prefix && !detectedGradeNumber) finalGrade = "ไม่ระบุ";
                 const subjectToSave = targetCid ? dbSubjectOnly : document.getElementById("subjectGroup").value;
-                
                 let finalDesc = "ภารกิจท้าทายความสามารถ";
                 try {
                     const parser = new DOMParser();
@@ -551,7 +545,6 @@ REQUIREMENTS:
                 };
 
                 let mid = editingMid;
-                // Ownership Check
                 if (editingMid && currentUserId === originalTeacherId) {
                     await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                     showMessage("💾 อัปเดตภารกิจเดิมเรียบร้อย!");
@@ -587,12 +580,10 @@ REQUIREMENTS:
                 generatedCode = data.content_data?.html || "";
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                
                 toggleLoading(false); 
                 document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                 document.getElementById("resetBtn").classList.remove("hidden");
                 document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
-
                 if (currentUserId === originalTeacherId) updateUIMode('edit_owner');
                 else updateUIMode('edit_copy');
             }
