@@ -244,6 +244,7 @@
     <script>
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let dbSubjectLabel = ""; // ตัวแปรสำหรับเก็บชื่อวิชา+ระดับชั้นเพื่อบันทึกลง DB
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof APP_CONFIG !== 'undefined') {
@@ -293,7 +294,7 @@
             }
         }
 
-        // ✅ ตรวจสอบบริบทห้องเรียน (แก้ไข: ดึง room_name มาแสดงด้วย)
+        // ✅ ตรวจสอบบริบทห้องเรียน และเตรียมข้อมูลสำหรับบันทึก
         async function fetchClassroomContext() {
             try {
                 // เพิ่มการเลือก room_name จากตาราง classrooms
@@ -302,9 +303,14 @@
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
                     
-                    // แสดงผลทั้งชื่อวิชา และ ระดับชั้น (Room Name)
+                    // แสดงผลหน้าจอ: แสดงข้อมูลครบ (เช่น ป.1/4)
                     document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
                     
+                    // เตรียมข้อมูลบันทึก DB: ตัดเอาแค่ระดับชั้น (เช่น ป.1)
+                    // Logic: แยกด้วย '/' แล้วเอาตัวแรก
+                    const gradeOnly = data.room_name.includes('/') ? data.room_name.split('/')[0].trim() : data.room_name.trim();
+                    dbSubjectLabel = `${data.subject_name} (${gradeOnly})`;
+
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
             } catch (err) {}
@@ -341,9 +347,8 @@
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
             
-            // ดึงข้อมูลบริบทห้องเรียนเพื่อส่งให้ AI (ถ้ามี)
-            const classroomContext = document.getElementById('classroomSubjectText').innerText;
-            const contextText = targetCid ? `บริบทผู้เรียน: ${classroomContext}` : "";
+            // ดึงข้อมูลบริบทห้องเรียนเพื่อส่งให้ AI (ใช้ข้อมูลที่ตัดเกรดแล้ว หรือถ้าไม่มีก็ใช้จากหน้าจอ)
+            const contextText = dbSubjectLabel ? `บริบทผู้เรียน: ${dbSubjectLabel}` : "";
 
             if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
 
@@ -401,13 +406,15 @@
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
             try {
-                // ชื่อวิชาใน DB จะมีระดับชั้นติดไปด้วย เช่น "วิทยาศาสตร์ (ป.4/1)"
-                const clsSub = document.getElementById('classroomSubjectText').innerText;
+                // ใช้ dbSubjectLabel ที่เตรียมไว้ (ตัดเลขห้องออก) ถ้ามี
+                // ถ้าไม่มี (เช่นกรณีโหลดไม่ทัน) ให้ใช้ค่าเดิมจากหน้าจอไปก่อน
+                const subjectToSave = dbSubjectLabel || document.getElementById('classroomSubjectText').innerText;
+
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
                     description: document.getElementById("promptInput").value,
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
-                    subject_name: targetCid ? clsSub : "วิชาทั่วไป", // บันทึกระดับชั้นลง DB ตรงนี้
+                    subject_name: targetCid ? subjectToSave : "วิชาทั่วไป", // บันทึกชื่อวิชา + ระดับชั้น (เช่น ป.1)
                     mission_type: "ai_generated",
                     content_data: { html: generatedCode },
                     is_public: true,
