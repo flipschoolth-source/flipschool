@@ -105,6 +105,9 @@
                         <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
                         <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
                         <option value="สังคมศึกษา">สังคมศึกษา</option>
+                        <option value="การงานอาชีพ">การงานอาชีพ</option>
+                        <option value="ศิลปะ">ศิลปะ</option>
+                        <option value="สุขศึกษา">สุขศึกษา</option>
                         <option value="อื่นๆ">อื่นๆ</option>
                     </select>
                 </div>
@@ -151,10 +154,9 @@
             }, 500);
         });
 
-        // 1. ดึงข้อมูลภารกิจทั้งหมดที่เป็น Public
+        // 1. ดึงข้อมูลภารกิจ (Select subject_group และ grade_level แทน subject_name)
         async function fetchMissions() {
             try {
-                // ดึงเฉพาะที่ is_public = true
                 const { data, error } = await window.sysDB
                     .from('missions')
                     .select('*')
@@ -181,16 +183,19 @@
             }
 
             missions.forEach(m => {
+                // ✅ ใช้ subject_group แทน subject_name
                 const subject = m.subject_group || 'อื่นๆ';
                 const grade = m.grade_level || 'ไม่ระบุ';
                 const desc = m.description || 'ไม่มีคำอธิบาย';
                 
-                // ตรวจสอบว่ารูปไอคอนควรเป็นอะไรตามวิชา
+                // ตรวจสอบไอคอนตามวิชา
                 let icon = 'fas fa-cube';
                 let colorClass = 'text-blue-500 bg-blue-50';
                 if(subject.includes('ภาษาไทย')) { icon = 'fas fa-pen-nib'; colorClass = 'text-pink-500 bg-pink-50'; }
                 else if(subject.includes('คณิต')) { icon = 'fas fa-calculator'; colorClass = 'text-orange-500 bg-orange-50'; }
-                else if(subject.includes('วิทย์')) { icon = 'fas fa-flask'; colorClass = 'text-purple-500 bg-purple-50'; }
+                else if(subject.includes('วิทย์') || subject.includes('เทคโนโลยี')) { icon = 'fas fa-flask'; colorClass = 'text-purple-500 bg-purple-50'; }
+                else if(subject.includes('อังกฤษ') || subject.includes('ภาษาต่างประเทศ')) { icon = 'fas fa-language'; colorClass = 'text-teal-500 bg-teal-50'; }
+                else if(subject.includes('สังคม')) { icon = 'fas fa-globe-asia'; colorClass = 'text-indigo-500 bg-indigo-50'; }
 
                 const card = document.createElement('div');
                 card.className = 'mission-card group';
@@ -226,7 +231,7 @@
             });
         }
 
-        // 3. ระบบ Filter (ค้นหา + วิชา + ระดับชั้น)
+        // 3. ระบบ Filter (แก้ให้ค้นหาจาก subject_group)
         function filterMissions() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const subject = document.getElementById('subjectFilter').value;
@@ -234,12 +239,9 @@
 
             const filtered = allMissions.filter(m => {
                 const matchQuery = m.title.toLowerCase().includes(query) || 
-                                   (m.subject_name && m.subject_name.toLowerCase().includes(query)) ||
-                                   (m.subject_group && m.subject_group.toLowerCase().includes(query));
+                                   (m.subject_group && m.subject_group.toLowerCase().includes(query)); // ✅ ค้นหาจาก subject_group
                 
-                const matchSubject = subject === '' || m.subject_group === subject;
-                
-                // Filter ระดับชั้น (Check substring e.g. "ป." match "ป.1")
+                const matchSubject = subject === '' || m.subject_group === subject; // ✅ กรองจาก subject_group
                 const matchGrade = grade === '' || (m.grade_level && m.grade_level.includes(grade));
 
                 return matchQuery && matchSubject && matchGrade;
@@ -248,7 +250,6 @@
             renderMissions(filtered);
         }
 
-        // 4. ระบบนำเข้า (Import Logic)
         async function openImportModal(mid) {
             selectedMissionIdForImport = mid;
             const modal = document.getElementById('importModal');
@@ -260,7 +261,7 @@
             btn.disabled = true;
 
             try {
-                // ดึงรายชื่อห้องเรียนของครู
+                // ดึงรายชื่อห้องเรียนของครู (จากตาราง classrooms ยังคงมี subject_name ได้อยู่ตาม Schema)
                 const { data: classrooms } = await window.sysDB
                     .from('classrooms')
                     .select('classroom_id, room_name, subject_name')
@@ -304,7 +305,6 @@
             btn.disabled = true;
 
             try {
-                // 1. ดึงข้อมูล Mission ต้นฉบับ
                 const { data: sourceMission } = await window.sysDB
                     .from('missions')
                     .select('*')
@@ -313,18 +313,15 @@
 
                 if (!sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
 
-                // 2. สร้าง Copy ใหม่ (เพื่อให้ครูแก้ไขได้โดยไม่กระทบต้นฉบับ)
                 const newMissionData = {
                     ...sourceMission,
-                    mission_id: undefined, // ให้ DB gen ใหม่
-                    created_by: currentUserId, // เปลี่ยนเจ้าของเป็นคน Import
+                    mission_id: undefined,
+                    created_by: currentUserId,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                    is_public: false, // Default เป็นส่วนตัวก่อน
-                    origin_mission_id: selectedMissionIdForImport // (Optional) เก็บ ref ไว้
+                    is_public: false,
+                    origin_mission_id: selectedMissionIdForImport
                 };
-                
-                // ลบ field ที่ไม่จำเป็นตอน insert
                 delete newMissionData.mission_id;
 
                 const { data: newMission, error: insertError } = await window.sysDB
@@ -335,7 +332,6 @@
 
                 if (insertError) throw insertError;
 
-                // 3. ผูกกับห้องเรียน
                 await window.sysDB.from('classroom_missions').insert([{
                     classroom_id: selectedClassId,
                     mission_id: newMission.mission_id,
