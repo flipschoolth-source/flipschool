@@ -198,7 +198,7 @@
                     <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
                         <label class="block text-xs font-bold text-teal-700 uppercase tracking-widest mb-2"><i class="fas fa-robot"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="เช่น เปลี่ยนปุ่มเป็นสีแดง, เพิ่มตัวจับเวลา...">
+                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
                             <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
                                 <i class="fas fa-magic"></i> เสก
                             </button>
@@ -329,36 +329,51 @@
 
         async function handleAIModify() {
             const currentCode = document.getElementById('codeEditor').value.trim();
-            const prompt = document.getElementById('aiPromptInput').value.trim();
+            let prompt = document.getElementById('aiPromptInput').value.trim();
+            const title = document.getElementById("missionTitleInput").value.trim();
             const key = document.getElementById("apiKeyInput").value.trim();
 
             if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนสั่ง AI แก้ไขครับ", true);
-            if (!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งให้ AI ทราบครับ", true);
+            
+            // ✅ 1. บังคับให้ใส่ชื่อภารกิจก่อน เพราะต้องเอาไปทำชื่อเกมใน Title Bar
+            if (!title) {
+                document.getElementById("missionTitleInput").focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
+            }
+
+            // ✅ 2. ถ้าช่องคำสั่งว่าง ให้กำหนดคำสั่งพื้นฐาน (Title Bar + Score)
+            if (!prompt) {
+                prompt = "ปรับปรุงโค้ดให้มีมาตรฐาน: เพิ่ม Header และระบบบันทึกคะแนน";
+            }
 
             toggleAILoading(true);
 
-            // ✅ System Prompt ที่ฉลาดขึ้น: จัดการ Header และ Score Logic อัตโนมัติ
-            const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development. หน้าที่คือปรับปรุงโค้ดเกมให้สมบูรณ์และสวยงาม
+            // ✅ 3. System Prompt แบบระบุชื่อเกมเจาะจง
+            const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
-            1. **Header Management (สำคัญ):**
-               - ตรวจสอบว่าโค้ดเดิมมี Header/Title Bar หรือไม่
-               - **ถ้ามี:** ให้แทรกปุ่ม 'ย้อนกลับ' (Icon: fa-arrow-left) ไว้ด้านซ้ายสุด โดยกดแล้วเรียก \`window.parent.history.back()\`
-               - **ถ้าไม่มี:** ให้สร้าง Header ใหม่ด้านบนสุด ดีไซน์ให้เข้ากับธีมเกม ประกอบด้วย:
-                 - ซ้าย: ปุ่มย้อนกลับ (\`window.parent.history.back()\`)
-                 - กลาง: ชื่อเกม/ภารกิจ
-                 - ขวา: คะแนนหรือสถานะ
+            ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์ตามมาตรฐาน FlipSchool
             
-            2. **Scoring System:**
-               - ตรวจสอบว่ามี Logic ส่งคะแนนกลับหรือไม่ (\`window.parent.postMessage({ type: 'SAVE_RESULT', ... }, '*')\`)
-               - **ถ้าไม่มี:** ให้สร้างฟังก์ชัน \`endGame()\` หรือ Logic ที่เหมาะสมเมื่อจบเกม เพื่อส่ง \`score\` และ \`answers\` กลับไปยัง Parent Frame เพื่อบันทึกลง DB
+            สิ่งที่ต้องจัดการ (Mandatory Requirements):
+            1. **Header/Title Bar**:
+               - สร้างหรือแก้ไขแถบด้านบนสุดให้มีดีไซน์เข้ากับธีมเกม
+               - **ชื่อเกม (ตรงกลาง):** ต้องแสดงข้อความว่า "${title}"
+               - **ปุ่มย้อนกลับ (ซ้าย):** ต้องมีปุ่มที่เรียกคำสั่ง \`window.parent.history.back()\`
+               - **คะแนน (ขวา):** แสดงคะแนนปัจจุบัน
             
-            3. **Format:**
-               - ส่งคืนเฉพาะ Source Code HTML ฉบับเต็มเท่านั้น 
-               - ห้ามมีคำอธิบายนำหน้า/ลงท้าย
-               - ห้ามใช้ Markdown Block (เช่น \`\`\`html)`;
+            2. **Scoring System**:
+               - ตรวจสอบว่ามีการส่งคะแนนกลับด้วย \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\`
+               - ถ้าไม่มี ให้เพิ่ม Logic การจบเกมและการส่งคะแนนที่เหมาะสม
+            
+            3. **User Instruction**:
+               - ${prompt}
+            
+            กฎการส่งคืน:
+            - ส่งคืนเฉพาะ Source Code HTML (Single File) เท่านั้น
+            - ห้ามมีคำอธิบายใดๆ นอกเหนือจาก Code
+            - ห้ามใช้ Markdown Block`;
 
-            const userMessage = `Current Code:\n${currentCode}\n\nInstruction:\n${prompt}\n\nUpdate the code strictly following the instruction and rules. Return full HTML.`;
+            const userMessage = `Current Code:\n${currentCode}\n\nExecute the requirements above.`;
 
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
