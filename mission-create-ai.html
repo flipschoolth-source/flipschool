@@ -246,7 +246,6 @@
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // ✅ โหลด Config และตั้งค่าแบรนด์ (แก้ไขใหม่ให้ใช้ APP_CONFIG)
             if (typeof APP_CONFIG !== 'undefined') {
                 document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN);
                 document.getElementById('app-slogan-display').innerText = APP_CONFIG.APP_SLOGAN;
@@ -258,15 +257,13 @@
 
             initPreviewFrame();
             
-            // รอ Supabase พร้อมใช้งาน
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
 
-                    // ตรวจสอบ Login
                     const { data: { session } } = await window.sysDB.auth.getSession();
                     if (!session) {
-                        window.location.href = 'teacher-login.html'; // ดีดกลับหน้า Login
+                        window.location.href = 'teacher-login.html';
                         return;
                     }
 
@@ -277,7 +274,6 @@
             }, 500);
         });
 
-        // ฟังก์ชันสลับการแสดงผล API Key
         function toggleKeyEdit(showEdit) {
             const editView = document.getElementById('apiKeyEditView');
             const configView = document.getElementById('apiKeyConfiguredView');
@@ -286,7 +282,6 @@
             if (showEdit) {
                 editView.classList.remove('hidden-el');
                 configView.classList.add('hidden-el');
-                // ถ้ามี Key อยู่แล้ว ให้โชว์ปุ่มยกเลิกได้
                 if(document.getElementById("apiKeyInput").value) {
                     cancelBtn.classList.remove('hidden-el');
                 } else {
@@ -298,22 +293,23 @@
             }
         }
 
-        // ✅ ตรวจสอบบริบทห้องเรียน
+        // ✅ ตรวจสอบบริบทห้องเรียน (แก้ไข: ดึง room_name มาแสดงด้วย)
         async function fetchClassroomContext() {
             try {
-                const { data } = await window.sysDB.from('classrooms').select('subject_name').eq('classroom_id', targetCid).single();
+                // เพิ่มการเลือก room_name จากตาราง classrooms
+                const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
                 if (data) {
-                    // ปรับแต่ง UI ให้เหมาะสมกับการสร้างภารกิจในห้องเรียน
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
-                    document.getElementById('classroomSubjectText').innerText = data.subject_name;
-                    // กำหนดค่าตั้งต้นเป็นกลุ่มสาระ "อื่นๆ" หรือดึง Logic มาใส่
+                    
+                    // แสดงผลทั้งชื่อวิชา และ ระดับชั้น (Room Name)
+                    document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
+                    
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
             } catch (err) {}
         }
 
-        // ✅ ตรวจความปลอดภัย Prompt
         function isSafe(text) {
             const forbidden = ["ignore", "reveal", "แฮก", "hack", "ล้วง", "password", "eval(", "fetch(", "axios."];
             return !forbidden.some(p => text.toLowerCase().includes(p));
@@ -344,9 +340,18 @@
         async function handleGenerate() {
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
+            
+            // ดึงข้อมูลบริบทห้องเรียนเพื่อส่งให้ AI (ถ้ามี)
+            const classroomContext = document.getElementById('classroomSubjectText').innerText;
+            const contextText = targetCid ? `บริบทผู้เรียน: ${classroomContext}` : "";
+
             if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
 
             toggleLoading(true, "AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...");
+            
+            // เพิ่มบริบทผู้เรียนลงใน Prompt
+            const finalPrompt = `${contextText}\n${prompt}`;
+            
             const sys = `สร้างไฟล์ HTML/Tailwind CSS ชุดเดียวที่เป็นสื่อการสอนโต้ตอบ (Interactive) พรีเมียม 
             กฎ: 
             - ใช้ภาษาไทยเท่านั้น 
@@ -354,7 +359,7 @@
             - ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
 
             try {
-                const code = await callGemini(prompt, sys);
+                const code = await callGemini(finalPrompt, sys);
                 generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
@@ -396,12 +401,13 @@
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
             try {
+                // ชื่อวิชาใน DB จะมีระดับชั้นติดไปด้วย เช่น "วิทยาศาสตร์ (ป.4/1)"
                 const clsSub = document.getElementById('classroomSubjectText').innerText;
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
                     description: document.getElementById("promptInput").value,
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
-                    subject_name: targetCid ? clsSub : "วิชาทั่วไป",
+                    subject_name: targetCid ? clsSub : "วิชาทั่วไป", // บันทึกระดับชั้นลง DB ตรงนี้
                     mission_type: "ai_generated",
                     content_data: { html: generatedCode },
                     is_public: true,
@@ -418,7 +424,6 @@
                     mid = data[0].mission_id;
                 }
 
-                // เชื่อมโยงกับห้องเรียน
                 await window.sysDB.from('classroom_missions').upsert({
                     classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                 }, { onConflict: 'classroom_id, mission_id' });
@@ -434,8 +439,6 @@
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
                 showMessage("บันทึก Key สำเร็จ! ✨ ทุกอย่างพร้อมแล้วครับ");
-                
-                // ซ่อนการแก้ไขทันที
                 toggleKeyEdit(false);
             } catch (e) { showMessage("ไม่สามารถบันทึกได้"); }
         }
@@ -447,10 +450,8 @@
                 const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
                 if(data?.gemini_api_key) {
                     document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                    // ถ้ามี Key แล้ว ให้ซ่อนและโชว์สถานะพร้อมใช้งาน
                     toggleKeyEdit(false);
                 } else {
-                    // ถ้าไม่มี ให้โชว์หน้าแก้ไข
                     toggleKeyEdit(true);
                 }
             }
