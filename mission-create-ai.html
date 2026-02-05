@@ -175,11 +175,24 @@
                     </div>
 
                     <div id="classroomContextArea" class="hidden p-4 bg-orange-50 border border-orange-100 rounded-2xl">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-book-bookmark text-orange-400"></i>
-                            <div>
-                                <p class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">อ้างอิงรายวิชา</p>
-                                <p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p>
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-book-bookmark text-orange-400"></i>
+                                <div>
+                                    <p class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">อ้างอิงรายวิชา</p>
+                                    <p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-3 rounded-xl border border-orange-200 mt-1">
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">ระดับการศึกษา (สำหรับบันทึก)</label>
+                                <select id="educationLevelSelect" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-300">
+                                    <option value="">ไม่กำหนดระดับชั้น</option>
+                                    <option value="อ.">อนุบาล (อ.)</option>
+                                    <option value="ป.">ประถมศึกษา (ป.)</option>
+                                    <option value="ม.">มัธยมศึกษา (ม.)</option>
+                                </select>
+                                <p class="text-[9px] text-slate-400 mt-1 italic">* ระบบเลือกให้อัตโนมัติ หากไม่ถูกต้องสามารถเปลี่ยนได้</p>
                             </div>
                         </div>
                     </div>
@@ -244,8 +257,8 @@
     <script>
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
-        let dbGradeLevel = ""; // ตัวแปรเก็บระดับชั้น เช่น "ป.1"
-        let dbSubjectOnly = ""; // ตัวแปรเก็บชื่อวิชาอย่างเดียว
+        let dbSubjectOnly = ""; // เก็บชื่อวิชา
+        let detectedGradeNumber = ""; // เก็บตัวเลขชั้น เช่น "1", "4", "6/1"
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof APP_CONFIG !== 'undefined') {
@@ -295,24 +308,38 @@
             }
         }
 
-        // ✅ ตรวจสอบบริบทห้องเรียน และเตรียมข้อมูลสำหรับบันทึก
+        // ✅ ตรวจสอบและตั้งค่าระดับชั้น
         async function fetchClassroomContext() {
             try {
-                // ดึงข้อมูลห้องเรียน
                 const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
                 if (data) {
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
                     
-                    // แสดงผลหน้าจอ: แสดงข้อมูลครบ (เช่น "ภาษาไทย (ป.1/4)")
                     document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
                     
-                    // เตรียมข้อมูลสำหรับบันทึก DB
-                    // 1. ชื่อวิชา (เก็บเฉพาะชื่อ)
+                    // เตรียมข้อมูลพื้นฐาน
                     dbSubjectOnly = data.subject_name;
-                    
-                    // 2. ระดับชั้น (ตัด / ออก) เช่น "ป.1/4" -> "ป.1"
-                    dbGradeLevel = data.room_name.includes('/') ? data.room_name.split('/')[0].trim() : data.room_name.trim();
+                    let roomStr = data.room_name.trim();
+
+                    // แยกส่วนตัวเลขออกมา (เช่น "ป.1/4" -> เอา "1")
+                    // Logic: ลบตัวอักษรไทยออก เหลือแต่ตัวเลขและ /
+                    // หรือถ้ามี / ให้เอาข้างหน้า /
+                    let tempGrade = roomStr.includes('/') ? roomStr.split('/')[0].trim() : roomStr;
+                    detectedGradeNumber = tempGrade.replace(/[^\d]/g, ''); // เก็บเฉพาะตัวเลข
+
+                    // Auto-detect Dropdown
+                    const eduSelect = document.getElementById('educationLevelSelect');
+                    if (roomStr.includes('อ.') || roomStr.includes('อนุบาล')) {
+                        eduSelect.value = "อ.";
+                    } else if (roomStr.includes('ป.') || roomStr.includes('ประถม')) {
+                        eduSelect.value = "ป.";
+                    } else if (roomStr.includes('ม.') || roomStr.includes('มัธยม')) {
+                        eduSelect.value = "ม.";
+                    } else {
+                        // ไม่พบ Keyword ให้ default เป็นว่าง (ไม่กำหนด)
+                        eduSelect.value = ""; 
+                    }
 
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
@@ -350,8 +377,10 @@
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
             
-            // ใช้ข้อมูลระดับชั้นที่ตัดแล้ว ส่งให้ AI (เพื่อให้ AI รู้ว่าสร้างให้เด็กระดับชั้นไหน)
-            const contextText = dbGradeLevel ? `ระดับชั้นผู้เรียน: ${dbGradeLevel} | วิชา: ${dbSubjectOnly}` : "";
+            // ใช้ค่าจาก Dropdown + ตัวเลขระดับชั้น ส่งให้ AI context
+            const prefix = document.getElementById('educationLevelSelect').value;
+            const fullGrade = prefix + detectedGradeNumber;
+            const contextText = targetCid ? `ระดับชั้นผู้เรียน: ${fullGrade || 'ไม่ระบุ'} | วิชา: ${dbSubjectOnly}` : "";
 
             if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
 
@@ -408,14 +437,30 @@
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
             try {
+                // สร้าง Grade Level ที่สมบูรณ์จาก Dropdown + เลขชั้น
+                const prefix = document.getElementById('educationLevelSelect').value;
+                
+                // Logic ผสมคำ:
+                // ถ้ามี Prefix (เช่น "ป.") และมีเลข (เช่น "1") -> รวมเป็น "ป.1"
+                // ถ้าไม่มี Prefix แต่มีเลข -> เป็น "1" (หรือตามที่ DB มี)
+                // ถ้าไม่มีเลขเลย -> ใช้ Prefix อย่างเดียว (เช่น "อนุบาล")
+                let finalGrade = "";
+                if (prefix && detectedGradeNumber) {
+                    finalGrade = prefix + detectedGradeNumber;
+                } else if (prefix) {
+                    finalGrade = prefix + " (ไม่ระบุชั้นปี)"; // กรณีเลือกแต่อนุบาล
+                } else {
+                    finalGrade = detectedGradeNumber || "ไม่ระบุ";
+                }
+
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
                     description: document.getElementById("promptInput").value,
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
                     
-                    // ✅ บันทึกแยกคอลัมน์ (หลังจากเพิ่มคอลัมน์ใน DB แล้ว)
+                    // บันทึกข้อมูลที่แยกส่วนแล้ว
                     subject_name: targetCid ? dbSubjectOnly : "วิชาทั่วไป", 
-                    grade_level: targetCid ? dbGradeLevel : "", // บันทึกระดับชั้นลงคอลัมน์ใหม่
+                    grade_level: targetCid ? finalGrade : "", 
                     
                     mission_type: "ai_generated",
                     content_data: { html: generatedCode },
