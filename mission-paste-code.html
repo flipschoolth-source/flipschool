@@ -338,17 +338,27 @@
 
             toggleAILoading(true);
 
-            const sysPrompt = `คุณคือผู้ช่วยแก้ไขโค้ด HTML ผู้เชี่ยวชาญ.
-            หน้าที่ของคุณคือ: รับโค้ด HTML ปัจจุบัน และคำสั่งแก้ไข แล้วส่งคืนโค้ด HTML ใหม่ฉบับสมบูรณ์
+            // ✅ System Prompt ที่ฉลาดขึ้น: จัดการ Header และ Score Logic อัตโนมัติ
+            const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development. หน้าที่คือปรับปรุงโค้ดเกมให้สมบูรณ์และสวยงาม
             
-            กฎ:
-            1. ส่งคืนเฉพาะ Source Code HTML เท่านั้น ห้ามมีคำอธิบาย
-            2. ห้ามใช้ Markdown Block (เช่น \`\`\`html)
-            3. ตรวจสอบว่ามี <script>window.parent.postMessage(...) เพื่อบันทึกคะแนนหรือไม่ ถ้าไม่มีให้เพิ่มด้วย (Score Logic)
+            1. **Header Management (สำคัญ):**
+               - ตรวจสอบว่าโค้ดเดิมมี Header/Title Bar หรือไม่
+               - **ถ้ามี:** ให้แทรกปุ่ม 'ย้อนกลับ' (Icon: fa-arrow-left) ไว้ด้านซ้ายสุด โดยกดแล้วเรียก \`window.parent.history.back()\`
+               - **ถ้าไม่มี:** ให้สร้าง Header ใหม่ด้านบนสุด ดีไซน์ให้เข้ากับธีมเกม ประกอบด้วย:
+                 - ซ้าย: ปุ่มย้อนกลับ (\`window.parent.history.back()\`)
+                 - กลาง: ชื่อเกม/ภารกิจ
+                 - ขวา: คะแนนหรือสถานะ
             
-            Current Code Length: ${currentCode.length} chars.`;
+            2. **Scoring System:**
+               - ตรวจสอบว่ามี Logic ส่งคะแนนกลับหรือไม่ (\`window.parent.postMessage({ type: 'SAVE_RESULT', ... }, '*')\`)
+               - **ถ้าไม่มี:** ให้สร้างฟังก์ชัน \`endGame()\` หรือ Logic ที่เหมาะสมเมื่อจบเกม เพื่อส่ง \`score\` และ \`answers\` กลับไปยัง Parent Frame เพื่อบันทึกลง DB
+            
+            3. **Format:**
+               - ส่งคืนเฉพาะ Source Code HTML ฉบับเต็มเท่านั้น 
+               - ห้ามมีคำอธิบายนำหน้า/ลงท้าย
+               - ห้ามใช้ Markdown Block (เช่น \`\`\`html)`;
 
-            const userMessage = `Current Code:\n${currentCode}\n\nInstruction:\n${prompt}\n\nUpdate the code strictly following the instruction. Return full HTML.`;
+            const userMessage = `Current Code:\n${currentCode}\n\nInstruction:\n${prompt}\n\nUpdate the code strictly following the instruction and rules. Return full HTML.`;
 
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
