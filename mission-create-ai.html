@@ -257,8 +257,8 @@
     <script>
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
-        let dbSubjectOnly = ""; // เก็บชื่อวิชา
-        let detectedGradeNumber = ""; // เก็บตัวเลขชั้น เช่น "1", "4", "6/1"
+        let dbSubjectOnly = ""; 
+        let detectedGradeNumber = ""; 
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof APP_CONFIG !== 'undefined') {
@@ -297,46 +297,66 @@
             if (showEdit) {
                 editView.classList.remove('hidden-el');
                 configView.classList.add('hidden-el');
-                if(document.getElementById("apiKeyInput").value) {
-                    cancelBtn.classList.remove('hidden-el');
-                } else {
-                    cancelBtn.classList.add('hidden-el');
-                }
+                if(document.getElementById("apiKeyInput").value) cancelBtn.classList.remove('hidden-el');
+                else cancelBtn.classList.add('hidden-el');
             } else {
                 editView.classList.add('hidden-el');
                 configView.classList.remove('hidden-el');
             }
         }
 
-        // ✅ ตรวจสอบและตั้งค่าระดับชั้น
+        // --- ส่วนแจ้งเตือนสถานะ ---
+        function showMessage(text) { 
+            const msgBox = document.getElementById("msgBox");
+            document.getElementById("msgText").innerText = text; 
+            msgBox.classList.remove('hidden'); 
+            
+            if(window.msgTimeout) clearTimeout(window.msgTimeout);
+            window.msgTimeout = setTimeout(() => msgBox.classList.add('hidden'), 5000); 
+        }
+
+        function toggleLoading(show, msg = "") { 
+            document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
+            if(msg) document.getElementById("loadingMessage").innerText = msg; 
+            
+            const btn = document.getElementById("generateBtn");
+            btn.disabled = show;
+            
+            // เปลี่ยนหน้าตาปุ่มให้รู้ว่ากำลังทำงาน
+            if(show) {
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>AI กำลังทำงาน...</span>';
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+            } else {
+                btn.innerHTML = '<i class="fas fa-magic"></i> <span>เริ่มเนรมิตภารกิจด้วย AI</span>';
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
+        function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
+        function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
+
+        // --- Logic หลัก ---
+
         async function fetchClassroomContext() {
             try {
                 const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
                 if (data) {
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
-                    
                     document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
                     
-                    // เตรียมข้อมูลพื้นฐาน
                     dbSubjectOnly = data.subject_name;
                     let roomStr = data.room_name.trim();
-
-                    // แยกส่วนตัวเลขออกมา
                     let tempGrade = roomStr.includes('/') ? roomStr.split('/')[0].trim() : roomStr;
-                    detectedGradeNumber = tempGrade.replace(/[^\d]/g, ''); // เก็บเฉพาะตัวเลข
+                    detectedGradeNumber = tempGrade.replace(/[^\d]/g, ''); 
 
-                    // Auto-detect Dropdown
                     const eduSelect = document.getElementById('educationLevelSelect');
-                    if (roomStr.includes('อ.') || roomStr.includes('อนุบาล')) {
-                        eduSelect.value = "อ.";
-                    } else if (roomStr.includes('ป.') || roomStr.includes('ประถม')) {
-                        eduSelect.value = "ป.";
-                    } else if (roomStr.includes('ม.') || roomStr.includes('มัธยม')) {
-                        eduSelect.value = "ม.";
-                    } else {
-                        eduSelect.value = ""; 
-                    }
+                    if (roomStr.includes('อ.') || roomStr.includes('อนุบาล')) eduSelect.value = "อ.";
+                    else if (roomStr.includes('ป.') || roomStr.includes('ประถม')) eduSelect.value = "ป.";
+                    else if (roomStr.includes('ม.') || roomStr.includes('มัธยม')) eduSelect.value = "ม.";
+                    else eduSelect.value = ""; 
 
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
@@ -349,43 +369,70 @@
         }
 
         async function callGemini(userPrompt, systemPrompt = "", retries = 5) {
-            if (!isSafe(userPrompt)) throw new Error("ตรวจพบเนื้อหาที่ไม่อนุญาต ระบบขอระงับการทำงานครับ");
+            if (!isSafe(userPrompt)) throw new Error("⚠️ ตรวจพบคำสั่งที่ไม่ปลอดภัย");
+            
             const key = document.getElementById("apiKeyInput").value.trim();
-            if (!key) throw new Error("กรุณาบันทึก Gemini API Key ก่อนเริ่มงานครับ");
+            if (!key) throw new Error("🔑 กรุณากรอก API Key ก่อนครับ");
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
             const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
 
             try {
                 const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                
                 if (!res.ok) {
-                    if (res.status === 429 && retries > 0) {
-                        await new Promise(r => setTimeout(r, 2000));
-                        return callGemini(userPrompt, systemPrompt, retries - 1);
+                    if (res.status === 400) throw new Error("คำสั่งไม่ถูกต้อง (400)");
+                    if (res.status === 401 || res.status === 403) throw new Error("API Key ไม่ถูกต้อง");
+                    if (res.status === 429) {
+                        if (retries > 0) {
+                            await new Promise(r => setTimeout(r, 2000));
+                            return callGemini(userPrompt, systemPrompt, retries - 1);
+                        }
+                        throw new Error("ระบบกำลังยุ่ง (429) กรุณารอสักครู่");
                     }
-                    throw new Error("Gemini API Error: " + res.status);
+                    if (res.status === 500) throw new Error("ระบบ AI ขัดข้อง (500)");
+                    throw new Error(`Gemini API Error: ${res.status}`);
                 }
+
                 const data = await res.json();
+                if (!data.candidates || data.candidates.length === 0) throw new Error("AI ไม่ตอบกลับ (No Data)");
+                
                 return data.candidates?.[0]?.content?.parts?.[0]?.text;
-            } catch (err) { throw err; }
+            } catch (err) { 
+                if (err.message.includes('Failed to fetch')) throw new Error("🔴 เชื่อมต่ออินเทอร์เน็ตไม่ได้");
+                throw err; 
+            }
         }
 
         async function handleGenerate() {
+            // 1. Validate
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
+            const key = document.getElementById("apiKeyInput").value.trim();
+
+            if(!title) {
+                document.getElementById("missionTitleInput").focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนครับ");
+            }
+            if(!prompt) {
+                document.getElementById("promptInput").focus();
+                return showMessage("⚠️ กรุณาระบุรายละเอียดให้ AI ทราบครับ");
+            }
+            if(!key) {
+                document.getElementById("apiKeyEditView").scrollIntoView({ behavior: 'smooth' });
+                toggleKeyEdit(true);
+                return showMessage("🔑 กรุณากรอก API Key ก่อนเริ่มงานครับ");
+            }
+
+            // 2. Start
+            toggleLoading(true, "🚀 AI กำลังวิเคราะห์และเขียนโค้ด...");
             
-            // ใช้ค่าจาก Dropdown + ตัวเลขระดับชั้น ส่งให้ AI context
             const prefix = document.getElementById('educationLevelSelect').value;
             const fullGrade = prefix + detectedGradeNumber;
             const contextText = targetCid ? `ระดับชั้นผู้เรียน: ${fullGrade || 'ไม่ระบุ'} | วิชา: ${dbSubjectOnly}` : "";
-
-            if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
-
-            toggleLoading(true, "AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...");
             
             const finalPrompt = `${contextText}\n${prompt}`;
             
-            // ✅ ปรับปรุง Prompt: กำชับห้ามพูดคุย + สร้าง Header อัตโนมัติ
             const sys = `คุณคือ Code Generator ที่เข้มงวด
             หน้าที่ของคุณคือ: สร้างไฟล์ HTML5 (Single File) + Tailwind CSS สำหรับสื่อการสอน
             
@@ -409,86 +456,82 @@
             try {
                 const code = await callGemini(finalPrompt, sys);
                 
-                // ✅ Logic การคลีนโค้ดที่แม่นยำขึ้น (กัน AI พูดมาก)
+                // 3. Clean Code
                 let cleanCode = code;
-                
-                // 1. ถ้ามี ```html ... ``` ให้ดึงไส้ใน
                 const htmlBlock = code.match(/```html([\s\S]*?)```/i);
-                if (htmlBlock) {
-                    cleanCode = htmlBlock[1];
-                } else {
-                    // 2. ถ้ามีแค่ ``` ... ```
+                if (htmlBlock) cleanCode = htmlBlock[1];
+                else {
                     const generalBlock = code.match(/```([\s\S]*?)```/i);
                     if (generalBlock) cleanCode = generalBlock[1];
                 }
                 
-                // 3. กรองเอาเฉพาะ <html> ถึง </html> เพื่อความชัวร์
                 const start = cleanCode.indexOf('<!DOCTYPE html>');
-                if (start === -1) {
-                    // ถ้าหาไม่เจอ ลองหา <html>
+                if (start !== -1) cleanCode = cleanCode.substring(start);
+                else {
                     const startTag = cleanCode.indexOf('<html');
                     if(startTag !== -1) cleanCode = cleanCode.substring(startTag);
-                } else {
-                    cleanCode = cleanCode.substring(start);
                 }
                 
-                // ตัดส่วนท้ายทิ้งถ้ามีขยะต่อท้าย
                 const end = cleanCode.lastIndexOf('</html>');
-                if (end !== -1) {
-                    cleanCode = cleanCode.substring(0, end + 7);
-                }
+                if (end !== -1) cleanCode = cleanCode.substring(0, end + 7);
 
                 generatedCode = cleanCode.trim();
+                
+                if(generatedCode.length < 50) throw new Error("AI ส่งข้อมูลไม่สมบูรณ์ โปรดลองใหม่");
+
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตภารกิจสำเร็จ! ✨ พรีวิวได้ทางขวามือครับ");
-            } catch (err) { showMessage("ข้อผิดพลาด: " + err.message); }
-            finally { toggleLoading(false); }
+                showMessage("✅ เนรมิตภารกิจสำเร็จ! เช็คพรีวิวทางขวาได้เลยครับ");
+            } catch (err) { 
+                console.error(err);
+                showMessage("❌ เกิดข้อผิดพลาด: " + err.message); 
+            } finally { 
+                toggleLoading(false); 
+            }
         }
 
         async function optimizePrompt() {
             const input = document.getElementById("promptInput").value.trim();
-            if(!input) return;
-            toggleLoading(true, "AI กำลังปรับแต่งคำสั่งให้เป็นมืออาชีพ...");
+            if(!input) return showMessage("⚠️ กรุณาพิมพ์คำสั่งสั้นๆ ก่อนกดขัดเกลาครับ");
+            toggleLoading(true, "✨ AI กำลังปรับแต่งคำสั่งให้เป็นมืออาชีพ...");
             try {
                 const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียด ชัดเจน และมีโครงสร้างที่ดีสำหรับการสร้างสื่อการสอน ตอบเป็นภาษาไทย");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+                showMessage("✨ ปรับแต่งคำสั่งเรียบร้อย!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function suggestIdeas() {
             const grp = document.getElementById("subjectGroup").value;
             const clsSub = document.getElementById('classroomSubjectText').innerText;
-            toggleLoading(true, "AI กำลังคิดไอเดียใหม่ๆ ให้คุณครู...");
+            toggleLoading(true, "💡 AI กำลังระดมสมอง...");
             try {
                 const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถม ตอบภาษาไทยสั้นๆ");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+                showMessage("💡 ได้ไอเดียแล้ว!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function addContext() {
             const input = document.getElementById("promptInput").value.trim();
-            if(!input) return;
-            toggleLoading(true, "AI กำลังดึงสาระความรู้มาเสริมทัพ...");
+            if(!input) return showMessage("⚠️ ต้องมีหัวข้อเรื่องก่อน AI ถึงจะหาสาระให้ได้ครับ");
+            toggleLoading(true, "📚 AI กำลังค้นคว้าข้อมูล...");
             try {
                 const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
                 document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+                showMessage("📚 เพิ่มสาระความรู้เรียบร้อย!");
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
+            toggleLoading(true, "💾 กำลังบันทึกข้อมูล...");
             try {
-                // สร้าง Grade Level ที่สมบูรณ์จาก Dropdown + เลขชั้น
                 const prefix = document.getElementById('educationLevelSelect').value;
                 let finalGrade = "";
-                if (prefix && detectedGradeNumber) {
-                    finalGrade = prefix + detectedGradeNumber;
-                } else if (prefix) {
-                    finalGrade = prefix + " (ไม่ระบุชั้นปี)"; 
-                } else {
-                    finalGrade = detectedGradeNumber || "ไม่ระบุ";
-                }
+                if (prefix && detectedGradeNumber) finalGrade = prefix + detectedGradeNumber;
+                else if (prefix) finalGrade = prefix + " (ไม่ระบุชั้นปี)"; 
+                else finalGrade = detectedGradeNumber || "ไม่ระบุ";
 
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
@@ -516,19 +559,21 @@
                     classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                 }, { onConflict: 'classroom_id, mission_id' });
 
+                showMessage("💾 บันทึกสำเร็จ!");
                 if (mode === 'exit') window.location.href = `classroom-detail.html?id=${targetCid}`;
-            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message); }
+            } catch (err) { showMessage("❌ บันทึกไม่สำเร็จ: " + err.message); }
+            finally { toggleLoading(false); closeSaveModal(); }
         }
 
         async function saveKeyToDB() {
             const key = document.getElementById("apiKeyInput").value.trim();
-            if(!key) return showMessage("กรุณากรอก API Key");
+            if(!key) return showMessage("⚠️ กรุณากรอก API Key");
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
                 await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
-                showMessage("บันทึก Key สำเร็จ! ✨ ทุกอย่างพร้อมแล้วครับ");
+                showMessage("✅ บันทึก Key สำเร็จ! พร้อมใช้งานแล้วครับ");
                 toggleKeyEdit(false);
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้"); }
+            } catch (e) { showMessage("❌ ไม่สามารถบันทึกได้: " + e.message); }
         }
 
         async function loadKeyFromDB() {
@@ -560,13 +605,6 @@
                 statusEl.innerHTML = currentUserId === originalTeacherId ? '<span class="badge-premium owner-badge">เจ้าของภารกิจ</span>' : '<span class="badge-premium copy-badge">บันทึกเป็นชุดใหม่</span>';
             }
         }
-
-        function showMessage(text) { document.getElementById("msgText").innerText = text; document.getElementById("msgBox").classList.remove('hidden'); setTimeout(() => document.getElementById("msgBox").classList.add('hidden'), 5000); }
-        function toggleLoading(show, msg = "") { document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); if(msg) document.getElementById("loadingMessage").innerText = msg; document.getElementById("generateBtn").disabled = show; }
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
-        function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-        function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
     </script>
 </body>
 </html>
