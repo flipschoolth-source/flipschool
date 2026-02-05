@@ -198,13 +198,13 @@
                     <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
                         <label class="block text-xs font-bold text-teal-700 uppercase tracking-widest mb-2"><i class="fas fa-robot"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
+                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score+Responsive) หรือพิมพ์คำสั่งแก้ไข...">
                             <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
                                 <i class="fas fa-magic"></i> สร้าง
                             </button>
                         </div>
                         <div id="aiLoading" class="hidden-el mt-2 text-xs text-teal-600 font-bold flex items-center gap-2">
-                            <i class="fas fa-circle-notch fa-spin"></i> กำลังแก้ไขโค้ด...
+                            <i class="fas fa-circle-notch fa-spin"></i> กำลังดำเนินการ...
                         </div>
                     </div>
 
@@ -296,7 +296,7 @@
         function toggleAILoading(show) {
             document.getElementById('aiLoading').classList.toggle('hidden-el', !show);
             document.getElementById('aiModifyBtn').disabled = show;
-            // เปลี่ยนปุ่มเป็น "สร้าง" เมื่อทำงานเสร็จหรือเริ่มต้นใหม่
+            // เปลี่ยนปุ่มเป็น "สร้าง" เมื่อเสร็จ
             document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
         }
 
@@ -335,40 +335,42 @@
             const key = document.getElementById("apiKeyInput").value.trim();
 
             if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
-            if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนสั่ง AI แก้ไขครับ", true);
+            if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนกดสร้างครับ", true);
             
-            // ✅ 1. บังคับให้ใส่ชื่อภารกิจก่อน เพราะต้องเอาไปทำชื่อเกมใน Title Bar
+            // ✅ 1. บังคับชื่อภารกิจ
             if (!title) {
                 document.getElementById("missionTitleInput").focus();
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
 
-            // ✅ 2. ถ้าช่องคำสั่งว่าง ให้กำหนดคำสั่งพื้นฐาน (Title Bar + Score)
+            // ✅ 2. ถ้าช่องคำสั่งว่าง ให้กำหนดคำสั่งมาตรฐาน (Header + Score + Responsive)
             if (!prompt) {
-                prompt = "ปรับปรุงโค้ดให้มีมาตรฐาน: ตรวจสอบ/สร้าง Header (มีชื่อเกมและปุ่มย้อนกลับ) และระบบบันทึกคะแนน";
+                prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐาน: 1. เพิ่ม Header (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) 2. ทำให้เป็น Responsive เต็มจอรองรับทุกอุปกรณ์ 3. ตรวจสอบระบบส่งคะแนนเมื่อจบเกม";
             }
 
             toggleAILoading(true);
 
-            // ✅ 3. System Prompt แบบระบุชื่อเกมเจาะจง
+            // ✅ 3. System Prompt ที่เน้น Responsive และ Standard
             const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
-            ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์ตามมาตรฐาน FlipSchool
+            ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์และสวยงามตามมาตรฐาน FlipSchool
             
             สิ่งที่ต้องจัดการ (Mandatory Requirements):
             1. **Header/Title Bar**:
-               - ตรวจสอบว่าโค้ดเดิมมี Header/Title Bar หรือไม่
-               - **ถ้ามี:** ให้แทรกปุ่ม 'ย้อนกลับ' (Icon: fa-arrow-left) ไว้ด้านซ้ายสุด โดยกดแล้วเรียก \`window.parent.history.back()\`
-               - **ถ้าไม่มี:** ให้สร้าง Header ใหม่ด้านบนสุด ดีไซน์ให้เข้ากับธีมเกม ประกอบด้วย:
-                 - ซ้าย: ปุ่มย้อนกลับ (\`window.parent.history.back()\`)
-                 - กลาง: ชื่อเกม "${title}"
-                 - ขวา: คะแนนหรือสถานะ
+               - สร้างหรือแก้ไขแถบด้านบนสุดให้มีดีไซน์เข้ากับธีมเกม
+               - **ชื่อเกม (ตรงกลาง):** ต้องแสดงข้อความว่า "${title}"
+               - **ปุ่มย้อนกลับ (ซ้าย):** ต้องมีปุ่มที่เรียกคำสั่ง \`window.parent.history.back()\`
+               - **คะแนน (ขวา):** แสดงคะแนนปัจจุบัน
             
             2. **Scoring System**:
                - ตรวจสอบว่ามีการส่งคะแนนกลับด้วย \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\`
                - ถ้าไม่มี ให้เพิ่ม Logic การจบเกมและการส่งคะแนนที่เหมาะสม
             
-            3. **User Instruction**:
+            3. **Responsive Design**:
+               - ตรวจสอบให้แน่ใจว่าเกมแสดงผลได้ดีบนมือถือ (Mobile-First) และ Desktop
+               - ใช้ CSS เพื่อให้คอนเทนต์พอดีกับหน้าจอ (Fit Screen) ไม่ล้น ไม่ตกขอบ
+            
+            4. **User Instruction**:
                - ${prompt}
             
             กฎการส่งคืน:
@@ -404,7 +406,7 @@
                     
                     document.getElementById('codeEditor').value = cleanCode.trim();
                     refreshPreview();
-                    showMessage("✨ AI แก้ไขโค้ดเรียบร้อย!");
+                    showMessage("✨ สร้างโค้ดสำเร็จเรียบร้อย!");
                 } else {
                     throw new Error("AI ไม่ส่งผลลัพธ์กลับมา");
                 }
