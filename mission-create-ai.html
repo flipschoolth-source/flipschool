@@ -17,21 +17,29 @@
     <style>
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
+        
         .preview-outer-container { width: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 1.5rem; min-height: 650px; overflow: hidden; }
         .preview-frame-wrapper { background: #1e293b; border-radius: 2rem; overflow: hidden; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); position: relative; transform-origin: top center; }
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
         .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
+        
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        
         .btn-ai-sparkle { background: white; border: 1px solid #e2e8f0; color: #475569; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
         .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; transform: translateY(-1px); }
+        
         .custom-message-box { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); z-index: 9999; border-left: 5px solid #3b82f6; display: none; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
         .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; display: inline-flex; align-items: center; gap: 4px; }
         .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
         .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
         .new-badge { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+        
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -50,7 +58,9 @@
                 <p id="saveModalDesc" class="text-sm text-slate-500 mt-2 px-4 italic font-medium">ภารกิจจะถูกจัดเก็บเข้าคลังสื่อสาระและพร้อมมอบหมายให้นักเรียน</p>
             </div>
             <div class="space-y-3">
-                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">💾 บันทึกและกลับห้องเรียน</button>
+                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">
+                    💾 บันทึกและกลับห้องเรียน
+                </button>
                 <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ย้อนกลับไปแก้ไข</button>
             </div>
         </div>
@@ -72,19 +82,31 @@
     </nav>
 
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
         <div class="lg:col-span-5 flex flex-col gap-6">
             <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
                 <div class="flex justify-between items-start mb-8">
                     <div class="flex items-center gap-3">
-                        <div id="modeIcon" class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner"><i class="fas fa-robot text-2xl"></i></div>
-                        <div><h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">สร้างภารกิจใหม่</h2><p id="pageSubDisplay" class="text-xs text-slate-400 font-medium">AI Mission Creator</p></div>
+                        <div id="modeIcon" class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                            <i class="fas fa-magic text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">สร้างภารกิจใหม่</h2>
+                            <p id="pageSubDisplay" class="text-xs text-slate-400 font-medium">AI Mission Creator</p>
+                        </div>
                     </div>
                     <div id="ownershipStatus" class="hidden-el"></div>
                 </div>
 
                 <div class="mb-8">
                     <div id="apiKeyConfiguredView" class="hidden-el p-5 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
-                        <div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-check"></i></div><div><div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div><div class="text-[10px] text-emerald-600 font-medium">พร้อมเนรมิตภารกิจการสอน</div></div></div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-check"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div>
+                                <div class="text-[10px] text-emerald-600 font-medium">พร้อมเนรมิตภารกิจการสอน</div>
+                            </div>
+                        </div>
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-all font-bold">เปลี่ยน Key</button>
                     </div>
                     <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
@@ -108,7 +130,7 @@
                             <option value="คณิตศาสตร์">คณิตศาสตร์</option>
                             <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
                             <option value="สังคมศึกษา">สังคมศึกษา</option>
-                            <option value="สุขศึกษา">สุขศึกษา</option>
+                            <option value="สุขศึกษา">สุขศึกษาและพลศึกษา</option>
                             <option value="ศิลปะ">ศิลปะ</option>
                             <option value="การงานอาชีพ">การงานอาชีพ</option>
                             <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
@@ -209,16 +231,19 @@
                 if(user) {
                     currentUserId = user.id;
                     const { data, error } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).maybeSingle();
+                    
                     if(data?.gemini_api_key) {
                         userApiKey = data.gemini_api_key;
                         document.getElementById("apiKeyInput").value = userApiKey;
                         toggleKeyEdit(false);
-                    } else { toggleKeyEdit(true); }
+                    } else {
+                        toggleKeyEdit(true);
+                    }
                 }
             } catch (err) { console.error("Key Load Error:", err); }
         }
 
-        // --- UI Updates ---
+        // --- Helper: Update UI Mode ---
         function updateUIMode(mode) {
             const titleEl = document.getElementById('pageModeDisplay');
             const subTitleEl = document.getElementById('pageSubDisplay');
@@ -248,6 +273,22 @@
             statusEl.classList.remove('hidden-el');
         }
 
+        // --- Helper: Extract HTML ---
+        function extractHtmlCode(rawText) {
+            let match = rawText.match(/```html\s*([\s\S]*?)\s*```/i);
+            if (!match) match = rawText.match(/```\s*([\s\S]*?)\s*```/i);
+            
+            let code = match ? match[1] : rawText;
+            let start = code.indexOf('<!DOCTYPE html>');
+            if (start === -1) start = code.indexOf('<html');
+            const end = code.lastIndexOf('</html>');
+
+            if (start !== -1 && end !== -1) {
+                return code.substring(start, end + 7).trim();
+            }
+            return code.trim();
+        }
+
         function validateCodeStandard(code) {
             if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
             const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
@@ -265,8 +306,18 @@
             const key = userApiKey || document.getElementById("apiKeyInput").value.trim();
 
             if(!title) { document.getElementById("missionTitleInput").focus(); return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนครับ"); }
-            if(!prompt && !generatedCode) { document.getElementById("promptInput").focus(); return showMessage("⚠️ กรุณาระบุรายละเอียดให้ AI ทราบครับ"); }
             if(!key) { document.getElementById("apiKeyEditView").scrollIntoView(); toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ"); }
+
+            let instruction = prompt;
+            if (generatedCode && !instruction) {
+                 const check = validateCodeStandard(generatedCode);
+                 if(!check.valid) {
+                     instruction = `Fix critical issues: ${check.msg}`;
+                 } else {
+                     document.getElementById("promptInput").focus(); 
+                     return showMessage("⚠️ กรุณาพิมพ์คำสั่งแก้ไขครับ (เช่น เปลี่ยนสี, เพิ่มปุ่ม)"); 
+                 }
+            }
 
             toggleLoading(true, generatedCode ? "✨ AI กำลังปรับปรุงโค้ด..." : "🚀 AI กำลังวิเคราะห์และเขียนโค้ด...");
             
@@ -276,34 +327,32 @@
             let finalPrompt, sys;
 
             if (generatedCode) {
-                // --- Safe Modify Mode ---
-                let instruction = prompt;
-                if (!instruction) {
-                    const check = validateCodeStandard(generatedCode);
-                    if (!check.valid) instruction = `Code ขาดมาตรฐาน: ${check.msg} กรุณาแก้ไขโดยด่วน`;
-                    else instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงามขึ้น";
-                }
-
-                finalPrompt = `Original Code:\n${generatedCode}\n\nModification Request:\n${instruction}\n\nTask: Return the COMPLETE modified HTML code.`;
-                
-                // ✅ บังคับมาตรฐานในโหมดแก้ไขด้วย
-                sys = `คุณคือผู้เชี่ยวชาญด้านการ Refactor Code HTML5.
-                ภารกิจ: แก้ไขโค้ดตามคำสั่ง โดยต้องรักษามาตรฐานต่อไปนี้อย่างเคร่งครัด:
-                1. **Header Bar**: ต้องมีแถบด้านบน (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) ห้ามลบ
-                2. **Scoring**: ต้องมี Logic ส่งคะแนน \`window.parent.postMessage({ type: 'SAVE_RESULT', ... })\`
-                3. **Responsive**: ต้องแสดงผลเต็มจอ ไม่ล้น
-                4. **Meta Description**: อัปเดต tag description ให้ตรงกับการแก้ไข
-                5. **Output**: ส่งคืนเฉพาะ HTML เท่านั้น`;
+                // --- Modify Mode ---
+                finalPrompt = `
+**TASK:** Update the existing HTML5 code.
+**EXISTING CODE:**
+\`\`\`html
+${generatedCode}
+\`\`\`
+**REQUEST:** "${instruction}"
+**RULES:**
+1. Apply changes to EXISTING CODE.
+2. **DO NOT** regenerate from scratch.
+3. **MUST KEEP** Header (Back button, Title, Score) and Score Logic (postMessage).
+4. **MUST KEEP** Responsive design.
+5. Output FULL HTML.
+`;
+                sys = `You are an expert HTML5 Refactorer. Output ONLY the full updated HTML code. No explanations.`;
             } else {
-                // --- Create New Mode ---
+                // --- Create Mode ---
                 finalPrompt = `${contextText}\n${prompt}`;
-                sys = `คุณคือผู้เชี่ยวชาญด้านการสร้างสื่อการสอน HTML5 Interactive
-                กฎเหล็ก (Mandatory):
-                1. **Header Bar**: สร้างแถบด้านบน (ย้อนกลับ+ชื่อ "${title}"+คะแนน)
-                2. **Scoring**: เรียก \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\` เมื่อจบ
-                3. **Responsive**: รองรับมือถือเต็มจอ
-                4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกม (ภาษาไทย)
-                5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
+                sys = `Create a single-file HTML5 interactive learning game.
+                Mandatory Features:
+                1. Header Bar: [Back Button calling window.parent.history.back()] [Title: "${title}"] [Score Display]
+                2. Scoring: Call window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*') on finish.
+                3. Responsive: Fullscreen mobile-friendly.
+                4. Meta Description: <meta name="description" content="Thai description">
+                5. Output: ONLY HTML Code.`;
             }
 
             try {
@@ -317,41 +366,34 @@
                 const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!rawText) throw new Error("AI ไม่ส่งผลลัพธ์กลับมา");
 
-                let cleanCode = rawText;
-                const htmlBlock = rawText.match(/```html([\s\S]*?)```/i);
-                if (htmlBlock) cleanCode = htmlBlock[1];
-                else { const generalBlock = rawText.match(/```([\s\S]*?)```/i); if (generalBlock) cleanCode = generalBlock[1]; }
+                const newCode = extractHtmlCode(rawText);
+                if (newCode.length < 100 || !newCode.includes('<html')) throw new Error("AI ส่งโค้ดมาไม่สมบูรณ์");
+
+                generatedCode = newCode;
                 
-                const start = cleanCode.indexOf('<!DOCTYPE html>');
-                const end = cleanCode.lastIndexOf('</html>');
+                const iframe = document.getElementById("missionFrame");
+                iframe.srcdoc = ""; 
+                setTimeout(() => { iframe.srcdoc = generatedCode; }, 50);
+
+                document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 
-                if (start !== -1 && end !== -1) {
-                    cleanCode = cleanCode.substring(start, end + 7).trim();
-                    generatedCode = cleanCode; 
-                    
-                    document.getElementById("missionFrame").srcdoc = generatedCode;
-                    document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                    
-                    try {
+                // Extract Description
+                try {
+                    if (!document.getElementById("resetBtn").classList.contains("hidden")) {
+                        document.getElementById("promptInput").value = "";
+                        document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
+                    } else {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(generatedCode, 'text/html');
                         const metaDesc = doc.querySelector('meta[name="description"]');
-                        if (metaDesc && metaDesc.content) {
-                            if (document.getElementById("generateBtn").innerText.includes("เริ่ม")) {
-                                document.getElementById("promptInput").value = metaDesc.content;
-                            } else {
-                                document.getElementById("promptInput").value = ""; 
-                                document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
-                            }
-                        }
-                    } catch (e) {}
+                        if (metaDesc) document.getElementById("promptInput").value = metaDesc.content;
+                    }
+                } catch (e) {}
 
-                    document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
-                    document.getElementById("resetBtn").classList.remove("hidden");
-                    showMessage("✅ ดำเนินการสำเร็จ!");
-                } else {
-                    throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์");
-                }
+                document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
+                document.getElementById("resetBtn").classList.remove("hidden");
+                
+                showMessage("✅ ดำเนินการสำเร็จ!");
 
             } catch (err) { 
                 console.error(err);
@@ -360,6 +402,7 @@
             finally { toggleLoading(false); }
         }
 
+        // --- Other Functions ---
         function toggleKeyEdit(showEdit) {
             const editView = document.getElementById('apiKeyEditView');
             const configView = document.getElementById('apiKeyConfiguredView');
@@ -405,6 +448,7 @@
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
         function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
         function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
+        
         async function fetchClassroomContext() { /* Logic เดิม */ }
         async function optimizePrompt() { /* Logic เดิม */ }
         async function suggestIdeas() { /* Logic เดิม */ }
