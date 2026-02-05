@@ -188,6 +188,11 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">คำอธิบายภารกิจ (AI ช่วยเขียนได้)</label>
+                        <textarea id="missionDescInput" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-3 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder="รายละเอียดของเกมหรือกิจกรรม..."></textarea>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">1. วางโค้ด HTML ของคุณที่นี่</label>
                         <textarea id="codeEditor" class="w-full h-48 code-editor rounded-[1.5rem] p-4 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder=""></textarea>
                         <div class="flex justify-end mt-2">
@@ -198,7 +203,7 @@
                     <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
                         <label class="block text-xs font-bold text-teal-700 uppercase tracking-widest mb-2"><i class="fas fa-robot"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score+Responsive) หรือพิมพ์คำสั่งแก้ไข...">
+                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
                             <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
                                 <i class="fas fa-magic"></i> สร้าง
                             </button>
@@ -311,18 +316,13 @@
             btn.className = "bg-gray-300 text-white cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-bold shadow-none transition-all flex items-center gap-2";
         }
 
-        // ✅ ฟังก์ชันตรวจสอบมาตรฐานโค้ด (Validation Logic)
+        // ✅ Validation Logic
         function validateCodeStandard(code) {
             if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
-            
-            // 1. Check Back Button Logic
             const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
-            if (!hasBack) return { valid: false, msg: "ขาดปุ่มย้อนกลับ (history.back)" };
-
-            // 2. Check Score Logic
+            if (!hasBack) return { valid: false, msg: "ขาดปุ่มย้อนกลับ" };
             const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
-            if (!hasScore) return { valid: false, msg: "ขาดระบบส่งคะแนน (postMessage)" };
-
+            if (!hasScore) return { valid: false, msg: "ขาดระบบส่งคะแนน" };
             return { valid: true, msg: "ผ่านเกณฑ์มาตรฐาน" };
         }
 
@@ -331,14 +331,13 @@
             const code = document.getElementById('codeEditor').value;
             document.getElementById('missionFrame').srcdoc = code;
             
-            // ตรวจสอบมาตรฐานเมื่อกดอัปเดตพรีวิว
             const check = validateCodeStandard(code);
             if (check.valid) {
                 activateSaveBtn();
-                showMessage("✅ โค้ดครบถ้วนตามมาตรฐาน พร้อมบันทึก!");
+                showMessage("✅ โค้ดผ่านมาตรฐานพร้อมบันทึก!");
             } else {
                 disableSaveBtn();
-                showMessage("⚠️ " + check.msg + " กรุณาแก้ไขหรือใช้ปุ่ม 'สร้าง' ให้ AI ช่วย", true);
+                showMessage("⚠️ " + check.msg + " กรุณาใช้ปุ่ม 'สร้าง' เพื่อแก้ไข", true);
             }
         }
 
@@ -372,18 +371,16 @@
 
             if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนกดสร้างครับ", true);
+            
             if (!title) {
                 document.getElementById("missionTitleInput").focus();
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
 
-            // ถ้าคำสั่งว่าง -> ใช้คำสั่งมาตรฐาน
-            if (!prompt) {
-                prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐานสากล";
-            }
+            if (!prompt) prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐานสากล";
 
-            // ✅ บังคับเพิ่มคำสั่งมาตรฐานเข้าไปเสมอ (Standard Enforcement)
-            prompt += " และต้องทำสิ่งเหล่านี้ด้วย: 1.สร้าง Header (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) 2.ทำ Responsive เต็มจอ 3.เพิ่มระบบส่งคะแนน (postMessage)";
+            // ✅ บังคับมาตรฐาน (Standard Enforcement) ทุกครั้ง
+            prompt += " และต้องทำสิ่งเหล่านี้ด้วย: 1.Header(ย้อนกลับ+ชื่อเกม+คะแนน) 2.Responsive เต็มจอ 3.ระบบคะแนน(postMessage) 4.เขียนคำอธิบายภารกิจใส่ meta description";
 
             toggleAILoading(true);
 
@@ -406,7 +403,11 @@
                - ตรวจสอบให้แน่ใจว่าเกมแสดงผลได้ดีบนมือถือ (Mobile-First) และ Desktop
                - ใช้ CSS เพื่อให้คอนเทนต์พอดีกับหน้าจอ (Fit Screen) ไม่ล้น ไม่ตกขอบ
             
-            4. **User Instruction**:
+            4. **Meta Description**: 
+               - สร้าง tag \`<meta name="description" content="...">\` ใน <head> 
+               - เนื้อหา content: สรุปรูปแบบเกมและเป้าหมายให้น่าสนใจ (ภาษาไทย) เพื่อใช้เป็นคำอธิบายภารกิจ
+            
+            5. **User Instruction**:
                - ${prompt}
             
             **Format:** ส่งคืนเฉพาะ Source Code HTML (Single File) เท่านั้น ห้ามมีคำอธิบายอื่น`;
@@ -437,10 +438,20 @@
                     if(start !== -1) cleanCode = cleanCode.substring(start);
                     
                     document.getElementById('codeEditor').value = cleanCode.trim();
-                    refreshPreview();
                     
-                    // ✅ เปิดใช้งานปุ่มบันทึกทันทีเมื่อ AI สร้างเสร็จ
-                    activateSaveBtn();
+                    // ✅ Extract Description
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(cleanCode, 'text/html');
+                        const metaDesc = doc.querySelector('meta[name="description"]');
+                        if (metaDesc && metaDesc.content) {
+                            document.getElementById("missionDescInput").value = metaDesc.content;
+                            showMessage("✨ AI สร้างคำอธิบายภารกิจให้แล้ว!");
+                        }
+                    } catch (e) { console.log("Description extract failed"); }
+
+                    refreshPreview(); // เช็คมาตรฐานอีกรอบ
+                    activateSaveBtn(); // เปิดปุ่ม Save
                     showMessage("✨ สร้างโค้ดสำเร็จเรียบร้อย!");
                 } else {
                     throw new Error("AI ไม่ส่งผลลัพธ์กลับมา");
@@ -455,6 +466,7 @@
         async function confirmSave(mode) {
             const title = document.getElementById("missionTitleInput").value.trim();
             const code = document.getElementById("codeEditor").value.trim();
+            const desc = document.getElementById("missionDescInput").value.trim(); // รับค่าคำอธิบาย
             
             if(!title) return showMessage("⚠️ กรุณาตั้งชื่อภารกิจ", true);
             if(!code) return showMessage("⚠️ ไม่พบโค้ดภารกิจ", true);
@@ -469,7 +481,7 @@
 
                 const missionData = {
                     title: title,
-                    description: "Created via Manual/Hybrid Mode",
+                    description: desc || "ภารกิจท้าทายความสามารถ", // บันทึกคำอธิบายลง DB
                     subject_group: "อื่นๆ",
                     subject_name: targetCid ? dbSubjectOnly : "วิชาทั่วไป", 
                     grade_level: targetCid ? finalGrade : "", 
@@ -531,6 +543,7 @@
                 originalTeacherId = data.created_by;
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("codeEditor").value = data.content_data?.html || "";
+                document.getElementById("missionDescInput").value = data.description || "";
                 refreshPreview();
                 // ถ้าโหลดของเก่ามา ให้เช็คมาตรฐานก่อนเปิดปุ่ม Save
                 const check = validateCodeStandard(data.content_data?.html || "");
