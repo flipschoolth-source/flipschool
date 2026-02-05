@@ -385,25 +385,60 @@
             
             const finalPrompt = `${contextText}\n${prompt}`;
             
-            // ✅ ปรับปรุง Prompt ให้สร้าง Header และ Back Button ในตัว HTML
-            const sys = `สร้างไฟล์ HTML/Tailwind CSS ชุดเดียวที่เป็นสื่อการสอนโต้ตอบ (Interactive) พรีเมียม 
-            กฎสำคัญ: 
-            1. **ต้องมี Header Bar**: สร้างแถบด้านบน (Header) ที่สวยงาม สีสันสดใสเหมาะสมกับวัยเรียน 
+            // ✅ ปรับปรุง Prompt: กำชับห้ามพูดคุย + สร้าง Header อัตโนมัติ
+            const sys = `คุณคือ Code Generator ที่เข้มงวด
+            หน้าที่ของคุณคือ: สร้างไฟล์ HTML5 (Single File) + Tailwind CSS สำหรับสื่อการสอน
+            
+            กฎการตอบกลับ (สำคัญที่สุด):
+            1. ส่งคืนเฉพาะ Source Code HTML เท่านั้น ห้ามมีคำอธิบาย ห้ามมีข้อความนำหน้า/ลงท้าย
+            2. ห้ามใช้ Markdown Block (เช่น \`\`\`html) ถ้าเลี่ยงไม่ได้ ให้เขียนแค่ Code
+            
+            โครงสร้างที่ต้องมี:
+            1. **Header Bar**: สร้างแถบด้านบน (Header) ที่สวยงาม สีสันสดใสเหมาะสมกับวัยเรียน 
                - ด้านซ้าย: มีปุ่ม "ย้อนกลับ" หรือ "Home" (ใช้ icon) โดยเมื่อกดให้เรียกคำสั่ง JavaScript: window.parent.history.back()
                - ตรงกลาง: ชื่อภารกิจ "${title}"
                - ด้านขวา: แสดงคะแนนหรือสถานะ
-            2. ใช้ภาษาไทยเท่านั้น 
-            3. เมื่อจบเกม ให้เรียกคำสั่ง: 
-              window.parent.postMessage({
-                  type: 'SAVE_RESULT', 
-                  score: (คะแนนที่ได้), 
-                  answers: [ { question: "...", student_answer: "...", is_correct: true/false }, ... ] 
-              }, '*') 
-            4. ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
+            2. เมื่อจบเกม ให้เรียกคำสั่ง: 
+               window.parent.postMessage({
+                   type: 'SAVE_RESULT', 
+                   score: (คะแนนที่ได้), 
+                   answers: [ { question: "...", student_answer: "...", is_correct: true/false }, ... ] 
+               }, '*')
+            3. ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
 
             try {
                 const code = await callGemini(finalPrompt, sys);
-                generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                
+                // ✅ Logic การคลีนโค้ดที่แม่นยำขึ้น (กัน AI พูดมาก)
+                let cleanCode = code;
+                
+                // 1. ถ้ามี ```html ... ``` ให้ดึงไส้ใน
+                const htmlBlock = code.match(/```html([\s\S]*?)```/i);
+                if (htmlBlock) {
+                    cleanCode = htmlBlock[1];
+                } else {
+                    // 2. ถ้ามีแค่ ``` ... ```
+                    const generalBlock = code.match(/```([\s\S]*?)```/i);
+                    if (generalBlock) cleanCode = generalBlock[1];
+                }
+                
+                // 3. กรองเอาเฉพาะ <html> ถึง </html> เพื่อความชัวร์
+                const start = cleanCode.indexOf('<!DOCTYPE html>');
+                if (start === -1) {
+                    // ถ้าหาไม่เจอ ลองหา <html>
+                    const startTag = cleanCode.indexOf('<html');
+                    if(startTag !== -1) cleanCode = cleanCode.substring(startTag);
+                } else {
+                    cleanCode = cleanCode.substring(start);
+                }
+                
+                // ตัดส่วนท้ายทิ้งถ้ามีขยะต่อท้าย
+                const end = cleanCode.lastIndexOf('</html>');
+                if (end !== -1) {
+                    cleanCode = cleanCode.substring(0, end + 7);
+                }
+
+                generatedCode = cleanCode.trim();
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 showMessage("เนรมิตภารกิจสำเร็จ! ✨ พรีวิวได้ทางขวามือครับ");
