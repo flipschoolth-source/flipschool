@@ -244,7 +244,8 @@
     <script>
         const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
-        let dbSubjectLabel = ""; // ตัวแปรสำหรับเก็บชื่อวิชา+ระดับชั้นเพื่อบันทึกลง DB
+        let dbGradeLevel = ""; // ตัวแปรเก็บระดับชั้น เช่น "ป.1"
+        let dbSubjectOnly = ""; // ตัวแปรเก็บชื่อวิชาอย่างเดียว
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof APP_CONFIG !== 'undefined') {
@@ -297,19 +298,21 @@
         // ✅ ตรวจสอบบริบทห้องเรียน และเตรียมข้อมูลสำหรับบันทึก
         async function fetchClassroomContext() {
             try {
-                // เพิ่มการเลือก room_name จากตาราง classrooms
+                // ดึงข้อมูลห้องเรียน
                 const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
                 if (data) {
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
                     
-                    // แสดงผลหน้าจอ: แสดงข้อมูลครบ (เช่น ป.1/4)
+                    // แสดงผลหน้าจอ: แสดงข้อมูลครบ (เช่น "ภาษาไทย (ป.1/4)")
                     document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
                     
-                    // เตรียมข้อมูลบันทึก DB: ตัดเอาแค่ระดับชั้น (เช่น ป.1)
-                    // Logic: แยกด้วย '/' แล้วเอาตัวแรก
-                    const gradeOnly = data.room_name.includes('/') ? data.room_name.split('/')[0].trim() : data.room_name.trim();
-                    dbSubjectLabel = `${data.subject_name} (${gradeOnly})`;
+                    // เตรียมข้อมูลสำหรับบันทึก DB
+                    // 1. ชื่อวิชา (เก็บเฉพาะชื่อ)
+                    dbSubjectOnly = data.subject_name;
+                    
+                    // 2. ระดับชั้น (ตัด / ออก) เช่น "ป.1/4" -> "ป.1"
+                    dbGradeLevel = data.room_name.includes('/') ? data.room_name.split('/')[0].trim() : data.room_name.trim();
 
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
@@ -347,14 +350,13 @@
             const prompt = document.getElementById("promptInput").value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
             
-            // ดึงข้อมูลบริบทห้องเรียนเพื่อส่งให้ AI (ใช้ข้อมูลที่ตัดเกรดแล้ว หรือถ้าไม่มีก็ใช้จากหน้าจอ)
-            const contextText = dbSubjectLabel ? `บริบทผู้เรียน: ${dbSubjectLabel}` : "";
+            // ใช้ข้อมูลระดับชั้นที่ตัดแล้ว ส่งให้ AI (เพื่อให้ AI รู้ว่าสร้างให้เด็กระดับชั้นไหน)
+            const contextText = dbGradeLevel ? `ระดับชั้นผู้เรียน: ${dbGradeLevel} | วิชา: ${dbSubjectOnly}` : "";
 
             if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
 
             toggleLoading(true, "AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...");
             
-            // เพิ่มบริบทผู้เรียนลงใน Prompt
             const finalPrompt = `${contextText}\n${prompt}`;
             
             const sys = `สร้างไฟล์ HTML/Tailwind CSS ชุดเดียวที่เป็นสื่อการสอนโต้ตอบ (Interactive) พรีเมียม 
@@ -406,15 +408,15 @@
         async function confirmSave(mode) {
             if(!window.sysDB || !targetCid) return;
             try {
-                // ใช้ dbSubjectLabel ที่เตรียมไว้ (ตัดเลขห้องออก) ถ้ามี
-                // ถ้าไม่มี (เช่นกรณีโหลดไม่ทัน) ให้ใช้ค่าเดิมจากหน้าจอไปก่อน
-                const subjectToSave = dbSubjectLabel || document.getElementById('classroomSubjectText').innerText;
-
                 const missionData = {
                     title: document.getElementById("missionTitleInput").value.trim(),
                     description: document.getElementById("promptInput").value,
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
-                    subject_name: targetCid ? subjectToSave : "วิชาทั่วไป", // บันทึกชื่อวิชา + ระดับชั้น (เช่น ป.1)
+                    
+                    // ✅ บันทึกแยกคอลัมน์ (หลังจากเพิ่มคอลัมน์ใน DB แล้ว)
+                    subject_name: targetCid ? dbSubjectOnly : "วิชาทั่วไป", 
+                    grade_level: targetCid ? dbGradeLevel : "", // บันทึกระดับชั้นลงคอลัมน์ใหม่
+                    
                     mission_type: "ai_generated",
                     content_data: { html: generatedCode },
                     is_public: true,
@@ -461,6 +463,22 @@
                 } else {
                     toggleKeyEdit(true);
                 }
+            }
+        }
+
+        async function loadExistingMission() {
+            const { data } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+            if (data) {
+                originalTeacherId = data.created_by;
+                document.getElementById("missionTitleInput").value = data.title;
+                document.getElementById("promptInput").value = data.description || "";
+                generatedCode = data.content_data?.html || "";
+                document.getElementById("missionFrame").srcdoc = generatedCode;
+                document.getElementById("saveToCloudBtn").classList.remove("hidden");
+                
+                const statusEl = document.getElementById('ownershipStatus');
+                statusEl.classList.remove('hidden-el');
+                statusEl.innerHTML = currentUserId === originalTeacherId ? '<span class="badge-premium owner-badge">เจ้าของภารกิจ</span>' : '<span class="badge-premium copy-badge">บันทึกเป็นชุดใหม่</span>';
             }
         }
 
