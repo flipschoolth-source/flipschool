@@ -1,239 +1,363 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คลังภารกิจอัจฉริยะ | FlipSchool</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>คลังสื่อการสอน | FlipSchool</title>
+
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
-        .category-card { transition: all 0.3s ease; cursor: pointer; border: 2px solid white; border-radius: 1.5rem; }
-        .category-card.active { border-color: #3b82f6; background-color: #eff6ff; transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); }
-        .mission-item-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 2.5rem; }
-        .mission-item-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .mission-card {
+            transition: all 0.3s ease;
+            background: white; border: 1px solid #e2e8f0;
+            border-radius: 1.5rem; overflow: hidden;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        .mission-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .tag-badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; }
+        .tag-subject { background: #eff6ff; color: #1d4ed8; }
+        .tag-grade { background: #f0fdf4; color: #15803d; }
+        
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        .hidden-el { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- ✅ Unified Navbar -->
+    <div id="importModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-blue-900"><i class="fas fa-school"></i> เลือกห้องเรียน</h3>
+                <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">เลือกห้องเรียนที่ต้องการนำภารกิจนี้ไปใช้:</p>
+            
+            <div id="classroomList" class="space-y-2 max-h-60 overflow-y-auto pr-2 mb-6">
+                <p class="text-center text-slate-400 text-sm py-4">กำลังโหลดห้องเรียน...</p>
+            </div>
+
+            <button id="confirmImportBtn" onclick="executeImport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed">
+                ยืนยันการนำเข้า
+            </button>
+        </div>
+    </div>
+
+    <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-green-500 shadow-lg rounded-xl p-4 animate-bounce-in">
+        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
+    </div>
+
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border border-slate-50">
-                    <span class="text-2xl text-blue-900">🎓</span>
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border-2 border-white/20">
+                    <span class="text-2xl">🎓</span>
                 </div>
                 <div class="flex flex-col">
-                    <div class="text-xl md:text-2xl font-bold tracking-tight leading-none">
-                        <span class="text-white">Flip</span><span class="text-orange-400">School</span>
+                    <div class="text-xl font-bold tracking-tight leading-none">
+                        <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
                     </div>
-                    <span class="app-slogan-label text-[10px] text-blue-200 font-medium mt-1 tracking-wide opacity-90"></span>
+                    <span class="text-[10px] text-blue-100 font-medium opacity-90">คลังสื่อการสอนสาธารณะ</span>
                 </div>
             </div>
-            <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
-                <i class="fas fa-arrow-left"></i> ย้อนกลับ
-            </button>
+            <div class="flex gap-4">
+                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
+                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="container mx-auto px-4 py-10 flex-grow max-w-7xl">
-        <!-- Search Section -->
-        <section class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-                <h1 class="text-3xl md:text-4xl font-black text-blue-900 mb-2">คลังภารกิจอัจฉริยะ</h1>
-                <p id="libraryContextDesc" class="text-slate-500">รวมรวมบทเรียนคุณภาพเพื่อก้าวสู่ห้องเรียนยุคใหม่</p>
-            </div>
-            <div class="relative w-full md:w-96">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="searchInput" oninput="filterMissions()" class="w-full bg-white border border-slate-200 rounded-2xl p-4 pl-12 outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-700" placeholder="ชื่อภารกิจ หรือวิชา...">
-            </div>
-        </section>
+    <main class="flex-grow container mx-auto px-4 py-8">
+        
+        <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 mb-8">
+            <h1 class="text-2xl font-bold text-blue-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-layer-group text-orange-500"></i> คลังภารกิจ (Mission Library)
+            </h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2 relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" onkeyup="filterMissions()" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-bold" placeholder="ค้นหาชื่อภารกิจ, ภาษาไทย, คณิต...">
+                </div>
+                
+                <div>
+                    <select id="subjectFilter" onchange="filterMissions()" class="w-full py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-600 cursor-pointer">
+                        <option value="">ทุกกลุ่มสาระ</option>
+                        <option value="ภาษาไทย">ภาษาไทย</option>
+                        <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                        <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                        <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+                        <option value="สังคมศึกษา">สังคมศึกษา</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                </div>
 
-        <!-- Categories -->
-        <section class="mb-10 overflow-x-auto pb-4 no-scrollbar">
-            <div class="flex gap-4 min-w-max" id="categoryContainer">
-                <div onclick="setCategory('ทั้งหมด')" id="cat-all" class="category-card active px-6 py-4 bg-white shadow-sm flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i class="fas fa-th-large"></i></div>
-                    <span class="text-sm font-bold text-slate-700">ทั้งหมด</span>
+                <div>
+                    <select id="gradeFilter" onchange="filterMissions()" class="w-full py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-600 cursor-pointer">
+                        <option value="">ทุกระดับชั้น</option>
+                        <option value="อ.">อนุบาล (อ.)</option>
+                        <option value="ป.">ประถมศึกษา (ป.)</option>
+                        <option value="ม.">มัธยมศึกษา (ม.)</option>
+                    </select>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Mission Grid -->
-        <section id="missionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div class="col-span-full py-20 text-center opacity-30">
-                <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
-                <p class="font-bold">กำลังเตรียมภารกิจแสนสนุก...</p>
+        <div id="missionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div class="col-span-full text-center py-20">
+                <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <p class="text-slate-400 font-bold">กำลังโหลดคลังสื่อ...</p>
             </div>
-        </section>
+        </div>
+
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-12 text-center mt-auto">
-        <p class="text-blue-900 font-bold mb-1 italic">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
-        <p class="text-slate-400 text-[10px] uppercase tracking-widest font-black">GLORY Model Intelligence System</p>
+    <footer class="bg-white border-t border-slate-200 py-8 mt-auto text-center font-sans">
+        <p class="text-blue-900 font-bold text-sm italic">© 2026 FlipSchool Library</p>
     </footer>
 
     <script>
         let allMissions = [];
-        let currentCategory = 'ทั้งหมด';
-        let targetCid = new URLSearchParams(window.location.search).get('cid');
-
-        const categories = [
-            { name: "ภาษาไทย", icon: "fas fa-font", color: "rose", keywords: ["ไทย", "ภาษาไทย", "วรรณคดี", "การอ่าน", "การเขียน"] },
-            { name: "คณิตศาสตร์", icon: "fas fa-calculator", color: "blue", keywords: ["คณิต", "เลข", "คำนวณ", "คณิตศาสตร์", "เรขาคณิต", "สถิติ"] },
-            { name: "วิทยาศาสตร์และเทคโนโลยี", icon: "fas fa-flask", color: "emerald", keywords: ["วิทย์", "วิทยาศาสตร์", "ฟิสิกส์", "เคมี", "ชีวะ", "เทคโนโลยี", "คอม", "คำนวณ"] },
-            { name: "สังคมศึกษา ศาสนา และวัฒนธรรม", icon: "fas fa-globe-asia", color: "amber", keywords: ["สังคม", "ประวัติ", "ภูมิศาสตร์", "ศาสนา", "หน้าที่พลเมือง", "เศรษฐศาสตร์"] },
-            { name: "สุขศึกษาและพลศึกษา", icon: "fas fa-running", color: "orange", keywords: ["สุข", "พละ", "ร่างกาย", "กีฬา", "สุขภาพ"] },
-            { name: "ศิลปะ", icon: "fas fa-palette", color: "pink", keywords: ["ศิลปะ", "วาด", "ดนตรี", "นาฏศิลป์", "แสดง"] },
-            { name: "การงานอาชีพ", icon: "fas fa-tools", color: "slate", keywords: ["การงาน", "อาชีพ", "ทักษะชีวิต", "เกษตร"] },
-            { name: "ภาษาต่างประเทศ", icon: "fas fa-language", color: "indigo", keywords: ["อังกฤษ", "english", "จีน", "ญี่ปุ่น", "ภาษาอื่น"] }
-        ];
+        let currentUserId = null;
+        let selectedMissionIdForImport = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (window.CONFIG) document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
-            renderCategories();
-            
             const checkDB = setInterval(async () => {
-                if (window.sysDB) { 
-                    clearInterval(checkDB); 
-                    await loadLibraryMissions();
-                    if (targetCid) await handleClassroomContext();
+                if(window.sysDB) {
+                    clearInterval(checkDB);
+                    
+                    const { data: { user } } = await window.sysDB.auth.getUser();
+                    if(user) currentUserId = user.id;
+
+                    await fetchMissions();
                 }
             }, 500);
         });
 
-        function renderCategories() {
-            const container = document.getElementById('categoryContainer');
-            categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.id = `cat-${cat.name}`;
-                div.onclick = () => setCategory(cat.name);
-                div.className = `category-card px-6 py-4 bg-white shadow-sm flex items-center gap-3`;
-                div.innerHTML = `
-                    <div class="w-10 h-10 bg-${cat.color}-50 text-${cat.color}-500 rounded-xl flex items-center justify-center">
-                        <i class="${cat.icon}"></i>
-                    </div>
-                    <span class="text-sm font-bold text-slate-700">${cat.name}</span>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // ✅ วิเคราะห์และเลือกหมวดหมู่ที่เหมาะสมจากวิชาในห้องเรียน
-        async function handleClassroomContext() {
+        // 1. ดึงข้อมูลภารกิจทั้งหมดที่เป็น Public
+        async function fetchMissions() {
             try {
-                const { data: classroom, error } = await window.sysDB.from('classrooms').select('subject_name').eq('classroom_id', targetCid).single();
-                if (error || !classroom) return;
+                // ดึงเฉพาะที่ is_public = true
+                const { data, error } = await window.sysDB
+                    .from('missions')
+                    .select('*')
+                    .eq('is_public', true)
+                    .order('created_at', { ascending: false });
 
-                const subjectName = classroom.subject_name.toLowerCase();
-                document.getElementById('libraryContextDesc').innerHTML = `ค้นหาภารกิจที่เหมาะสมกับรายวิชา <span class="text-blue-600 font-bold">"${classroom.subject_name}"</span>`;
-
-                // ค้นหาหมวดหมู่ที่ตรงหรือใกล้เคียงที่สุด
-                let bestMatch = 'ทั้งหมด';
-                
-                // ลองค้นแบบตรงตัวก่อน
-                const exactMatch = categories.find(c => subjectName.includes(c.name.toLowerCase()));
-                if (exactMatch) {
-                    bestMatch = exactMatch.name;
-                } else {
-                    // ลองค้นหาจาก Keywords
-                    for (const cat of categories) {
-                        if (cat.keywords.some(k => subjectName.includes(k.toLowerCase()))) {
-                            bestMatch = cat.name;
-                            break;
-                        }
-                    }
-                }
-
-                setCategory(bestMatch);
-                
-                // Scroll ไปที่หมวดหมู่ที่เลือก (กรณีมีหลายหมวดหมู่บนมือถือ)
-                const targetEl = document.getElementById(`cat-${bestMatch === 'ทั้งหมด' ? 'all' : bestMatch}`);
-                if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-
-            } catch (err) { console.error("Context error:", err); }
+                if (error) throw error;
+                allMissions = data || [];
+                renderMissions(allMissions);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('missionGrid').innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">โหลดข้อมูลล้มเหลว: ${err.message}</div>`;
+            }
         }
 
-        function setCategory(name) {
-            currentCategory = name;
-            document.querySelectorAll('.category-card').forEach(el => el.classList.remove('active'));
-            const targetId = (name === 'ทั้งหมด') ? 'cat-all' : `cat-${name}`;
-            const el = document.getElementById(targetId);
-            if (el) el.classList.add('active');
-            filterMissions();
-        }
-
-        async function loadLibraryMissions() {
-            try {
-                const { data, error } = await window.sysDB.from('missions').select('*, teachers(first_name, last_name, profile_pic)').eq('is_public', true).order('created_at', { ascending: false });
-                if (data) { allMissions = data; filterMissions(); }
-            } catch (err) { console.error(err); }
-        }
-
-        function filterMissions() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
+        // 2. แสดงผลการ์ด
+        function renderMissions(missions) {
             const grid = document.getElementById('missionGrid');
-            const filtered = allMissions.filter(m => {
-                const matchSearch = m.title.toLowerCase().includes(search) || 
-                                  (m.subject_name && m.subject_name.toLowerCase().includes(search)) ||
-                                  (m.subject_group && m.subject_group.toLowerCase().includes(search));
-                const matchCat = currentCategory === 'ทั้งหมด' || m.subject_group === currentCategory;
-                return matchSearch && matchCat;
-            });
+            grid.innerHTML = '';
 
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-20 text-center opacity-40"><i class="fas fa-search-minus text-8xl mb-4"></i><h3 class="text-2xl font-bold">ไม่พบภารกิจที่ตรงตามเงื่อนไข</h3></div>`;
+            if (missions.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400 font-bold text-lg"><i class="fas fa-inbox text-4xl mb-4 block"></i>ไม่พบภารกิจที่ค้นหา</div>`;
                 return;
             }
 
-            grid.innerHTML = filtered.map(m => `
-                <div class="mission-item-card bg-white p-8 border border-slate-100 flex flex-col h-full relative overflow-hidden">
-                    <div class="absolute -top-6 -right-6 w-24 h-24 bg-blue-50 rounded-full opacity-40"></div>
-                    <div class="flex justify-between items-start mb-6 relative z-10">
-                        <span class="text-[10px] font-black uppercase px-3 py-1.5 bg-blue-600 text-white rounded-full shadow-md">${m.subject_group || 'ทั่วไป'}</span>
-                        <div class="text-orange-500 font-black text-sm flex items-center gap-1"><i class="fas fa-crown"></i> ${m.reward_points}</div>
-                    </div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${m.title}</h3>
-                    <div class="text-[10px] font-bold text-blue-500 mb-4 bg-blue-50 w-fit px-2 py-0.5 rounded-md">
-                        <i class="fas fa-book-open mr-1"></i>${m.subject_name || 'วิชาทั่วไป'}
-                    </div>
-                    <p class="text-slate-500 text-sm mb-8 flex-grow line-clamp-2 leading-relaxed">${m.description || 'เข้าร่วมการเรียนรู้ผ่านกิจกรรมที่น่าตื่นเต้นนี้'}</p>
-                    <div class="flex items-center justify-between mt-auto pt-6 border-t border-slate-50 relative z-10">
-                        <div class="flex items-center gap-3">
-                            <img src="${m.teachers?.profile_pic || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.teachers?.first_name}" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm">
-                            <div class="flex flex-col">
-                                <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">ผู้สร้าง</span>
-                                <span class="text-sm font-bold text-slate-700 leading-none">ครู${m.teachers?.first_name || 'ไม่ระบุ'}</span>
+            missions.forEach(m => {
+                const subject = m.subject_group || 'อื่นๆ';
+                const grade = m.grade_level || 'ไม่ระบุ';
+                const desc = m.description || 'ไม่มีคำอธิบาย';
+                
+                // ตรวจสอบว่ารูปไอคอนควรเป็นอะไรตามวิชา
+                let icon = 'fas fa-cube';
+                let colorClass = 'text-blue-500 bg-blue-50';
+                if(subject.includes('ภาษาไทย')) { icon = 'fas fa-pen-nib'; colorClass = 'text-pink-500 bg-pink-50'; }
+                else if(subject.includes('คณิต')) { icon = 'fas fa-calculator'; colorClass = 'text-orange-500 bg-orange-50'; }
+                else if(subject.includes('วิทย์')) { icon = 'fas fa-flask'; colorClass = 'text-purple-500 bg-purple-50'; }
+
+                const card = document.createElement('div');
+                card.className = 'mission-card group';
+                card.innerHTML = `
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center text-xl shadow-sm">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="tag-badge tag-subject">${subject}</span>
+                                <span class="tag-badge tag-grade">${grade}</span>
                             </div>
                         </div>
-                        <button onclick="assignMission('${m.mission_id}')" class="bg-slate-900 hover:bg-blue-900 text-white px-6 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 shadow-xl shadow-slate-100">เลือกใช้</button>
+                        
+                        <h3 class="text-lg font-bold text-slate-800 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">${m.title}</h3>
+                        <p class="text-xs text-slate-500 mb-6 line-clamp-2 flex-grow">${desc}</p>
+                        
+                        <div class="flex gap-2 mt-auto pt-4 border-t border-slate-100">
+                            <a href="play-mission.html?mid=${m.mission_id}" target="_blank" class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-600 py-2.5 rounded-lg text-xs font-bold text-center transition-colors flex items-center justify-center gap-1">
+                                <i class="fas fa-play"></i> ทดลองเล่น
+                            </a>
+                            
+                            ${currentUserId ? `
+                            <button onclick="openImportModal('${m.mission_id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1">
+                                <i class="fas fa-download"></i> นำเข้า
+                            </button>
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+                grid.appendChild(card);
+            });
         }
 
-        async function assignMission(mid) {
-            if(!targetCid) return alert('กรุณาเข้าใช้งานผ่านหน้าห้องเรียนเพื่อมอบหมายภารกิจครับ');
-            if(!confirm('คุณครูต้องการนำภารกิจนี้ไปใช้ในห้องเรียนใช่หรือไม่?')) return;
-            try {
-                const { error } = await window.sysDB.from('classroom_missions').upsert({ 
-                    classroom_id: targetCid, 
-                    mission_id: mid, 
-                    assigned_at: new Date().toISOString(),
-                    is_visible: true 
-                }, { onConflict: 'classroom_id, mission_id' });
+        // 3. ระบบ Filter (ค้นหา + วิชา + ระดับชั้น)
+        function filterMissions() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const subject = document.getElementById('subjectFilter').value;
+            const grade = document.getElementById('gradeFilter').value;
 
-                if (error) throw error;
-                alert('เพิ่มภารกิจลงห้องเรียนสำเร็จ! 🚀');
-                location.href = `classroom-detail.html?id=${targetCid}`;
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            const filtered = allMissions.filter(m => {
+                const matchQuery = m.title.toLowerCase().includes(query) || 
+                                   (m.subject_name && m.subject_name.toLowerCase().includes(query)) ||
+                                   (m.subject_group && m.subject_group.toLowerCase().includes(query));
+                
+                const matchSubject = subject === '' || m.subject_group === subject;
+                
+                // Filter ระดับชั้น (Check substring e.g. "ป." match "ป.1")
+                const matchGrade = grade === '' || (m.grade_level && m.grade_level.includes(grade));
+
+                return matchQuery && matchSubject && matchGrade;
+            });
+
+            renderMissions(filtered);
+        }
+
+        // 4. ระบบนำเข้า (Import Logic)
+        async function openImportModal(mid) {
+            selectedMissionIdForImport = mid;
+            const modal = document.getElementById('importModal');
+            const list = document.getElementById('classroomList');
+            const btn = document.getElementById('confirmImportBtn');
+            
+            modal.classList.remove('hidden');
+            list.innerHTML = '<p class="text-center text-slate-400 py-4"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดห้องเรียน...</p>';
+            btn.disabled = true;
+
+            try {
+                // ดึงรายชื่อห้องเรียนของครู
+                const { data: classrooms } = await window.sysDB
+                    .from('classrooms')
+                    .select('classroom_id, room_name, subject_name')
+                    .eq('teacher_id', currentUserId)
+                    .order('created_at', { ascending: false });
+
+                if (!classrooms || classrooms.length === 0) {
+                    list.innerHTML = '<p class="text-center text-red-400 py-4 text-sm font-bold">ไม่พบห้องเรียนของคุณ กรุณาสร้างห้องเรียนก่อนครับ</p>';
+                    return;
+                }
+
+                list.innerHTML = classrooms.map(c => `
+                    <label class="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-blue-50 cursor-pointer transition-colors">
+                        <input type="radio" name="targetClassroom" value="${c.classroom_id}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" onchange="document.getElementById('confirmImportBtn').disabled = false">
+                        <div class="ml-3">
+                            <p class="text-sm font-bold text-slate-700">${c.subject_name}</p>
+                            <p class="text-xs text-slate-500">${c.room_name}</p>
+                        </div>
+                    </label>
+                `).join('');
+
+            } catch (err) {
+                list.innerHTML = '<p class="text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            selectedMissionIdForImport = null;
+        }
+
+        async function executeImport() {
+            const radios = document.getElementsByName('targetClassroom');
+            let selectedClassId = null;
+            for (const r of radios) { if (r.checked) selectedClassId = r.value; }
+
+            if (!selectedClassId || !selectedMissionIdForImport) return;
+
+            const btn = document.getElementById('confirmImportBtn');
+            btn.innerText = "กำลังนำเข้า...";
+            btn.disabled = true;
+
+            try {
+                // 1. ดึงข้อมูล Mission ต้นฉบับ
+                const { data: sourceMission } = await window.sysDB
+                    .from('missions')
+                    .select('*')
+                    .eq('mission_id', selectedMissionIdForImport)
+                    .single();
+
+                if (!sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
+
+                // 2. สร้าง Copy ใหม่ (เพื่อให้ครูแก้ไขได้โดยไม่กระทบต้นฉบับ)
+                const newMissionData = {
+                    ...sourceMission,
+                    mission_id: undefined, // ให้ DB gen ใหม่
+                    created_by: currentUserId, // เปลี่ยนเจ้าของเป็นคน Import
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    is_public: false, // Default เป็นส่วนตัวก่อน
+                    origin_mission_id: selectedMissionIdForImport // (Optional) เก็บ ref ไว้
+                };
+                
+                // ลบ field ที่ไม่จำเป็นตอน insert
+                delete newMissionData.mission_id;
+
+                const { data: newMission, error: insertError } = await window.sysDB
+                    .from('missions')
+                    .insert([newMissionData])
+                    .select()
+                    .single();
+
+                if (insertError) throw insertError;
+
+                // 3. ผูกกับห้องเรียน
+                await window.sysDB.from('classroom_missions').insert([{
+                    classroom_id: selectedClassId,
+                    mission_id: newMission.mission_id,
+                    assigned_at: new Date().toISOString()
+                }]);
+
+                showMessage("✅ นำเข้าภารกิจสำเร็จ! ไปยังห้องเรียนได้เลย");
+                setTimeout(() => {
+                    window.location.href = `classroom-detail.html?id=${selectedClassId}`;
+                }, 1500);
+
+            } catch (err) {
+                alert("เกิดข้อผิดพลาด: " + err.message);
+                btn.innerText = "ยืนยันการนำเข้า";
+                btn.disabled = false;
+            }
+        }
+
+        function showMessage(text) {
+            document.getElementById('msgText').innerText = text;
+            document.getElementById('msgBox').classList.remove('hidden');
+            setTimeout(() => document.getElementById('msgBox').classList.add('hidden'), 3000);
         }
     </script>
 </body>
