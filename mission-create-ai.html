@@ -322,9 +322,7 @@
                     dbSubjectOnly = data.subject_name;
                     let roomStr = data.room_name.trim();
 
-                    // แยกส่วนตัวเลขออกมา (เช่น "ป.1/4" -> เอา "1")
-                    // Logic: ลบตัวอักษรไทยออก เหลือแต่ตัวเลขและ /
-                    // หรือถ้ามี / ให้เอาข้างหน้า /
+                    // แยกส่วนตัวเลขออกมา
                     let tempGrade = roomStr.includes('/') ? roomStr.split('/')[0].trim() : roomStr;
                     detectedGradeNumber = tempGrade.replace(/[^\d]/g, ''); // เก็บเฉพาะตัวเลข
 
@@ -337,7 +335,6 @@
                     } else if (roomStr.includes('ม.') || roomStr.includes('มัธยม')) {
                         eduSelect.value = "ม.";
                     } else {
-                        // ไม่พบ Keyword ให้ default เป็นว่าง (ไม่กำหนด)
                         eduSelect.value = ""; 
                     }
 
@@ -388,10 +385,20 @@
             
             const finalPrompt = `${contextText}\n${prompt}`;
             
+            // ✅ ปรับปรุง Prompt ให้ส่งข้อมูล Answers กลับมาอย่างละเอียด
             const sys = `สร้างไฟล์ HTML/Tailwind CSS ชุดเดียวที่เป็นสื่อการสอนโต้ตอบ (Interactive) พรีเมียม 
             กฎ: 
             - ใช้ภาษาไทยเท่านั้น 
-            - เมื่อจบเรียก window.parent.postMessage({type: 'SAVE_RESULT', score: ..., answers: [...]}, '*') 
+            - เมื่อจบเกม ให้เรียกคำสั่ง: 
+              window.parent.postMessage({
+                  type: 'SAVE_RESULT', 
+                  score: (คะแนนที่ได้), 
+                  answers: [ 
+                      { question: "โจทย์ข้อที่ 1", student_answer: "คำตอบนักเรียน", is_correct: true/false },
+                      { question: "โจทย์ข้อที่ 2", student_answer: "คำตอบนักเรียน", is_correct: true/false },
+                      ... 
+                  ] 
+              }, '*') 
             - ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
 
             try {
@@ -439,16 +446,11 @@
             try {
                 // สร้าง Grade Level ที่สมบูรณ์จาก Dropdown + เลขชั้น
                 const prefix = document.getElementById('educationLevelSelect').value;
-                
-                // Logic ผสมคำ:
-                // ถ้ามี Prefix (เช่น "ป.") และมีเลข (เช่น "1") -> รวมเป็น "ป.1"
-                // ถ้าไม่มี Prefix แต่มีเลข -> เป็น "1" (หรือตามที่ DB มี)
-                // ถ้าไม่มีเลขเลย -> ใช้ Prefix อย่างเดียว (เช่น "อนุบาล")
                 let finalGrade = "";
                 if (prefix && detectedGradeNumber) {
                     finalGrade = prefix + detectedGradeNumber;
                 } else if (prefix) {
-                    finalGrade = prefix + " (ไม่ระบุชั้นปี)"; // กรณีเลือกแต่อนุบาล
+                    finalGrade = prefix + " (ไม่ระบุชั้นปี)"; 
                 } else {
                     finalGrade = detectedGradeNumber || "ไม่ระบุ";
                 }
@@ -457,11 +459,8 @@
                     title: document.getElementById("missionTitleInput").value.trim(),
                     description: document.getElementById("promptInput").value,
                     subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
-                    
-                    // บันทึกข้อมูลที่แยกส่วนแล้ว
                     subject_name: targetCid ? dbSubjectOnly : "วิชาทั่วไป", 
                     grade_level: targetCid ? finalGrade : "", 
-                    
                     mission_type: "ai_generated",
                     content_data: { html: generatedCode },
                     is_public: true,
