@@ -219,7 +219,7 @@
                     <button onclick="changeView('tablet')" id="view-tablet" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-tablet-alt"></i></button>
                     <button onclick="changeView('desktop')" id="view-desktop" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-desktop"></i></button>
                 </div>
-                <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
+                <button id="saveToCloudBtn" onclick="openSaveModal()" disabled class="bg-gray-300 text-white cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-bold shadow-none transition-all flex items-center gap-2">
                     <i class="fas fa-cloud-upload-alt"></i> บันทึกเข้าห้องเรียน
                 </button>
             </div>
@@ -296,14 +296,21 @@
         function toggleAILoading(show) {
             document.getElementById('aiLoading').classList.toggle('hidden-el', !show);
             document.getElementById('aiModifyBtn').disabled = show;
-            // เปลี่ยนปุ่มเป็น "สร้าง" เมื่อเสร็จ
             document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
+        }
+
+        // ✅ ฟังก์ชันเปิดใช้งานปุ่มบันทึก
+        function activateSaveBtn() {
+            const btn = document.getElementById('saveToCloudBtn');
+            btn.disabled = false;
+            btn.className = "bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 transform active:scale-95";
         }
 
         // --- Logic หลัก ---
         function refreshPreview() {
             const code = document.getElementById('codeEditor').value;
             document.getElementById('missionFrame').srcdoc = code;
+            activateSaveBtn(); // ถ้าอัปเดตพรีวิวเอง ก็ให้กดบันทึกได้
         }
 
         async function fetchClassroomContext() {
@@ -337,20 +344,18 @@
             if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนกดสร้างครับ", true);
             
-            // ✅ 1. บังคับชื่อภารกิจ
             if (!title) {
                 document.getElementById("missionTitleInput").focus();
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
 
-            // ✅ 2. ถ้าช่องคำสั่งว่าง ให้กำหนดคำสั่งมาตรฐาน (Header + Score + Responsive)
+            // ถ้าคำสั่งว่าง -> ใช้คำสั่งมาตรฐาน
             if (!prompt) {
                 prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐาน: 1. เพิ่ม Header (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) 2. ทำให้เป็น Responsive เต็มจอรองรับทุกอุปกรณ์ 3. ตรวจสอบระบบส่งคะแนนเมื่อจบเกม";
             }
 
             toggleAILoading(true);
 
-            // ✅ 3. System Prompt ที่เน้น Responsive และ Standard
             const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
             ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์และสวยงามตามมาตรฐาน FlipSchool
@@ -393,7 +398,6 @@
                 let newCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
                 if (newCode) {
-                    // Clean Code Logic
                     let cleanCode = newCode;
                     const htmlBlock = newCode.match(/```html([\s\S]*?)```/i);
                     if (htmlBlock) cleanCode = htmlBlock[1];
@@ -406,6 +410,9 @@
                     
                     document.getElementById('codeEditor').value = cleanCode.trim();
                     refreshPreview();
+                    
+                    // ✅ เปิดใช้งานปุ่มบันทึกเมื่อ AI สร้างเสร็จ
+                    activateSaveBtn();
                     showMessage("✨ สร้างโค้ดสำเร็จเรียบร้อย!");
                 } else {
                     throw new Error("AI ไม่ส่งผลลัพธ์กลับมา");
@@ -497,6 +504,7 @@
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("codeEditor").value = data.content_data?.html || "";
                 refreshPreview();
+                activateSaveBtn(); // ถ้าโหลดของเก่ามา ก็ให้กดบันทึกได้เลย
                 
                 const statusEl = document.getElementById('ownershipStatus');
                 statusEl.classList.remove('hidden-el');
