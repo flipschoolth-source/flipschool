@@ -17,20 +17,29 @@
     <style>
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
+        
         .preview-outer-container { width: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 1.5rem; min-height: 650px; overflow: hidden; }
         .preview-frame-wrapper { background: #1e293b; border-radius: 2rem; overflow: hidden; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); position: relative; transform-origin: top center; }
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
         .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
+        
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        
         .btn-ai-sparkle { background: white; border: 1px solid #e2e8f0; color: #475569; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
         .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; transform: translateY(-1px); }
+        
         .custom-message-box { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); z-index: 9999; border-left: 5px solid #3b82f6; display: none; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; }
+        .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; display: inline-flex; align-items: center; gap: 4px; }
         .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
         .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .new-badge { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+        
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -71,19 +80,27 @@
     </nav>
 
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
         <div class="lg:col-span-5 flex flex-col gap-6">
             <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
                 <div class="flex justify-between items-start mb-8">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner"><i class="fas fa-robot text-2xl"></i></div>
-                        <h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
+                        <div id="modeIcon" class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                            <i class="fas fa-magic text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 id="pageModeDisplay" class="text-xl font-bold text-blue-900 leading-tight">สร้างภารกิจใหม่</h2>
+                            <p id="pageSubDisplay" class="text-xs text-slate-400 font-medium">New Mission Mode</p>
+                        </div>
                     </div>
-                    <div id="ownershipStatus" class="hidden-el"></div>
+                    <div id="ownershipStatus">
+                        <span class="badge-premium new-badge"><i class="fas fa-plus-circle"></i> สร้างใหม่</span>
+                    </div>
                 </div>
 
                 <div class="mb-8">
                     <div id="apiKeyConfiguredView" class="hidden-el p-5 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
-                        <div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-check"></i></div><div><div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div></div></div>
+                        <div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-check"></i></div><div><div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div><div class="text-[10px] text-emerald-600 font-medium">พร้อมเนรมิตภารกิจการสอน</div></div></div>
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-all font-bold">แก้ไข Key</button>
                     </div>
                     <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
@@ -106,13 +123,14 @@
                             <option value="ภาษาไทย">ภาษาไทย</option>
                             <option value="คณิตศาสตร์">คณิตศาสตร์</option>
                             <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-                            <option value="สังคมศึกษา">สังคมศึกษา</option>
-                            <option value="สุขศึกษา">สุขศึกษา</option>
+                            <option value="สังคมศึกษา">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+                            <option value="สุขศึกษา">สุขศึกษาและพลศึกษา</option>
                             <option value="ศิลปะ">ศิลปะ</option>
                             <option value="การงานอาชีพ">การงานอาชีพ</option>
                             <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
                         </select>
                     </div>
+
                     <div id="classroomContextArea" class="hidden p-4 bg-orange-50 border border-orange-100 rounded-2xl">
                         <div class="flex flex-col gap-3">
                             <div class="flex items-center gap-3"><i class="fas fa-book-bookmark text-orange-400"></i><div><p class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">อ้างอิงรายวิชา</p><p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p></div></div>
@@ -198,14 +216,51 @@
             }, 500);
         });
 
+        // --- UI Updates for Mode (New vs Edit) ---
+        function updateUIMode(mode) {
+            const titleEl = document.getElementById('pageModeDisplay');
+            const subTitleEl = document.getElementById('pageSubDisplay'); // ถ้ายังไม่มี ให้สร้าง หรือใช้ที่มีอยู่
+            const iconEl = document.getElementById('modeIcon');
+            const statusEl = document.getElementById('ownershipStatus');
+
+            // ใช้ Default Subtitle ถ้าใน HTML ไม่มี
+            if (!document.getElementById('pageSubDisplay')) {
+                const sub = document.createElement('p');
+                sub.id = 'pageSubDisplay';
+                sub.className = "text-xs text-slate-400 font-medium";
+                titleEl.parentNode.appendChild(sub);
+            }
+
+            if (mode === 'edit_owner') {
+                titleEl.innerText = "แก้ไขภารกิจ";
+                document.getElementById('pageSubDisplay').innerText = "Editing your mission";
+                iconEl.innerHTML = '<i class="fas fa-edit text-2xl"></i>';
+                iconEl.className = "w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-inner";
+                statusEl.innerHTML = '<span class="badge-premium owner-badge"><i class="fas fa-user-edit"></i> เจ้าของภารกิจ</span>';
+            } else if (mode === 'edit_copy') {
+                titleEl.innerText = "ทำสำเนาภารกิจ";
+                document.getElementById('pageSubDisplay').innerText = "Remixing mission";
+                iconEl.innerHTML = '<i class="fas fa-copy text-2xl"></i>';
+                iconEl.className = "w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shadow-inner";
+                statusEl.innerHTML = '<span class="badge-premium copy-badge"><i class="fas fa-clone"></i> สำเนาใหม่</span>';
+            } else {
+                titleEl.innerText = "สร้างภารกิจใหม่";
+                document.getElementById('pageSubDisplay').innerText = "Create new mission";
+                iconEl.innerHTML = '<i class="fas fa-magic text-2xl"></i>';
+                iconEl.className = "w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner";
+                statusEl.innerHTML = '<span class="badge-premium new-badge"><i class="fas fa-plus-circle"></i> สร้างใหม่</span>';
+            }
+            statusEl.classList.remove('hidden-el');
+        }
+
         // --- Core Validation Function ---
         function validateCodeStandard(code) {
             if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
             const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
             const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
             let missing = [];
-            if (!hasBack) missing.push("ปุ่มย้อนกลับ");
-            if (!hasScore) missing.push("ระบบบันทึกคะแนน");
+            if (!hasBack) missing.push("ปุ่มย้อนกลับ (Header)");
+            if (!hasScore) missing.push("ระบบบันทึกคะแนน (postMessage)");
             if (missing.length > 0) return { valid: false, msg: missing.join(", ") };
             return { valid: true, msg: "ครบถ้วน" };
         }
@@ -233,23 +288,24 @@
                 if (!instruction) {
                     const check = validateCodeStandard(generatedCode);
                     if (!check.valid) instruction = `ปรับปรุงโค้ดให้เป็นมาตรฐานด่วน ขาด: ${check.msg}`;
-                    else instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงาม";
+                    else instruction = "ตรวจสอบความสมบูรณ์และปรับ CSS ให้สวยงามขึ้น";
                 }
 
-                // ✅ Structure the prompt to force modification
-                finalPrompt = `CONTEXT: You are updating an existing HTML5 application.
-EXISTING_SOURCE_CODE:
+                // ✅ Prompt โครงสร้างใหม่ แยกส่วนชัดเจน
+                finalPrompt = `You are updating an HTML5 application.
+                
+EXISTING_CODE:
 \`\`\`html
 ${generatedCode}
 \`\`\`
 
 CHANGE_REQUEST: "${instruction}"
 
-INSTRUCTIONS:
-1. Apply the change request to the EXISTING_SOURCE_CODE.
-2. **DO NOT** regenerate the app from scratch. Use the existing code as the base.
-3. KEEP existing features (Header, Score, Responsive) intact.
-4. Output the FULL updated HTML document.`;
+TASK: Apply the change request to the EXISTING_CODE.
+CONSTRAINTS:
+1. DO NOT create from scratch. Use EXISTING_CODE as base.
+2. KEEP existing features (Header, Back button, Score logic) intact.
+3. RETURN full updated HTML code.`;
                 
                 sys = `คุณคือผู้เชี่ยวชาญด้านการ Refactor Code HTML5.
                 กฎ: 
@@ -260,11 +316,13 @@ INSTRUCTIONS:
                 // --- Create New Logic ---
                 finalPrompt = `${contextText}\n${prompt}`;
                 sys = `คุณคือผู้เชี่ยวชาญด้านการสร้างสื่อการสอน HTML5 Interactive
+                หน้าที่: สร้างไฟล์ HTML Single File ที่สวยงาม ทันสมัย ใช้งานได้จริง
+                
                 กฎเหล็ก (Mandatory):
                 1. **Header Bar**: สร้างแถบด้านบน (ย้อนกลับ+ชื่อ "${title}"+คะแนน)
                 2. **Scoring**: เรียก \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\` เมื่อจบ
-                3. **Responsive**: รองรับมือถือเต็มจอ
-                4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกมให้น่าสนใจ
+                3. **Responsive**: รองรับมือถือเต็มจอ (No scrollbar)
+                4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` บรรยายเกมให้น่าสนใจ (ภาษาไทย)
                 5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
             }
 
@@ -282,7 +340,7 @@ INSTRUCTIONS:
                 
                 if (start !== -1 && end !== -1) {
                     cleanCode = cleanCode.substring(start, end + 7).trim();
-                    generatedCode = cleanCode; // ✅ อัปเดตตัวแปร Global เพื่อใช้ในการแก้ครั้งต่อไป
+                    generatedCode = cleanCode; // ✅ อัปเดต Global Var
                     
                     document.getElementById("missionFrame").srcdoc = generatedCode;
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
@@ -352,6 +410,7 @@ INSTRUCTIONS:
             initPreviewFrame();
             toggleLoading(false);
             document.getElementById("saveToCloudBtn").classList.add("hidden");
+            updateUIMode('new'); // Reset UI to New
         }
         function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
@@ -431,7 +490,6 @@ INSTRUCTIONS:
                 };
 
                 let mid = editingMid;
-                // ✅ Ownership Check
                 if (editingMid && currentUserId === originalTeacherId) {
                     await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                     showMessage("💾 อัปเดตภารกิจเดิมเรียบร้อย!");
@@ -481,16 +539,13 @@ INSTRUCTIONS:
                 document.getElementById("missionFrame").srcdoc = generatedCode;
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 
-                // Force Modify Mode
                 toggleLoading(false); 
                 document.getElementById("promptLabel").innerText = "คำสั่งปรับปรุง (Modification Prompt)";
                 document.getElementById("resetBtn").classList.remove("hidden");
                 document.getElementById("promptInput").placeholder = "พิมพ์คำสั่งแก้ไขเพิ่มเติมที่นี่...";
 
-                const statusEl = document.getElementById('ownershipStatus');
-                statusEl.classList.remove('hidden-el');
-                if (currentUserId === originalTeacherId) statusEl.innerHTML = '<span class="badge-premium owner-badge">เจ้าของภารกิจ</span>';
-                else statusEl.innerHTML = '<span class="badge-premium copy-badge">บันทึกเป็นชุดใหม่</span>';
+                if (currentUserId === originalTeacherId) updateUIMode('edit_owner');
+                else updateUIMode('edit_copy');
             }
         }
     </script>
