@@ -299,18 +299,47 @@
             document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
         }
 
-        // ✅ ฟังก์ชันเปิดใช้งานปุ่มบันทึก
         function activateSaveBtn() {
             const btn = document.getElementById('saveToCloudBtn');
             btn.disabled = false;
             btn.className = "bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 transform active:scale-95";
         }
 
+        function disableSaveBtn() {
+            const btn = document.getElementById('saveToCloudBtn');
+            btn.disabled = true;
+            btn.className = "bg-gray-300 text-white cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-bold shadow-none transition-all flex items-center gap-2";
+        }
+
+        // ✅ ฟังก์ชันตรวจสอบมาตรฐานโค้ด (Validation Logic)
+        function validateCodeStandard(code) {
+            if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
+            
+            // 1. Check Back Button Logic
+            const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
+            if (!hasBack) return { valid: false, msg: "ขาดปุ่มย้อนกลับ (history.back)" };
+
+            // 2. Check Score Logic
+            const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
+            if (!hasScore) return { valid: false, msg: "ขาดระบบส่งคะแนน (postMessage)" };
+
+            return { valid: true, msg: "ผ่านเกณฑ์มาตรฐาน" };
+        }
+
         // --- Logic หลัก ---
         function refreshPreview() {
             const code = document.getElementById('codeEditor').value;
             document.getElementById('missionFrame').srcdoc = code;
-            activateSaveBtn(); // ถ้าอัปเดตพรีวิวเอง ก็ให้กดบันทึกได้
+            
+            // ตรวจสอบมาตรฐานเมื่อกดอัปเดตพรีวิว
+            const check = validateCodeStandard(code);
+            if (check.valid) {
+                activateSaveBtn();
+                showMessage("✅ โค้ดครบถ้วนตามมาตรฐาน พร้อมบันทึก!");
+            } else {
+                disableSaveBtn();
+                showMessage("⚠️ " + check.msg + " กรุณาแก้ไขหรือใช้ปุ่ม 'สร้าง' ให้ AI ช่วย", true);
+            }
         }
 
         async function fetchClassroomContext() {
@@ -343,7 +372,6 @@
 
             if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนกดสร้างครับ", true);
-            
             if (!title) {
                 document.getElementById("missionTitleInput").focus();
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
@@ -351,20 +379,23 @@
 
             // ถ้าคำสั่งว่าง -> ใช้คำสั่งมาตรฐาน
             if (!prompt) {
-                prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐาน: 1. เพิ่ม Header (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) 2. ทำให้เป็น Responsive เต็มจอรองรับทุกอุปกรณ์ 3. ตรวจสอบระบบส่งคะแนนเมื่อจบเกม";
+                prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐานสากล";
             }
+
+            // ✅ บังคับเพิ่มคำสั่งมาตรฐานเข้าไปเสมอ (Standard Enforcement)
+            prompt += " และต้องทำสิ่งเหล่านี้ด้วย: 1.สร้าง Header (ปุ่มย้อนกลับ+ชื่อเกม+คะแนน) 2.ทำ Responsive เต็มจอ 3.เพิ่มระบบส่งคะแนน (postMessage)";
 
             toggleAILoading(true);
 
             const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
-            ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์และสวยงามตามมาตรฐาน FlipSchool
+            ภารกิจของคุณคือ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์ตามมาตรฐาน FlipSchool
             
-            สิ่งที่ต้องจัดการ (Mandatory Requirements):
+            **กฎเหล็ก (Mandatory Requirements) ที่ต้องทำทุกครั้ง:**
             1. **Header/Title Bar**:
-               - สร้างหรือแก้ไขแถบด้านบนสุดให้มีดีไซน์เข้ากับธีมเกม
-               - **ชื่อเกม (ตรงกลาง):** ต้องแสดงข้อความว่า "${title}"
-               - **ปุ่มย้อนกลับ (ซ้าย):** ต้องมีปุ่มที่เรียกคำสั่ง \`window.parent.history.back()\`
+               - สร้างแถบด้านบนสุด (Sticky Top) ดีไซน์สวยงามเข้ากับธีมเกม
+               - **ชื่อเกม (กลาง):** แสดงข้อความ "${title}"
+               - **ปุ่มย้อนกลับ (ซ้าย):** ต้องมีปุ่มที่เรียก \`window.parent.history.back()\`
                - **คะแนน (ขวา):** แสดงคะแนนปัจจุบัน
             
             2. **Scoring System**:
@@ -378,10 +409,7 @@
             4. **User Instruction**:
                - ${prompt}
             
-            กฎการส่งคืน:
-            - ส่งคืนเฉพาะ Source Code HTML (Single File) เท่านั้น
-            - ห้ามมีคำอธิบายใดๆ นอกเหนือจาก Code
-            - ห้ามใช้ Markdown Block`;
+            **Format:** ส่งคืนเฉพาะ Source Code HTML (Single File) เท่านั้น ห้ามมีคำอธิบายอื่น`;
 
             const userMessage = `Current Code:\n${currentCode}\n\nExecute the requirements above.`;
 
@@ -411,7 +439,7 @@
                     document.getElementById('codeEditor').value = cleanCode.trim();
                     refreshPreview();
                     
-                    // ✅ เปิดใช้งานปุ่มบันทึกเมื่อ AI สร้างเสร็จ
+                    // ✅ เปิดใช้งานปุ่มบันทึกทันทีเมื่อ AI สร้างเสร็จ
                     activateSaveBtn();
                     showMessage("✨ สร้างโค้ดสำเร็จเรียบร้อย!");
                 } else {
@@ -504,7 +532,9 @@
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("codeEditor").value = data.content_data?.html || "";
                 refreshPreview();
-                activateSaveBtn(); // ถ้าโหลดของเก่ามา ก็ให้กดบันทึกได้เลย
+                // ถ้าโหลดของเก่ามา ให้เช็คมาตรฐานก่อนเปิดปุ่ม Save
+                const check = validateCodeStandard(data.content_data?.html || "");
+                if(check.valid) activateSaveBtn();
                 
                 const statusEl = document.getElementById('ownershipStatus');
                 statusEl.classList.remove('hidden-el');
