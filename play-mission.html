@@ -26,7 +26,6 @@
         <p class="text-blue-900 font-bold animate-pulse text-sm">กำลังเตรียมความพร้อม...</p>
     </div>
 
-    <!-- Blocker -->
     <div id="blocker" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center border border-slate-100">
             <div class="text-5xl mb-4">🚫</div>
@@ -36,7 +35,6 @@
         </div>
     </div>
 
-    <!-- Settings (For Teacher) -->
     <div id="settingsModal" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center mb-8">
@@ -58,7 +56,6 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation -->
     <div id="deleteModal" class="fixed inset-0 z-[130] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl text-center">
             <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-trash-alt text-2xl"></i></div>
@@ -71,7 +68,6 @@
         </div>
     </div>
 
-    <!-- ✅ Navbar -->
     <nav class="nav-gradient text-white shadow-lg z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -141,13 +137,46 @@
             } catch (err) { history.back(); }
         }
 
+        // ✅ LOGIC ใหม่: ตรวจสอบก่อนบันทึก (Check-then-Update)
         window.addEventListener('message', async (e) => {
             if (e.data?.type === 'SAVE_RESULT') {
+                // อัปเดตคะแนนหน้าจอ
                 document.getElementById('scoreText').innerText = e.data.score;
-                await window.sysDB.from('student_missions').upsert({
-                    student_id: currentUserId, mission_id: currentMissionId,
-                    score: e.data.score, answers: e.data.answers || [], updated_at: new Date().toISOString()
-                }, { onConflict: 'student_id, mission_id' });
+                
+                try {
+                    // 1. ค้นหาว่านักเรียนคนนี้ เคยทำภารกิจนี้ไปหรือยัง?
+                    const { data: existing } = await window.sysDB
+                        .from('student_missions')
+                        .select('id')
+                        .eq('student_id', currentUserId)
+                        .eq('mission_id', currentMissionId)
+                        .maybeSingle();
+
+                    const payload = {
+                        student_id: currentUserId, 
+                        mission_id: currentMissionId,
+                        score: e.data.score, 
+                        answers: e.data.answers || [], 
+                        updated_at: new Date().toISOString()
+                    };
+
+                    if (existing) {
+                        // 2. ถ้ามี: UPDATE ทับข้อมูลเดิม
+                        await window.sysDB
+                            .from('student_missions')
+                            .update(payload)
+                            .eq('id', existing.id);
+                        console.log('Updated existing score');
+                    } else {
+                        // 3. ถ้าไม่มี: INSERT ข้อมูลใหม่
+                        await window.sysDB
+                            .from('student_missions')
+                            .insert([payload]);
+                        console.log('Inserted new score');
+                    }
+                } catch (err) {
+                    console.error("Error saving result:", err);
+                }
             }
         });
 
