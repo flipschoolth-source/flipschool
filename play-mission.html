@@ -12,14 +12,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f1f5f9; overflow: hidden; }
-        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
-        .mission-container { height: calc(100vh - 70px); width: 100%; position: relative; }
-        #missionIframe { width: 100%; height: 100%; border: none; background: white; }
-        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        /* ปรับให้เต็มจอ ไม่มี Scrollbar ของ Browser */
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #000; overflow: hidden; margin: 0; padding: 0; height: 100vh; width: 100vw; }
+        
+        /* iframe เต็มพื้นที่ */
+        .mission-container { width: 100%; height: 100%; border: none; }
+        #missionIframe { width: 100%; height: 100%; border: none; background: white; display: block; }
+        
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.9); backdrop-filter: blur(4px); }
+        
+        /* ปุ่มเมนูลอยสำหรับครู */
+        .teacher-fab {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; cursor: pointer;
+            transition: all 0.2s; border: 1px solid #e2e8f0;
+        }
+        .teacher-fab:active { transform: scale(0.9); }
+        
+        .teacher-menu {
+            position: fixed; bottom: 80px; right: 20px;
+            background: white; padding: 10px; border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            display: flex; flex-direction: column; gap: 8px;
+            z-index: 1000; border: 1px solid #f1f5f9;
+            transform-origin: bottom right; transition: all 0.2s;
+        }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="h-screen w-screen">
 
     <div id="loader" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
         <div class="w-10 h-10 border-4 border-blue-100 border-t-blue-900 rounded-full animate-spin mb-4"></div>
@@ -38,7 +63,7 @@
     <div id="settingsModal" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center mb-8">
-                <h3 class="text-xl font-bold text-blue-900">การจัดการห้องเรียน</h3>
+                <h3 class="text-xl font-bold text-blue-900">จัดการห้องเรียน</h3>
                 <button onclick="closeSettings()" class="text-slate-400"><i class="fas fa-times"></i></button>
             </div>
             <div class="space-y-6">
@@ -59,45 +84,34 @@
     <div id="deleteModal" class="fixed inset-0 z-[130] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl text-center">
             <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-trash-alt text-2xl"></i></div>
-            <h3 class="text-xl font-bold text-slate-800">ถอนภารกิจออกจากห้อง?</h3>
-            <p class="text-sm text-slate-500 mt-2 px-4">ภารกิจจะถูกถอนการติดตั้งในห้องเรียนนี้ แต่จะยังคงอยู่ใน <b>คลังภารกิจ</b> ของคุณครูครับ</p>
+            <h3 class="text-xl font-bold text-slate-800">ถอนภารกิจ?</h3>
             <div class="mt-8 space-y-2">
-                <button onclick="confirmRemove()" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm">ยืนยันการนำออก</button>
+                <button onclick="confirmRemove()" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm">ยืนยัน</button>
                 <button onclick="closeDelete()" class="w-full text-slate-400 font-semibold py-2 text-sm">ยกเลิก</button>
             </div>
         </div>
     </div>
 
-    <nav class="nav-gradient text-white shadow-lg z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md shrink-0">
-                    <svg class="w-7 h-7 text-blue-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12V13a1 1 0 00.657.939l4 1.714a1 1 0 00.686 0l4-1.714A1 1 0 0015 13v-2.88l1.69-.723a1 1 0 011.31 1.25l-.71 3.551a1 1 0 01-.818.803l-6 1.05a1 1 0 01-.344 0l-6-1.05a1 1 0 01-.818-.803l-.71-3.551a1 1 0 011.31-1.25l1.39.596zM14 13l-4 1.714L6 13V11l4 1.714L14 11v2z"/></svg>
-                </div>
-                <div class="flex flex-col overflow-hidden">
-                    <div class="flex items-center gap-2">
-                        <div class="text-base font-bold tracking-tight leading-none"><span class="text-white">Flip</span><span class="text-orange-400">School</span></div>
-                        <span class="text-white/30 text-[10px]">|</span>
-                        <span id="missionSubtitle" class="text-[10px] text-blue-200 truncate font-medium uppercase tracking-wider">Mission Play</span>
-                    </div>
-                    <h1 id="missionTitle" class="text-xs font-bold text-white/80 truncate max-w-[150px] md:max-w-md mt-0.5">กำลังโหลด...</h1>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-2 shrink-0">
-                <div id="teacherTools" class="hidden flex items-center gap-1 bg-white/10 p-1 rounded-full border border-white/20">
-                    <button onclick="openSettings()" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="ตั้งค่า"><i class="fas fa-cog text-[10px]"></i></button>
-                    <button id="editBtn" class="w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full" title="แก้ไขโค้ด"><i class="fas fa-code text-[10px]"></i></button>
-                    <button onclick="openDelete()" class="w-8 h-8 flex items-center justify-center hover:bg-red-500/30 rounded-full text-red-300" title="ถอนภารกิจ"><i class="fas fa-trash-alt text-[10px]"></i></button>
-                </div>
-                <div class="bg-white/10 px-4 py-1.5 rounded-full text-xs font-bold border border-white/20 flex items-center gap-2"><i class="fas fa-trophy text-orange-400"></i><span id="scoreText">0</span></div>
-            </div>
-        </div>
-    </nav>
-
     <main class="mission-container">
         <iframe id="missionIframe" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Player"></iframe>
     </main>
+
+    <div id="teacherTools" class="hidden">
+        <div id="teacherMenu" class="teacher-menu hidden">
+            <button onclick="openSettings()" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 rounded-xl text-sm font-bold text-slate-600 w-full text-left">
+                <i class="fas fa-cog text-blue-500 w-5"></i> ตั้งค่า
+            </button>
+            <button id="editBtn" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 rounded-xl text-sm font-bold text-slate-600 w-full text-left">
+                <i class="fas fa-code text-orange-500 w-5"></i> แก้ไขโค้ด
+            </button>
+            <button onclick="openDelete()" class="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 w-full text-left">
+                <i class="fas fa-trash-alt w-5"></i> ถอนภารกิจ
+            </button>
+        </div>
+        <button onclick="toggleTeacherMenu()" class="teacher-fab text-blue-900">
+            <i class="fas fa-tools text-xl"></i>
+        </button>
+    </div>
 
     <script>
         let currentMissionId = null, currentUserId = null, assignmentData = null, isTeacher = false;
@@ -124,9 +138,6 @@
                     document.getElementById('editBtn').onclick = () => window.location.href = `mission-create-ai.html?cid=${assign.classroom_id}&mid=${currentMissionId}`;
                 }
 
-                document.getElementById('missionTitle').innerText = assign.missions.title;
-                document.getElementById('missionSubtitle').innerText = assign.classrooms.subject_name;
-
                 if (!isTeacher && !assign.can_replay) {
                     const { data: ex } = await window.sysDB.from('student_missions').select('id').eq('mission_id', currentMissionId).eq('student_id', currentUserId).maybeSingle();
                     if (ex) { document.getElementById('blocker').classList.remove('hidden'); document.getElementById('loader').style.display = 'none'; return; }
@@ -137,63 +148,38 @@
             } catch (err) { history.back(); }
         }
 
-        // ✅ LOGIC ใหม่: ตรวจสอบก่อนบันทึก (Check-then-Update)
         window.addEventListener('message', async (e) => {
             if (e.data?.type === 'SAVE_RESULT') {
-                // อัปเดตคะแนนหน้าจอ
-                document.getElementById('scoreText').innerText = e.data.score;
-                
                 try {
-                    // 1. ค้นหาว่านักเรียนคนนี้ เคยทำภารกิจนี้ไปหรือยัง?
-                    const { data: existing } = await window.sysDB
-                        .from('student_missions')
-                        .select('id')
-                        .eq('student_id', currentUserId)
-                        .eq('mission_id', currentMissionId)
-                        .maybeSingle();
+                    const { data: existing } = await window.sysDB.from('student_missions').select('id').eq('student_id', currentUserId).eq('mission_id', currentMissionId).maybeSingle();
+                    const payload = { student_id: currentUserId, mission_id: currentMissionId, score: e.data.score, answers: e.data.answers || [], updated_at: new Date().toISOString() };
 
-                    const payload = {
-                        student_id: currentUserId, 
-                        mission_id: currentMissionId,
-                        score: e.data.score, 
-                        answers: e.data.answers || [], 
-                        updated_at: new Date().toISOString()
-                    };
-
-                    if (existing) {
-                        // 2. ถ้ามี: UPDATE ทับข้อมูลเดิม
-                        await window.sysDB
-                            .from('student_missions')
-                            .update(payload)
-                            .eq('id', existing.id);
-                        console.log('Updated existing score');
-                    } else {
-                        // 3. ถ้าไม่มี: INSERT ข้อมูลใหม่
-                        await window.sysDB
-                            .from('student_missions')
-                            .insert([payload]);
-                        console.log('Inserted new score');
-                    }
-                } catch (err) {
-                    console.error("Error saving result:", err);
-                }
+                    if (existing) await window.sysDB.from('student_missions').update(payload).eq('id', existing.id);
+                    else await window.sysDB.from('student_missions').insert([payload]);
+                } catch (err) { console.error("Error saving result:", err); }
             }
         });
 
-        function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
+        function toggleTeacherMenu() {
+            const menu = document.getElementById('teacherMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // ปิดเมนูเมื่อคลิกที่อื่น
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('teacherMenu');
+            const fab = document.querySelector('.teacher-fab');
+            if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !fab.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); toggleTeacherMenu(); }
         function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
-        function openDelete() { document.getElementById('deleteModal').classList.remove('hidden'); }
+        function openDelete() { document.getElementById('deleteModal').classList.remove('hidden'); toggleTeacherMenu(); }
         function closeDelete() { document.getElementById('deleteModal').classList.add('hidden'); }
-
-        async function updateAssignmentSetting() {
-            const v = document.getElementById('replayToggle').checked;
-            await window.sysDB.from('classroom_missions').update({ can_replay: v }).eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id);
-        }
-
-        async function confirmRemove() {
-            await window.sysDB.from('classroom_missions').delete().eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id);
-            window.location.href = `classroom-detail.html?id=${assignmentData.classroom_id}`;
-        }
+        async function updateAssignmentSetting() { const v = document.getElementById('replayToggle').checked; await window.sysDB.from('classroom_missions').update({ can_replay: v }).eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id); }
+        async function confirmRemove() { await window.sysDB.from('classroom_missions').delete().eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id); window.location.href = `classroom-detail.html?id=${assignmentData.classroom_id}`; }
     </script>
 </body>
 </html>
