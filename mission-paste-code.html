@@ -249,9 +249,9 @@
         let detectedGradeNumber = ""; 
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof APP_CONFIG !== 'undefined') {
-                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN);
-                document.getElementById('app-slogan-display').innerText = APP_CONFIG.APP_SLOGAN;
+            if (window.CONFIG) {
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
+                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
             }
 
             const params = new URLSearchParams(window.location.search);
@@ -260,6 +260,20 @@
 
             initPreviewFrame();
             
+            // เช็คว่ามีโค้ดที่ส่งมาจากหน้าอื่นหรือไม่ (Mission Create AI)
+            const draftCode = localStorage.getItem('mission_code_draft');
+            if(draftCode) {
+                document.getElementById('codeEditor').value = draftCode;
+                refreshPreview();
+                localStorage.removeItem('mission_code_draft'); // ล้างออกเมื่อใช้แล้ว
+                
+                const draftTitle = localStorage.getItem('mission_title_draft');
+                if(draftTitle) {
+                    document.getElementById('missionTitleInput').value = draftTitle;
+                    localStorage.removeItem('mission_title_draft');
+                }
+            }
+
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -377,26 +391,38 @@
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
 
-            if (!prompt) prompt = "ปรับปรุงโค้ดให้เป็นมาตรฐานสากล";
-            prompt += " และต้องทำสิ่งเหล่านี้ด้วย: 1.Header(ย้อนกลับ+ชื่อเกม+คะแนน) 2.Responsive เต็มจอ 3.ระบบคะแนน(postMessage) 4.เขียนคำอธิบายภารกิจใส่ meta description";
+            if (!prompt) prompt = "ปรับปรุงโค้ดให้สมบูรณ์และสวยงาม";
 
             toggleAILoading(true);
 
+            // System Prompt: เน้นโครงสร้างมาตรฐาน
             const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
-            ภารกิจ: ปรับปรุงโค้ด HTML ที่ได้รับให้สมบูรณ์ตามมาตรฐาน FlipSchool
+            ภารกิจ: แก้ไขและปรับปรุงโค้ด HTML ตามคำขอของผู้ใช้ (User Request)
             
-            **กฎเหล็ก (Mandatory Requirements) ที่ต้องทำทุกครั้ง:**
-            1. **Header/Title Bar**: สร้างแถบด้านบนสุด (Sticky Top) ดีไซน์สวยงาม
-               - **ชื่อเกม:** "${title}"
-               - **ปุ่มย้อนกลับ (ซ้าย):** เรียก \`window.parent.history.back()\`
-               - **คะแนน (ขวา):** แสดงคะแนนปัจจุบัน
-            2. **Scoring System**: ตรวจสอบว่ามีการส่งคะแนนกลับ \`window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')\` ถ้าไม่มีให้เพิ่ม
-            3. **Responsive**: แสดงผลได้ดีบนมือถือ (Full height, No scrollbar if possible)
-            4. **Meta Description**: สร้าง tag \`<meta name="description" content="...">\` ใน <head> เนื้อหา content คือคำอธิบายเกมน่าสนใจ (ภาษาไทย)
-            5. **Format**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
+            **กฎเหล็ก (Mandatory Requirements) ที่ต้องมีในผลลัพธ์สุดท้ายเสมอ:**
+            1. **Header/Title Bar**: ต้องมีแถบด้านบนสุด (Sticky Top)
+               - ชื่อเกม: "${title}"
+               - ปุ่มย้อนกลับ (ซ้าย): เรียก window.parent.history.back()
+               - คะแนน (ขวา): แสดงคะแนน
+            2. **Scoring**: ต้องมีการส่งคะแนน window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')
+            3. **Responsive**: แสดงผลได้ดีบนมือถือ เต็มจอ
+            4. **Meta Description**: สร้าง <meta name="description" content="..."> ภาษาไทยที่น่าสนใจ
+            5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
 
-            const userMessage = `Current Code:\n${currentCode}\n\nExecute the requirements above.`;
+            // User Message: ส่งคำสั่งของผู้ใช้ไปให้ AI เห็นจริงๆ
+            const userMessage = `
+            คำสั่งแก้ไข (User Request): "${prompt}"
+            
+            --------------------------------------------------
+            โค้ดเดิม (Source Code):
+            ${currentCode}
+            --------------------------------------------------
+            
+            วิธีดำเนินการ:
+            1. ทำตาม "คำสั่งแก้ไข" ของผู้ใช้อย่างเคร่งครัด
+            2. ตรวจสอบว่าโค้ดยังคงมีคุณสมบัติตาม "กฎเหล็ก" (Header, Score, Responsive) ครบถ้วน
+            `;
 
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
@@ -426,13 +452,13 @@
                         const metaDesc = doc.querySelector('meta[name="description"]');
                         if (metaDesc && metaDesc.content) {
                             document.getElementById("missionDescInput").value = metaDesc.content;
-                            showMessage("✨ AI สร้างคำอธิบายภารกิจให้แล้ว!");
+                            showMessage("✨ AI แก้ไขและสร้างคำอธิบายให้แล้ว!");
                         }
                     } catch (e) { console.log("Description extract failed"); }
 
                     refreshPreview();
                     activateSaveBtn();
-                    showMessage("✨ สร้างโค้ดสำเร็จเรียบร้อย!");
+                    showMessage("✨ แก้ไขโค้ดตามคำสั่งสำเร็จ!");
                 } else { throw new Error("AI ไม่ส่งผลลัพธ์กลับมา"); }
             } catch (e) { showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true); } 
             finally { toggleAILoading(false); }
