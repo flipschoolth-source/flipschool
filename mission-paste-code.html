@@ -38,7 +38,8 @@
             font-family: 'Courier New', Courier, monospace;
             background-color: #1e293b;
             color: #e2e8f0;
-            line-height: 1.5;
+            line-height: 1.6;
+            font-size: 13px;
         }
 
         .custom-message-box {
@@ -54,6 +55,11 @@
         .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; }
         .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
         .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        
+        /* Animation for AI Progress */
+        .progress-bar-animated {
+            transition: width 0.3s ease-in-out;
+        }
         
         /* ปรับแต่ง Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
@@ -188,28 +194,48 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">คำอธิบายภารกิจ (AI ช่วยเขียนได้)</label>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">คำอธิบายภารกิจ</label>
                         <textarea id="missionDescInput" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-3 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder="รายละเอียดของเกมหรือกิจกรรม..."></textarea>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">1. วางโค้ด HTML ของคุณที่นี่</label>
-                        <textarea id="codeEditor" class="w-full h-48 code-editor rounded-[1.5rem] p-4 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder=""></textarea>
-                        <div class="flex justify-end mt-2">
-                            <button onclick="refreshPreview()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1.5 rounded-lg font-bold transition-all"><i class="fas fa-sync-alt"></i> อัปเดตพรีวิว</button>
+                    <div class="relative">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">1. วางโค้ด HTML ของคุณที่นี่</label>
+                            <button onclick="refreshPreview()" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1 rounded-lg font-bold transition-all"><i class="fas fa-sync-alt"></i> พรีวิว</button>
+                        </div>
+                        <div class="relative">
+                            <textarea id="codeEditor" class="w-full min-h-[400px] code-editor rounded-[1.5rem] p-4 outline-none resize-y text-xs focus:ring-2 focus:ring-teal-500 shadow-inner border border-slate-300" placeholder="<!DOCTYPE html>..."></textarea>
+                            
+                            <div id="editorOverlay" class="absolute inset-0 bg-slate-900/50 rounded-[1.5rem] flex flex-col items-center justify-center backdrop-blur-sm z-10 hidden-el">
+                                <i class="fas fa-magic text-teal-300 text-3xl mb-2 fa-spin"></i>
+                                <span class="text-white font-bold text-sm">AI กำลังแก้ไขโค้ด...</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                        <label class="block text-xs font-bold text-teal-700 uppercase tracking-widest mb-2"><i class="fas fa-robot"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
-                            <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
-                                <i class="fas fa-magic"></i> สร้าง
+                    <div class="bg-gradient-to-br from-teal-50 to-emerald-50 p-5 rounded-2xl border border-teal-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-teal-100/50 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                        
+                        <label class="block text-xs font-bold text-teal-800 uppercase tracking-widest mb-3 relative z-10 flex items-center gap-2">
+                            <i class="fas fa-robot text-teal-600"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)
+                        </label>
+                        
+                        <div class="flex flex-col gap-3 relative z-10">
+                            <textarea id="aiPromptInput" rows="3" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-medium focus:ring-2 focus:ring-teal-500 resize-y shadow-sm" placeholder="เช่น ปรับให้พื้นหลังเป็นสีอวกาศ, เพิ่มเอฟเฟกต์ตอนชนะ, ทำให้ปุ่มกดง่ายขึ้นบนมือถือ..."></textarea>
+                            
+                            <button id="aiModifyBtn" onclick="handleAIModify()" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex justify-center items-center gap-2">
+                                <i class="fas fa-magic"></i> สั่ง AI ปรับปรุงโค้ด
                             </button>
                         </div>
-                        <div id="aiLoading" class="hidden-el mt-2 text-xs text-teal-600 font-bold flex items-center gap-2">
-                            <i class="fas fa-circle-notch fa-spin"></i> กำลังดำเนินการ...
+
+                        <div id="aiStatusBox" class="hidden-el mt-4 bg-white/80 backdrop-blur rounded-xl p-3 border border-teal-200 relative z-10">
+                            <div class="flex justify-between items-center mb-2">
+                                <span id="aiStatusText" class="text-xs font-bold text-teal-700">กำลังเตรียมการ...</span>
+                                <span id="aiPercent" class="text-[10px] font-bold text-teal-500">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                <div id="aiProgressBar" class="bg-teal-500 h-full w-0 progress-bar-animated rounded-full"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -243,7 +269,7 @@
     </footer>
 
     <script>
-        const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
+        const MODEL_ID = "gemini-2.0-flash"; // ใช้รุ่นที่เร็วและฉลาด
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubjectOnly = ""; 
         let detectedGradeNumber = ""; 
@@ -260,12 +286,11 @@
 
             initPreviewFrame();
             
-            // เช็คว่ามีโค้ดที่ส่งมาจากหน้าอื่นหรือไม่ (Mission Create AI)
             const draftCode = localStorage.getItem('mission_code_draft');
             if(draftCode) {
                 document.getElementById('codeEditor').value = draftCode;
                 refreshPreview();
-                localStorage.removeItem('mission_code_draft'); // ล้างออกเมื่อใช้แล้ว
+                localStorage.removeItem('mission_code_draft'); 
                 
                 const draftTitle = localStorage.getItem('mission_title_draft');
                 if(draftTitle) {
@@ -312,10 +337,36 @@
             }
         }
 
-        function toggleAILoading(show) {
-            document.getElementById('aiLoading').classList.toggle('hidden-el', !show);
-            document.getElementById('aiModifyBtn').disabled = show;
-            document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
+        // --- AI Status Controls ---
+        function updateAIStatus(percent, text) {
+            const statusBox = document.getElementById('aiStatusBox');
+            const progressBar = document.getElementById('aiProgressBar');
+            const statusText = document.getElementById('aiStatusText');
+            const percentText = document.getElementById('aiPercent');
+            const overlay = document.getElementById('editorOverlay');
+            const btn = document.getElementById('aiModifyBtn');
+
+            if (percent === 0 && text) { // Start
+                statusBox.classList.remove('hidden-el');
+                overlay.classList.remove('hidden-el');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI กำลังทำงาน...';
+            }
+
+            if (text) statusText.innerText = text;
+            if (percent !== null) {
+                progressBar.style.width = `${percent}%`;
+                percentText.innerText = `${percent}%`;
+            }
+
+            if (percent >= 100) { // Finish
+                setTimeout(() => {
+                    statusBox.classList.add('hidden-el');
+                    overlay.classList.add('hidden-el');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> สั่ง AI ปรับปรุงโค้ด';
+                }, 1000);
+            }
         }
 
         function activateSaveBtn() {
@@ -391,40 +442,39 @@
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
 
-            if (!prompt) prompt = "ปรับปรุงโค้ดให้สมบูรณ์และสวยงาม";
+            if (!prompt) prompt = "ปรับปรุง UI ให้สวยงามทันสมัยขึ้น และตรวจสอบความถูกต้องของโค้ด";
 
-            toggleAILoading(true);
+            // เริ่มการทำงานของ AI Status
+            updateAIStatus(0, "กำลังวิเคราะห์โครงสร้างโค้ด...");
 
-            // System Prompt: เน้นโครงสร้างมาตรฐาน
-            const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
+            // Smart System Prompt: เน้น Logic เดิม และ ความสวยงาม
+            const sysPrompt = `คุณคือ HTML5 Game Expert Developer.
             
-            ภารกิจ: แก้ไขและปรับปรุงโค้ด HTML ตามคำขอของผู้ใช้ (User Request)
+            ภารกิจ: แก้ไขโค้ด HTML ตามคำสั่ง: "${prompt}"
             
-            **กฎเหล็ก (Mandatory Requirements) ที่ต้องมีในผลลัพธ์สุดท้ายเสมอ:**
-            1. **Header/Title Bar**: ต้องมีแถบด้านบนสุด (Sticky Top)
-               - ชื่อเกม: "${title}"
-               - ปุ่มย้อนกลับ (ซ้าย): เรียก window.parent.history.back()
-               - คะแนน (ขวา): แสดงคะแนน
-            2. **Scoring**: ต้องมีการส่งคะแนน window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')
-            3. **Responsive**: แสดงผลได้ดีบนมือถือ เต็มจอ
-            4. **Meta Description**: สร้าง <meta name="description" content="..."> ภาษาไทยที่น่าสนใจ
-            5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
+            **กฎสำคัญที่สุด (CRITICAL RULES):**
+            1. **LOGIC PRESERVATION:** ห้ามลบ Logic สำคัญของเกม (การคำนวณคะแนน, การเคลื่อนที่, เงื่อนไขชนะ/แพ้) เด็ดขาด ยกเว้น user สั่งให้แก้
+            2. **HEADER REQUIRED:** ต้องมี Header Bar ด้านบนสุด (Sticky/Fixed) ประกอบด้วย:
+               - ปุ่มย้อนกลับ (Left): เรียก window.parent.history.back()
+               - ชื่อเกม (Center): "${title}"
+               - คะแนน (Right): แสดง Score
+            3. **SCORING:** ต้องมีฟังก์ชันส่งคะแนนเมื่อจบเกม: window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., total: ..., passed: ... }, '*')
+            4. **MODERN UI:** ใช้ CSS ให้ดูทันสมัย (Shadows, Gradients, Rounded Corners, Google Fonts 'Sarabun').
+            5. **RESPONSIVE:** ต้องแสดงผลได้ดีบนมือถือ (เต็มจอ, ไม่ล้น, ปุ่มกดง่าย).
+            
+            Output: คืนค่าเป็น HTML Code ที่สมบูรณ์เพียงอย่างเดียว (ไม่ต้องมี Markdown backticks ก็ได้ หรือมีก็ได้)`;
 
-            // User Message: ส่งคำสั่งของผู้ใช้ไปให้ AI เห็นจริงๆ
-            const userMessage = `
-            คำสั่งแก้ไข (User Request): "${prompt}"
-            
-            --------------------------------------------------
-            โค้ดเดิม (Source Code):
-            ${currentCode}
-            --------------------------------------------------
-            
-            วิธีดำเนินการ:
-            1. ทำตาม "คำสั่งแก้ไข" ของผู้ใช้อย่างเคร่งครัด
-            2. ตรวจสอบว่าโค้ดยังคงมีคุณสมบัติตาม "กฎเหล็ก" (Header, Score, Responsive) ครบถ้วน
-            `;
+            const userMessage = `Source Code เดิม:\n${currentCode}\n\nคำสั่งแก้ไขเพิ่มเติม: ${prompt}`;
 
             try {
+                // Simulate progress (หลอกตาว่าทำงานเป็นขั้นตอน เพื่อ UX)
+                let fakeProgress = 10;
+                const progressInterval = setInterval(() => {
+                    fakeProgress += Math.floor(Math.random() * 5);
+                    if (fakeProgress > 85) fakeProgress = 85;
+                    updateAIStatus(fakeProgress, fakeProgress < 40 ? "กำลังออกแบบ UI ใหม่..." : "กำลังเขียน Logic...");
+                }, 800);
+
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
                 const res = await fetch(url, {
                     method: 'POST',
@@ -432,7 +482,12 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: sysPrompt }] } })
                 });
 
+                clearInterval(progressInterval);
+
                 if (!res.ok) throw new Error("AI Error: " + res.status);
+                
+                updateAIStatus(90, "กำลังตรวจสอบความสมบูรณ์...");
+                
                 const data = await res.json();
                 let newCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -446,22 +501,25 @@
                     
                     document.getElementById('codeEditor').value = cleanCode.trim();
                     
+                    // พยายามดึงคำอธิบายจาก meta description (ถ้ามี)
                     try {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(cleanCode, 'text/html');
                         const metaDesc = doc.querySelector('meta[name="description"]');
                         if (metaDesc && metaDesc.content) {
                             document.getElementById("missionDescInput").value = metaDesc.content;
-                            showMessage("✨ AI แก้ไขและสร้างคำอธิบายให้แล้ว!");
                         }
-                    } catch (e) { console.log("Description extract failed"); }
+                    } catch (e) {}
 
                     refreshPreview();
                     activateSaveBtn();
-                    showMessage("✨ แก้ไขโค้ดตามคำสั่งสำเร็จ!");
+                    showMessage("✨ AI ปรับปรุงโค้ดเรียบร้อย!");
                 } else { throw new Error("AI ไม่ส่งผลลัพธ์กลับมา"); }
-            } catch (e) { showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true); } 
-            finally { toggleAILoading(false); }
+            } catch (e) { 
+                showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true); 
+            } finally { 
+                updateAIStatus(100, "เสร็จสิ้น!");
+            }
         }
 
         async function confirmSave(mode) {
@@ -494,7 +552,6 @@
                 };
 
                 let mid = editingMid;
-                // ✅ Logic สำคัญ: ถ้าผู้แก้ไข == เจ้าของเดิม ให้ Update, ถ้าไม่ใช่ ให้ Insert ใหม่ (Clone)
                 if (editingMid && currentUserId === originalTeacherId) {
                     await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
                     showMessage("💾 อัปเดตภารกิจเรียบร้อย!");
@@ -512,7 +569,7 @@
 
                 if (mode === 'exit') window.location.href = `classroom-detail.html?id=${targetCid}`;
             } catch (err) { showMessage("❌ บันทึกไม่สำเร็จ: " + err.message, true); }
-            finally { toggleLoading(false); closeSaveModal(); }
+            finally { closeSaveModal(); }
         }
 
         async function saveKeyToDB() {
@@ -530,7 +587,6 @@
             const { data: { user } } = await window.sysDB.auth.getUser();
             if(user) {
                 currentUserId = user.id;
-                // ✅ ดึง API Key
                 const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
                 if(data?.gemini_api_key) {
                     document.getElementById("apiKeyInput").value = data.gemini_api_key;
@@ -544,12 +600,11 @@
         async function loadExistingMission() {
             const { data } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
             if (data) {
-                originalTeacherId = data.created_by; // เก็บ ID เจ้าของเดิมไว้
+                originalTeacherId = data.created_by;
                 document.getElementById("missionTitleInput").value = data.title;
                 document.getElementById("codeEditor").value = data.content_data?.html || "";
                 document.getElementById("missionDescInput").value = data.description || "";
                 refreshPreview();
-                // ถ้าโหลดของเก่ามา เช็คมาตรฐานก่อนเปิด Save
                 const check = validateCodeStandard(data.content_data?.html || "");
                 if(check.valid) activateSaveBtn();
                 
