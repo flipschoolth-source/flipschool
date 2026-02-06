@@ -1,900 +1,572 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Namsai Vocabulary Hunt</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paste & Edit Code | FlipSchool</title>
+
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap');
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #333;
-            overflow: hidden;
-            font-family: 'Sarabun', sans-serif; /* Use Sarabun globally */
-            touch-action: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .nav-gradient { background: linear-gradient(135deg, #0f766e 0%, #115e59 100%); } /* Teal Theme */
+        
+        .preview-outer-container {
+            width: 100%; display: flex; justify-content: center; align-items: flex-start;
+            padding: 1.5rem; min-height: 650px; overflow: hidden;
         }
 
-        #game-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            max-width: 800px;
-            max-height: 600px;
-            background-color: #5c94fc;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            overflow: hidden;
+        .preview-frame-wrapper {
+            background: #1e293b; border-radius: 2rem; overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            position: relative; transform-origin: top center;
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated;
+        .device-mobile { width: 375px; height: 667px; }
+        .device-tablet { width: 768px; height: 1024px; }
+        .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
+        
+        .code-editor {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            line-height: 1.5;
         }
 
-        /* Player Sprite (Overlay) */
-        #player-sprite {
-            position: absolute;
-            width: 128px;
-            height: 128px;
-            z-index: 5;
-            display: none;
-            pointer-events: none;
-            transform-origin: center bottom; 
+        .custom-message-box {
+            position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
+            background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 9999; border-left: 5px solid #0d9488; display: none;
+            animation: slideIn 0.3s ease-out;
         }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
-        }
-
-        /* Question Box Styling */
-        .question-box {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-
-        .target-word-container {
-            background: rgba(255, 255, 255, 0.95);
-            border: 4px solid #e52521;
-            border-radius: 15px;
-            padding: 10px 50px; 
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-            text-align: center;
-            transform: scale(1.0);
-            transition: transform 0.2s;
-            min-width: 200px;
-        }
-
-        #target-word {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 60px;
-            color: #e52521;
-            font-weight: 800;
-            line-height: 1.2;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
-        }
-
-        .hud-stats {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
-            color: white;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        #start-screen, #game-over-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 20;
-        }
-
-        h1 {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 56px;
-            margin-bottom: 10px;
-            color: #ffd700;
-            font-weight: 800;
-            text-shadow: 3px 3px 0 #e52521;
-        }
-
-        p { 
-            font-size: 24px; 
-            margin-bottom: 30px; 
-            color: #ddd; 
-            font-weight: 400;
-        }
-
-        .btn {
-            background: #e52521;
-            color: white;
-            border: 4px solid white;
-            padding: 15px 40px;
-            font-size: 30px;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 50px;
-            transition: transform 0.1s, background 0.2s;
-            box-shadow: 0 6px 0 #990000;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000; }
-        .btn:disabled { background: #666; cursor: not-allowed; border-color: #999; box-shadow: none; }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            display: none;
-            width: 100%;
-            padding: 20px;
-            pointer-events: auto;
-            box-sizing: border-box;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 10px;
-        }
-        .control-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            color: white;
-            user-select: none;
-            backdrop-filter: blur(2px);
-        }
-        .control-btn:active { background: rgba(255, 255, 255, 0.5); }
-        .d-pad { display: flex; gap: 15px; }
-        .action-btn { background: rgba(229, 37, 33, 0.4); }
-
-        @media (max-width: 800px) {
-            #mobile-controls { display: flex; }
-            #target-word { font-size: 40px; }
-            .target-word-container { padding: 5px 20px; }
-        }
+        .hidden-el { display: none !important; }
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; }
+        .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
+        .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        
+        /* ปรับแต่ง Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-<div id="game-container">
-    <canvas id="gameCanvas"></canvas>
-    
-    <img id="player-sprite" src="" alt="Player" onerror="this.style.display='none'; window.playerImageError=true;">
+    <div id="msgBox" class="custom-message-box">
+        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
+    </div>
 
-    <div id="ui-layer">
-        <div class="question-box">
-            <div class="target-word-container" id="target-container">
-                <div id="target-word">...</div>
+    <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-teal-50 text-teal-900 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-teal-100 shadow-sm">
+                    <span class="text-4xl">💾</span>
+                </div>
+                <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
+                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2 px-4 italic font-medium">ภารกิจจะถูกจัดเก็บเข้าคลังสื่อสาระและพร้อมมอบหมายให้นักเรียน</p>
+            </div>
+            <div class="space-y-3">
+                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-teal-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">
+                    💾 บันทึกและกลับห้องเรียน
+                </button>
+                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ย้อนกลับไปแก้ไข</button>
             </div>
         </div>
+    </div>
+
+    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border-2 border-white/20">
+                    <span class="text-2xl">🎓</span>
+                </div>
+                <div class="flex flex-col">
+                    <div id="app-name-display" class="text-xl md:text-2xl font-bold tracking-tight leading-none">
+                        <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
+                    </div>
+                    <span id="app-slogan-display" class="text-[10px] md:text-xs text-teal-100 font-medium mt-0.5 tracking-wide opacity-90 italic">...</span>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
+                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div class="hud-stats">
-            <span id="score-display">คะแนน: 0</span>
-        </div>
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center shadow-inner">
+                            <i class="fas fa-code text-2xl"></i>
+                        </div>
+                        <h2 id="pageModeDisplay" class="text-2xl font-bold text-teal-900 leading-tight">Paste & Edit Code</h2>
+                    </div>
+                    <div id="ownershipStatus" class="hidden-el"></div>
+                </div>
 
-        <div id="mobile-controls">
-            <div class="d-pad">
-                <div class="control-btn" id="btn-left">←</div>
-                <div class="control-btn" id="btn-right">→</div>
+                <div class="mb-6">
+                    <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div>
+                            </div>
+                        </div>
+                        <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1 rounded-lg hover:bg-emerald-100 transition-all font-bold">
+                            แก้ไข Key
+                        </button>
+                    </div>
+
+                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                Gemini API Configuration
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-teal-500 hover:text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100 transition-all flex items-center gap-1" style="text-transform: none;">
+                                    <i class="fas fa-external-link-alt text-[8px]"></i> รับ API Key
+                                </a>
+                            </label>
+                            <button id="cancelKeyEditBtn" onclick="toggleKeyEdit(false)" class="hidden-el text-[10px] text-slate-400 hover:text-slate-600 font-bold">ยกเลิก</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl p-2 outline-none text-xs font-sans focus:ring-2 focus:ring-teal-500" placeholder="วาง API Key ที่นี่...">
+                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-teal-900 text-white px-4 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md whitespace-nowrap">บันทึก</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div id="subjectSelectorArea" class="hidden-el">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">กลุ่มสาระการเรียนรู้</label>
+                        <select id="subjectGroup" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500">
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+
+                    <div id="classroomContextArea" class="hidden p-4 bg-teal-50 border border-teal-100 rounded-2xl">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-book-bookmark text-teal-500"></i>
+                                <div>
+                                    <p class="text-[10px] font-bold text-teal-500 uppercase tracking-wider">อ้างอิงรายวิชา</p>
+                                    <p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p>
+                                </div>
+                            </div>
+                            <div class="bg-white p-2 rounded-xl border border-teal-200 mt-1">
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">ระดับการศึกษา</label>
+                                <select id="educationLevelSelect" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-teal-300">
+                                    <option value="">ไม่กำหนด</option>
+                                    <option value="อ.">อนุบาล (อ.)</option>
+                                    <option value="ป.">ประถมศึกษา (ป.)</option>
+                                    <option value="ม.">มัธยมศึกษา (ม.)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ชื่อภารกิจ</label>
+                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500 transition-all shadow-inner" placeholder="ตั้งชื่อภารกิจ...">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">คำอธิบายภารกิจ (AI ช่วยเขียนได้)</label>
+                        <textarea id="missionDescInput" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-3 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder="รายละเอียดของเกมหรือกิจกรรม..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">1. วางโค้ด HTML ของคุณที่นี่</label>
+                        <textarea id="codeEditor" class="w-full h-48 code-editor rounded-[1.5rem] p-4 outline-none resize-none text-xs focus:ring-2 focus:ring-teal-500 shadow-inner" placeholder=""></textarea>
+                        <div class="flex justify-end mt-2">
+                            <button onclick="refreshPreview()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1.5 rounded-lg font-bold transition-all"><i class="fas fa-sync-alt"></i> อัปเดตพรีวิว</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
+                        <label class="block text-xs font-bold text-teal-700 uppercase tracking-widest mb-2"><i class="fas fa-robot"></i> 2. สั่ง AI แก้ไขโค้ด (Optional)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="aiPromptInput" class="w-full bg-white border border-teal-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500" placeholder="ว่างไว้เพื่อปรับมาตรฐาน (Header+Score) หรือพิมพ์คำสั่งแก้ไข...">
+                            <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl font-bold text-sm transition-all shadow-md whitespace-nowrap">
+                                <i class="fas fa-magic"></i> สร้าง
+                            </button>
+                        </div>
+                        <div id="aiLoading" class="hidden-el mt-2 text-xs text-teal-600 font-bold flex items-center gap-2">
+                            <i class="fas fa-circle-notch fa-spin"></i> กำลังดำเนินการ...
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <div class="control-btn action-btn" id="btn-jump">A</div>
         </div>
-    </div>
 
-    <div id="start-screen">
-        <h1>เกมจับคู่คำศัพท์<br>ฉบับน้องน้ำใส</h1>
-        <p>ช่วยน้องน้ำใสกระโดดเก็บภาพ<br>ให้ตรงกับคำศัพท์ด้านบน!</p>
-        <button class="btn" id="start-btn" onclick="startGame()" disabled>กำลังโหลด...</button>
-    </div>
+        <div class="lg:col-span-7 flex flex-col gap-5">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-6">
+                <div class="flex gap-2 bg-slate-100 p-1.5 rounded-xl">
+                    <button onclick="changeView('mobile')" id="view-mobile" class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center transition-all"><i class="fas fa-mobile-alt"></i></button>
+                    <button onclick="changeView('tablet')" id="view-tablet" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-tablet-alt"></i></button>
+                    <button onclick="changeView('desktop')" id="view-desktop" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-desktop"></i></button>
+                </div>
+                <button id="saveToCloudBtn" onclick="openSaveModal()" disabled class="bg-gray-300 text-white cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-bold shadow-none transition-all flex items-center gap-2">
+                    <i class="fas fa-cloud-upload-alt"></i> บันทึกเข้าห้องเรียน
+                </button>
+            </div>
 
-    <div id="game-over-screen" style="display: none;">
-        <h1 id="go-title">เก่งมาก!</h1>
-        <p id="go-score">คะแนนรวม: 0</p>
-        <button class="btn" onclick="resetGame()">เล่นใหม่อีกครั้ง</button>
-    </div>
-</div>
+            <div class="preview-outer-container bg-slate-100 rounded-[3rem] border-4 border-dashed border-slate-300">
+                <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl">
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Live Preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </main>
 
-<script>
-    // --- Constants & Setup ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const playerSpriteEl = document.getElementById('player-sprite');
-    window.playerImageError = false; // Flag to track image loading errors
-    
-    // --- Game Data ---
-    const vocabulary = [
-        "กระติก", "ตะกร้า", "ถ้วย", "นั่งยองๆ", "น้ำหวาน", 
-        "น้ำแข็ง", "น้ำแข็งกด", "น้ำแข็งไส", "บิน", "ปีก", 
-        "ผมทรงน้ำผุ", "ผู้หญิง", "พึ่บพับ", "มอง", "ยิ้ม", 
-        "ย่ำเท้า", "รูป", "หลังคา", "เต้นระบำ", "แคร่", 
-        "ไม้เสียบ", "ไหว้"
-    ];
+    <footer class="bg-white border-t border-slate-200 py-10 mt-auto text-center font-sans">
+        <p class="text-teal-900 font-bold mb-1 text-sm italic">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
+        <p class="text-slate-400 text-[10px] tracking-wide uppercase font-black">Powered by Gemini Pro Vision AI | Innovation by FlipSchool Team</p>
+    </footer>
 
-    let currentTargetWord = "";
-    
-    // Game State
-    let gameState = 'START';
-    let frameCount = 0;
-    let score = 0;
-    let lives = 3;
-    
-    // Physics 
-    const GRAVITY = 0.8;
-    const FRICTION = 0.85;
-    const SPEED = 7; 
-    const JUMP_FORCE = 23; 
-    
-    let cameraX = 0;
-    const keys = { left: false, right: false, up: false };
+    <script>
+        const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
+        let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let dbSubjectOnly = ""; 
+        let detectedGradeNumber = ""; 
 
-    // --- Assets Preload (FIXED FOR LOCAL LOADING) ---
-    // ใช้ Path ภายในเครื่องแทน URL เต็ม เพื่อแก้ปัญหา CORS และรูปไม่ขึ้น
-    const IMG_URL_LEFT = "img/namsai/left.gif";
-    const IMG_URL_RIGHT = "img/namsai/right.gif";
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.CONFIG) {
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
+                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
+            }
 
-    const imgLeft = new Image();
-    const imgRight = new Image();
-    let imagesLoaded = 0;
-    
-    function checkImagesLoaded() {
-        imagesLoaded++;
-        if (imagesLoaded >= 2) {
-            const btn = document.getElementById('start-btn');
-            btn.innerText = "เริ่มเกม";
+            const params = new URLSearchParams(window.location.search);
+            targetCid = params.get('cid');
+            editingMid = params.get('mid');
+
+            initPreviewFrame();
+            
+            // เช็คว่ามีโค้ดที่ส่งมาจากหน้าอื่นหรือไม่ (Mission Create AI)
+            const draftCode = localStorage.getItem('mission_code_draft');
+            if(draftCode) {
+                document.getElementById('codeEditor').value = draftCode;
+                refreshPreview();
+                localStorage.removeItem('mission_code_draft'); // ล้างออกเมื่อใช้แล้ว
+                
+                const draftTitle = localStorage.getItem('mission_title_draft');
+                if(draftTitle) {
+                    document.getElementById('missionTitleInput').value = draftTitle;
+                    localStorage.removeItem('mission_title_draft');
+                }
+            }
+
+            const checkDB = setInterval(async () => {
+                if(window.sysDB) {
+                    clearInterval(checkDB);
+                    const { data: { session } } = await window.sysDB.auth.getSession();
+                    if (!session) { window.location.href = 'teacher-login.html'; return; }
+
+                    await loadKeyFromDB();
+                    if (targetCid) await fetchClassroomContext();
+                    if (editingMid) await loadExistingMission();
+                }
+            }, 500);
+        });
+
+        // --- UI Utils ---
+        function showMessage(text, isError = false) { 
+            const msgBox = document.getElementById("msgBox");
+            document.getElementById("msgText").innerText = text; 
+            msgBox.style.borderLeftColor = isError ? '#ef4444' : '#0d9488';
+            msgBox.classList.remove('hidden'); 
+            if(window.msgTimeout) clearTimeout(window.msgTimeout);
+            window.msgTimeout = setTimeout(() => msgBox.classList.add('hidden'), 5000); 
+        }
+
+        function toggleKeyEdit(showEdit) {
+            const editView = document.getElementById('apiKeyEditView');
+            const configView = document.getElementById('apiKeyConfiguredView');
+            const cancelBtn = document.getElementById('cancelKeyEditBtn');
+            if (showEdit) {
+                editView.classList.remove('hidden-el');
+                configView.classList.add('hidden-el');
+                if(document.getElementById("apiKeyInput").value) cancelBtn.classList.remove('hidden-el');
+                else cancelBtn.classList.add('hidden-el');
+            } else {
+                editView.classList.add('hidden-el');
+                configView.classList.remove('hidden-el');
+            }
+        }
+
+        function toggleAILoading(show) {
+            document.getElementById('aiLoading').classList.toggle('hidden-el', !show);
+            document.getElementById('aiModifyBtn').disabled = show;
+            document.getElementById('aiModifyBtn').innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-magic"></i> สร้าง';
+        }
+
+        function activateSaveBtn() {
+            const btn = document.getElementById('saveToCloudBtn');
             btn.disabled = false;
-        }
-    }
-
-    // Comment ออกเพื่อแก้ปัญหา CORS เมื่อรันบนเครื่อง Local
-    // imgLeft.crossOrigin = "Anonymous";
-    // imgRight.crossOrigin = "Anonymous";
-
-    imgLeft.onload = checkImagesLoaded;
-    imgRight.onload = checkImagesLoaded;
-    
-    // Crucial: If images fail, we still start the game (using fallback drawing)
-    imgLeft.onerror = () => { console.warn("Left Image Failed"); window.playerImageError = true; checkImagesLoaded(); };
-    imgRight.onerror = () => { console.warn("Right Image Failed"); window.playerImageError = true; checkImagesLoaded(); };
-
-    imgLeft.src = IMG_URL_LEFT;
-    imgRight.src = IMG_URL_RIGHT;
-
-    // --- Audio System ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx;
-    const Sound = {
-        init: function() {
-            if (!audioCtx) { audioCtx = new AudioContext(); } 
-            else if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-        },
-        playCorrect: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1000, t);
-            osc.frequency.exponentialRampToValueAtTime(2000, t + 0.1);
-            gain.gain.setValueAtTime(0.1, t);
-            gain.gain.linearRampToValueAtTime(0, t + 0.5);
-            osc.start(t);
-            osc.stop(t + 0.5);
-        },
-        playWrong: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, t);
-            osc.frequency.linearRampToValueAtTime(100, t + 0.3);
-            gain.gain.setValueAtTime(0.1, t);
-            gain.gain.linearRampToValueAtTime(0, t + 0.3);
-            osc.start(t);
-            osc.stop(t + 0.3);
-        },
-        playJump: function() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
-        },
-        playWin: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            [523, 659, 783, 1046].forEach((f, i) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'square';
-                osc.frequency.value = f;
-                gain.gain.setValueAtTime(0.05, t + i*0.1);
-                gain.gain.linearRampToValueAtTime(0, t + i*0.1 + 0.2);
-                osc.start(t + i*0.1);
-                osc.stop(t + i*0.1 + 0.2);
-            });
-        }
-    };
-
-    // --- Assets Colors ---
-    const C_SKY = '#87CEEB'; 
-    const C_GROUND = '#5C4033'; 
-    const C_GRASS = '#7CFC00'; 
-
-    // Game Objects
-    let platforms = [];
-    let items = [];
-    let particles = [];
-    let decors = [];
-
-    // --- Classes ---
-
-    class Player {
-        constructor() {
-            this.width = 60;  
-            this.height = 90; 
-            this.x = 100;
-            this.y = 100;
-            this.velX = 0;
-            this.velY = 0;
-            this.isGrounded = false;
-            this.facingRight = true;
-            this.lastFacingRight = true;
+            btn.className = "bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 transform active:scale-95";
         }
 
-        update() {
-            // Movement
-            if (keys.left) {
-                this.velX = -SPEED;
-                this.facingRight = false;
-            } else if (keys.right) {
-                this.velX = SPEED;
-                this.facingRight = true;
-            } else {
-                this.velX *= FRICTION;
-            }
+        function disableSaveBtn() {
+            const btn = document.getElementById('saveToCloudBtn');
+            btn.disabled = true;
+            btn.className = "bg-gray-300 text-white cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-bold shadow-none transition-all flex items-center gap-2";
+        }
 
-            // Jump
-            if (keys.up && this.isGrounded) {
-                this.velY = -JUMP_FORCE;
-                this.isGrounded = false;
-                Sound.playJump();
-            }
+        // ✅ Validation Logic
+        function validateCodeStandard(code) {
+            if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
+            const hasBack = code.includes('history.back') || code.includes('window.parent.history.back');
+            if (!hasBack) return { valid: false, msg: "ขาดปุ่มย้อนกลับ" };
+            const hasScore = code.includes('postMessage') || code.includes('SAVE_RESULT');
+            if (!hasScore) return { valid: false, msg: "ขาดระบบส่งคะแนน" };
+            return { valid: true, msg: "ผ่านเกณฑ์มาตรฐาน" };
+        }
 
-            this.velY += GRAVITY;
-            this.x += this.velX;
-            this.y += this.velY;
-
-            this.isGrounded = false;
+        // --- Logic หลัก ---
+        function refreshPreview() {
+            const code = document.getElementById('codeEditor').value;
+            document.getElementById('missionFrame').srcdoc = code;
             
-            // Collision with platforms
-            for (let p of platforms) {
-                const colDir = this.getCollisionDir(p);
-                if (colDir === 'b' && this.velY >= 0) {
-                    this.isGrounded = true;
-                    this.velY = 0;
-                    this.y = p.y - this.height;
-                } else if (colDir === 't' && this.velY < 0) {
-                    this.velY = 0;
-                    this.y = p.y + p.height;
-                } else if (colDir === 'l') {
-                    this.velX = 0;
-                    this.x = p.x + p.width;
-                } else if (colDir === 'r') {
-                    this.velX = 0;
-                    this.x = p.x - this.width;
+            const check = validateCodeStandard(code);
+            if (check.valid) {
+                activateSaveBtn();
+                showMessage("✅ โค้ดผ่านมาตรฐานพร้อมบันทึก!");
+            } else {
+                disableSaveBtn();
+                showMessage("⚠️ " + check.msg + " กรุณาใช้ปุ่ม 'สร้าง' เพื่อแก้ไข", true);
+            }
+        }
+
+        async function fetchClassroomContext() {
+            try {
+                const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
+                if (data) {
+                    document.getElementById('subjectSelectorArea').classList.add('hidden-el');
+                    document.getElementById('classroomContextArea').classList.remove('hidden');
+                    document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
+                    
+                    dbSubjectOnly = data.subject_name;
+                    let roomStr = data.room_name.trim();
+                    let tempGrade = roomStr.includes('/') ? roomStr.split('/')[0].trim() : roomStr;
+                    detectedGradeNumber = tempGrade.replace(/[^\d]/g, ''); 
+
+                    const eduSelect = document.getElementById('educationLevelSelect');
+                    if (roomStr.includes('อ.') || roomStr.includes('อนุบาล')) eduSelect.value = "อ.";
+                    else if (roomStr.includes('ป.') || roomStr.includes('ประถม')) eduSelect.value = "ป.";
+                    else if (roomStr.includes('ม.') || roomStr.includes('มัธยม')) eduSelect.value = "ม.";
+                    else eduSelect.value = ""; 
                 }
-            }
+            } catch (err) {}
+        }
+
+        async function handleAIModify() {
+            const currentCode = document.getElementById('codeEditor').value.trim();
+            let prompt = document.getElementById('aiPromptInput').value.trim();
+            const title = document.getElementById("missionTitleInput").value.trim();
+            const key = document.getElementById("apiKeyInput").value.trim();
+
+            if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
+            if (!currentCode) return showMessage("⚠️ กรุณาวางโค้ด HTML ก่อนกดสร้างครับ", true);
             
-            // Bounds
-            if (this.y > canvas.height + 100) {
-                this.y = 100;
-                this.x = Math.max(100, cameraX + 100); 
-                this.velY = 0;
+            if (!title) {
+                document.getElementById("missionTitleInput").focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อน (เพื่อใช้แสดงเป็นชื่อเกม)", true);
             }
-        }
 
-        getCollisionDir(rect) {
-            const dx = (this.x + this.width / 2) - (rect.x + rect.width / 2);
-            const dy = (this.y + this.height / 2) - (rect.y + rect.height / 2);
-            const w = (this.width + rect.width) / 2;
-            const h = (this.height + rect.height) / 2;
-            const crossWidth = w * dy;
-            const crossHeight = h * dx;
+            if (!prompt) prompt = "ปรับปรุงโค้ดให้สมบูรณ์และสวยงาม";
 
-            if (Math.abs(dx) <= w && Math.abs(dy) <= h) {
-                if (crossWidth > crossHeight) return (crossWidth > -crossHeight) ? 't' : 'r';
-                else return (crossWidth > -crossHeight) ? 'l' : 'b';
-            }
-            return null;
-        }
+            toggleAILoading(true);
 
-        draw() {
-            // Draw Shadow
-            const x = Math.round(this.x);
-            const y = Math.round(this.y);
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath();
-            ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
-            ctx.fill();
-
-            // Logic to choose between Image (GIF) or Fallback (Rect)
-            if (window.playerImageError) {
-                // FALLBACK DRAWING: If images failed to load
-                playerSpriteEl.style.display = 'none';
-                
-                // Draw Red "Namsai" Box
-                ctx.fillStyle = '#e52521'; // Red
-                ctx.fillRect(Math.round(this.x - cameraX), Math.round(this.y), this.width, this.height);
-                
-                // Simple Face
-                ctx.fillStyle = '#ffccc5';
-                ctx.fillRect(Math.round(this.x - cameraX + 10), Math.round(this.y + 10), this.width - 20, 30);
-                
-                // Eyes
-                ctx.fillStyle = 'black';
-                if(this.facingRight) {
-                    ctx.fillRect(Math.round(this.x - cameraX + this.width - 20), Math.round(this.y + 20), 5, 5);
-                } else {
-                    ctx.fillRect(Math.round(this.x - cameraX + 15), Math.round(this.y + 20), 5, 5);
-                }
-
-            } else {
-                // NORMAL GIF DRAWING
-                // Update src if direction changed
-                if (this.facingRight !== this.lastFacingRight) {
-                     playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                     this.lastFacingRight = this.facingRight;
-                } else if (!playerSpriteEl.src) {
-                    playerSpriteEl.src = IMG_URL_RIGHT;
-                }
-                
-                playerSpriteEl.style.display = 'block';
-                const spriteOffsetX = (128 - this.width) / 2;
-                const spriteOffsetY = (128 - this.height); 
-                playerSpriteEl.style.top = (this.y - spriteOffsetY + 5) + 'px'; 
-                playerSpriteEl.style.left = (this.x - cameraX - spriteOffsetX) + 'px';
-            }
-        }
-    }
-
-    class Platform {
-        constructor(x, y, w, h, type) {
-            this.x = x;
-            this.y = y;
-            this.width = w;
-            this.height = h;
-            this.type = type;
-        }
-
-        draw() {
-            if (this.x + this.width < cameraX || this.x > cameraX + canvas.width) return;
-
-            if (this.type === 'ground') {
-                ctx.fillStyle = C_GROUND;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = C_GRASS;
-                ctx.fillRect(this.x, this.y, this.width, 20); 
-            } else {
-                // Bricks/Blocks
-                ctx.fillStyle = '#c45c26';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.strokeStyle = '#5a2a10';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                ctx.fillRect(this.x + 4, this.y + 4, this.width - 8, this.height - 8);
-            }
-        }
-    }
-
-    class VocabItem {
-        constructor(x, y, word) {
-            this.x = x;
-            this.y = y;
-            this.width = 80;
-            this.height = 80;
-            this.word = word;
-            this.collected = false;
-            this.floatY = 0;
-            this.offset = Math.random() * Math.PI * 2;
-            this.cooldown = 0; 
+            // System Prompt: เน้นโครงสร้างมาตรฐาน
+            const sysPrompt = `คุณคือผู้เชี่ยวชาญด้าน HTML5 Game Development.
             
-            this.img = new Image();
-            // ปิด CrossOrigin เพื่อแก้ปัญหาโหลดรูป local ไม่ขึ้น
-            // this.img.crossOrigin = "Anonymous"; 
+            ภารกิจ: แก้ไขและปรับปรุงโค้ด HTML ตามคำขอของผู้ใช้ (User Request)
             
-            // แก้ Path ให้ดึงจากโฟลเดอร์ img/Lesson1/ แทน URL เต็ม
-            this.img.src = `img/Lesson1/${word}.png`; 
-        }
+            **กฎเหล็ก (Mandatory Requirements) ที่ต้องมีในผลลัพธ์สุดท้ายเสมอ:**
+            1. **Header/Title Bar**: ต้องมีแถบด้านบนสุด (Sticky Top)
+               - ชื่อเกม: "${title}"
+               - ปุ่มย้อนกลับ (ซ้าย): เรียก window.parent.history.back()
+               - คะแนน (ขวา): แสดงคะแนน
+            2. **Scoring**: ต้องมีการส่งคะแนน window.parent.postMessage({ type: 'SAVE_RESULT', score: ..., answers: ... }, '*')
+            3. **Responsive**: แสดงผลได้ดีบนมือถือ เต็มจอ
+            4. **Meta Description**: สร้าง <meta name="description" content="..."> ภาษาไทยที่น่าสนใจ
+            5. **Output**: ส่งคืนเฉพาะ Source Code HTML เท่านั้น`;
 
-        update() {
-            if (this.collected) return;
+            // User Message: ส่งคำสั่งของผู้ใช้ไปให้ AI เห็นจริงๆ
+            const userMessage = `
+            คำสั่งแก้ไข (User Request): "${prompt}"
             
-            if (this.cooldown > 0) this.cooldown--;
-
-            this.floatY = Math.sin((frameCount / 20) + this.offset) * 5;
-
-            if (this.cooldown <= 0 &&
-                player.x < this.x + this.width &&
-                player.x + player.width > this.x &&
-                player.y < this.y + this.height + this.floatY &&
-                player.y + player.height > this.y + this.floatY) {
-                
-                this.checkCollection();
-            }
-        }
-
-        checkCollection() {
-            if (this.word === currentTargetWord) {
-                // Correct!
-                this.collected = true;
-                score += 10;
-                Sound.playCorrect();
-                createParticles(this.x + this.width/2, this.y + this.height/2, '#7CFC00'); 
-                pickNextTarget();
-            } else {
-                // Wrong!
-                score -= 1; 
-                this.cooldown = 60; 
-                Sound.playWrong();
-                createParticles(this.x + this.width/2, this.y + this.height/2, '#555'); 
-            }
-            updateUI();
-        }
-
-        draw() {
-            if (this.collected) return;
-            if (this.x + this.width < cameraX || this.x > cameraX + canvas.width) return;
-
-            const drawY = this.y + this.floatY;
+            --------------------------------------------------
+            โค้ดเดิม (Source Code):
+            ${currentCode}
+            --------------------------------------------------
             
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.beginPath();
-            ctx.arc(this.x + 40, drawY + 40, 45, 0, Math.PI * 2);
-            ctx.fill();
-            
-            if (this.word === currentTargetWord) {
-                ctx.strokeStyle = '#ffd700';
-                ctx.lineWidth = 5;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ffd700';
-            } else {
-                ctx.strokeStyle = '#ddd';
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 0;
-            }
-            
-            ctx.stroke();
-            ctx.shadowBlur = 0;
+            วิธีดำเนินการ:
+            1. ทำตาม "คำสั่งแก้ไข" ของผู้ใช้อย่างเคร่งครัด
+            2. ตรวจสอบว่าโค้ดยังคงมีคุณสมบัติตาม "กฎเหล็ก" (Header, Score, Responsive) ครบถ้วน
+            `;
 
             try {
-                if (this.img.complete && this.img.naturalHeight !== 0) {
-                     ctx.drawImage(this.img, this.x + 10, drawY + 10, 60, 60);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: sysPrompt }] } })
+                });
+
+                if (!res.ok) throw new Error("AI Error: " + res.status);
+                const data = await res.json();
+                let newCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (newCode) {
+                    let cleanCode = newCode;
+                    const htmlBlock = newCode.match(/```html([\s\S]*?)```/i);
+                    if (htmlBlock) cleanCode = htmlBlock[1];
+                    else { const generalBlock = newCode.match(/```([\s\S]*?)```/i); if (generalBlock) cleanCode = generalBlock[1]; }
+                    const start = cleanCode.indexOf('<!DOCTYPE html>');
+                    if(start !== -1) cleanCode = cleanCode.substring(start);
+                    
+                    document.getElementById('codeEditor').value = cleanCode.trim();
+                    
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(cleanCode, 'text/html');
+                        const metaDesc = doc.querySelector('meta[name="description"]');
+                        if (metaDesc && metaDesc.content) {
+                            document.getElementById("missionDescInput").value = metaDesc.content;
+                            showMessage("✨ AI แก้ไขและสร้างคำอธิบายให้แล้ว!");
+                        }
+                    } catch (e) { console.log("Description extract failed"); }
+
+                    refreshPreview();
+                    activateSaveBtn();
+                    showMessage("✨ แก้ไขโค้ดตามคำสั่งสำเร็จ!");
+                } else { throw new Error("AI ไม่ส่งผลลัพธ์กลับมา"); }
+            } catch (e) { showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true); } 
+            finally { toggleAILoading(false); }
+        }
+
+        async function confirmSave(mode) {
+            const title = document.getElementById("missionTitleInput").value.trim();
+            const code = document.getElementById("codeEditor").value.trim();
+            const desc = document.getElementById("missionDescInput").value.trim();
+            
+            if(!title) return showMessage("⚠️ กรุณาตั้งชื่อภารกิจ", true);
+            if(!code) return showMessage("⚠️ ไม่พบโค้ดภารกิจ", true);
+            if(!window.sysDB || !targetCid) return;
+
+            try {
+                const prefix = document.getElementById('educationLevelSelect').value;
+                let finalGrade = "";
+                if (prefix && detectedGradeNumber) finalGrade = prefix + detectedGradeNumber;
+                else if (prefix) finalGrade = prefix + " (ไม่ระบุชั้นปี)"; 
+                else finalGrade = detectedGradeNumber || "ไม่ระบุ";
+
+                const subjectToSave = targetCid ? dbSubjectOnly : document.getElementById("subjectGroup").value;
+
+                const missionData = {
+                    title: title,
+                    description: desc || "ภารกิจท้าทายความสามารถ",
+                    subject_group: subjectToSave, 
+                    grade_level: finalGrade, 
+                    mission_type: "html_custom",
+                    content_data: { html: code },
+                    is_public: true,
+                    updated_at: new Date().toISOString()
+                };
+
+                let mid = editingMid;
+                // ✅ Logic สำคัญ: ถ้าผู้แก้ไข == เจ้าของเดิม ให้ Update, ถ้าไม่ใช่ ให้ Insert ใหม่ (Clone)
+                if (editingMid && currentUserId === originalTeacherId) {
+                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    showMessage("💾 อัปเดตภารกิจเรียบร้อย!");
                 } else {
-                    ctx.fillStyle = '#ccc';
-                    ctx.font = '20px Sarabun';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('...', this.x + 40, drawY + 45);
+                    missionData.created_by = currentUserId;
+                    missionData.created_at = new Date().toISOString();
+                    const { data } = await window.sysDB.from('missions').insert([missionData]).select();
+                    mid = data[0].mission_id;
+                    showMessage("💾 บันทึกเป็นภารกิจใหม่เรียบร้อย!");
                 }
-            } catch(e) {}
-        }
-    }
 
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.velX = (Math.random() - 0.5) * 10;
-            this.velY = (Math.random() - 0.5) * 10;
-            this.life = 20;
-            this.color = color;
-            this.size = Math.random() * 8 + 4;
-        }
-        update() {
-            this.x += this.velX;
-            this.y += this.velY;
-            this.life--;
-        }
-        draw() {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = this.life / 20;
-            ctx.fillRect(this.x, this.y, this.size, this.size);
-            ctx.globalAlpha = 1.0;
-        }
-    }
+                await window.sysDB.from('classroom_missions').upsert({
+                    classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                }, { onConflict: 'classroom_id, mission_id' });
 
-    // --- Helpers ---
-    function createParticles(x, y, color) {
-        for(let i=0; i<10; i++) particles.push(new Particle(x, y, color));
-    }
-
-    function pickNextTarget() {
-        const remainingItems = items.filter(i => !i.collected);
-        if (remainingItems.length === 0) {
-            winGame();
-            return;
-        }
-        const options = remainingItems.map(i => i.word);
-        const uniqueOptions = [...new Set(options)];
-        const next = uniqueOptions[Math.floor(Math.random() * uniqueOptions.length)];
-        currentTargetWord = next;
-        
-        const container = document.getElementById('target-container');
-        const targetEl = document.getElementById('target-word');
-        targetEl.innerText = currentTargetWord;
-        
-        // Pop animation
-        container.style.transform = "scale(1.2)";
-        setTimeout(() => container.style.transform = "scale(1)", 200);
-    }
-
-    // --- Level Generation (RAYCAST PLACEMENT) ---
-    function generateLevel() {
-        platforms = [];
-        items = [];
-        decors = [];
-        
-        const TILE_SIZE = 80;
-        const FLOOR_Y = 550;
-        const LEVEL_LENGTH = 6000;
-        const SAFE_HEIGHT_ABOVE_SURFACE = 220; 
-
-        // 1. Generate Platforms First
-        // Ground (Continuous)
-        platforms.push(new Platform(-100, FLOOR_Y, LEVEL_LENGTH + 500, 200, 'ground'));
-        
-        // Background
-        for (let i = 0; i < 25; i++) {
-            decors.push({x: i * 400 + Math.random()*200, y: Math.random() * 200 + 50, type: 'cloud'});
-        }
-        for (let i = 0; i < 12; i++) {
-            decors.push({x: i * 800, y: FLOOR_Y, type: 'hill'});
+                if (mode === 'exit') window.location.href = `classroom-detail.html?id=${targetCid}`;
+            } catch (err) { showMessage("❌ บันทึกไม่สำเร็จ: " + err.message, true); }
+            finally { toggleLoading(false); closeSaveModal(); }
         }
 
-        // Structures
-        let cx = 800; 
-        
-        while(cx < LEVEL_LENGTH - 800) {
-            const type = Math.floor(Math.random() * 3);
-            
-            if (type === 0) {
-                // Pyramid Staircase
-                const startY = FLOOR_Y;
-                platforms.push(new Platform(cx, startY - 100, TILE_SIZE, 100, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE, startY - 200, TILE_SIZE, 200, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*2, startY - 300, TILE_SIZE*2, 300, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*4, startY - 200, TILE_SIZE, 200, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*5, startY - 100, TILE_SIZE, 100, 'block'));
-                cx += 800;
-            } else if (type === 1) {
-                // Floating Steps
-                platforms.push(new Platform(cx, FLOOR_Y - 150, TILE_SIZE*2, 40, 'block'));
-                platforms.push(new Platform(cx + 250, FLOOR_Y - 300, TILE_SIZE*2, 40, 'block'));
-                platforms.push(new Platform(cx + 500, FLOOR_Y - 150, TILE_SIZE*2, 40, 'block'));
-                cx += 900;
-            } else {
-                // High Corridor
-                platforms.push(new Platform(cx, FLOOR_Y - 200, TILE_SIZE, 200, 'block')); 
-                platforms.push(new Platform(cx + TILE_SIZE, FLOOR_Y - 200, TILE_SIZE*4, 40, 'block')); 
-                platforms.push(new Platform(cx + TILE_SIZE*5, FLOOR_Y - 200, TILE_SIZE, 200, 'block')); 
-                cx += 700;
-            }
+        async function saveKeyToDB() {
+            const key = document.getElementById("apiKeyInput").value.trim();
+            if(!key) return showMessage("⚠️ กรุณากรอก API Key", true);
+            try {
+                const { data: { user } } = await window.sysDB.auth.getUser();
+                await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
+                showMessage("✅ บันทึก Key สำเร็จ!");
+                toggleKeyEdit(false);
+            } catch (e) { showMessage("❌ ไม่สามารถบันทึกได้", true); }
         }
 
-        // 2. Generate Items using "Raycast" logic
-        const potentialX = [];
-        for(let px = 600; px < LEVEL_LENGTH - 400; px += 300) {
-            potentialX.push(px);
-        }
-        
-        potentialX.sort(() => Math.random() - 0.5);
-        
-        const count = Math.min(potentialX.length, 25);
-        
-        for (let i = 0; i < count; i++) {
-            const itemX = potentialX[i];
-            
-            // Find Highest Surface at this X
-            let highestSurfaceY = FLOOR_Y;
-            const checkX = itemX + 40; 
-            
-            for (let p of platforms) {
-                if (checkX >= p.x && checkX <= p.x + p.width) {
-                    if (p.y < highestSurfaceY) {
-                        highestSurfaceY = p.y;
-                    }
+        async function loadKeyFromDB() {
+            const { data: { user } } = await window.sysDB.auth.getUser();
+            if(user) {
+                currentUserId = user.id;
+                // ✅ ดึง API Key
+                const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
+                if(data?.gemini_api_key) {
+                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
+                    toggleKeyEdit(false);
+                } else {
+                    toggleKeyEdit(true);
                 }
             }
-            
-            const itemY = highestSurfaceY - SAFE_HEIGHT_ABOVE_SURFACE;
-            const word = vocabulary[Math.floor(Math.random() * vocabulary.length)];
-            items.push(new VocabItem(itemX, itemY, word));
         }
-    }
 
-    // --- Core Functions ---
-    let player;
-
-    function init() {
-        resize();
-        window.addEventListener('resize', resize);
-        
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-            if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') {
-                keys.up = true;
-                if (gameState === 'START' && imagesLoaded >= 2) startGame();
+        async function loadExistingMission() {
+            const { data } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+            if (data) {
+                originalTeacherId = data.created_by; // เก็บ ID เจ้าของเดิมไว้
+                document.getElementById("missionTitleInput").value = data.title;
+                document.getElementById("codeEditor").value = data.content_data?.html || "";
+                document.getElementById("missionDescInput").value = data.description || "";
+                refreshPreview();
+                // ถ้าโหลดของเก่ามา เช็คมาตรฐานก่อนเปิด Save
+                const check = validateCodeStandard(data.content_data?.html || "");
+                if(check.valid) activateSaveBtn();
+                
+                const statusEl = document.getElementById('ownershipStatus');
+                statusEl.classList.remove('hidden-el');
+                if (currentUserId === originalTeacherId) {
+                    statusEl.innerHTML = '<span class="badge-premium owner-badge"><i class="fas fa-user-edit"></i> แก้ไขภารกิจของคุณ</span>';
+                } else {
+                    statusEl.innerHTML = '<span class="badge-premium copy-badge"><i class="fas fa-copy"></i> คุณกำลังทำสำเนาภารกิจ</span>';
+                }
             }
-        });
+        }
 
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-            if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') keys.up = false;
-        });
-
-        setupTouchControls();
-        resetLevel(); 
-        requestAnimationFrame(gameLoop);
-    }
-    
-    function setupTouchControls() {
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
-        const btnJump = document.getElementById('btn-jump');
-        const addTouch = (elem, key) => {
-            elem.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
-            elem.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
-            elem.addEventListener('mousedown', (e) => { e.preventDefault(); keys[key] = true; });
-            elem.addEventListener('mouseup', (e) => { e.preventDefault(); keys[key] = false; });
-        };
-        addTouch(btnLeft, 'left');
-        addTouch(btnRight, 'right');
-        addTouch(btnJump, 'up');
-    }
-
-    function resetGame() {
-        Sound.init();
-        score = 0;
-        gameState = 'PLAYING';
-        document.getElementById('game-over-screen').style.display = 'none';
-        document.getElementById('start-screen').style.display = 'none';
-        playerSpriteEl.style.display = 'block'; 
-        updateUI();
-        resetLevel();
-        pickNextTarget();
-    }
-
-    function startGame() { if(gameState === 'START') resetGame(); }
-
-    function resetLevel() {
-        player = new Player();
-        cameraX = 0;
-        generateLevel();
-    }
-
-    function winGame() {
-        if (gameState !== 'WIN') Sound.playWin();
-        gameState = 'WIN';
-        document.getElementById('game-over-screen').style.display = 'flex';
-        document.getElementById('go-title').innerText = "เยี่ยมมาก!";
-        document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
-        playerSpriteEl.style.display = 'none';
-    }
-
-    function updateUI() {
-        document.getElementById('score-display').innerText = "คะแนน: " + score;
-    }
-
-    function resize() {
-        canvas.width = document.getElementById('game-container').offsetWidth;
-        canvas.height = document.getElementById('game-container').offsetHeight;
-    }
-
-    function gameLoop() {
-        if (gameState === 'PLAYING') update();
-        draw();
-        frameCount++;
-        requestAnimationFrame(gameLoop);
-    }
-
-    function update() {
-        player.update();
-        items.forEach(i => i.update());
-        particles.forEach((p, i) => {
-            p.update();
-            if (p.life <= 0) particles.splice(i, 1);
-        });
-
-        let targetCamX = player.x - canvas.width / 3;
-        if (targetCamX < 0) targetCamX = 0;
-        cameraX += (targetCamX - cameraX) * 0.1;
-    }
-
-    function draw() {
-        ctx.fillStyle = C_SKY;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.translate(-cameraX, 0);
-
-        decors.forEach(d => {
-            if (d.type === 'cloud') {
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.beginPath();
-                ctx.arc(d.x, d.y, 60, 0, Math.PI * 2);
-                ctx.arc(d.x + 80, d.y + 20, 80, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (d.type === 'hill') {
-                ctx.fillStyle = '#2E8B57';
-                ctx.beginPath();
-                ctx.moveTo(d.x, 550);
-                ctx.lineTo(d.x + 400, 150);
-                ctx.lineTo(d.x + 800, 550);
-                ctx.fill();
-            }
-        });
-
-        if (platforms) platforms.forEach(p => p.draw());
-        if (items) items.forEach(i => i.draw());
-        if (particles) particles.forEach(p => p.draw());
-        if (player) player.draw();
-
-        ctx.restore();
-    }
-
-    init();
-
-</script>
+        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
+        function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
+        function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">💾</h1><p style="text-align:center;">พื้นที่วางโค้ดและแก้ไขด้วย AI</p></div></body>`; }
+    </script>
 </body>
 </html>
