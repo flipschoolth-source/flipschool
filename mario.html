@@ -36,16 +36,20 @@
             image-rendering: pixelated;
         }
 
-        /* Player Sprite (Overlay) - Essential for GIF Animation */
+        /* Player Sprite (Overlay for GIF Animation) */
         #player-sprite {
             position: absolute;
             width: 128px;
             height: 128px;
             z-index: 5;
-            display: none; /* Hidden by default */
-            pointer-events: none;
+            display: none; /* Hidden until game starts */
+            pointer-events: none; /* Let clicks pass through */
             transform-origin: top left;
-            will-change: transform; /* Optimize for movement */
+            will-change: transform;
+            /* Smooth pixel art scaling */
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
         }
 
         #ui-layer {
@@ -199,8 +203,9 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Player Sprite: Using DOM Element for GIF Animation Support -->
-    <img id="player-sprite" src="" alt="Player">
+    <!-- Player Sprite: Using DOM Element for GIF Animation -->
+    <!-- Removed redundant error handling to let browser retry natively -->
+    <img id="player-sprite" src="" alt="">
 
     <div id="ui-layer">
         <div class="question-box">
@@ -225,9 +230,10 @@
     <div id="start-screen">
         <h1>เกมจับคู่คำศัพท์<br>ฉบับน้องน้ำใส</h1>
         <p>ช่วยน้องน้ำใสกระโดดเก็บภาพ<br>ให้ตรงกับคำศัพท์ด้านบน!</p>
-        <button class="btn" id="start-btn" onclick="startGame()" disabled>กำลังโหลด...</button>
+        <button class="btn" id="start-btn" onclick="startGame()">เริ่มเกม</button>
     </div>
 
+    <!-- Removed Game Over Screen to allow endless play -->
     <div id="game-over-screen" style="display: none;">
         <h1 id="go-title">เก่งมาก!</h1>
         <p id="go-score">คะแนนรวม: 0</p>
@@ -241,6 +247,7 @@
     const ctx = canvas.getContext('2d');
     const playerSpriteEl = document.getElementById('player-sprite');
     
+    // Logical height for scaling calculations
     const LOGICAL_HEIGHT = 600;
     let gameScale = 1;
 
@@ -253,14 +260,10 @@
     ];
 
     let currentTargetWord = "";
-    
-    // Game State
     let gameState = 'START';
     let frameCount = 0;
     let score = 0;
-    let lives = 3;
     
-    // Physics 
     const GRAVITY = 0.8;
     const FRICTION = 0.85;
     const SPEED = 7; 
@@ -269,43 +272,9 @@
     let cameraX = 0;
     const keys = { left: false, right: false, up: false };
 
-    // --- Assets Preload ---
+    // --- Assets ---
     const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
     const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
-
-    const imgLeft = new Image();
-    const imgRight = new Image();
-    let imagesLoaded = 0;
-    
-    // Separate error tracking
-    let leftImageError = false;
-    let rightImageError = false;
-    
-    function checkImagesLoaded() {
-        imagesLoaded++;
-        if (imagesLoaded >= 2) {
-            const btn = document.getElementById('start-btn');
-            btn.innerText = "เริ่มเกม";
-            btn.disabled = false;
-        }
-    }
-
-    imgLeft.onload = checkImagesLoaded;
-    imgRight.onload = checkImagesLoaded;
-    
-    imgLeft.onerror = () => { 
-        console.warn("Left Image Failed: " + IMG_URL_LEFT); 
-        leftImageError = true; 
-        checkImagesLoaded(); 
-    };
-    imgRight.onerror = () => { 
-        console.warn("Right Image Failed: " + IMG_URL_RIGHT); 
-        rightImageError = true; 
-        checkImagesLoaded(); 
-    };
-
-    imgLeft.src = IMG_URL_LEFT;
-    imgRight.src = IMG_URL_RIGHT;
 
     // --- Audio System ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -358,22 +327,6 @@
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
             osc.start();
             osc.stop(audioCtx.currentTime + 0.15);
-        },
-        playWin: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            [523, 659, 783, 1046].forEach((f, i) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'square';
-                osc.frequency.value = f;
-                gain.gain.setValueAtTime(0.05, t + i*0.1);
-                gain.gain.linearRampToValueAtTime(0, t + i*0.1 + 0.2);
-                osc.start(t + i*0.1);
-                osc.stop(t + i*0.1 + 0.2);
-            });
         }
     };
 
@@ -388,8 +341,8 @@
 
     class Player {
         constructor() {
-            this.width = 60;  
-            this.height = 90; 
+            this.width = 60;   // Hitbox width
+            this.height = 90;  // Hitbox height
             this.x = 100;
             this.y = 100;
             this.velX = 0;
@@ -440,6 +393,7 @@
                 }
             }
             
+            // Endless fall protection (Respawn)
             if (this.y > LOGICAL_HEIGHT + 200) {
                 this.y = 100;
                 this.x = Math.max(100, cameraX + 100); 
@@ -463,7 +417,7 @@
         }
 
         draw() {
-            // Draw Shadow on Canvas
+            // 1. Draw Shadow on Canvas
             const x = Math.round(this.x);
             const y = Math.round(this.y);
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
@@ -471,55 +425,48 @@
             ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
             ctx.fill();
 
-            // --- GIF / SPRITE HANDLING via DOM ---
-            const hasError = this.facingRight ? rightImageError : leftImageError;
+            // 2. Handle GIF Overlay (DOM Element)
+            // This ensures GIF animation plays because it's a real <img> tag
+            
+            playerSpriteEl.style.display = 'block';
 
-            if (hasError) {
-                // If specific image failed, fallback to Red Box
-                playerSpriteEl.style.display = 'none';
-                
-                ctx.fillStyle = '#e52521'; 
-                ctx.fillRect(Math.round(this.x - cameraX), Math.round(this.y), this.width, this.height);
-                
-                ctx.fillStyle = '#ffccc5';
-                ctx.fillRect(Math.round(this.x - cameraX + 10), Math.round(this.y + 10), this.width - 20, 30);
-                
-                ctx.fillStyle = 'black';
-                if(this.facingRight) {
-                    ctx.fillRect(Math.round(this.x - cameraX + this.width - 20), Math.round(this.y + 20), 5, 5);
-                } else {
-                    ctx.fillRect(Math.round(this.x - cameraX + 15), Math.round(this.y + 20), 5, 5);
-                }
-            } else {
-                // GIF Overlay
-                playerSpriteEl.style.display = 'block';
-
-                // Update src ONLY if direction changed (prevents reloading/flicker)
-                if (this.facingRight !== this.lastFacingRight) {
-                     playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                     this.lastFacingRight = this.facingRight;
-                } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
-                    playerSpriteEl.src = IMG_URL_RIGHT;
-                }
-
-                // --- Positioning Calculation ---
-                // Align 128px GIF over 60x90 Hitbox
-                const visualSize = 128;
-                const scaledSize = visualSize * gameScale;
-                const spriteOffsetX = (visualSize - this.width) / 2;
-                const spriteOffsetY = (visualSize - this.height); 
-                const fineTuneY = 5;
-
-                // Position on screen
-                const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
-                const screenY = (this.y - spriteOffsetY + fineTuneY) * gameScale;
-
-                playerSpriteEl.style.width = `${scaledSize}px`;
-                playerSpriteEl.style.height = `${scaledSize}px`;
-                playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
-                playerSpriteEl.style.left = '0';
-                playerSpriteEl.style.top = '0';
+            // Only update src if direction changes to avoid reloading flicker
+            if (this.facingRight !== this.lastFacingRight) {
+                 playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
+                 this.lastFacingRight = this.facingRight;
+            } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
+                // Initial load
+                playerSpriteEl.src = IMG_URL_RIGHT;
             }
+
+            // --- Precise Positioning Calculation ---
+            // Visual Size (GIF) = 128x128
+            // Hitbox Size = 60x90
+            
+            const visualSize = 128; 
+            const scaledSize = visualSize * gameScale;
+            
+            // Center horizontally:
+            // Sprite Left = Hitbox Left - ( (VisualW - HitboxW) / 2 )
+            const spriteOffsetX = (visualSize - this.width) / 2;
+            
+            // Align Bottoms:
+            // Sprite Top = Hitbox Top - (VisualH - HitboxH)
+            const spriteOffsetY = (visualSize - this.height); 
+
+            // Convert World Coords to Screen Coords
+            const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
+            const screenY = (this.y - spriteOffsetY) * gameScale;
+
+            playerSpriteEl.style.width = `${scaledSize}px`;
+            playerSpriteEl.style.height = `${scaledSize}px`;
+            
+            // Use transform for performance
+            playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
+            
+            // Ensure default positioning is reset so transform is absolute
+            playerSpriteEl.style.left = '0';
+            playerSpriteEl.style.top = '0';
         }
     }
 
@@ -669,7 +616,9 @@
     function pickNextTarget() {
         const remainingItems = items.filter(i => !i.collected);
         if (remainingItems.length === 0) {
-            winGame();
+            // Level cleared? Just regenerate vocab to keep playing endlessly
+            items.forEach(i => i.collected = false);
+            pickNextTarget();
             return;
         }
         const options = remainingItems.map(i => i.word);
@@ -692,7 +641,7 @@
         
         const TILE_SIZE = 80;
         const FLOOR_Y = 550; 
-        const LEVEL_LENGTH = 6000;
+        const LEVEL_LENGTH = 100000; // Increased length for "Endless" feel
         const SAFE_HEIGHT_ABOVE_SURFACE = 220; 
 
         // Chunked Ground
@@ -700,11 +649,11 @@
             platforms.push(new Platform(gx, FLOOR_Y, 802, 200, 'ground'));
         }
         
-        for (let i = 0; i < 25; i++) {
-            decors.push({x: i * 400 + Math.random()*200, y: Math.random() * 200 + 50, type: 'cloud'});
+        for (let i = 0; i < 200; i++) {
+            decors.push({x: i * 600 + Math.random()*200, y: Math.random() * 200 + 50, type: 'cloud'});
         }
-        for (let i = 0; i < 12; i++) {
-            decors.push({x: i * 800, y: FLOOR_Y, type: 'hill'});
+        for (let i = 0; i < 100; i++) {
+            decors.push({x: i * 1000, y: FLOOR_Y, type: 'hill'});
         }
 
         let cx = 800; 
@@ -740,7 +689,8 @@
         
         potentialX.sort(() => Math.random() - 0.5);
         
-        const count = Math.min(potentialX.length, 25);
+        // More items for longer level
+        const count = Math.min(potentialX.length, 100); 
         
         for (let i = 0; i < count; i++) {
             const itemX = potentialX[i];
@@ -770,7 +720,7 @@
             if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
             if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') {
                 keys.up = true;
-                if (gameState === 'START' && imagesLoaded >= 2) startGame();
+                if (gameState === 'START') startGame();
             }
         });
 
@@ -806,10 +756,7 @@
         gameState = 'PLAYING';
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
-        
-        // Ensure player sprite is visible
         playerSpriteEl.style.display = 'block'; 
-        
         updateUI();
         resetLevel();
         pickNextTarget();
@@ -821,15 +768,6 @@
         player = new Player();
         cameraX = 0;
         generateLevel();
-    }
-
-    function winGame() {
-        if (gameState !== 'WIN') Sound.playWin();
-        gameState = 'WIN';
-        document.getElementById('game-over-screen').style.display = 'flex';
-        document.getElementById('go-title').innerText = "เยี่ยมมาก!";
-        document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
-        playerSpriteEl.style.display = 'none';
     }
 
     function updateUI() {
@@ -861,6 +799,14 @@
         let targetCamX = player.x - logicalWidth / 3;
         
         if (targetCamX < 0) targetCamX = 0;
+        
+        // Endless walk: If end of map, loop back or generate more
+        // Simple loop for now:
+        if (player.x > 100000) {
+             player.x = 100;
+             cameraX = 0;
+        }
+
         cameraX += (targetCamX - cameraX) * 0.1;
     }
 
