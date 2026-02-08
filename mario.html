@@ -265,8 +265,8 @@
     const keys = { left: false, right: false, up: false };
 
     // --- Assets ---
-    const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
-    const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
+    const IMG_URL_LEFT = "img/Lesson1/left.gif";
+    const IMG_URL_RIGHT = "img/Lesson1/right.gif";
 
     // Preloader (just to ensure connectivity)
     const imgLeft = new Image();
@@ -284,7 +284,7 @@
 
     imgLeft.onload = checkImagesLoaded;
     imgRight.onload = checkImagesLoaded;
-    imgLeft.onerror = checkImagesLoaded; // Proceed even if error, try in-game
+    imgLeft.onerror = checkImagesLoaded; 
     imgRight.onerror = checkImagesLoaded;
 
     imgLeft.src = IMG_URL_LEFT;
@@ -297,6 +297,22 @@
         init: function() {
             if (!audioCtx) { audioCtx = new AudioContext(); } 
             else if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+        },
+        playWalk: function() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            // Low pitch square wave for retro footstep
+            osc.type = 'square'; 
+            osc.frequency.setValueAtTime(120, t);
+            osc.frequency.exponentialRampToValueAtTime(60, t + 0.05);
+            gain.gain.setValueAtTime(0.02, t); // Quiet volume
+            gain.gain.linearRampToValueAtTime(0, t + 0.05);
+            osc.start(t);
+            osc.stop(t + 0.05);
         },
         playCorrect: function() {
             if (!audioCtx) return;
@@ -363,7 +379,8 @@
             this.velY = 0;
             this.isGrounded = false;
             this.facingRight = true;
-            this.lastFacingRight = null; // Initialize as null to force first update
+            this.lastFacingRight = null; 
+            this.stepTimer = 0; // Timer for walking sound
         }
 
         update() {
@@ -406,6 +423,18 @@
                     this.x = p.x - this.width;
                 }
             }
+
+            // Walking Sound Logic
+            // Check if on ground and moving significantly
+            if (this.isGrounded && Math.abs(this.velX) > 0.5) {
+                if (this.stepTimer <= 0) {
+                    Sound.playWalk();
+                    this.stepTimer = 15; // Play sound every 15 frames (approx 0.25s)
+                }
+                this.stepTimer--;
+            } else {
+                this.stepTimer = 0; // Reset timer when stopped or in air
+            }
             
             // Endless walk protection (Respawn near camera if fell too far)
             if (this.y > LOGICAL_HEIGHT + 500) {
@@ -445,7 +474,6 @@
             const desiredSrc = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
 
             // Check if we need to update the source
-            // We use includes() because browser .src returns absolute path which might differ slightly string-wise
             if (!playerSpriteEl.src || !playerSpriteEl.src.includes(desiredSrc)) {
                 playerSpriteEl.src = desiredSrc;
                 this.lastFacingRight = this.facingRight;
@@ -521,7 +549,7 @@
             this.cooldown = 0; 
             
             this.img = new Image();
-            this.img.src = "https://www.flipschool.in.th/img/Lesson1/" + encodeURIComponent(word) + ".png"; 
+            this.img.src = "img/Lesson1/" + encodeURIComponent(word) + ".png"; 
         }
 
         update() {
@@ -729,7 +757,7 @@
             if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
             if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') {
                 keys.up = true;
-                if (gameState === 'START') startGame();
+                if (gameState === 'START' && imagesLoaded >= 2) startGame();
             }
         });
 
