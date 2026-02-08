@@ -36,17 +36,6 @@
             image-rendering: pixelated;
         }
 
-        /* Player Sprite (Overlay) */
-        #player-sprite {
-            position: absolute;
-            width: 128px;
-            height: 128px;
-            z-index: 5;
-            display: none;
-            pointer-events: none;
-            transform-origin: top left;
-        }
-
         #ui-layer {
             position: absolute;
             top: 0;
@@ -198,8 +187,7 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Player Sprite: Removed window.playerImageError logic from HTML -->
-    <img id="player-sprite" src="" onerror="this.style.display='none';">
+    <!-- Player Sprite REMOVED completely as we now draw directly to canvas -->
 
     <div id="ui-layer">
         <div class="question-box">
@@ -238,7 +226,6 @@
     // --- Constants & Setup ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const playerSpriteEl = document.getElementById('player-sprite');
     
     const LOGICAL_HEIGHT = 600;
     let gameScale = 1;
@@ -268,7 +255,7 @@
     let cameraX = 0;
     const keys = { left: false, right: false, up: false };
 
-    // --- Assets Preload (UPDATED URLs) ---
+    // --- Assets Preload ---
     const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
     const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
 
@@ -276,7 +263,7 @@
     const imgRight = new Image();
     let imagesLoaded = 0;
     
-    // Independent Error Flags
+    // Independent Error Flags for Canvas Drawing
     let leftImageError = false;
     let rightImageError = false;
     
@@ -289,7 +276,6 @@
         }
     }
 
-    // Removed crossOrigin completely as requested
     imgLeft.onload = checkImagesLoaded;
     imgRight.onload = checkImagesLoaded;
     
@@ -304,6 +290,10 @@
         rightImageError = true; 
         checkImagesLoaded(); 
     };
+
+    // No crossOrigin needed if images are on same origin or standard loading
+    // imgLeft.crossOrigin = "anonymous"; 
+    // imgRight.crossOrigin = "anonymous";
 
     imgLeft.src = IMG_URL_LEFT;
     imgRight.src = IMG_URL_RIGHT;
@@ -397,7 +387,6 @@
             this.velY = 0;
             this.isGrounded = false;
             this.facingRight = true;
-            this.lastFacingRight = true;
         }
 
         update() {
@@ -466,19 +455,21 @@
         draw() {
             const x = Math.round(this.x);
             const y = Math.round(this.y);
+            
+            // Draw Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath();
             ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
             ctx.fill();
 
-            // Check specific error flags based on direction
-            const isRight = this.facingRight;
-            const hasError = isRight ? rightImageError : leftImageError;
+            // Select Image based on direction
+            const sprite = this.facingRight ? imgRight : imgLeft;
+            const hasError = this.facingRight ? rightImageError : leftImageError;
 
-            if (hasError) {
-                // If specific image failed, use fallback (Red Box)
-                playerSpriteEl.style.display = 'none';
-                
+            // --- CANVAS DRAWING LOGIC ---
+            // If error, OR if image not fully loaded yet/broken width -> Draw Fallback Box
+            if (hasError || !sprite.complete || sprite.naturalWidth === 0) {
+                // Fallback Red Box
                 ctx.fillStyle = '#e52521'; 
                 ctx.fillRect(Math.round(this.x - cameraX), Math.round(this.y), this.width, this.height);
                 
@@ -491,31 +482,28 @@
                 } else {
                     ctx.fillRect(Math.round(this.x - cameraX + 15), Math.round(this.y + 20), 5, 5);
                 }
-
             } else {
-                // If no error for this direction, show sprite
-                if (this.facingRight !== this.lastFacingRight) {
-                     playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                     this.lastFacingRight = this.facingRight;
-                } else if (!playerSpriteEl.src) {
-                    playerSpriteEl.src = IMG_URL_RIGHT;
-                }
-                
-                playerSpriteEl.style.display = 'block';
-                
-                const visualSize = 128; 
-                const scaledSize = visualSize * gameScale;
+                // Draw Image directly to Canvas
+                // Using 128x128 visual size centered on hitbox
+                const visualSize = 128;
                 const spriteOffsetX = (visualSize - this.width) / 2;
                 const spriteOffsetY = (visualSize - this.height); 
 
-                const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
-                const screenY = (this.y - spriteOffsetY + 5) * gameScale;
+                // Note: ctx is already translated by -cameraX in the main draw loop if you use that
+                // But here we are calculating x manually.
+                // Let's check main draw loop...
+                // Ah, main draw loop does: ctx.translate(-cameraX, 0);
+                // So we should just use 'this.x' relative to world, NOT 'this.x - cameraX'.
+                
+                // Correction: In previous code, I was using DOM which needs screen coords.
+                // Now I'm using Canvas which is transformed by camera.
+                // So draw at 'this.x' is correct relative to the transformed context.
+                
+                // Draw offset to center the sprite visual on the hitbox logic
+                const drawX = this.x - spriteOffsetX;
+                const drawY = this.y - spriteOffsetY + 5; // +5 fine tuning
 
-                playerSpriteEl.style.width = `${scaledSize}px`;
-                playerSpriteEl.style.height = `${scaledSize}px`;
-                playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
-                playerSpriteEl.style.left = '0';
-                playerSpriteEl.style.top = '0';
+                ctx.drawImage(sprite, drawX, drawY, visualSize, visualSize);
             }
         }
     }
@@ -801,7 +789,6 @@
         gameState = 'PLAYING';
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
-        playerSpriteEl.style.display = 'block'; 
         updateUI();
         resetLevel();
         pickNextTarget();
@@ -821,7 +808,6 @@
         document.getElementById('game-over-screen').style.display = 'flex';
         document.getElementById('go-title').innerText = "เยี่ยมมาก!";
         document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
-        playerSpriteEl.style.display = 'none';
     }
 
     function updateUI() {
