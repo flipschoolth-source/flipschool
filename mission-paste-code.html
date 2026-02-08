@@ -29,14 +29,13 @@
             background: #fff; border-radius: 2rem; overflow: hidden;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             border: 10px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            position: relative;
         }
 
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
         .device-desktop { width: 100%; height: 800px; border-radius: 1rem; border: 4px solid #334155; }
         
-        /* Message Box Animation */
+        /* Message Box */
         .custom-message-box {
             position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
             background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
@@ -47,11 +46,8 @@
 
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        
-        /* Loading Animation */
         .progress-bar-animated { transition: width 0.5s ease-in-out; }
         
-        /* Editor Container Styles */
         #monaco-container {
             width: 100%; height: 500px; 
             border: 1px solid #334155; border-radius: 1rem; 
@@ -75,7 +71,8 @@
                     <span class="text-4xl">💾</span>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
-                <p class="text-sm text-slate-500 mt-2 italic">ภารกิจนี้จะถูกเผยแพร่ในห้องเรียนทันที</p>
+                <div id="saveConfirmDetails" class="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-left space-y-1">
+                    </div>
             </div>
             <div class="space-y-3">
                 <button onclick="confirmSave('exit')" class="w-full bg-teal-900 hover:bg-black text-white font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-95 text-sm flex justify-center items-center gap-2">
@@ -109,8 +106,8 @@
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-4 h-full">
                 
                 <div class="flex flex-col gap-3">
-                     <div id="apiKeyConfiguredView" class="hidden-el flex justify-between items-center bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
-                        <span class="text-[10px] font-bold text-emerald-700 flex items-center gap-2"><i class="fas fa-check-circle"></i> AI Ready</span>
+                    <div id="apiKeyConfiguredView" class="hidden-el flex justify-between items-center bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                        <span class="text-[10px] font-bold text-emerald-700 flex items-center gap-2"><i class="fas fa-check-circle"></i> AI พร้อมใช้งาน</span>
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] text-emerald-600 underline">เปลี่ยน Key</button>
                     </div>
                     
@@ -118,19 +115,23 @@
                         <label class="text-[10px] font-bold text-slate-500 block mb-1">Gemini API Key</label>
                         <div class="flex gap-2">
                             <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-teal-500" placeholder="Paste Key Here...">
-                            <button onclick="saveKeyToDB()" class="bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap">Save</button>
+                            <button onclick="saveKeyToDB()" class="bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap">บันทึก</button>
+                        </div>
+                    </div>
+
+                    <div id="classroomContextArea" class="hidden-el bg-gradient-to-r from-teal-50 to-white border-l-4 border-teal-500 p-3 rounded-r-xl shadow-sm">
+                        <p class="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-1">สร้างภารกิจสำหรับ</p>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                <i class="fas fa-book"></i> <span id="displaySubject">วิชา...</span>
+                            </span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                <i class="fas fa-layer-group"></i> <span id="displayGrade">ระดับชั้น...</span>
+                            </span>
                         </div>
                     </div>
 
                     <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none text-sm font-bold focus:ring-2 focus:ring-teal-500 transition-all" placeholder="📍 ชื่อภารกิจ (เช่น เกมตะลุยอวกาศ)">
-                    
-                    <div id="classroomContextArea" class="hidden flex items-center gap-2 px-2">
-                        <i class="fas fa-school text-teal-500 text-xs"></i>
-                        <span id="classroomSubjectText" class="text-xs font-bold text-slate-600">...</span>
-                        <select id="educationLevelSelect" class="hidden"><option value=""></option></select>
-                        <select id="subjectGroup" class="hidden"><option value="อื่นๆ">อื่นๆ</option></select>
-                        <textarea id="missionDescInput" class="hidden"></textarea>
-                    </div>
                 </div>
 
                 <div class="flex-grow flex flex-col gap-2 min-h-[400px]">
@@ -138,12 +139,15 @@
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                             <i class="fas fa-code"></i> Source Code
                         </label>
-                        <div class="flex gap-2">
-                            <button onclick="formatCode()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-md font-bold transition-all" title="จัดรูปแบบโค้ดอัตโนมัติ">
-                                <i class="fas fa-indent"></i> จัดรูปแบบ
+                        <div class="flex gap-1.5">
+                            <button onclick="pasteCode()" class="text-[10px] bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-lg font-bold transition-all border border-orange-100 flex items-center gap-1" title="วางโค้ดจาก Clipboard">
+                                <i class="fas fa-paste"></i> วางโค้ด
                             </button>
-                            <button onclick="forceRefresh()" class="text-[10px] bg-teal-50 hover:bg-teal-100 text-teal-600 px-2 py-1 rounded-md font-bold transition-all">
-                                <i class="fas fa-play"></i> รันโค้ด
+                            <button onclick="formatCode()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg font-bold transition-all border border-slate-200" title="จัดรูปแบบ">
+                                <i class="fas fa-indent"></i> จัดสวย
+                            </button>
+                            <button onclick="forceRefresh()" class="text-[10px] bg-teal-50 hover:bg-teal-100 text-teal-600 px-3 py-1.5 rounded-lg font-bold transition-all border border-teal-100">
+                                <i class="fas fa-play"></i> รัน
                             </button>
                         </div>
                     </div>
@@ -166,12 +170,11 @@
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 relative">
                     <div class="flex gap-2 relative z-10">
-                        <input type="text" id="aiPromptInput" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none text-sm font-medium focus:ring-2 focus:ring-teal-500 shadow-sm" placeholder="✨ สั่ง AI ให้แก้โค้ด (เช่น เปลี่ยนพื้นหลังเป็นรูปป่า, เพิ่มเสียงดนตรี)">
+                        <input type="text" id="aiPromptInput" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none text-sm font-medium focus:ring-2 focus:ring-teal-500 shadow-sm" placeholder="✨ สั่ง AI ให้แก้โค้ด (เช่น เปลี่ยนพื้นหลัง, เพิ่มเสียง)">
                         <button id="aiModifyBtn" onclick="handleAIModify()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center">
                             <i class="fas fa-magic text-lg"></i>
                         </button>
                     </div>
-                    <p class="text-[10px] text-slate-400 mt-2 text-center">*AI จะพยายามรักษา Logic ของเกมไว้ และปรับปรุงเฉพาะส่วนที่คุณสั่ง</p>
                 </div>
 
             </div>
@@ -204,14 +207,12 @@
     </main>
 
     <script>
-        // --- Configuration ---
         const MODEL_ID = "gemini-2.0-flash";
-        let editor = null; // เก็บ instance ของ Monaco Editor
+        let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
-        let dbSubjectOnly = "", detectedGradeNumber = ""; 
+        let dbSubject = "ทั่วไป", dbGrade = "ทั่วไป"; // ตัวแปรเก็บค่า Subject/Grade ที่ได้จาก DB
         let debounceTimer = null;
 
-        // --- Init Monaco Editor ---
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -219,12 +220,8 @@
             targetCid = params.get('cid');
             editingMid = params.get('mid');
 
-            // 1. Load Editor
-            require(['vs/editor/editor.main'], function() {
-                initEditor();
-            });
+            require(['vs/editor/editor.main'], function() { initEditor(); });
 
-            // 2. Load DB Data
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -232,17 +229,16 @@
                     if (!session) { window.location.href = 'teacher-login.html'; return; }
 
                     await loadKeyFromDB();
-                    if (targetCid) await fetchClassroomContext();
+                    if (targetCid) await fetchClassroomContext(); // ดึงข้อมูลวิชา/ชั้นเรียน
                     if (editingMid) await loadExistingMission();
                     
-                    // Load Local Draft if exists and not editing existing mission
                     if(!editingMid) loadLocalDraft();
                 }
             }, 500);
         });
 
         function initEditor() {
-            // Default Template Code
+            // Template เริ่มต้น
             const defaultCode = `<!DOCTYPE html>
 <html lang="th">
 <head>
@@ -279,14 +275,12 @@
 
     <script>
         let score = 0;
-        
         function addScore(points) {
             score += points;
             document.getElementById('scoreDisplay').innerText = score;
         }
-
         function finishGame() {
-            // ส่งคะแนนเข้าระบบ FlipSchool (จำเป็น)
+            // ส่งคะแนนเข้าระบบ FlipSchool
             window.parent.postMessage({ 
                 type: 'SAVE_RESULT', 
                 score: score, 
@@ -301,34 +295,39 @@
             editor = monaco.editor.create(document.getElementById('monaco-container'), {
                 value: defaultCode,
                 language: 'html',
-                theme: 'vs-dark', // Dark Theme like VS Code
+                theme: 'vs-dark',
                 automaticLayout: true,
                 minimap: { enabled: false },
                 fontSize: 14,
                 fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                padding: { top: 16, bottom: 16 }
+                lineNumbers: 'on'
             });
 
-            // Auto Preview Trigger (Debounce)
             editor.onDidChangeModelContent(() => {
                 clearTimeout(debounceTimer);
-                document.getElementById('validationStatus').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-400"></i> <span class="text-slate-400">กำลังพิมพ์...</span>';
-                
-                // Save Draft to LocalStorage
+                document.getElementById('validationStatus').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-400"></i>';
                 localStorage.setItem('mission_code_draft', editor.getValue());
-                
-                debounceTimer = setTimeout(() => {
-                    refreshPreview();
-                }, 1500); // รอ 1.5 วินาทีหลังหยุดพิมพ์ค่อยรัน
+                debounceTimer = setTimeout(() => { refreshPreview(); }, 1500);
             });
 
-            // Initial Run
             refreshPreview();
         }
 
-        // --- Logic Functions ---
+        // --- Editor Tools ---
+        async function pasteCode() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if(editor) {
+                    const selection = editor.getSelection();
+                    const range = new monaco.Range(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn);
+                    editor.executeEdits("paste-source", [{ range: range, text: text, forceMoveMarkers: true }]);
+                    formatCode();
+                    showMessage("📋 วางโค้ดเรียบร้อย");
+                }
+            } catch (err) {
+                showMessage("❌ ไม่สามารถเข้าถึง Clipboard ได้: " + err.message, true);
+            }
+        }
 
         function formatCode() {
             if(editor) editor.getAction('editor.action.formatDocument').run();
@@ -341,19 +340,14 @@
 
         function validateCodeStandard(code) {
             if (!code) return { valid: false, msg: "ไม่พบโค้ด" };
-
-            // 1. Remove comments to avoid false positives
             const cleanCode = code.replace(//g, "").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-
-            // 2. Check Logic using Regex
             const hasBack = /window\.parent\.history\.back\(\)|history\.back\(\)/.test(cleanCode);
             const hasPostMessage = /window\.parent\.postMessage\s*\(\s*\{/.test(cleanCode);
             const hasSaveType = /['"]SAVE_RESULT['"]/.test(cleanCode);
 
-            if (!hasBack) return { valid: false, msg: "❌ ขาดปุ่มย้อนกลับ (history.back)" };
-            if (!hasPostMessage || !hasSaveType) return { valid: false, msg: "❌ ขาดระบบส่งคะแนน (SAVE_RESULT)" };
-
-            return { valid: true, msg: "✅ โค้ดถูกต้องตามมาตรฐาน" };
+            if (!hasBack) return { valid: false, msg: "❌ ขาดปุ่มย้อนกลับ" };
+            if (!hasPostMessage || !hasSaveType) return { valid: false, msg: "❌ ขาดระบบส่งคะแนน" };
+            return { valid: true, msg: "✅ โค้ดถูกต้อง" };
         }
 
         function refreshPreview() {
@@ -363,125 +357,39 @@
             const statusEl = document.getElementById('validationStatus');
             const saveBtn = document.getElementById('saveToCloudBtn');
 
-            // Update Iframe
             iframe.srcdoc = code;
-
-            // Validate
             const check = validateCodeStandard(code);
             if (check.valid) {
-                statusEl.innerHTML = `<span class="text-emerald-600 font-bold">${check.msg}</span>`;
-                statusEl.className = "text-[10px] bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 transition-all";
-                
+                statusEl.innerHTML = `<span class="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">${check.msg}</span>`;
                 saveBtn.disabled = false;
                 saveBtn.className = "bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 active:scale-95";
             } else {
-                statusEl.innerHTML = `<span class="text-rose-600 font-bold">${check.msg}</span>`;
-                statusEl.className = "text-[10px] bg-rose-50 px-2 py-1 rounded-md border border-rose-100 transition-all";
-                
+                statusEl.innerHTML = `<span class="text-rose-600 font-bold text-[10px] bg-rose-50 px-2 py-1 rounded-md border border-rose-100">${check.msg}</span>`;
                 saveBtn.disabled = true;
                 saveBtn.className = "bg-slate-200 text-slate-400 cursor-not-allowed px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2";
             }
         }
 
-        // --- AI Logic (Enhanced) ---
-        async function handleAIModify() {
-            const currentCode = editor.getValue();
-            const prompt = document.getElementById('aiPromptInput').value.trim();
-            const key = document.getElementById('apiKeyInput').value.trim();
-            const title = document.getElementById('missionTitleInput').value.trim() || "My Mission";
-
-            if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
-            if (!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งที่ต้องการให้ AI แก้ไข", true);
-
-            // UI Loading Start
-            const overlay = document.getElementById('editorOverlay');
-            const pBar = document.getElementById('aiProgressBar');
-            const statusText = document.getElementById('aiStatusText');
-            overlay.classList.remove('hidden-el');
-            pBar.style.width = "10%";
-            statusText.innerText = "🤖 AI กำลังอ่านโค้ด...";
-
+        // --- Classroom & DB Logic ---
+        async function fetchClassroomContext() {
             try {
-                // Simulate Steps
-                setTimeout(() => { pBar.style.width = "40%"; statusText.innerText = "🎨 AI กำลังออกแบบและเขียนโค้ด..."; }, 1000);
+                // ดึงข้อมูลห้องเรียนเพื่อเอา Subject และ Grade
+                const { data } = await window.sysDB.from('classrooms')
+                    .select('subject_name, room_name')
+                    .eq('classroom_id', targetCid)
+                    .single();
 
-                const sysPrompt = `You are a Senior HTML5 Game Developer & UI/UX Expert.
-                
-                **User Request:** "${prompt}"
-                **Context:** Mission Title is "${title}".
-                
-                **CRITICAL RULES (MUST FOLLOW):**
-                1. **RETURN ONLY RAW HTML CODE.** No Markdown (\`\`\`), no explanations.
-                2. **PRESERVE LOGIC:** Do NOT remove 'window.parent.postMessage' or 'history.back()' unless explicitly told to.
-                3. **MODERN UI:** Use TailwindCSS (CDN provided in input) for styling. Make it look beautiful and responsive.
-                4. **SCRIPT INTEGRITY:** Ensure the script for scoring (addScore/finishGame) remains functional.
-                
-                **Input Code:**
-                ${currentCode}`;
+                if (data) {
+                    // แสดงผลใน UI
+                    document.getElementById('classroomContextArea').classList.remove('hidden-el');
+                    document.getElementById('displaySubject').innerText = data.subject_name;
+                    document.getElementById('displayGrade').innerText = data.room_name;
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt }] }] })
-                });
-
-                if (!res.ok) throw new Error("AI Error: " + res.status);
-                
-                // Simulate Finalizing
-                pBar.style.width = "80%";
-                statusText.innerText = "✨ กำลังตรวจสอบความถูกต้อง...";
-
-                const data = await res.json();
-                let newCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (newCode) {
-                    // Cleanup Code (Remove Markdown wrappers if AI ignores rule)
-                    newCode = newCode.replace(/```html/g, '').replace(/```/g, '').trim();
-                    
-                    editor.setValue(newCode); // Update Monaco
-                    formatCode(); // Auto Format
-                    
-                    document.getElementById('aiPromptInput').value = ""; // Clear Prompt
-                    showMessage("✨ AI ปรับปรุงโค้ดเรียบร้อย!", false);
-                } else {
-                    throw new Error("AI ไม่ส่งข้อมูลกลับมา");
+                    // เก็บค่าไว้ใช้ตอน Save (Auto Lock)
+                    dbSubject = data.subject_name;
+                    dbGrade = data.room_name; // ใช้ชื่อห้องเรียนเป็น Grade Level ไปเลย (เช่น "ป.4/1") เพื่อความแม่นยำ
                 }
-
-            } catch (e) {
-                showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true);
-            } finally {
-                pBar.style.width = "100%";
-                setTimeout(() => {
-                    overlay.classList.add('hidden-el');
-                    pBar.style.width = "0%";
-                }, 800);
-            }
-        }
-
-        // --- Database & Utility Functions ---
-
-        async function loadKeyFromDB() {
-            const { data: { user } } = await window.sysDB.auth.getUser();
-            if(user) {
-                currentUserId = user.id;
-                const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
-                if(data?.gemini_api_key) {
-                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                    document.getElementById("apiKeyConfiguredView").classList.remove("hidden-el");
-                    toggleKeyEdit(false);
-                } else {
-                    toggleKeyEdit(true);
-                }
-            }
-        }
-
-        async function saveKeyToDB() {
-            const key = document.getElementById("apiKeyInput").value.trim();
-            if(!key) return;
-            await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', currentUserId);
-            loadKeyFromDB();
-            showMessage("✅ บันทึก Key แล้ว");
+            } catch (err) { console.error("Fetch Context Error:", err); }
         }
 
         async function confirmSave(mode) {
@@ -491,11 +399,15 @@
             if(!title) return showMessage("⚠️ กรุณาตั้งชื่อภารกิจ", true);
 
             try {
+                // ใช้ค่า Subject/Grade ที่ดึงมาจาก Classroom (ถ้ามี)
+                const finalSubject = targetCid ? dbSubject : "ทั่วไป";
+                const finalGrade = targetCid ? dbGrade : "ทั่วไป";
+
                 const missionData = {
                     title: title,
                     description: "สร้างด้วย FlipCode Editor",
-                    subject_group: targetCid ? dbSubjectOnly : "ทั่วไป",
-                    grade_level: detectedGradeNumber || "ทั่วไป",
+                    subject_group: finalSubject, 
+                    grade_level: finalGrade,
                     mission_type: "html_custom",
                     content_data: { html: code },
                     is_public: true,
@@ -511,14 +423,13 @@
                     mid = data[0].mission_id;
                 }
 
-                // Link to Classroom
                 if(targetCid) {
                     await window.sysDB.from('classroom_missions').upsert({
                         classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                     }, { onConflict: 'classroom_id, mission_id' });
                 }
 
-                localStorage.removeItem('mission_code_draft'); // Clear Draft
+                localStorage.removeItem('mission_code_draft');
                 if (mode === 'exit') window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
 
             } catch (err) {
@@ -527,16 +438,86 @@
             closeSaveModal();
         }
 
-        async function fetchClassroomContext() {
+        // --- AI & Helpers ---
+        async function handleAIModify() {
+            const currentCode = editor.getValue();
+            const prompt = document.getElementById('aiPromptInput').value.trim();
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const title = document.getElementById('missionTitleInput').value.trim() || "My Mission";
+
+            if (!key) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
+            if (!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งที่ต้องการให้ AI แก้ไข", true);
+
+            const overlay = document.getElementById('editorOverlay');
+            const pBar = document.getElementById('aiProgressBar');
+            const statusText = document.getElementById('aiStatusText');
+            overlay.classList.remove('hidden-el');
+            pBar.style.width = "10%";
+            statusText.innerText = "🤖 AI กำลังอ่านโค้ด...";
+
             try {
-                const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
-                if (data) {
-                    document.getElementById('classroomContextArea').classList.remove('hidden');
-                    document.getElementById('classroomSubjectText').innerText = `${data.subject_name} (${data.room_name})`;
-                    dbSubjectOnly = data.subject_name;
-                    detectedGradeNumber = data.room_name.replace(/[^\d]/g, '');
+                setTimeout(() => { pBar.style.width = "40%"; statusText.innerText = "🎨 AI กำลังออกแบบและเขียนโค้ด..."; }, 1000);
+
+                const sysPrompt = `You are a Senior HTML5 Game Developer & UI/UX Expert.
+                **User Request:** "${prompt}"
+                **Context:** Mission Title: "${title}".
+                **RULES:**
+                1. RETURN ONLY RAW HTML CODE.
+                2. PRESERVE LOGIC: Do NOT remove 'window.parent.postMessage' or 'history.back()'.
+                3. USE TAILWIND CSS.
+                **Input Code:** ${currentCode}`;
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt }] }] })
+                });
+
+                if (!res.ok) throw new Error("AI Error: " + res.status);
+                
+                pBar.style.width = "80%";
+                statusText.innerText = "✨ กำลังตรวจสอบความถูกต้อง...";
+
+                const data = await res.json();
+                let newCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (newCode) {
+                    newCode = newCode.replace(/```html/g, '').replace(/```/g, '').trim();
+                    editor.setValue(newCode);
+                    formatCode();
+                    document.getElementById('aiPromptInput').value = "";
+                    showMessage("✨ AI ปรับปรุงโค้ดเรียบร้อย!", false);
+                } else {
+                    throw new Error("AI ไม่ส่งข้อมูลกลับมา");
                 }
-            } catch (err) {}
+            } catch (e) {
+                showMessage("❌ เกิดข้อผิดพลาด: " + e.message, true);
+            } finally {
+                pBar.style.width = "100%";
+                setTimeout(() => { overlay.classList.add('hidden-el'); pBar.style.width = "0%"; }, 800);
+            }
+        }
+
+        async function loadKeyFromDB() {
+            const { data: { user } } = await window.sysDB.auth.getUser();
+            if(user) {
+                currentUserId = user.id;
+                const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
+                if(data?.gemini_api_key) {
+                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
+                    document.getElementById("apiKeyConfiguredView").classList.remove("hidden-el");
+                    toggleKeyEdit(false);
+                } else { toggleKeyEdit(true); }
+            }
+        }
+
+        async function saveKeyToDB() {
+            const key = document.getElementById("apiKeyInput").value.trim();
+            if(!key) return;
+            await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', currentUserId);
+            loadKeyFromDB();
+            showMessage("✅ บันทึก Key แล้ว");
         }
 
         async function loadExistingMission() {
@@ -550,13 +531,9 @@
 
         function loadLocalDraft() {
             const draft = localStorage.getItem('mission_code_draft');
-            if(draft && editor) {
-                editor.setValue(draft);
-                showMessage("📂 โหลดโค้ดที่ยังไม่ได้บันทึกคืนมาแล้ว");
-            }
+            if(draft && editor) { editor.setValue(draft); showMessage("📂 โหลดโค้ดเดิมคืนมาแล้ว"); }
         }
 
-        // UI Helpers
         function showMessage(text, isError = false) { 
             const msgBox = document.getElementById("msgBox");
             document.getElementById("msgText").innerText = text; 
@@ -573,15 +550,19 @@
             else { view.classList.add('hidden-el'); status.classList.remove('hidden-el'); }
         }
 
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
+        function openSaveModal() {
+            // อัปเดตรายละเอียดก่อนเปิด Modal
+            const detailBox = document.getElementById('saveConfirmDetails');
+            detailBox.innerHTML = `
+                <p><strong>ภารกิจ:</strong> ${document.getElementById("missionTitleInput").value || "-"}</p>
+                <p><strong>วิชา:</strong> ${targetCid ? dbSubject : "ไม่ระบุ"}</p>
+                <p><strong>ระดับชั้น:</strong> ${targetCid ? dbGrade : "ไม่ระบุ"}</p>
+            `;
+            document.getElementById('saveModal').classList.remove('hidden');
+        }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-        
-        function changeView(device) {
-            const wrapper = document.getElementById('previewWrapper');
-            wrapper.className = `preview-frame-wrapper shadow-2xl device-${device}`;
-            
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('bg-slate-200', 'text-teal-700'));
-            event.currentTarget.classList.add('bg-slate-200', 'text-teal-700');
+        function changeView(d) {
+            document.getElementById('previewWrapper').className = `preview-frame-wrapper shadow-2xl device-${d}`;
         }
     </script>
 </body>
