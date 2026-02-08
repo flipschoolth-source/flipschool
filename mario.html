@@ -36,20 +36,7 @@
             image-rendering: pixelated;
         }
 
-        /* Player Sprite (Overlay) - Essential for GIF Animation */
-        #player-sprite {
-            position: absolute;
-            width: 128px;
-            height: 128px;
-            z-index: 5;
-            display: none; /* Hidden until game starts */
-            pointer-events: none;
-            transform-origin: top left;
-            /* Optimizations */
-            image-rendering: pixelated;
-            will-change: transform; 
-        }
-
+        /* UI Layer */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -201,9 +188,7 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Player Sprite: Restored DOM Element for GIF Animation -->
-    <!-- Removed onerror hiding to prevent disappearing, using JS fallback logic instead if needed -->
-    <img id="player-sprite" src="" alt="Player">
+    <!-- Deleted DOM Sprite overlay completely -->
 
     <div id="ui-layer">
         <div class="question-box">
@@ -242,7 +227,6 @@
     // --- Constants & Setup ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const playerSpriteEl = document.getElementById('player-sprite');
     
     const LOGICAL_HEIGHT = 600;
     let gameScale = 1;
@@ -270,13 +254,16 @@
     const keys = { left: false, right: false, up: false };
 
     // --- Assets Preload ---
-    // Confirmed URLs
     const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
     const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
 
     const imgLeft = new Image();
     const imgRight = new Image();
     let imagesLoaded = 0;
+    
+    // Separate error tracking for robustness
+    let leftImageError = false;
+    let rightImageError = false;
     
     function checkImagesLoaded() {
         imagesLoaded++;
@@ -287,12 +274,19 @@
         }
     }
 
-    // Preload for caching, but display using DOM element
     imgLeft.onload = checkImagesLoaded;
     imgRight.onload = checkImagesLoaded;
     
-    imgLeft.onerror = () => { console.warn("Left Image Failed"); checkImagesLoaded(); };
-    imgRight.onerror = () => { console.warn("Right Image Failed"); checkImagesLoaded(); };
+    imgLeft.onerror = () => { 
+        console.warn("Left Image Failed: " + IMG_URL_LEFT); 
+        leftImageError = true; 
+        checkImagesLoaded(); 
+    };
+    imgRight.onerror = () => { 
+        console.warn("Right Image Failed: " + IMG_URL_RIGHT); 
+        rightImageError = true; 
+        checkImagesLoaded(); 
+    };
 
     imgLeft.src = IMG_URL_LEFT;
     imgRight.src = IMG_URL_RIGHT;
@@ -386,7 +380,6 @@
             this.velY = 0;
             this.isGrounded = false;
             this.facingRight = true;
-            this.lastFacingRight = true; 
         }
 
         update() {
@@ -461,41 +454,43 @@
             ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
             ctx.fill();
 
-            // --- GIF DOM Overlay Handling ---
-            
-            // 1. Update Source if direction changed
-            if (this.facingRight !== this.lastFacingRight) {
-                 playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                 this.lastFacingRight = this.facingRight;
-            } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
-                playerSpriteEl.src = IMG_URL_RIGHT;
+            // Direct Canvas Drawing - Stable and Reliable
+            const sprite = this.facingRight ? imgRight : imgLeft;
+            const hasError = this.facingRight ? rightImageError : leftImageError;
+
+            if (hasError || !sprite.complete || sprite.naturalWidth === 0) {
+                // Fallback: Red Box
+                ctx.fillStyle = '#e52521'; 
+                ctx.fillRect(Math.round(this.x - cameraX), Math.round(this.y), this.width, this.height);
+                
+                ctx.fillStyle = '#ffccc5';
+                ctx.fillRect(Math.round(this.x - cameraX + 10), Math.round(this.y + 10), this.width - 20, 30);
+                
+                ctx.fillStyle = 'black';
+                if(this.facingRight) {
+                    ctx.fillRect(Math.round(this.x - cameraX + this.width - 20), Math.round(this.y + 20), 5, 5);
+                } else {
+                    ctx.fillRect(Math.round(this.x - cameraX + 15), Math.round(this.y + 20), 5, 5);
+                }
+            } else {
+                // Draw GIF/PNG Frame
+                // Visual Size = 128x128
+                const visualSize = 128;
+                // Center offset relative to hitbox
+                const spriteOffsetX = (visualSize - this.width) / 2;
+                const spriteOffsetY = (visualSize - this.height); 
+                
+                // Fine tune Y to make feet touch shadow
+                const fineTuneY = 5;
+
+                ctx.drawImage(
+                    sprite,
+                    this.x - cameraX - spriteOffsetX, // Draw X
+                    this.y - spriteOffsetY + fineTuneY, // Draw Y
+                    visualSize,
+                    visualSize
+                );
             }
-            
-            // 2. Ensure visible
-            playerSpriteEl.style.display = 'block';
-            
-            // 3. Calculate Position & Scale
-            // Visual Size = 128, Hitbox = 60x90
-            const visualSize = 128; 
-            const scaledSize = visualSize * gameScale;
-            
-            // Offsets to center 128px image over 60x90 hitbox
-            const spriteOffsetX = (visualSize - this.width) / 2;
-            const spriteOffsetY = (visualSize - this.height); 
-
-            // Fine tuning Y to make feet touch ground/shadow properly
-            const fineTuneY = 5;
-
-            // Map world coordinate to screen coordinate
-            const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
-            const screenY = (this.y - spriteOffsetY + fineTuneY) * gameScale;
-
-            // Apply to DOM Element
-            playerSpriteEl.style.width = `${scaledSize}px`;
-            playerSpriteEl.style.height = `${scaledSize}px`;
-            playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
-            playerSpriteEl.style.left = '0';
-            playerSpriteEl.style.top = '0';
         }
     }
 
@@ -541,7 +536,7 @@
             this.cooldown = 0; 
             
             this.img = new Image();
-            // Vocab items (PNG) work fine with Canvas drawing
+            // Vocab items use relative path too
             this.img.src = "https://www.flipschool.in.th/img/Lesson1/" + encodeURIComponent(word) + ".png"; 
         }
 
@@ -783,7 +778,6 @@
         gameState = 'PLAYING';
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
-        playerSpriteEl.style.display = 'block'; 
         updateUI();
         resetLevel();
         pickNextTarget();
@@ -803,7 +797,6 @@
         document.getElementById('game-over-screen').style.display = 'flex';
         document.getElementById('go-title').innerText = "เยี่ยมมาก!";
         document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
-        playerSpriteEl.style.display = 'none';
     }
 
     function updateUI() {
