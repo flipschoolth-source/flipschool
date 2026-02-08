@@ -293,7 +293,9 @@
     </main>
 
     <script>
-        const MODEL_ID = "gemini-2.0-flash";
+        // UPDATED: Using a stable model ID to prevent "AI Request Failed"
+        const MODEL_ID = "gemini-1.5-flash";
+        
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubject = "ทั่วไป", dbGrade = "ทั่วไป"; 
@@ -645,9 +647,17 @@
                 Input Code: ${currentCode}`;
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt }] }] }) });
+                const res = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt }] }] }) 
+                });
                 
-                if (!res.ok) throw new Error("AI Request Failed");
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    console.error("AI API Error:", errData);
+                    throw new Error(errData.error?.message || `AI Request Failed (${res.status})`);
+                }
                 
                 pBar.style.width = "90%";
                 statusText.innerText = "✨ กำลังประมวลผลคำตอบ...";
