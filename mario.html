@@ -36,20 +36,18 @@
             image-rendering: pixelated;
         }
 
-        /* Player Sprite (Overlay for GIF Animation) */
+        /* Player Sprite (Overlay) - Essential for GIF Animation */
         #player-sprite {
             position: absolute;
             width: 128px;
             height: 128px;
             z-index: 5;
             display: none; /* Hidden until game starts */
-            pointer-events: none; /* Let clicks pass through */
+            pointer-events: none;
             transform-origin: top left;
             will-change: transform;
-            /* Smooth pixel art scaling */
-            image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-crisp-edges;
-            image-rendering: pixelated;
+            /* Ensure crisp edges for pixel art look */
+            image-rendering: pixelated; 
         }
 
         #ui-layer {
@@ -106,7 +104,7 @@
             font-weight: 700;
         }
 
-        #start-screen, #game-over-screen {
+        #start-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -203,8 +201,7 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Player Sprite: Using DOM Element for GIF Animation -->
-    <!-- Removed redundant error handling to let browser retry natively -->
+    <!-- Player Sprite: Simple img tag, controlled by JS -->
     <img id="player-sprite" src="" alt="">
 
     <div id="ui-layer">
@@ -230,15 +227,10 @@
     <div id="start-screen">
         <h1>เกมจับคู่คำศัพท์<br>ฉบับน้องน้ำใส</h1>
         <p>ช่วยน้องน้ำใสกระโดดเก็บภาพ<br>ให้ตรงกับคำศัพท์ด้านบน!</p>
-        <button class="btn" id="start-btn" onclick="startGame()">เริ่มเกม</button>
+        <button class="btn" id="start-btn" onclick="startGame()" disabled>กำลังโหลด...</button>
     </div>
 
-    <!-- Removed Game Over Screen to allow endless play -->
-    <div id="game-over-screen" style="display: none;">
-        <h1 id="go-title">เก่งมาก!</h1>
-        <p id="go-score">คะแนนรวม: 0</p>
-        <button class="btn" onclick="resetGame()">เล่นใหม่อีกครั้ง</button>
-    </div>
+    <!-- Game Over removed for endless play -->
 </div>
 
 <script>
@@ -247,7 +239,6 @@
     const ctx = canvas.getContext('2d');
     const playerSpriteEl = document.getElementById('player-sprite');
     
-    // Logical height for scaling calculations
     const LOGICAL_HEIGHT = 600;
     let gameScale = 1;
 
@@ -264,6 +255,7 @@
     let frameCount = 0;
     let score = 0;
     
+    // Physics 
     const GRAVITY = 0.8;
     const FRICTION = 0.85;
     const SPEED = 7; 
@@ -275,6 +267,28 @@
     // --- Assets ---
     const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
     const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
+
+    // Preloader (just to ensure connectivity)
+    const imgLeft = new Image();
+    const imgRight = new Image();
+    let imagesLoaded = 0;
+    
+    function checkImagesLoaded() {
+        imagesLoaded++;
+        if (imagesLoaded >= 2) {
+            const btn = document.getElementById('start-btn');
+            btn.innerText = "เริ่มเกม";
+            btn.disabled = false;
+        }
+    }
+
+    imgLeft.onload = checkImagesLoaded;
+    imgRight.onload = checkImagesLoaded;
+    imgLeft.onerror = checkImagesLoaded; // Proceed even if error, try in-game
+    imgRight.onerror = checkImagesLoaded;
+
+    imgLeft.src = IMG_URL_LEFT;
+    imgRight.src = IMG_URL_RIGHT;
 
     // --- Audio System ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -349,7 +363,7 @@
             this.velY = 0;
             this.isGrounded = false;
             this.facingRight = true;
-            this.lastFacingRight = true; 
+            this.lastFacingRight = null; // Initialize as null to force first update
         }
 
         update() {
@@ -393,8 +407,8 @@
                 }
             }
             
-            // Endless fall protection (Respawn)
-            if (this.y > LOGICAL_HEIGHT + 200) {
+            // Endless walk protection (Respawn near camera if fell too far)
+            if (this.y > LOGICAL_HEIGHT + 500) {
                 this.y = 100;
                 this.x = Math.max(100, cameraX + 100); 
                 this.velY = 0;
@@ -425,46 +439,41 @@
             ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
             ctx.fill();
 
-            // 2. Handle GIF Overlay (DOM Element)
-            // This ensures GIF animation plays because it's a real <img> tag
+            // 2. Handle DOM Overlay for GIF
             
+            // Calculate which image we want
+            const desiredSrc = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
+
+            // Check if we need to update the source
+            // We use includes() because browser .src returns absolute path which might differ slightly string-wise
+            if (!playerSpriteEl.src || !playerSpriteEl.src.includes(desiredSrc)) {
+                playerSpriteEl.src = desiredSrc;
+                this.lastFacingRight = this.facingRight;
+            }
+            
+            // Ensure visible
             playerSpriteEl.style.display = 'block';
 
-            // Only update src if direction changes to avoid reloading flicker
-            if (this.facingRight !== this.lastFacingRight) {
-                 playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                 this.lastFacingRight = this.facingRight;
-            } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
-                // Initial load
-                playerSpriteEl.src = IMG_URL_RIGHT;
-            }
-
-            // --- Precise Positioning Calculation ---
+            // --- Positioning Calculation ---
             // Visual Size (GIF) = 128x128
             // Hitbox Size = 60x90
-            
             const visualSize = 128; 
             const scaledSize = visualSize * gameScale;
             
-            // Center horizontally:
-            // Sprite Left = Hitbox Left - ( (VisualW - HitboxW) / 2 )
+            // Center horizontally: Sprite Left = Hitbox Left - ( (VisualW - HitboxW) / 2 )
             const spriteOffsetX = (visualSize - this.width) / 2;
             
-            // Align Bottoms:
-            // Sprite Top = Hitbox Top - (VisualH - HitboxH)
+            // Align Bottoms: Sprite Top = Hitbox Top - (VisualH - HitboxH)
             const spriteOffsetY = (visualSize - this.height); 
 
-            // Convert World Coords to Screen Coords
+            // Convert World to Screen
             const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
-            const screenY = (this.y - spriteOffsetY) * gameScale;
+            // Fine tune Y: +5 pushes sprite down slightly to make feet touch shadow perfectly
+            const screenY = (this.y - spriteOffsetY + 5) * gameScale;
 
             playerSpriteEl.style.width = `${scaledSize}px`;
             playerSpriteEl.style.height = `${scaledSize}px`;
-            
-            // Use transform for performance
             playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
-            
-            // Ensure default positioning is reset so transform is absolute
             playerSpriteEl.style.left = '0';
             playerSpriteEl.style.top = '0';
         }
@@ -644,7 +653,7 @@
         const LEVEL_LENGTH = 100000; // Increased length for "Endless" feel
         const SAFE_HEIGHT_ABOVE_SURFACE = 220; 
 
-        // Chunked Ground
+        // Chunked Ground to avoid physics issues
         for(let gx = -100; gx < LEVEL_LENGTH + 500; gx += 800) {
             platforms.push(new Platform(gx, FLOOR_Y, 802, 200, 'ground'));
         }
@@ -754,9 +763,7 @@
         Sound.init();
         score = 0;
         gameState = 'PLAYING';
-        document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
-        playerSpriteEl.style.display = 'block'; 
         updateUI();
         resetLevel();
         pickNextTarget();
@@ -800,8 +807,7 @@
         
         if (targetCamX < 0) targetCamX = 0;
         
-        // Endless walk: If end of map, loop back or generate more
-        // Simple loop for now:
+        // Endless walk: Loop back if too far
         if (player.x > 100000) {
              player.x = 100;
              cameraX = 0;
