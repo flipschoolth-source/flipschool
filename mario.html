@@ -36,7 +36,18 @@
             image-rendering: pixelated;
         }
 
-        /* UI Layer */
+        /* Player Sprite (Overlay) - Essential for GIF Animation */
+        #player-sprite {
+            position: absolute;
+            width: 128px;
+            height: 128px;
+            z-index: 5;
+            display: none; /* Hidden by default */
+            pointer-events: none;
+            transform-origin: top left;
+            will-change: transform; /* Optimize for movement */
+        }
+
         #ui-layer {
             position: absolute;
             top: 0;
@@ -188,7 +199,8 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Deleted DOM Sprite overlay completely -->
+    <!-- Player Sprite: Using DOM Element for GIF Animation Support -->
+    <img id="player-sprite" src="" alt="Player">
 
     <div id="ui-layer">
         <div class="question-box">
@@ -227,6 +239,7 @@
     // --- Constants & Setup ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const playerSpriteEl = document.getElementById('player-sprite');
     
     const LOGICAL_HEIGHT = 600;
     let gameScale = 1;
@@ -240,11 +253,14 @@
     ];
 
     let currentTargetWord = "";
+    
+    // Game State
     let gameState = 'START';
     let frameCount = 0;
     let score = 0;
     let lives = 3;
     
+    // Physics 
     const GRAVITY = 0.8;
     const FRICTION = 0.85;
     const SPEED = 7; 
@@ -261,7 +277,7 @@
     const imgRight = new Image();
     let imagesLoaded = 0;
     
-    // Separate error tracking for robustness
+    // Separate error tracking
     let leftImageError = false;
     let rightImageError = false;
     
@@ -380,6 +396,7 @@
             this.velY = 0;
             this.isGrounded = false;
             this.facingRight = true;
+            this.lastFacingRight = true; 
         }
 
         update() {
@@ -454,12 +471,13 @@
             ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
             ctx.fill();
 
-            // Direct Canvas Drawing - Stable and Reliable
-            const sprite = this.facingRight ? imgRight : imgLeft;
+            // --- GIF / SPRITE HANDLING via DOM ---
             const hasError = this.facingRight ? rightImageError : leftImageError;
 
-            if (hasError || !sprite.complete || sprite.naturalWidth === 0) {
-                // Fallback: Red Box
+            if (hasError) {
+                // If specific image failed, fallback to Red Box
+                playerSpriteEl.style.display = 'none';
+                
                 ctx.fillStyle = '#e52521'; 
                 ctx.fillRect(Math.round(this.x - cameraX), Math.round(this.y), this.width, this.height);
                 
@@ -473,23 +491,34 @@
                     ctx.fillRect(Math.round(this.x - cameraX + 15), Math.round(this.y + 20), 5, 5);
                 }
             } else {
-                // Draw GIF/PNG Frame
-                // Visual Size = 128x128
+                // GIF Overlay
+                playerSpriteEl.style.display = 'block';
+
+                // Update src ONLY if direction changed (prevents reloading/flicker)
+                if (this.facingRight !== this.lastFacingRight) {
+                     playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
+                     this.lastFacingRight = this.facingRight;
+                } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
+                    playerSpriteEl.src = IMG_URL_RIGHT;
+                }
+
+                // --- Positioning Calculation ---
+                // Align 128px GIF over 60x90 Hitbox
                 const visualSize = 128;
-                // Center offset relative to hitbox
+                const scaledSize = visualSize * gameScale;
                 const spriteOffsetX = (visualSize - this.width) / 2;
                 const spriteOffsetY = (visualSize - this.height); 
-                
-                // Fine tune Y to make feet touch shadow
                 const fineTuneY = 5;
 
-                ctx.drawImage(
-                    sprite,
-                    this.x - cameraX - spriteOffsetX, // Draw X
-                    this.y - spriteOffsetY + fineTuneY, // Draw Y
-                    visualSize,
-                    visualSize
-                );
+                // Position on screen
+                const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
+                const screenY = (this.y - spriteOffsetY + fineTuneY) * gameScale;
+
+                playerSpriteEl.style.width = `${scaledSize}px`;
+                playerSpriteEl.style.height = `${scaledSize}px`;
+                playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
+                playerSpriteEl.style.left = '0';
+                playerSpriteEl.style.top = '0';
             }
         }
     }
@@ -536,7 +565,6 @@
             this.cooldown = 0; 
             
             this.img = new Image();
-            // Vocab items use relative path too
             this.img.src = "https://www.flipschool.in.th/img/Lesson1/" + encodeURIComponent(word) + ".png"; 
         }
 
@@ -778,6 +806,10 @@
         gameState = 'PLAYING';
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
+        
+        // Ensure player sprite is visible
+        playerSpriteEl.style.display = 'block'; 
+        
         updateUI();
         resetLevel();
         pickNextTarget();
@@ -797,6 +829,7 @@
         document.getElementById('game-over-screen').style.display = 'flex';
         document.getElementById('go-title').innerText = "เยี่ยมมาก!";
         document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
+        playerSpriteEl.style.display = 'none';
     }
 
     function updateUI() {
