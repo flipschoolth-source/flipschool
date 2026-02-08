@@ -1,878 +1,253 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Namsai Vocabulary Hunt</title>
-    <!-- Import Standard Thai Fonts: Sarabun (Official, Looped) -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Namsai Vocabulary Hunt</title>
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #333;
-            overflow: hidden;
-            font-family: 'Sarabun', sans-serif;
-            touch-action: none;
-            width: 100vw;
-            height: 100vh;
-        }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap');
 
-        #game-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #5c94fc;
-            overflow: hidden;
-        }
+body {
+    margin: 0;
+    background:#333;
+    overflow:hidden;
+    font-family:'Sarabun',sans-serif;
+    touch-action:none;
+}
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated;
-        }
+#game-container {
+    position:absolute;
+    inset:0;
+    background:#5c94fc;
+}
 
-        /* Player Sprite (Overlay) - Essential for GIF Animation */
-        #player-sprite {
-            position: absolute;
-            width: 128px;
-            height: 128px;
-            z-index: 5;
-            display: none; /* Hidden until game starts */
-            pointer-events: none;
-            transform-origin: top left;
-            /* Optimizations */
-            image-rendering: pixelated;
-            will-change: transform; 
-        }
+canvas {
+    width:100%;
+    height:100%;
+    image-rendering:pixelated;
+}
 
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
-        }
+#player-sprite {
+    position:absolute;
+    width:128px;
+    height:128px;
+    pointer-events:none;
+    image-rendering:pixelated;
+    z-index:5;
+    display:none;
+}
 
-        .question-box {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
+#ui-layer {
+    position:absolute;
+    inset:0;
+    z-index:10;
+    pointer-events:none;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
 
-        .target-word-container {
-            background: rgba(255, 255, 255, 0.95);
-            border: 4px solid #e52521;
-            border-radius: 15px;
-            padding: 10px 50px; 
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-            text-align: center;
-            transform: scale(1.0);
-            transition: transform 0.2s;
-            min-width: 200px;
-        }
+.target-word-container {
+    margin:20px auto 0;
+    background:#fff;
+    border:4px solid #e52521;
+    border-radius:15px;
+    padding:10px 50px;
+    box-shadow:0 6px 0 rgba(0,0,0,.2);
+}
 
-        #target-word {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 60px;
-            color: #e52521;
-            font-weight: 800;
-            line-height: 1.2;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
-        }
+#target-word {
+    font-size:60px;
+    font-weight:800;
+    color:#e52521;
+}
 
-        .hud-stats {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
-            color: white;
-            font-size: 24px;
-            font-weight: 700;
-        }
+.hud-stats {
+    position:absolute;
+    top:20px;
+    right:20px;
+    background:rgba(0,0,0,.5);
+    padding:10px 20px;
+    border-radius:20px;
+    color:#fff;
+    font-size:24px;
+}
 
-        #start-screen, #game-over-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 20;
-        }
+#start-screen,#game-over-screen {
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.85);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:#fff;
+    z-index:20;
+}
 
-        h1 {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 8vw;
-            max-size: 60px;
-            margin-bottom: 10px;
-            color: #ffd700;
-            font-weight: 800;
-            text-shadow: 3px 3px 0 #e52521;
-        }
+h1 {
+    font-size:56px;
+    color:#ffd700;
+    text-shadow:3px 3px #e52521;
+}
 
-        p { 
-            font-size: 4vw; 
-            max-size: 24px;
-            margin-bottom: 30px; 
-            color: #ddd; 
-            font-weight: 400;
-        }
+.btn {
+    background:#e52521;
+    color:#fff;
+    border:4px solid #fff;
+    padding:15px 40px;
+    font-size:30px;
+    border-radius:50px;
+    cursor:pointer;
+    box-shadow:0 6px 0 #990000;
+}
 
-        @media (min-width: 800px) {
-            h1 { font-size: 56px; }
-            p { font-size: 24px; }
-        }
+.btn:active {
+    transform:translateY(4px);
+    box-shadow:0 2px 0 #990000;
+}
 
-        .btn {
-            background: #e52521;
-            color: white;
-            border: 4px solid white;
-            padding: 15px 40px;
-            font-size: 30px;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 50px;
-            transition: transform 0.1s, background 0.2s;
-            box-shadow: 0 6px 0 #990000;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000; }
-        .btn:disabled { background: #666; cursor: not-allowed; border-color: #999; box-shadow: none; }
+#mobile-controls {
+    display:flex;
+    justify-content:space-between;
+    padding:20px;
+    pointer-events:auto;
+}
 
-        #mobile-controls {
-            display: flex; 
-            width: 100%;
-            padding: 20px;
-            pointer-events: auto;
-            box-sizing: border-box;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 10px;
-        }
-        
-        .control-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 80px; 
-            height: 80px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            color: white;
-            user-select: none;
-            backdrop-filter: blur(2px);
-            margin-bottom: 10px;
-        }
-        .control-btn:active { background: rgba(255, 255, 255, 0.5); }
-        .d-pad { display: flex; gap: 20px; }
-        .action-btn { background: rgba(229, 37, 33, 0.4); }
-
-        @media (max-width: 800px) {
-            #target-word { font-size: 40px; }
-            .target-word-container { padding: 5px 20px; }
-        }
-    </style>
+.control-btn {
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:rgba(255,255,255,.2);
+    border:2px solid #fff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:30px;
+    color:#fff;
+}
+</style>
 </head>
+
 <body>
-
 <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
-    
-    <!-- Player Sprite: Restored DOM Element for GIF Animation -->
-    <!-- Removed onerror hiding to prevent disappearing, using JS fallback logic instead if needed -->
-    <img id="player-sprite" src="" alt="Player">
+<canvas id="gameCanvas"></canvas>
+<img id="player-sprite">
 
-    <div id="ui-layer">
-        <div class="question-box">
-            <div class="target-word-container" id="target-container">
-                <div id="target-word">...</div>
-            </div>
-        </div>
-        
-        <div class="hud-stats">
-            <span id="score-display">คะแนน: 0</span>
-        </div>
-
-        <div id="mobile-controls">
-            <div class="d-pad">
-                <div class="control-btn" id="btn-left">←</div>
-                <div class="control-btn" id="btn-right">→</div>
-            </div>
-            <div class="control-btn action-btn" id="btn-jump">A</div>
-        </div>
+<div id="ui-layer">
+    <div class="target-word-container">
+        <div id="target-word">...</div>
     </div>
-
-    <div id="start-screen">
-        <h1>เกมจับคู่คำศัพท์<br>ฉบับน้องน้ำใส</h1>
-        <p>ช่วยน้องน้ำใสกระโดดเก็บภาพ<br>ให้ตรงกับคำศัพท์ด้านบน!</p>
-        <button class="btn" id="start-btn" onclick="startGame()" disabled>กำลังโหลด...</button>
-    </div>
-
-    <div id="game-over-screen" style="display: none;">
-        <h1 id="go-title">เก่งมาก!</h1>
-        <p id="go-score">คะแนนรวม: 0</p>
-        <button class="btn" onclick="resetGame()">เล่นใหม่อีกครั้ง</button>
+    <div class="hud-stats" id="score-display">คะแนน: 0</div>
+    <div id="mobile-controls">
+        <div>
+            <div class="control-btn" id="btn-left">←</div>
+            <div class="control-btn" id="btn-right">→</div>
+        </div>
+        <div class="control-btn" id="btn-jump">A</div>
     </div>
 </div>
 
+<div id="start-screen">
+    <h1>เกมจับคู่คำศัพท์</h1>
+    <button class="btn" id="start-btn" disabled>กำลังโหลด...</button>
+</div>
+
+<div id="game-over-screen" style="display:none">
+    <h1>เยี่ยมมาก!</h1>
+    <button class="btn" onclick="resetGame()">เล่นใหม่</button>
+</div>
+</div>
+
 <script>
-    // --- Constants & Setup ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const playerSpriteEl = document.getElementById('player-sprite');
-    
-    const LOGICAL_HEIGHT = 600;
-    let gameScale = 1;
+/* ---------- CONFIG ---------- */
+const IMG_RIGHT="https://www.flipschool.in.th/img/Lesson1/right.gif";
+const IMG_LEFT ="https://www.flipschool.in.th/img/Lesson1/left.gif";
+const LOGICAL_HEIGHT=600;
 
-    const vocabulary = [
-        "กระติก", "ตะกร้า", "ถ้วย", "นั่งยองๆ", "น้ำหวาน", 
-        "น้ำแข็ง", "น้ำแข็งกด", "น้ำแข็งไส", "บิน", "ปีก", 
-        "ผมทรงน้ำผุ", "ผู้หญิง", "พึ่บพับ", "มอง", "ยิ้ม", 
-        "ย่ำเท้า", "รูป", "หลังคา", "เต้นระบำ", "แคร่", 
-        "ไม้เสียบ", "ไหว้"
-    ];
+/* ---------- CANVAS ---------- */
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+const sprite=document.getElementById("player-sprite");
 
-    let currentTargetWord = "";
-    let gameState = 'START';
-    let frameCount = 0;
-    let score = 0;
-    let lives = 3;
-    
-    const GRAVITY = 0.8;
-    const FRICTION = 0.85;
-    const SPEED = 7; 
-    const JUMP_FORCE = 23; 
-    
-    let cameraX = 0;
-    const keys = { left: false, right: false, up: false };
+/* ---------- GAME STATE ---------- */
+let scale=1, cameraX=0, score=0;
+let keys={left:false,right:false,up:false};
+let gameState="START";
 
-    // --- Assets Preload ---
-    // Confirmed URLs
-    const IMG_URL_LEFT = "https://www.flipschool.in.th/img/Lesson1/left.gif";
-    const IMG_URL_RIGHT = "https://www.flipschool.in.th/img/Lesson1/right.gif";
+/* ---------- PLAYER ---------- */
+const player={
+    x:100,y:100,w:60,h:90,
+    vx:0,vy:0,ground:false,face:true
+};
 
-    const imgLeft = new Image();
-    const imgRight = new Image();
-    let imagesLoaded = 0;
-    
-    function checkImagesLoaded() {
-        imagesLoaded++;
-        if (imagesLoaded >= 2) {
-            const btn = document.getElementById('start-btn');
-            btn.innerText = "เริ่มเกม";
-            btn.disabled = false;
-        }
-    }
+/* ---------- LOAD IMAGES ---------- */
+let loaded=0;
+[new Image(),new Image()].forEach((img,i)=>{
+    img.onload=()=>{ if(++loaded===2){
+        startBtn.disabled=false;
+        startBtn.innerText="เริ่มเกม";
+    }};
+    img.src=i?IMG_LEFT:IMG_RIGHT;
+});
 
-    // Preload for caching, but display using DOM element
-    imgLeft.onload = checkImagesLoaded;
-    imgRight.onload = checkImagesLoaded;
-    
-    imgLeft.onerror = () => { console.warn("Left Image Failed"); checkImagesLoaded(); };
-    imgRight.onerror = () => { console.warn("Right Image Failed"); checkImagesLoaded(); };
+/* ---------- CONTROLS ---------- */
+document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft")keys.left=true;
+    if(e.key==="ArrowRight")keys.right=true;
+    if(e.key===" " && player.ground){player.vy=-22}
+});
+document.addEventListener("keyup",e=>{
+    if(e.key==="ArrowLeft")keys.left=false;
+    if(e.key==="ArrowRight")keys.right=false;
+});
 
-    imgLeft.src = IMG_URL_LEFT;
-    imgRight.src = IMG_URL_RIGHT;
+/* ---------- LOOP ---------- */
+function loop(){
+    if(gameState==="PLAYING")update();
+    draw();
+    requestAnimationFrame(loop);
+}
 
-    // --- Audio System ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx;
-    const Sound = {
-        init: function() {
-            if (!audioCtx) { audioCtx = new AudioContext(); } 
-            else if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-        },
-        playCorrect: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1000, t);
-            osc.frequency.exponentialRampToValueAtTime(2000, t + 0.1);
-            gain.gain.setValueAtTime(0.1, t);
-            gain.gain.linearRampToValueAtTime(0, t + 0.5);
-            osc.start(t);
-            osc.stop(t + 0.5);
-        },
-        playWrong: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, t);
-            osc.frequency.linearRampToValueAtTime(100, t + 0.3);
-            gain.gain.setValueAtTime(0.1, t);
-            gain.gain.linearRampToValueAtTime(0, t + 0.3);
-            osc.start(t);
-            osc.stop(t + 0.3);
-        },
-        playJump: function() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
-        },
-        playWin: function() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            [523, 659, 783, 1046].forEach((f, i) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'square';
-                osc.frequency.value = f;
-                gain.gain.setValueAtTime(0.05, t + i*0.1);
-                gain.gain.linearRampToValueAtTime(0, t + i*0.1 + 0.2);
-                osc.start(t + i*0.1);
-                osc.stop(t + i*0.1 + 0.2);
-            });
-        }
-    };
+function update(){
+    if(keys.left){player.vx=-7;player.face=false}
+    else if(keys.right){player.vx=7;player.face=true}
+    else player.vx*=0.8;
 
-    const C_SKY = '#87CEEB'; 
-    const C_GROUND = '#5C4033'; 
-    const C_GRASS = '#7CFC00'; 
+    player.vy+=0.8;
+    player.x+=player.vx;
+    player.y+=player.vy;
 
-    let platforms = [];
-    let items = [];
-    let particles = [];
-    let decors = [];
+    if(player.y>500){player.y=500;player.vy=0;player.ground=true}
+}
 
-    class Player {
-        constructor() {
-            this.width = 60;  
-            this.height = 90; 
-            this.x = 100;
-            this.y = 100;
-            this.velX = 0;
-            this.velY = 0;
-            this.isGrounded = false;
-            this.facingRight = true;
-            this.lastFacingRight = true; 
-        }
+function draw(){
+    resize();
+    ctx.fillStyle="#87CEEB";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-        update() {
-            if (keys.left) {
-                this.velX = -SPEED;
-                this.facingRight = false;
-            } else if (keys.right) {
-                this.velX = SPEED;
-                this.facingRight = true;
-            } else {
-                this.velX *= FRICTION;
-            }
+    sprite.style.display="block";
+    sprite.src=player.face?IMG_RIGHT:IMG_LEFT;
+    sprite.style.transform=`translate(${player.x*scale}px,${player.y*scale}px) scale(${scale})`;
+}
 
-            if (keys.up && this.isGrounded) {
-                this.velY = -JUMP_FORCE;
-                this.isGrounded = false;
-                Sound.playJump();
-            }
+/* ---------- UTILS ---------- */
+function resize(){
+    canvas.width=innerWidth;
+    canvas.height=innerHeight;
+    scale=canvas.height/LOGICAL_HEIGHT;
+}
 
-            this.velY += GRAVITY;
-            this.x += this.velX;
-            this.y += this.velY;
+function resetGame(){
+    score=0;
+    player.x=100;player.y=100;
+    gameState="PLAYING";
+    document.getElementById("start-screen").style.display="none";
+}
 
-            this.isGrounded = false;
-            
-            for (let p of platforms) {
-                const colDir = this.getCollisionDir(p);
-                if (colDir === 'b' && this.velY >= 0) {
-                    this.isGrounded = true;
-                    this.velY = 0;
-                    this.y = p.y - this.height;
-                } else if (colDir === 't' && this.velY < 0) {
-                    this.velY = 0;
-                    this.y = p.y + p.height;
-                } else if (colDir === 'l') {
-                    this.velX = 0;
-                    this.x = p.x + p.width;
-                } else if (colDir === 'r') {
-                    this.velX = 0;
-                    this.x = p.x - this.width;
-                }
-            }
-            
-            if (this.y > LOGICAL_HEIGHT + 200) {
-                this.y = 100;
-                this.x = Math.max(100, cameraX + 100); 
-                this.velY = 0;
-            }
-        }
-
-        getCollisionDir(rect) {
-            const dx = (this.x + this.width / 2) - (rect.x + rect.width / 2);
-            const dy = (this.y + this.height / 2) - (rect.y + rect.height / 2);
-            const w = (this.width + rect.width) / 2;
-            const h = (this.height + rect.height) / 2;
-            const crossWidth = w * dy;
-            const crossHeight = h * dx;
-
-            if (Math.abs(dx) <= w && Math.abs(dy) <= h) {
-                if (crossWidth > crossHeight) return (crossWidth > -crossHeight) ? 't' : 'r';
-                else return (crossWidth > -crossHeight) ? 'l' : 'b';
-            }
-            return null;
-        }
-
-        draw() {
-            // Draw Shadow on Canvas
-            const x = Math.round(this.x);
-            const y = Math.round(this.y);
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath();
-            ctx.ellipse(x + this.width/2, y + this.height - 5, this.width/2.5, 10, 0, 0, Math.PI*2);
-            ctx.fill();
-
-            // --- GIF DOM Overlay Handling ---
-            
-            // 1. Update Source if direction changed
-            if (this.facingRight !== this.lastFacingRight) {
-                 playerSpriteEl.src = this.facingRight ? IMG_URL_RIGHT : IMG_URL_LEFT;
-                 this.lastFacingRight = this.facingRight;
-            } else if (!playerSpriteEl.src || playerSpriteEl.src === "") {
-                playerSpriteEl.src = IMG_URL_RIGHT;
-            }
-            
-            // 2. Ensure visible
-            playerSpriteEl.style.display = 'block';
-            
-            // 3. Calculate Position & Scale
-            // Visual Size = 128, Hitbox = 60x90
-            const visualSize = 128; 
-            const scaledSize = visualSize * gameScale;
-            
-            // Offsets to center 128px image over 60x90 hitbox
-            const spriteOffsetX = (visualSize - this.width) / 2;
-            const spriteOffsetY = (visualSize - this.height); 
-
-            // Fine tuning Y to make feet touch ground/shadow properly
-            const fineTuneY = 5;
-
-            // Map world coordinate to screen coordinate
-            const screenX = (this.x - cameraX - spriteOffsetX) * gameScale;
-            const screenY = (this.y - spriteOffsetY + fineTuneY) * gameScale;
-
-            // Apply to DOM Element
-            playerSpriteEl.style.width = `${scaledSize}px`;
-            playerSpriteEl.style.height = `${scaledSize}px`;
-            playerSpriteEl.style.transform = `translate(${screenX}px, ${screenY}px)`;
-            playerSpriteEl.style.left = '0';
-            playerSpriteEl.style.top = '0';
-        }
-    }
-
-    class Platform {
-        constructor(x, y, w, h, type) {
-            this.x = x;
-            this.y = y;
-            this.width = w;
-            this.height = h;
-            this.type = type;
-        }
-
-        draw() {
-            if (this.x + this.width < cameraX || this.x > cameraX + canvas.width/gameScale) return;
-
-            if (this.type === 'ground') {
-                ctx.fillStyle = C_GROUND;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = C_GRASS;
-                ctx.fillRect(this.x, this.y, this.width, 20); 
-            } else {
-                ctx.fillStyle = '#c45c26';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.strokeStyle = '#5a2a10';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                ctx.fillRect(this.x + 4, this.y + 4, this.width - 8, this.height - 8);
-            }
-        }
-    }
-
-    class VocabItem {
-        constructor(x, y, word) {
-            this.x = x;
-            this.y = y;
-            this.width = 80;
-            this.height = 80;
-            this.word = word;
-            this.collected = false;
-            this.floatY = 0;
-            this.offset = Math.random() * Math.PI * 2;
-            this.cooldown = 0; 
-            
-            this.img = new Image();
-            // Vocab items (PNG) work fine with Canvas drawing
-            this.img.src = "https://www.flipschool.in.th/img/Lesson1/" + encodeURIComponent(word) + ".png"; 
-        }
-
-        update() {
-            if (this.collected) return;
-            
-            if (this.cooldown > 0) this.cooldown--;
-
-            this.floatY = Math.sin((frameCount / 20) + this.offset) * 5;
-
-            if (this.cooldown <= 0 &&
-                player.x < this.x + this.width &&
-                player.x + player.width > this.x &&
-                player.y < this.y + this.height + this.floatY &&
-                player.y + player.height > this.y + this.floatY) {
-                
-                this.checkCollection();
-            }
-        }
-
-        checkCollection() {
-            if (this.word === currentTargetWord) {
-                this.collected = true;
-                score += 10;
-                Sound.playCorrect();
-                createParticles(this.x + this.width/2, this.y + this.height/2, '#7CFC00'); 
-                pickNextTarget();
-            } else {
-                score -= 1; 
-                this.cooldown = 60; 
-                Sound.playWrong();
-                createParticles(this.x + this.width/2, this.y + this.height/2, '#555'); 
-            }
-            updateUI();
-        }
-
-        draw() {
-            if (this.collected) return;
-            if (this.x + this.width < cameraX || this.x > cameraX + canvas.width/gameScale) return;
-
-            const drawY = this.y + this.floatY;
-            
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.beginPath();
-            ctx.arc(this.x + 40, drawY + 40, 45, 0, Math.PI * 2);
-            ctx.fill();
-            
-            if (this.word === currentTargetWord) {
-                ctx.strokeStyle = '#ffd700';
-                ctx.lineWidth = 5;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ffd700';
-            } else {
-                ctx.strokeStyle = '#ddd';
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 0;
-            }
-            
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            try {
-                if (this.img.complete && this.img.naturalHeight !== 0) {
-                     ctx.drawImage(this.img, this.x + 10, drawY + 10, 60, 60);
-                } else {
-                    ctx.fillStyle = '#ccc';
-                    ctx.font = '20px Sarabun';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('...', this.x + 40, drawY + 45);
-                }
-            } catch(e) {}
-        }
-    }
-
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.velX = (Math.random() - 0.5) * 10;
-            this.velY = (Math.random() - 0.5) * 10;
-            this.life = 20;
-            this.color = color;
-            this.size = Math.random() * 8 + 4;
-        }
-        update() {
-            this.x += this.velX;
-            this.y += this.velY;
-            this.life--;
-        }
-        draw() {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = this.life / 20;
-            ctx.fillRect(this.x, this.y, this.size, this.size);
-            ctx.globalAlpha = 1.0;
-        }
-    }
-
-    function createParticles(x, y, color) {
-        for(let i=0; i<10; i++) particles.push(new Particle(x, y, color));
-    }
-
-    function pickNextTarget() {
-        const remainingItems = items.filter(i => !i.collected);
-        if (remainingItems.length === 0) {
-            winGame();
-            return;
-        }
-        const options = remainingItems.map(i => i.word);
-        const uniqueOptions = [...new Set(options)];
-        const next = uniqueOptions[Math.floor(Math.random() * uniqueOptions.length)];
-        currentTargetWord = next;
-        
-        const container = document.getElementById('target-container');
-        const targetEl = document.getElementById('target-word');
-        targetEl.innerText = currentTargetWord;
-        
-        container.style.transform = "scale(1.2)";
-        setTimeout(() => container.style.transform = "scale(1)", 200);
-    }
-
-    function generateLevel() {
-        platforms = [];
-        items = [];
-        decors = [];
-        
-        const TILE_SIZE = 80;
-        const FLOOR_Y = 550; 
-        const LEVEL_LENGTH = 6000;
-        const SAFE_HEIGHT_ABOVE_SURFACE = 220; 
-
-        // Chunked Ground
-        for(let gx = -100; gx < LEVEL_LENGTH + 500; gx += 800) {
-            platforms.push(new Platform(gx, FLOOR_Y, 802, 200, 'ground'));
-        }
-        
-        for (let i = 0; i < 25; i++) {
-            decors.push({x: i * 400 + Math.random()*200, y: Math.random() * 200 + 50, type: 'cloud'});
-        }
-        for (let i = 0; i < 12; i++) {
-            decors.push({x: i * 800, y: FLOOR_Y, type: 'hill'});
-        }
-
-        let cx = 800; 
-        
-        while(cx < LEVEL_LENGTH - 800) {
-            const type = Math.floor(Math.random() * 3);
-            
-            if (type === 0) {
-                const startY = FLOOR_Y;
-                platforms.push(new Platform(cx, startY - 100, TILE_SIZE, 100, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE, startY - 200, TILE_SIZE, 200, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*2, startY - 300, TILE_SIZE*2, 300, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*4, startY - 200, TILE_SIZE, 200, 'block'));
-                platforms.push(new Platform(cx + TILE_SIZE*5, startY - 100, TILE_SIZE, 100, 'block'));
-                cx += 800;
-            } else if (type === 1) {
-                platforms.push(new Platform(cx, FLOOR_Y - 150, TILE_SIZE*2, 40, 'block'));
-                platforms.push(new Platform(cx + 250, FLOOR_Y - 300, TILE_SIZE*2, 40, 'block'));
-                platforms.push(new Platform(cx + 500, FLOOR_Y - 150, TILE_SIZE*2, 40, 'block'));
-                cx += 900;
-            } else {
-                platforms.push(new Platform(cx, FLOOR_Y - 200, TILE_SIZE, 200, 'block')); 
-                platforms.push(new Platform(cx + TILE_SIZE, FLOOR_Y - 200, TILE_SIZE*4, 40, 'block')); 
-                platforms.push(new Platform(cx + TILE_SIZE*5, FLOOR_Y - 200, TILE_SIZE, 200, 'block')); 
-                cx += 700;
-            }
-        }
-
-        const potentialX = [];
-        for(let px = 600; px < LEVEL_LENGTH - 400; px += 300) {
-            potentialX.push(px);
-        }
-        
-        potentialX.sort(() => Math.random() - 0.5);
-        
-        const count = Math.min(potentialX.length, 25);
-        
-        for (let i = 0; i < count; i++) {
-            const itemX = potentialX[i];
-            let highestSurfaceY = FLOOR_Y;
-            const checkX = itemX + 40; 
-            
-            for (let p of platforms) {
-                if (checkX >= p.x && checkX <= p.x + p.width) {
-                    if (p.y < highestSurfaceY) {
-                        highestSurfaceY = p.y;
-                    }
-                }
-            }
-            
-            const itemY = highestSurfaceY - SAFE_HEIGHT_ABOVE_SURFACE;
-            const word = vocabulary[Math.floor(Math.random() * vocabulary.length)];
-            items.push(new VocabItem(itemX, itemY, word));
-        }
-    }
-
-    function init() {
-        resize();
-        window.addEventListener('resize', resize);
-        
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-            if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') {
-                keys.up = true;
-                if (gameState === 'START' && imagesLoaded >= 2) startGame();
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-            if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') keys.up = false;
-        });
-
-        setupTouchControls();
-        resetLevel(); 
-        requestAnimationFrame(gameLoop);
-    }
-    
-    function setupTouchControls() {
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
-        const btnJump = document.getElementById('btn-jump');
-        const addTouch = (elem, key) => {
-            elem.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
-            elem.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
-            elem.addEventListener('mousedown', (e) => { e.preventDefault(); keys[key] = true; });
-            elem.addEventListener('mouseup', (e) => { e.preventDefault(); keys[key] = false; });
-        };
-        addTouch(btnLeft, 'left');
-        addTouch(btnRight, 'right');
-        addTouch(btnJump, 'up');
-    }
-
-    function resetGame() {
-        Sound.init();
-        score = 0;
-        gameState = 'PLAYING';
-        document.getElementById('game-over-screen').style.display = 'none';
-        document.getElementById('start-screen').style.display = 'none';
-        playerSpriteEl.style.display = 'block'; 
-        updateUI();
-        resetLevel();
-        pickNextTarget();
-    }
-
-    function startGame() { if(gameState === 'START') resetGame(); }
-
-    function resetLevel() {
-        player = new Player();
-        cameraX = 0;
-        generateLevel();
-    }
-
-    function winGame() {
-        if (gameState !== 'WIN') Sound.playWin();
-        gameState = 'WIN';
-        document.getElementById('game-over-screen').style.display = 'flex';
-        document.getElementById('go-title').innerText = "เยี่ยมมาก!";
-        document.getElementById('go-score').innerText = "คุณหาครบแล้ว!";
-        playerSpriteEl.style.display = 'none';
-    }
-
-    function updateUI() {
-        document.getElementById('score-display').innerText = "คะแนน: " + score;
-    }
-
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        gameScale = canvas.height / LOGICAL_HEIGHT;
-    }
-
-    function gameLoop() {
-        if (gameState === 'PLAYING') update();
-        draw();
-        frameCount++;
-        requestAnimationFrame(gameLoop);
-    }
-
-    function update() {
-        player.update();
-        items.forEach(i => i.update());
-        particles.forEach((p, i) => {
-            p.update();
-            if (p.life <= 0) particles.splice(i, 1);
-        });
-
-        let logicalWidth = canvas.width / gameScale;
-        let targetCamX = player.x - logicalWidth / 3;
-        
-        if (targetCamX < 0) targetCamX = 0;
-        cameraX += (targetCamX - cameraX) * 0.1;
-    }
-
-    function draw() {
-        ctx.fillStyle = C_SKY;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.scale(gameScale, gameScale);
-        ctx.translate(-cameraX, 0);
-
-        decors.forEach(d => {
-            if (d.type === 'cloud') {
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.beginPath();
-                ctx.arc(d.x, d.y, 60, 0, Math.PI * 2);
-                ctx.arc(d.x + 80, d.y + 20, 80, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (d.type === 'hill') {
-                ctx.fillStyle = '#2E8B57';
-                ctx.beginPath();
-                ctx.moveTo(d.x, 550);
-                ctx.lineTo(d.x + 400, 150);
-                ctx.lineTo(d.x + 800, 550);
-                ctx.fill();
-            }
-        });
-
-        if (platforms) platforms.forEach(p => p.draw());
-        if (items) items.forEach(i => i.draw());
-        if (particles) particles.forEach(p => p.draw());
-        if (player) player.draw();
-
-        ctx.restore();
-    }
-
-    init();
-
+document.getElementById("start-btn").onclick=resetGame;
+loop();
 </script>
 </body>
 </html>
