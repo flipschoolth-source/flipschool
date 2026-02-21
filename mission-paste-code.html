@@ -160,7 +160,7 @@
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] text-emerald-600 underline hover:text-emerald-800">จัดการ Key</button>
                     </div>
                     
-                    <!-- API Key Edit View (Visible by default) -->
+                    <!-- API Key Edit View -->
                     <div id="apiKeyEditView" class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center mb-1">
                             <label class="text-[10px] font-bold text-slate-500 block">Gemini API Key</label>
@@ -177,7 +177,7 @@
                             </div>
                             <button onclick="saveKeyToDB()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">บันทึก</button>
                         </div>
-                        <p class="text-[9px] text-slate-400 mt-1.5"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ได้โดยใช้เครื่องหมาย <b>,</b> คั่น ระบบจะสลับคีย์อัตโนมัติเมื่อโควต้าเต็ม</p>
+                        <p class="text-[9px] text-slate-400 mt-1.5"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-orange-500 font-medium">(ระบบจะสลับและค้นหาให้เองอัตโนมัติหากโควต้าเต็ม)</span></p>
                     </div>
 
                     <!-- Mission Title & Details -->
@@ -240,7 +240,7 @@
                                 <div class="absolute inset-0 bg-purple-500/30 rounded-full animate-ping"></div>
                                 <i class="fas fa-magic text-purple-300 text-3xl animate-pulse"></i>
                             </div>
-                            <span id="aiStatusText" class="text-white font-bold text-sm tracking-wide">กำลังติดต่อ AI...</span>
+                            <span id="aiStatusText" class="text-white font-bold text-sm tracking-wide text-center leading-relaxed">กำลังติดต่อ AI...</span>
                             <div class="w-48 bg-slate-700 h-1.5 rounded-full mt-4 overflow-hidden">
                                 <div id="aiProgressBar" class="bg-gradient-to-r from-purple-400 to-indigo-400 h-full w-0 progress-bar-animated rounded-full"></div>
                             </div>
@@ -331,8 +331,6 @@
     </main>
 
     <script>
-        const MODEL_ID = "gemini-2.0-flash"; 
-        
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubject = "อื่นๆ", dbGrade = ""; 
@@ -471,20 +469,35 @@
                 padding: { top: 16, bottom: 16 }
             });
 
+            // ปรับปรุงระบบ Debounce เพื่อลดการโหลดพรีวิวซ้ำซ้อน ลด Error ใน Console
             editor.onDidChangeModelContent(() => {
-                clearTimeout(debounceTimer);
-                document.getElementById('validationStatus').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-400"></i> <span class="text-slate-400">กำลังประมวลผล...</span>';
-                localStorage.setItem('mission_code_draft', editor.getValue());
-                debounceTimer = setTimeout(() => { refreshPreview(); }, 1500);
+                const statusEl = document.getElementById('validationStatus');
+                if (statusEl) {
+                    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-slate-400"></i> <span class="text-slate-400">กำลังประมวลผล...</span>';
+                }
+                
+                const currentCode = editor.getValue();
+                localStorage.setItem('mission_code_draft', currentCode);
+                
+                if (debounceTimer) clearTimeout(debounceTimer);
+                
+                debounceTimer = setTimeout(() => { 
+                    refreshPreview(); 
+                }, 1000); // ลดเวลาหน่วงลงเล็กน้อยเพื่อให้พรีวิวตอบสนองดีขึ้น
             });
             
-            refreshPreview();
+            // รอให้โหลดเสร็จก่อนค่อยเริ่มพรีวิวครั้งแรก
+            setTimeout(() => refreshPreview(), 500);
         }
 
         window.onresize = function (){ if (editor) editor.layout(); };
 
         function formatCode() { if(editor) editor.getAction('editor.action.formatDocument').run(); }
-        function forceRefresh() { refreshPreview(); showMessage("🔄 รีเฟรชพรีวิวแล้ว"); }
+        function forceRefresh() { 
+            if (debounceTimer) clearTimeout(debounceTimer);
+            refreshPreview(); 
+            showMessage("🔄 รีเฟรชพรีวิวแล้ว"); 
+        }
 
         function validateCodeStandard(code) {
             if (!code || code.trim().length < 10) return { status: 'error', msg: "รอรับโค้ด..." };
@@ -641,7 +654,7 @@
             }
         }
 
-        // --- Multi-Key AI Call System ---
+        // --- Multi-Key & Multi-Model AI System ---
         async function handleAIModify() {
             const currentCode = editor.getValue();
             const prompt = document.getElementById('aiPromptInput').value.trim();
@@ -650,9 +663,9 @@
             if (!rawKeyString) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งแก้ไข", true);
 
-            // ดึง Key ทั้งหมดที่มีแล้วสลับลำดับ (Shuffle)
-            let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k);
-            if (keys.length === 0) return showMessage("🔑 รูปแบบ API Key ไม่ถูกต้อง", true);
+            // ดึง Key เฉพาะที่ถูกต้อง (ขึ้นต้นด้วย AIza) แล้วสลับลำดับ
+            let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k && k.startsWith('AIza'));
+            if (keys.length === 0) return showMessage("🔑 ไม่พบ API Key ที่ถูกต้องเลย (ต้องขึ้นต้นด้วย AIza)", true);
             keys = keys.sort(() => Math.random() - 0.5);
 
             const overlay = document.getElementById('editorOverlay');
@@ -707,53 +720,79 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
 
+                // ชุดโมเดลที่จะสลับอัตโนมัติหากเจอปัญหา Limit: 0 (เริ่มจากเสถียรสุดไปตัวใหม่)
+                const AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b"];
                 let resultData = null;
                 let isSuccess = false;
                 let lastErrorMsg = "";
 
-                // ลูปทดสอบ Key ทั้งหมดที่ใส่มา (Auto-Fallback)
+                // ลูป 1: สลับ API Key
                 for (let i = 0; i < keys.length; i++) {
                     const currentKey = keys[i];
                     if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
                     
-                    statusText.innerText = `🤖 กำลังติดต่อ AI... (กำลังลองใช้ Key ที่ ${i+1}/${keys.length})`;
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${currentKey}`;
+                    let keyFailed = false;
 
-                    try {
-                        const res = await fetch(url, { 
-                            method: 'POST', 
-                            headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify(requestBody),
-                            signal: aiAbortController.signal 
-                        });
-                        
-                        if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            let errorMsg = errData.error?.message || `API Error (${res.status})`;
+                    // ลูป 2: สลับ Model อัตโนมัติ (แก้ปัญหา Limit 0 เฉพาะบางรุ่น)
+                    for (let m = 0; m < AI_MODELS.length; m++) {
+                        const currentModel = AI_MODELS[m];
+                        if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
+
+                        statusText.innerText = `🤖 กำลังติดต่อ AI...\n(ลอง Key ${i+1}/${keys.length} | รุ่น: ${currentModel})`;
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
+
+                        try {
+                            const res = await fetch(url, { 
+                                method: 'POST', 
+                                headers: { 'Content-Type': 'application/json' }, 
+                                body: JSON.stringify(requestBody),
+                                signal: aiAbortController.signal 
+                            });
                             
-                            if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
-                                lastErrorMsg = "โควต้าเต็ม (Rate Limit)";
-                                console.warn(`Key ${i+1} Quota Exceeded. Trying next key...`);
-                            } else {
+                            if (!res.ok) {
+                                const errData = await res.json().catch(() => ({}));
+                                let errorMsg = errData.error?.message || `API Error (${res.status})`;
                                 lastErrorMsg = errorMsg;
-                                console.warn(`Key ${i+1} Failed: ${errorMsg}. Trying next key...`);
+                                
+                                if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
+                                    if (errorMsg.includes("limit: 0")) {
+                                        console.warn(`[Limit 0] โมเดล ${currentModel} ไม่รองรับบัญชีนี้ กำลังลองรุ่นอื่น...`);
+                                        continue; // ไปลองโมเดลถัดไป
+                                    } else {
+                                        console.warn(`[โควต้าเต็ม] Key ${i+1} เต็มชั่วคราว กำลังสลับ Key...`);
+                                        keyFailed = true;
+                                        break; // ติดโควต้ารวม ให้กระโดดไปลูป Key ถัดไป
+                                    }
+                                } else if (res.status === 404) {
+                                    continue; // โมเดลไม่พบ ลองอันถัดไป
+                                } else {
+                                    keyFailed = true;
+                                    break; // Error พังร้ายแรงอื่นๆ เปลี่ยน Key เลย
+                                }
                             }
-                            continue; // มี Error ข้ามไปใช้คีย์ถัดไป
+                            
+                            resultData = await res.json();
+                            isSuccess = true;
+                            break; // สำเร็จ! ออกจากลูปโมเดล
+                        } catch (fetchErr) {
+                            if (fetchErr.name === 'AbortError') throw fetchErr; // ถ้ายกเลิกเองให้ส่งต่อ
+                            lastErrorMsg = fetchErr.message;
+                            keyFailed = true;
+                            break; // Network Error เปลี่ยน Key เลย
                         }
-                        
-                        resultData = await res.json();
-                        isSuccess = true;
-                        break; // สำเร็จแล้ว ให้ออกจากลูปได้เลย
-                    } catch (fetchErr) {
-                        if (fetchErr.name === 'AbortError') throw fetchErr; // ถ้ายกเลิกเองให้ส่งต่อ Error
-                        lastErrorMsg = fetchErr.message;
-                        console.warn(`Key ${i+1} Network Error. Trying next key...`);
-                        continue;
-                    }
-                }
+                    } // จบลูป Model
+                    
+                    if (isSuccess) break; // สำเร็จ! ออกจากลูป Key
+                } // จบลูป Key
 
                 if (!isSuccess) {
-                    throw new Error(`คีย์ทั้งหมดที่ใส่มามีปัญหา หรือโควต้าเต็มทั้งหมด กรุณารอสักครู่แล้วลองใหม่ครับ (ล่าสุด: ${lastErrorMsg})`);
+                    if (lastErrorMsg.includes("limit: 0")) {
+                        throw new Error("บัญชีของคุณไม่มีโควต้าฟรี (Limit: 0) อาจเกิดจากใช้อีเมลองค์กร กรุณาใช้ Gmail ส่วนตัวทั่วไปสร้าง Key ครับ");
+                    } else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
+                        throw new Error("โควต้าเต็มทุกคีย์! ⏳ (หากมาจาก Gmail เดียวกัน โควต้าจะนับรวมกันครับ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น)");
+                    } else {
+                        throw new Error(`เกิดข้อผิดพลาด: ${lastErrorMsg}`);
+                    }
                 }
                 
                 pBar.style.width = "90%";
@@ -812,13 +851,24 @@
         }
 
         async function saveKeyToDB() {
-            // จัดการข้อมูล ลบช่องว่างและจัดรูปแบบ string คีย์ที่มีหลายอันให้ถูกต้อง
             const rawKey = document.getElementById("apiKeyInput").value;
-            const cleanedKey = rawKey.split(',').map(k => k.trim()).filter(k => k).join(',');
+            let keys = rawKey.split(',').map(k => k.trim()).filter(k => k);
             
-            if(!cleanedKey) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
+            if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
             
-            document.getElementById("apiKeyInput").value = cleanedKey; // อัปเดต UI ให้แสดงแบบคลีนๆ
+            // กรองเอาเฉพาะคีย์ที่ขึ้นต้นด้วย AIza ให้โดยอัตโนมัติ
+            const validKeys = keys.filter(k => k.startsWith('AIza'));
+            
+            if (validKeys.length === 0) {
+                return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)", true);
+            }
+
+            if (validKeys.length < keys.length) {
+                console.warn("ตัดข้อความที่ไม่ใช่ API Key ออกอัตโนมัติ");
+            }
+
+            const cleanedKey = validKeys.join(',');
+            document.getElementById("apiKeyInput").value = cleanedKey;
 
             if (window.sysDB && currentUserId) {
                 await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
@@ -831,16 +881,34 @@
         }
 
         async function loadExistingMission() {
-            const { data } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
-            if (data) {
-                originalTeacherId = data.created_by;
-                
-                document.getElementById("missionTitleInput").value = data.title || "";
-                document.getElementById("missionDescInput").value = data.description || "";
-                document.getElementById("missionSubjectInput").value = data.subject_group || "อื่นๆ";
-                document.getElementById("missionGradeInput").value = data.grade_level || "";
+            try {
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+                if (error) throw error;
+                if (data) {
+                    originalTeacherId = data.created_by;
+                    
+                    document.getElementById("missionTitleInput").value = data.title || "";
+                    document.getElementById("missionDescInput").value = data.description || "";
+                    document.getElementById("missionSubjectInput").value = data.subject_group || "ทั่วไป";
+                    document.getElementById("missionGradeInput").value = data.grade_level || "";
 
-                if(editor) editor.setValue(data.content_data?.html || "");
+                    if(editor && data.content_data?.html) {
+                        // ระงับ Event การพิมพ์ชั่วคราวเพื่อไม่ให้โหลดพรีวิวซ้อนกัน
+                        if (debounceTimer) clearTimeout(debounceTimer);
+                        editor.setValue(data.content_data.html);
+                    }
+                }
+            } catch(e) {
+                console.error("Error loading mission:", e);
+            }
+        }
+
+        function loadLocalDraft() {
+            const draft = localStorage.getItem('mission_code_draft');
+            if(draft && editor) { 
+                 if (debounceTimer) clearTimeout(debounceTimer);
+                 editor.setValue(draft); 
+                 showMessage("📂 โหลดโค้ดเดิมคืนมาแล้ว"); 
             }
         }
 
