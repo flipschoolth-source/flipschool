@@ -746,7 +746,13 @@
                 
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error?.message || `AI Request Failed (${res.status})`);
+                    let errorMsg = errData.error?.message || `AI Request Failed (${res.status})`;
+                    
+                    // ดักจับ Error โควต้าเต็ม (Rate Limit/Quota Exceeded)
+                    if (res.status === 429 || errorMsg.toLowerCase().includes("quota exceeded") || errorMsg.toLowerCase().includes("rate limit")) {
+                        errorMsg = "โควต้า AI ของ Google ถูกใช้งานเต็มชั่วคราว กรุณารอประมาณ 30 วินาทีแล้วกดใหม่อีกครั้งนะครับ ⏳";
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 pBar.style.width = "90%";
