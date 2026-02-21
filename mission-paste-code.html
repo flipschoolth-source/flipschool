@@ -160,7 +160,7 @@
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] text-emerald-600 underline hover:text-emerald-800">จัดการ Key</button>
                     </div>
                     
-                    <!-- API Key Edit View -->
+                    <!-- API Key Edit View (Visible by default) -->
                     <div id="apiKeyEditView" class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center mb-1">
                             <label class="text-[10px] font-bold text-slate-500 block">Gemini API Key</label>
@@ -331,6 +331,8 @@
     </main>
 
     <script>
+        const MODEL_ID = "gemini-2.0-flash"; 
+        
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubject = "อื่นๆ", dbGrade = ""; 
@@ -469,7 +471,6 @@
                 padding: { top: 16, bottom: 16 }
             });
 
-            // ปรับปรุงระบบ Debounce เพื่อลดการโหลดพรีวิวซ้ำซ้อน ลด Error ใน Console
             editor.onDidChangeModelContent(() => {
                 const statusEl = document.getElementById('validationStatus');
                 if (statusEl) {
@@ -481,12 +482,13 @@
                 
                 if (debounceTimer) clearTimeout(debounceTimer);
                 
+                // เลื่อนการรัน preview แบบอัตโนมัติออกไป เพื่อลดการทำงานซ้อนกันของ iframe
                 debounceTimer = setTimeout(() => { 
                     refreshPreview(); 
-                }, 1000); // ลดเวลาหน่วงลงเล็กน้อยเพื่อให้พรีวิวตอบสนองดีขึ้น
+                }, 1000); 
             });
             
-            // รอให้โหลดเสร็จก่อนค่อยเริ่มพรีวิวครั้งแรก
+            // ป้องกันการยิงคำสั่ง Preview ซ้ำซ้อนตอนเริ่มต้น
             setTimeout(() => refreshPreview(), 500);
         }
 
@@ -531,8 +533,9 @@
             placeholder.classList.add('opacity-0', 'pointer-events-none');
             iframe.classList.remove('opacity-0');
             
+            // ล้างหน้า iframe แบบสมบูรณ์ก่อนเพื่อป้องกันเรื่องสคริปต์ตีกัน (เช่นเรื่อง canvas)
             const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
+            iframeDoc.open("text/html", "replace"); // เพิ่มพารามิเตอร์เพื่อเคลียร์ตัวแปรเก่า
             iframeDoc.write(code);
             iframeDoc.close();
             
@@ -663,7 +666,6 @@
             if (!rawKeyString) { toggleKeyEdit(true); return showMessage("🔑 กรุณากรอก API Key ก่อนครับ", true); }
             if (!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งแก้ไข", true);
 
-            // ดึง Key เฉพาะที่ถูกต้อง (ขึ้นต้นด้วย AIza) แล้วสลับลำดับ
             let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k && k.startsWith('AIza'));
             if (keys.length === 0) return showMessage("🔑 ไม่พบ API Key ที่ถูกต้องเลย (ต้องขึ้นต้นด้วย AIza)", true);
             keys = keys.sort(() => Math.random() - 0.5);
@@ -720,20 +722,17 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
 
-                // ชุดโมเดลที่จะสลับอัตโนมัติหากเจอปัญหา Limit: 0 (เริ่มจากเสถียรสุดไปตัวใหม่)
                 const AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b"];
                 let resultData = null;
                 let isSuccess = false;
                 let lastErrorMsg = "";
 
-                // ลูป 1: สลับ API Key
                 for (let i = 0; i < keys.length; i++) {
                     const currentKey = keys[i];
                     if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
                     
                     let keyFailed = false;
 
-                    // ลูป 2: สลับ Model อัตโนมัติ (แก้ปัญหา Limit 0 เฉพาะบางรุ่น)
                     for (let m = 0; m < AI_MODELS.length; m++) {
                         const currentModel = AI_MODELS[m];
                         if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
@@ -757,33 +756,33 @@
                                 if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
                                     if (errorMsg.includes("limit: 0")) {
                                         console.warn(`[Limit 0] โมเดล ${currentModel} ไม่รองรับบัญชีนี้ กำลังลองรุ่นอื่น...`);
-                                        continue; // ไปลองโมเดลถัดไป
+                                        continue; 
                                     } else {
                                         console.warn(`[โควต้าเต็ม] Key ${i+1} เต็มชั่วคราว กำลังสลับ Key...`);
                                         keyFailed = true;
-                                        break; // ติดโควต้ารวม ให้กระโดดไปลูป Key ถัดไป
+                                        break; 
                                     }
                                 } else if (res.status === 404) {
-                                    continue; // โมเดลไม่พบ ลองอันถัดไป
+                                    continue; 
                                 } else {
                                     keyFailed = true;
-                                    break; // Error พังร้ายแรงอื่นๆ เปลี่ยน Key เลย
+                                    break; 
                                 }
                             }
                             
                             resultData = await res.json();
                             isSuccess = true;
-                            break; // สำเร็จ! ออกจากลูปโมเดล
+                            break; 
                         } catch (fetchErr) {
-                            if (fetchErr.name === 'AbortError') throw fetchErr; // ถ้ายกเลิกเองให้ส่งต่อ
+                            if (fetchErr.name === 'AbortError') throw fetchErr; 
                             lastErrorMsg = fetchErr.message;
                             keyFailed = true;
-                            break; // Network Error เปลี่ยน Key เลย
+                            break; 
                         }
-                    } // จบลูป Model
+                    } 
                     
-                    if (isSuccess) break; // สำเร็จ! ออกจากลูป Key
-                } // จบลูป Key
+                    if (isSuccess) break; 
+                } 
 
                 if (!isSuccess) {
                     if (lastErrorMsg.includes("limit: 0")) {
@@ -856,7 +855,6 @@
             
             if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
             
-            // กรองเอาเฉพาะคีย์ที่ขึ้นต้นด้วย AIza ให้โดยอัตโนมัติ
             const validKeys = keys.filter(k => k.startsWith('AIza'));
             
             if (validKeys.length === 0) {
@@ -893,7 +891,6 @@
                     document.getElementById("missionGradeInput").value = data.grade_level || "";
 
                     if(editor && data.content_data?.html) {
-                        // ระงับ Event การพิมพ์ชั่วคราวเพื่อไม่ให้โหลดพรีวิวซ้อนกัน
                         if (debounceTimer) clearTimeout(debounceTimer);
                         editor.setValue(data.content_data.html);
                     }
@@ -910,11 +907,6 @@
                  editor.setValue(draft); 
                  showMessage("📂 โหลดโค้ดเดิมคืนมาแล้ว"); 
             }
-        }
-
-        function loadLocalDraft() {
-            const draft = localStorage.getItem('mission_code_draft');
-            if(draft && editor) { editor.setValue(draft); showMessage("📂 โหลดโค้ดเดิมคืนมาแล้ว"); }
         }
 
         function showMessage(text, isError = false) { 
