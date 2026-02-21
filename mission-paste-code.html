@@ -538,16 +538,18 @@
         function forceRefresh() { refreshPreview(); showMessage("🔄 รีเฟรชพรีวิวแล้ว"); }
 
         function validateCodeStandard(code) {
-            if (!code || code.trim().length < 10) return { valid: false, msg: "รอรับโค้ด..." };
+            if (!code || code.trim().length < 10) return { status: 'error', msg: "รอรับโค้ด..." };
             const cleanCode = code.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
             
-            const hasBack = /window\.parent\.history\.back\(\)|history\.back\(\)/.test(cleanCode);
-            const hasPostMessage = /window\.parent\.postMessage\s*\(\s*\{/.test(cleanCode);
-            const hasSaveType = /['"]SAVE_RESULT['"]/.test(cleanCode);
+            // ขยายการเช็คปุ่มย้อนกลับให้ครอบคลุม href, location, go(-1) หรือคำว่า ย้อนกลับ/back
+            const hasBack = /(history\.back|history\.go|window\.location|href\s*=|ย้อนกลับ|กลับหน้าหลัก|back)/i.test(cleanCode);
+            const hasPostMessage = /postMessage\s*\(/i.test(cleanCode);
+            const hasSaveType = /['"]SAVE_RESULT['"]/i.test(cleanCode);
 
-            if (!hasBack) return { valid: false, msg: "❌ ขาดปุ่มย้อนกลับ (history.back)" };
-            if (!hasPostMessage || !hasSaveType) return { valid: false, msg: "❌ ขาดระบบส่งคะแนน (SAVE_RESULT)" };
-            return { valid: true, msg: "✅ โค้ดถูกต้องตามมาตรฐาน" };
+            // เปลี่ยนเป็นสถานะ warning เพื่อเตือนเฉยๆ แต่ยังอนุญาตให้เซฟได้
+            if (!hasBack) return { status: 'warning', msg: "⚠️ แนะนำให้ใส่ปุ่มย้อนกลับ" };
+            if (!hasPostMessage || !hasSaveType) return { status: 'warning', msg: "⚠️ ไม่พบโค้ดส่งคะแนน" };
+            return { status: 'success', msg: "✅ โค้ดถูกต้อง" };
         }
 
         // ==========================================
@@ -579,8 +581,14 @@
             iframeDoc.close();
             
             const check = validateCodeStandard(code);
-            if (check.valid) {
+            
+            if (check.status === 'success') {
                 statusEl.innerHTML = `<span class="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 flex items-center gap-1"><i class="fas fa-check"></i> ${check.msg}</span>`;
+                saveBtn.disabled = false;
+                saveBtn.className = "bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 active:scale-95";
+            } else if (check.status === 'warning') {
+                // แจ้งเตือนสีส้ม แต่ **อนุญาตให้บันทึกได้**
+                statusEl.innerHTML = `<span class="text-amber-600 font-bold text-[10px] bg-amber-50 px-2 py-1 rounded-md border border-amber-100 flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> ${check.msg}</span>`;
                 saveBtn.disabled = false;
                 saveBtn.className = "bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 active:scale-95";
             } else {
