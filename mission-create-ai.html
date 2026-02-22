@@ -125,6 +125,7 @@
                 </div>
 
                 <div class="mb-8">
+                    <!-- API Key Status -->
                     <div id="apiKeyConfiguredView" class="hidden-el p-5 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
@@ -132,7 +133,7 @@
                             </div>
                             <div>
                                 <div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div>
-                                <div class="text-[10px] text-emerald-600 font-medium">พร้อมเนรมิตภารกิจการสอน</div>
+                                <div class="text-[10px] text-emerald-600 font-medium">ระบบ Multi-Key พร้อมเนรมิตภารกิจ</div>
                             </div>
                         </div>
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-all font-bold">
@@ -140,6 +141,7 @@
                         </button>
                     </div>
 
+                    <!-- API Key Edit View -->
                     <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
                         <div class="flex justify-between items-center mb-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -150,11 +152,16 @@
                             </label>
                             <button id="cancelKeyEditBtn" onclick="toggleKeyEdit(false)" class="hidden-el text-[10px] text-slate-400 hover:text-slate-600 font-bold">ยกเลิก</button>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none text-sm font-sans focus:ring-2 focus:ring-blue-500" placeholder="วาง API Key ที่นี่...">
-                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-blue-900 text-white px-5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md whitespace-nowrap">บันทึก</button>
+                        <div class="flex gap-2 relative">
+                            <div class="relative w-full">
+                                <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-3 text-sm outline-none font-mono focus:ring-2 focus:ring-blue-500" placeholder="วาง API Key (ใส่หลายคีย์คั่นด้วย , )">
+                                <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none p-1">
+                                    <i class="fas fa-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-blue-900 hover:bg-blue-800 text-white px-5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md whitespace-nowrap min-w-[70px] flex justify-center items-center">บันทึก</button>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-2 italic">* จำเป็นต้องใช้ API Key จาก Google AI Studio เพื่อใช้งานฟีเจอร์นี้</p>
+                        <p class="text-[9px] text-slate-400 mt-2 italic"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-blue-500 font-medium">(ระบบจะสลับคีย์และค้นหารุ่น AI ให้อัตโนมัติ)</span></p>
                     </div>
                 </div>
 
@@ -198,7 +205,7 @@
                                 <button onclick="addContext()" class="btn-ai-sparkle">📚 สาระ</button>
                             </div>
                         </div>
-                        <textarea id="promptInput" class="w-full h-48 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none transition-all resize-none text-sm focus:ring-2 focus:ring-blue-500 shadow-inner leading-relaxed" placeholder="บอกรายละเอียดสื่อที่คุณครูต้องการให้ AI สร้างครับ..."></textarea>
+                        <textarea id="promptInput" class="w-full h-48 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none transition-all resize-y text-sm focus:ring-2 focus:ring-blue-500 shadow-inner leading-relaxed" placeholder="บอกรายละเอียดสื่อที่คุณครูต้องการให้ AI สร้างครับ..."></textarea>
                     </div>
 
                     <div id="loadingStatus" class="hidden-el p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
@@ -242,11 +249,9 @@
     </footer>
 
     <script>
-        const MODEL_ID = "gemini-2.5-flash-preview-09-2025"; 
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลด Config และตั้งค่าแบรนด์
             if (window.CONFIG) {
                 document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
                 document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
@@ -258,15 +263,13 @@
 
             initPreviewFrame();
             
-            // รอ Supabase พร้อมใช้งาน
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
 
-                    // 1. ตรวจสอบ Login (เพิ่มใหม่)
                     const { data: { session } } = await window.sysDB.auth.getSession();
                     if (!session) {
-                        window.location.href = 'teacher-login.html'; // ดีดกลับหน้า Login
+                        window.location.href = 'teacher-login.html'; 
                         return;
                     }
 
@@ -277,7 +280,21 @@
             }, 500);
         });
 
-        // ฟังก์ชันสลับการแสดงผล API Key
+        // --- ระบบสลับตา API Key ---
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         function toggleKeyEdit(showEdit) {
             const editView = document.getElementById('apiKeyEditView');
             const configView = document.getElementById('apiKeyConfiguredView');
@@ -286,7 +303,6 @@
             if (showEdit) {
                 editView.classList.remove('hidden-el');
                 configView.classList.add('hidden-el');
-                // ถ้ามี Key อยู่แล้ว ให้โชว์ปุ่มยกเลิกได้
                 if(document.getElementById("apiKeyInput").value) {
                     cancelBtn.classList.remove('hidden-el');
                 } else {
@@ -298,47 +314,124 @@
             }
         }
 
-        // ✅ ตรวจสอบบริบทห้องเรียน
         async function fetchClassroomContext() {
             try {
                 const { data } = await window.sysDB.from('classrooms').select('subject_name').eq('classroom_id', targetCid).single();
                 if (data) {
-                    // ปรับแต่ง UI ให้เหมาะสมกับการสร้างภารกิจในห้องเรียน
                     document.getElementById('subjectSelectorArea').classList.add('hidden-el');
                     document.getElementById('classroomContextArea').classList.remove('hidden');
                     document.getElementById('classroomSubjectText').innerText = data.subject_name;
-                    // กำหนดค่าตั้งต้นเป็นกลุ่มสาระ "อื่นๆ" หรือดึง Logic มาใส่
                     document.getElementById('subjectGroup').value = "อื่นๆ";
                 }
             } catch (err) {}
         }
 
-        // ✅ ตรวจความปลอดภัย Prompt
         function isSafe(text) {
             const forbidden = ["ignore", "reveal", "แฮก", "hack", "ล้วง", "password", "eval(", "fetch(", "axios."];
             return !forbidden.some(p => text.toLowerCase().includes(p));
         }
 
-        async function callGemini(userPrompt, systemPrompt = "", retries = 5) {
+        // --- ระบบ AI ขั้นสูงสุด (รองรับ Multi-Key, เช็ครุ่นอัตโนมัติ, สลับคีย์ทันทีที่โควต้าเต็ม) ---
+        async function callGemini(userPrompt, systemPrompt = "") {
             if (!isSafe(userPrompt)) throw new Error("ตรวจพบเนื้อหาที่ไม่อนุญาต ระบบขอระงับการทำงานครับ");
-            const key = document.getElementById("apiKeyInput").value.trim();
-            if (!key) throw new Error("กรุณาบันทึก Gemini API Key ก่อนเริ่มงานครับ");
+            
+            const rawKeyString = document.getElementById("apiKeyInput").value.trim();
+            if (!rawKeyString) throw new Error("กรุณาบันทึก Gemini API Key ก่อนเริ่มงานครับ");
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${key}`;
+            let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k && k.startsWith('AIza'));
+            if (keys.length === 0) throw new Error("ไม่พบ API Key ที่ถูกต้องเลย (ต้องขึ้นต้นด้วย AIza)");
+            
+            // สลับคีย์แบบสุ่มเพื่อกระจายโหลด
+            keys = keys.sort(() => Math.random() - 0.5);
+
             const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+            
+            let resultData = null;
+            let isSuccess = false;
+            let lastErrorMsg = "";
 
-            try {
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!res.ok) {
-                    if (res.status === 429 && retries > 0) {
-                        await new Promise(r => setTimeout(r, 2000));
-                        return callGemini(userPrompt, systemPrompt, retries - 1);
+            for (let i = 0; i < keys.length; i++) {
+                const currentKey = keys[i];
+                let keyFailed = false;
+                let AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]; 
+
+                // เช็คสิทธิ์และรุ่นของโมเดลผ่าน API
+                try {
+                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
+                    if (modelRes.ok) {
+                        const modelData = await modelRes.json();
+                        if (modelData.models) {
+                            const validModels = modelData.models
+                                .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                                .map(m => m.name.replace('models/', ''));
+                            
+                            const flashModels = validModels.filter(m => m.includes("flash"));
+                            if (flashModels.length > 0) {
+                                AI_MODELS = flashModels.reverse(); 
+                            } else if (validModels.length > 0) {
+                                AI_MODELS = validModels;
+                            }
+                        }
                     }
-                    throw new Error("Gemini API Error: " + res.status);
+                } catch(e) {
+                    console.warn("สแกนรุ่น AI ไม่สำเร็จ ใช้ค่าเริ่มต้น");
                 }
-                const data = await res.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text;
-            } catch (err) { throw err; }
+
+                // ทดลองใช้โมเดลในรายการ
+                for (let m = 0; m < AI_MODELS.length; m++) {
+                    const currentModel = AI_MODELS[m];
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
+
+                    try {
+                        const res = await fetch(url, { 
+                            method: 'POST', 
+                            headers: { 'Content-Type': 'application/json' }, 
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            let errorMsg = errData.error?.message || `API Error (${res.status})`;
+                            lastErrorMsg = `[${res.status}] ${errorMsg}`;
+                            
+                            if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
+                                if (errorMsg.includes("limit: 0")) {
+                                    continue; // ลองโมเดลถัดไป
+                                } else {
+                                    keyFailed = true;
+                                    break; // โควต้าเต็ม สลับไป Key ถัดไป
+                                }
+                            } else if (res.status === 404 || res.status === 400) {
+                                continue; 
+                            } else {
+                                keyFailed = true;
+                                break; 
+                            }
+                        }
+                        
+                        resultData = await res.json();
+                        isSuccess = true;
+                        break; 
+                    } catch (fetchErr) {
+                        lastErrorMsg = fetchErr.message;
+                        keyFailed = true;
+                        break; 
+                    }
+                } 
+                if (isSuccess) break; 
+            } 
+
+            if (!isSuccess) {
+                if (lastErrorMsg.includes("limit: 0")) {
+                    throw new Error("บัญชี Gmail นี้ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวครับ");
+                } else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
+                    throw new Error("โควต้าเต็มทุกคีย์! ⏳ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น");
+                } else {
+                    throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
+                }
+            }
+
+            return resultData.candidates?.[0]?.content?.parts?.[0]?.text;
         }
 
         async function handleGenerate() {
@@ -356,10 +449,25 @@
             try {
                 const code = await callGemini(prompt, sys);
                 generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
-                document.getElementById("missionFrame").srcdoc = generatedCode;
+                
+                // รีเซ็ต Iframe เคลียร์หน่วยความจำเก่า
+                let iframe = document.getElementById("missionFrame");
+                const newIframe = document.createElement('iframe');
+                newIframe.id = 'missionFrame';
+                newIframe.className = "w-full h-full bg-white border-none";
+                newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin";
+                newIframe.title = "Mission Live Preview";
+                
+                iframe.parentNode.replaceChild(newIframe, iframe);
+                
+                const iframeDoc = newIframe.contentDocument || newIframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(generatedCode);
+                iframeDoc.close();
+                
                 document.getElementById("saveToCloudBtn").classList.remove("hidden");
                 showMessage("เนรมิตภารกิจสำเร็จ! ✨ พรีวิวได้ทางขวามือครับ");
-            } catch (err) { showMessage("ข้อผิดพลาด: " + err.message); }
+            } catch (err) { showMessage("❌ " + err.message); }
             finally { toggleLoading(false); }
         }
 
@@ -370,7 +478,7 @@
             try {
                 const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียด ชัดเจน และมีโครงสร้างที่ดีสำหรับการสร้างสื่อการสอน ตอบเป็นภาษาไทย");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function suggestIdeas() {
@@ -380,7 +488,7 @@
             try {
                 const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถม ตอบภาษาไทยสั้นๆ");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function addContext() {
@@ -390,7 +498,7 @@
             try {
                 const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
                 document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
-            } catch (e) { showMessage(e.message); } finally { toggleLoading(false); }
+            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
         async function confirmSave(mode) {
@@ -418,7 +526,6 @@
                     mid = data[0].mission_id;
                 }
 
-                // เชื่อมโยงกับห้องเรียน
                 await window.sysDB.from('classroom_missions').upsert({
                     classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                 }, { onConflict: 'classroom_id, mission_id' });
@@ -427,17 +534,63 @@
             } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message); }
         }
 
+        // --- ระบบตรวจสอบคีย์แบบสดๆ ก่อนบันทึก ---
         async function saveKeyToDB() {
-            const key = document.getElementById("apiKeyInput").value.trim();
-            if(!key) return showMessage("กรุณากรอก API Key");
+            const rawKey = document.getElementById("apiKeyInput").value;
+            let keys = rawKey.split(',').map(k => k.trim()).filter(k => k);
+            
+            if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก");
+            
+            const validKeys = keys.filter(k => k.startsWith('AIza'));
+            if (validKeys.length === 0) return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)");
+
+            const btn = document.getElementById("saveKeyBtn");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            let workingKeys = [];
+            let invalidCount = 0;
+
+            try {
+                for (let key of validKeys) {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                    if (res.ok) {
+                        workingKeys.push(key);
+                    } else if (res.status === 429) {
+                        console.warn(`Key ถูกจำกัดโควต้าชั่วคราว แต่ยังเก็บไว้ใช้งานต่อได้: ${key.substring(0, 10)}...`);
+                        workingKeys.push(key);
+                    } else {
+                        invalidCount++;
+                    }
+                }
+            } catch (err) {
+                workingKeys = validKeys; // ยอมให้ผ่านถ้าเช็คไม่ได้
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            if (workingKeys.length === 0) {
+                return showMessage("❌ Key หมดอายุ หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ");
+            }
+
+            const cleanedKey = workingKeys.join(',');
+            document.getElementById("apiKeyInput").value = cleanedKey;
+
             try {
                 const { data: { user } } = await window.sysDB.auth.getUser();
-                await window.sysDB.from('teachers').update({ gemini_api_key: key }).eq('teacher_id', user.id);
-                showMessage("บันทึก Key สำเร็จ! ✨ ทุกอย่างพร้อมแล้วครับ");
-                
-                // ซ่อนการแก้ไขทันที
+                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', user.id);
                 toggleKeyEdit(false);
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้"); }
+                
+                if (invalidCount > 0) {
+                    showMessage(`✅ บันทึกสำเร็จ (ตัด ${invalidCount} คีย์ที่เสียออกอัตโนมัติ)`);
+                } else {
+                    showMessage("✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
+                }
+            } catch (e) { 
+                showMessage("ไม่สามารถบันทึกได้"); 
+            }
         }
 
         async function loadKeyFromDB() {
@@ -447,10 +600,8 @@
                 const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
                 if(data?.gemini_api_key) {
                     document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                    // ถ้ามี Key แล้ว ให้ซ่อนและโชว์สถานะพร้อมใช้งาน
                     toggleKeyEdit(false);
                 } else {
-                    // ถ้าไม่มี ให้โชว์หน้าแก้ไข
                     toggleKeyEdit(true);
                 }
             }
