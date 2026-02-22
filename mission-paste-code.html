@@ -243,7 +243,7 @@
                                 <div class="absolute inset-0 bg-purple-500/30 rounded-full animate-ping"></div>
                                 <i class="fas fa-magic text-purple-300 text-3xl animate-pulse"></i>
                             </div>
-                            <span id="aiStatusText" class="text-white font-bold text-sm tracking-wide text-center leading-relaxed">กำลังติดต่อ AI...</span>
+                            <span id="aiStatusText" class="text-white font-bold text-sm tracking-wide text-center leading-relaxed px-4">กำลังติดต่อ AI...</span>
                             <div class="w-48 bg-slate-700 h-1.5 rounded-full mt-4 overflow-hidden">
                                 <div id="aiProgressBar" class="bg-gradient-to-r from-purple-400 to-indigo-400 h-full w-0 progress-bar-animated rounded-full"></div>
                             </div>
@@ -334,10 +334,6 @@
     </main>
 
     <script>
-        // เปลี่ยนมาใช้ 1.5-flash เป็นตัวหลัก เพราะเป็นรุ่นที่ปล่อยให้ใช้ฟรีเสถียรที่สุด 
-        // บางบัญชีจะถูกบล็อกไม่ให้ใช้ 2.0-flash ได้แม้จะผูกเบอร์แล้วก็ตาม
-        const MODEL_ID = "gemini-1.5-flash"; 
-        
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let dbSubject = "อื่นๆ", dbGrade = ""; 
@@ -667,7 +663,7 @@
             }
         }
 
-        // --- Multi-Key & Multi-Model AI System ---
+        // --- ระบบ AI ขั้นสูงสุด (ตรวจเช็ครุ่นที่ใช้ได้จริงแบบไดนามิก ป้องกัน 404 แบบเด็ดขาด) ---
         async function handleAIModify() {
             const currentCode = editor.getValue();
             const prompt = document.getElementById('aiPromptInput').value.trim();
@@ -704,8 +700,8 @@
             }, 120000); 
 
             try {
-                setTimeout(() => { if(!isTimeout && aiAbortController) pBar.style.width = "40%"; }, 1000);
-                setTimeout(() => { if(!isTimeout && aiAbortController) pBar.style.width = "60%"; }, 2000);
+                setTimeout(() => { if(!isTimeout && aiAbortController) pBar.style.width = "30%"; }, 1000);
+                setTimeout(() => { if(!isTimeout && aiAbortController) pBar.style.width = "50%"; }, 2000);
                 
                 const currentSubject = document.getElementById("missionSubjectInput").value.trim() || dbSubject;
                 const currentGrade = document.getElementById("missionGradeInput").value.trim() || dbGrade;
@@ -732,8 +728,6 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
 
-                // สลับเอารุ่น 1.5-flash ที่เปิดให้ใช้ฟรีชัวร์ๆ ขึ้นเป็นอันดับแรกก่อนครับ
-                const AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
                 let resultData = null;
                 let isSuccess = false;
                 let lastErrorMsg = "";
@@ -743,12 +737,38 @@
                     if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
                     
                     let keyFailed = false;
+                    let AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash"]; // ค่าเริ่มต้นเผื่อค้นหาไม่เจอ
 
+                    // [ระบบใหม่] ให้ระบบค้นหารายชื่อโมเดลที่ Key นี้มีสิทธิ์ใช้จริงๆ จาก Google ป้องกัน 404
+                    try {
+                        statusText.innerText = `🤖 กำลังสแกนรุ่น AI ที่ใช้งานได้... (Key ${i+1}/${keys.length})`;
+                        const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`, { signal: aiAbortController.signal });
+                        
+                        if (modelRes.ok) {
+                            const modelData = await modelRes.json();
+                            if (modelData.models) {
+                                const validModels = modelData.models
+                                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                                    .map(m => m.name.replace('models/', ''));
+                                
+                                const flashModels = validModels.filter(m => m.includes("flash"));
+                                if (flashModels.length > 0) {
+                                    AI_MODELS = flashModels.reverse(); // ใช้รุ่นใหม่สุดที่มันค้นเจอ
+                                } else if (validModels.length > 0) {
+                                    AI_MODELS = validModels;
+                                }
+                            }
+                        }
+                    } catch(e) {
+                        console.warn("สแกนรุ่น AI ไม่สำเร็จ ใช้ค่าเริ่มต้น", e);
+                    }
+
+                    // ทดลองรันคำสั่งกับโมเดลที่มีสิทธิ์ใช้งาน
                     for (let m = 0; m < AI_MODELS.length; m++) {
                         const currentModel = AI_MODELS[m];
                         if (aiAbortController && aiAbortController.signal.aborted) throw new Error("AbortError");
 
-                        statusText.innerText = `🤖 กำลังติดต่อ AI...\n(ลอง Key ${i+1}/${keys.length} | รุ่น: ${currentModel})`;
+                        statusText.innerText = `🤖 กำลังเขียนโค้ด...\n(Key ${i+1}/${keys.length} | รุ่น: ${currentModel})`;
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
 
                         try {
@@ -762,19 +782,17 @@
                             if (!res.ok) {
                                 const errData = await res.json().catch(() => ({}));
                                 let errorMsg = errData.error?.message || `API Error (${res.status})`;
-                                lastErrorMsg = `[${res.status}] ${errorMsg}`; // ดึง Error แจ้งให้คุณครูทราบตรงๆ
+                                lastErrorMsg = `[${res.status}] ${errorMsg}`; 
                                 
                                 if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
                                     if (errorMsg.includes("limit: 0")) {
-                                        console.warn(`[Limit 0] โมเดล ${currentModel} ไม่รองรับบัญชีนี้ กำลังลองรุ่นอื่น...`);
+                                        console.warn(`[Limit 0] บัญชีนี้ไม่มีโควต้าฟรี กำลังลองรุ่นถัดไป...`);
                                         continue; 
                                     } else {
-                                        console.warn(`[โควต้าเต็ม] Key ${i+1} เต็มชั่วคราว กำลังสลับ Key...`);
+                                        console.warn(`[โควต้าเต็ม] โควต้ารายนาทีเต็ม กำลังสลับ Key...`);
                                         keyFailed = true;
                                         break; 
                                     }
-                                } else if (res.status === 404 || res.status === 400) {
-                                    continue; 
                                 } else {
                                     keyFailed = true;
                                     break; 
@@ -797,11 +815,10 @@
 
                 if (!isSuccess) {
                     if (lastErrorMsg.includes("limit: 0")) {
-                        throw new Error("บัญชี Gmail นี้ไม่ได้รับโควต้าใช้งานฟรีจาก Google (Limit: 0) วิธีแก้: แนะนำให้ใช้บัญชี Gmail ส่วนตัว (บัญชีปกติ) ในการขอ API Key แทนอีเมลองค์กรครับ");
+                        throw new Error("ไม่มีโควต้าฟรี (Limit: 0) สาเหตุหลัก: 1) เปิด VPN ตอนขอคีย์ 2) ใช้อีเมลโรงเรียน 3) ระบบ Google ค้าง แนะนำให้สมัคร Gmail ใหม่ส่วนตัวขอคีย์ครับ");
                     } else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
-                        throw new Error("โควต้าเต็มทุกคีย์! ⏳ (หากมาจาก Gmail เดียวกัน โควต้าจะนับรวมกันครับ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น)");
+                        throw new Error("โควต้าเต็ม! ⏳ (หมายเหตุ: หากมาจาก Gmail เดียวกัน โควต้าจะนับรวมกันครับ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น)");
                     } else {
-                        // ปล่อย Error ของแท้จาก Google ออกมาโชว์เลยครับ จะได้ทราบสาเหตุชัดเจน
                         throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
                     }
                 }
@@ -839,6 +856,8 @@
                         showMessage("🛑 ยกเลิกการประมวลผล AI แล้ว", true);
                     }
                 } else {
+                    // ลบกล่อง Log เก่าออกเพื่อแสดง Error ให้เห็นชัดเจน
+                    document.getElementById('aiReasoningBox').classList.add('hidden-el');
                     showMessage("❌ " + e.message, true); 
                 }
             } finally { 
@@ -887,7 +906,6 @@
                     if (res.ok) {
                         workingKeys.push(key);
                     } else if (res.status === 429) {
-                        // แก้บั๊ก: ถ้าติด 429 ให้ถือว่า Key ยังใช้ได้ แค่โควต้าเต็มชั่วคราว ไม่ต้องลบทิ้ง
                         console.warn(`Key ถูกจำกัดโควต้าชั่วคราว (Rate Limit) แต่ยังเก็บไว้ใช้งานต่อได้: ${key.substring(0, 10)}...`);
                         workingKeys.push(key);
                     } else {
@@ -897,7 +915,7 @@
                 }
             } catch (err) {
                 console.error("ตรวจสอบ Key ไม่สำเร็จเนื่องจากเน็ตหลุดข้ามไปก่อน", err);
-                workingKeys = validKeys; // ยอมให้ผ่านไปก่อนเผื่อเน็ตมีปัญหาชั่วคราว
+                workingKeys = validKeys;
             }
 
             btn.innerHTML = originalText;
