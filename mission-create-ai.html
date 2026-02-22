@@ -215,6 +215,7 @@
                         <div class="flex gap-1">
                             <button onclick="optimizePrompt()" class="btn-ai-sparkle"><i class="fas fa-magic text-yellow-500"></i> ขัดเกลา</button>
                             <button onclick="suggestIdeas()" class="btn-ai-sparkle"><i class="fas fa-lightbulb text-orange-500"></i> ไอเดีย</button>
+                            <button onclick="addContext()" class="btn-ai-sparkle"><i class="fas fa-book text-blue-500"></i> สาระ</button>
                         </div>
                     </div>
                     
@@ -223,13 +224,13 @@
                         <!-- บับเบิ้ลแชทจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
                     </div>
 
-                    <!-- ช่องพิมพ์คำสั่งใหม่ (ปรับโครงสร้างเพื่อรองรับปุ่มข้อความยาวและระบบ Disable) -->
+                    <!-- ช่องพิมพ์คำสั่งใหม่ -->
                     <div class="relative shrink-0 mt-auto bg-white border border-slate-300 rounded-[1.5rem] p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all flex flex-col">
-                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent p-3 outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
+                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent p-3 pr-14 outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
                         
                         <div class="flex justify-between items-center px-2 pb-1 pt-1">
                             <span class="text-[10px] text-slate-400 font-medium">✨ AI พร้อมรับคำสั่ง</span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 absolute right-3 bottom-3">
                                 <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-9 h-9 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow-md flex items-center justify-center text-sm" title="หยุด AI">
                                     <i class="fas fa-stop"></i>
                                 </button>
@@ -321,10 +322,19 @@
             }, 500);
         });
 
+        // --- ระบบแสดงข้อความแจ้งเตือน (ซ่อมบั๊ก CSS เรียบร้อย) ---
+        function showMessage(text, isError = false) { 
+            const msgBox = document.getElementById("msgBox");
+            document.getElementById("msgText").innerText = text; 
+            msgBox.style.borderLeftColor = isError ? '#ef4444' : '#3b82f6';
+            msgBox.style.display = 'block'; // บังคับแสดงผล เพราะ CSS เดิมเป็น display:none
+            setTimeout(() => msgBox.style.display = 'none', 5000); 
+        }
+
         // --- ระบบแสดงประวัติการแชท (Chat History) ---
         function appendChatBubble(role, text) {
             const chatBox = document.getElementById("chatHistoryBox");
-            chatBox.classList.remove('hidden-el'); // แสดงกล่องแชทเมื่อมีการคุย
+            chatBox.classList.remove('hidden-el'); 
 
             const bubble = document.createElement("div");
             bubble.className = `max-w-[90%] rounded-2xl p-3 text-[13px] chat-bubble ${
@@ -339,7 +349,7 @@
             bubble.innerHTML = `<div class="text-[10px] font-bold mb-1 opacity-70 flex items-center gap-1">${icon} ${label}</div><div class="leading-relaxed whitespace-pre-wrap">${text}</div>`;
 
             chatBox.appendChild(bubble);
-            chatBox.scrollTop = chatBox.scrollHeight; // เลื่อนลงล่างสุดเสมอ
+            chatBox.scrollTop = chatBox.scrollHeight; 
         }
 
         // --- ระบบสลับตา API Key ---
@@ -409,14 +419,12 @@
             let isSuccess = false;
             let lastErrorMsg = "";
 
-            // ควบคุมการหยุด (AbortController) สำหรับ Multi-fetch
             aiAbortController = new AbortController();
 
             for (let i = 0; i < keys.length; i++) {
                 const currentKey = keys[i];
                 let AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]; 
 
-                // 1. สแกนรุ่น AI ที่รองรับ
                 try {
                     const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`, { signal: aiAbortController.signal });
                     if (modelRes.ok) {
@@ -433,7 +441,6 @@
                     }
                 } catch(e) { if(e.name === 'AbortError') throw e; }
 
-                // 2. ลูปยิง Request ไปที่ Model
                 for (let m = 0; m < AI_MODELS.length; m++) {
                     const currentModel = AI_MODELS[m];
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
@@ -483,15 +490,22 @@
 
             const promptInputEl = document.getElementById("promptInput");
             const prompt = promptInputEl.value.trim();
-            const title = document.getElementById("missionTitleInput").value.trim();
+            const titleInputEl = document.getElementById("missionTitleInput");
+            const title = titleInputEl.value.trim();
             
-            if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
+            // เช็คว่ากรอกครบไหม ถ้าไม่ครบแจ้งเตือนสีแดงและโฟกัสช่องนั้น
+            if (!title) {
+                titleInputEl.focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจ (ที่ช่องด้านบน) ก่อนครับ", true);
+            }
+            if (!prompt) {
+                promptInputEl.focus();
+                return showMessage("⚠️ กรุณาพิมพ์คำสั่งให้ AI ก่อนครับ", true);
+            }
 
-            // แสดงแชทของ User ลงในกล่องทันที และล้างช่องกรอก
             appendChatBubble('user', prompt);
             promptInputEl.value = ""; 
 
-            // เปลี่ยนปุ่มเป็น Stop
             document.getElementById("generateBtn").classList.add('hidden-el');
             document.getElementById("aiStopBtn").classList.remove('hidden-el');
 
@@ -499,7 +513,6 @@
             let statusText = isUpdate ? "AI กำลังอ่านโค้ดเดิมและปรับแก้ตามคำสั่ง..." : "AI กำลังวางโครงสร้างและเนรมิตภารกิจ...";
             toggleLoading(true, statusText);
 
-            // ประกอบคำสั่งให้ AI รับรู้ว่าเป็นการสร้างใหม่ หรือ สั่งแก้ไขโค้ดเดิม
             let finalPrompt = "";
             if (isUpdate) {
                 finalPrompt = `นี่คือคำสั่งให้คุณ "แก้ไข/ปรับปรุง" โค้ดสื่อการสอน\nคำสั่งใหม่จากครู: "${prompt}"\n\nโปรดแก้ไขจากโค้ดฉบับปัจจุบันด้านล่างนี้:\n\`\`\`html\n${generatedCode}\n\`\`\``;
@@ -520,21 +533,18 @@
               "html_code": "<!DOCTYPE html><html>...</html>"
             }`;
 
-            // ตัวแปรเผื่อหลุด Time out (แก้ไขการประกาศตัวแปรให้ถูกต้อง)
             let isTimeout = false;
-            aiTimeoutId = setTimeout(() => { isTimeout = true; if(aiAbortController) aiAbortController.abort(); }, 120000); // 2 นาที
+            aiTimeoutId = setTimeout(() => { isTimeout = true; if(aiAbortController) aiAbortController.abort(); }, 120000); 
 
             try {
                 const jsonText = await callGemini(finalPrompt, sys);
                 
-                // คลีน Format ป้องกัน AI ตอบกลับมามี ```json ครอบ
                 let cleanJsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
                 const result = JSON.parse(cleanJsonText);
                 
                 if (result.html_code) {
                     generatedCode = result.html_code;
                     
-                    // สร้าง Iframe ใหม่เสมอเพื่อล้าง Cache (แก้ปัญหาตัวแปรชนกัน)
                     let iframe = document.getElementById("missionFrame");
                     const newIframe = document.createElement('iframe');
                     newIframe.id = 'missionFrame';
@@ -551,16 +561,13 @@
                     
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
-                    // เปลี่ยนรูปร่างปุ่มและข้อความเพื่อบอกว่า "แก้ไขต่อได้" 
                     const genBtn = document.getElementById("generateBtn");
                     genBtn.innerHTML = `<i class="fas fa-magic text-yellow-300"></i>`;
                     genBtn.className = "w-9 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center text-sm";
                     genBtn.title = "ปรับปรุง/แก้ไขเพิ่มเติม";
                     
-                    // เพิ่มแชทของ AI เพื่อบอกว่าทำอะไรไป
                     appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
                     
-                    // นำ Description ไปซ่อนไว้รอ Save
                     if (result.mission_description) document.getElementById("missionDescInput").value = result.mission_description;
                     
                     showMessage("เสร็จสมบูรณ์! ✨ ดูผลลัพธ์ทางขวามือครับ");
@@ -569,40 +576,56 @@
                 }
             } catch (err) { 
                 if (err.name === 'AbortError' || err.message === 'AbortError') {
-                    if(isTimeout) appendChatBubble('ai', "⏳ ขออภัยครับ หมดเวลารอ (เกิน 2 นาที) โค้ดอาจจะมีความซับซ้อนเกินไป กรุณาสั่งทีละส่วนครับ");
+                    if(isTimeout) appendChatBubble('ai', "⏳ ขออภัยครับ หมดเวลารอ (เกิน 2 นาที) โค้ดอาจมีความซับซ้อนเกินไป กรุณาสั่งทีละส่วนครับ");
                 } else {
                     appendChatBubble('ai', "❌ " + err.message);
-                    promptInputEl.value = prompt; // คืนค่าคำสั่งให้ครู เผื่อกดใหม่
+                    promptInputEl.value = prompt; 
                 }
             }
             finally { 
                 clearTimeout(aiTimeoutId);
-                aiAbortController = null;
+                aiAbortController = null; // ปลดล็อกตัวแปรเสมอ
                 document.getElementById("generateBtn").classList.remove('hidden-el');
                 document.getElementById("aiStopBtn").classList.add('hidden-el');
                 toggleLoading(false); 
-                promptInputEl.focus(); // โฟกัสที่ช่องพิมพ์ พร้อมรับคำสั่งถัดไปทันที
+                promptInputEl.focus(); 
             }
         }
 
         async function optimizePrompt() {
+            if (aiAbortController) return;
             const input = document.getElementById("promptInput").value.trim();
-            if(!input) return;
+            if(!input) return showMessage("⚠️ กรุณาพิมพ์คำสั่งก่อนขัดเกลาครับ", true);
             toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่ง...");
             try {
                 const res = await callGemini(`จัดเรียงคำสั่งนี้ให้ AI โปรแกรมเมอร์เข้าใจง่าย ชัดเจนเป็นข้อๆ:\n"${input}"`, "คุณคือผู้ช่วยเขียน Prompt ให้กระชับ ได้ใจความ ตอบเป็นภาษาไทยเท่านั้นและไม่ต้องใช้รูปแบบ JSON");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); aiAbortController = null; } // แก้บั๊กปลดล็อก AI
+            } catch (e) { showMessage("❌ " + e.message, true); } 
+            finally { toggleLoading(false); aiAbortController = null; } 
         }
 
         async function suggestIdeas() {
+            if (aiAbortController) return;
             const grp = document.getElementById("subjectGroup").value;
             const clsSub = document.getElementById('classroomSubjectText').innerText;
             toggleLoading(true, "AI กำลังช่วยคิดไอเดีย...");
             try {
                 const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถมและมัธยม ตอบภาษาไทยสั้นๆ ไม่ต้องใช้รูปแบบ JSON");
                 document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); aiAbortController = null; } // แก้บั๊กปลดล็อก AI
+            } catch (e) { showMessage("❌ " + e.message, true); } 
+            finally { toggleLoading(false); aiAbortController = null; } 
+        }
+
+        async function addContext() {
+            if (aiAbortController) return;
+            const input = document.getElementById("promptInput").value.trim();
+            if(!input) return showMessage("⚠️ กรุณาพิมพ์เนื้อหาที่ต้องการเสริมสาระก่อนครับ", true);
+            toggleLoading(true, "AI กำลังดึงสาระความรู้มาเสริมทัพ...");
+            try {
+                const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
+                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
+            } catch (e) { showMessage("❌ " + e.message, true); } 
+            finally { toggleLoading(false); aiAbortController = null; } 
         }
 
         // --- ระบบบันทึกและจัดการ Key ---
@@ -610,10 +633,10 @@
             const rawKey = document.getElementById("apiKeyInput").value;
             let keys = rawKey.split(',').map(k => k.trim()).filter(k => k);
             
-            if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก");
+            if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
             
             const validKeys = keys.filter(k => k.startsWith('AIza'));
-            if (validKeys.length === 0) return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)");
+            if (validKeys.length === 0) return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)", true);
 
             const btn = document.getElementById("saveKeyBtn");
             const originalText = btn.innerHTML;
@@ -627,7 +650,7 @@
                 for (let key of validKeys) {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
                     if (res.ok) workingKeys.push(key);
-                    else if (res.status === 429) workingKeys.push(key); // โควต้าเต็มเก็บไว้ก่อน
+                    else if (res.status === 429) workingKeys.push(key); 
                     else invalidCount++;
                 }
             } catch (err) { workingKeys = validKeys; }
@@ -635,7 +658,7 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
 
-            if (workingKeys.length === 0) return showMessage("❌ Key เสีย หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ");
+            if (workingKeys.length === 0) return showMessage("❌ Key เสีย หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ", true);
 
             const cleanedKey = workingKeys.join(',');
             document.getElementById("apiKeyInput").value = cleanedKey;
@@ -644,7 +667,7 @@
                 await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
                 toggleKeyEdit(false);
                 showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้"); }
+            } catch (e) { showMessage("ไม่สามารถบันทึกได้", true); }
         }
 
         async function loadKeyFromDB() {
@@ -661,7 +684,6 @@
             document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
             if(msg) document.getElementById("loadingMessage").innerText = msg; 
             
-            // ล็อกช่องพิมพ์และปุ่มขัดเกลาขณะ AI ทำงาน
             document.getElementById("promptInput").disabled = show;
         }
         function changeView(size) { 
