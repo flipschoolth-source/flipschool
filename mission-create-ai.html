@@ -54,15 +54,16 @@
 
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        .badge-premium { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: bold; text-transform: uppercase; border-width: 1px; }
-        .owner-badge { background: #dcfce7; color: #166534; border-color: #86efac; }
-        .copy-badge { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
         
-        /* ปรับแต่ง Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        /* ปรับแต่ง Scrollbar สำหรับกล่อง Chat */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* สไตล์กล่อง Chat Bubble */
+        .chat-bubble { animation: fadeInBubble 0.3s ease-out forwards; }
+        @keyframes fadeInBubble { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -113,8 +114,8 @@
     <main class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         <div class="lg:col-span-5 flex flex-col gap-6">
-            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <div class="flex justify-between items-start mb-8">
+            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col h-full">
+                <div class="flex justify-between items-start mb-6 shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
                             <i class="fas fa-robot text-2xl"></i>
@@ -124,16 +125,16 @@
                     <div id="ownershipStatus" class="hidden-el"></div>
                 </div>
 
-                <div class="mb-8">
+                <div class="mb-6 shrink-0">
                     <!-- API Key Status -->
-                    <div id="apiKeyConfiguredView" class="hidden-el p-5 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
+                    <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
+                            <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm text-sm">
                                 <i class="fas fa-check"></i>
                             </div>
                             <div>
                                 <div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div>
-                                <div class="text-[10px] text-emerald-600 font-medium">ระบบ Multi-Key พร้อมเนรมิตภารกิจ</div>
+                                <div class="text-[10px] text-emerald-600 font-medium">ระบบ Multi-Key พร้อมใช้งาน</div>
                             </div>
                         </div>
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-all font-bold">
@@ -142,46 +143,51 @@
                     </div>
 
                     <!-- API Key Edit View -->
-                    <div id="apiKeyEditView" class="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
+                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
                         <div class="flex justify-between items-center mb-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                 Gemini API Configuration
                                 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 transition-all flex items-center gap-1" style="text-transform: none;">
-                                    <i class="fas fa-external-link-alt text-[8px]"></i> รับ API Key ฟรี
+                                    <i class="fas fa-external-link-alt text-[8px]"></i> ขอ API Key
                                 </a>
                             </label>
                             <button id="cancelKeyEditBtn" onclick="toggleKeyEdit(false)" class="hidden-el text-[10px] text-slate-400 hover:text-slate-600 font-bold">ยกเลิก</button>
                         </div>
                         <div class="flex gap-2 relative">
                             <div class="relative w-full">
-                                <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-3 text-sm outline-none font-mono focus:ring-2 focus:ring-blue-500" placeholder="วาง API Key (ใส่หลายคีย์คั่นด้วย , )">
+                                <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono focus:ring-2 focus:ring-blue-500" placeholder="วาง API Key (ใส่หลายคีย์คั่นด้วย , )">
                                 <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none p-1">
                                     <i class="fas fa-eye" id="eyeIcon"></i>
                                 </button>
                             </div>
-                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-blue-900 hover:bg-blue-800 text-white px-5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md whitespace-nowrap min-w-[70px] flex justify-center items-center">บันทึก</button>
+                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-blue-900 hover:bg-blue-800 text-white px-4 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md whitespace-nowrap flex justify-center items-center">บันทึก</button>
                         </div>
-                        <p class="text-[9px] text-slate-400 mt-2 italic"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-blue-500 font-medium">(ระบบจะสลับคีย์และค้นหารุ่น AI ให้อัตโนมัติ)</span></p>
                     </div>
                 </div>
 
-                <div class="space-y-6">
-                    <div id="subjectSelectorArea">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">กลุ่มสาระการเรียนรู้</label>
-                        <select id="subjectGroup" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer">
-                            <option value="ภาษาไทย">ภาษาไทย: การอ่าน การเขียน การฟัง การพูด และวรรณคดี</option>
-                            <option value="คณิตศาสตร์">คณิตศาสตร์: จำนวนและตัวเลข การวัด เรขาคณิต และสถิติ</option>
-                            <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี: ชีววิทยา เคมี ฟิสิกส์ และวิทยาการคำนวณ</option>
-                            <option value="สังคมศึกษา">สังคมศึกษา ศาสนา และวัฒนธรรม: ประวัติศาสตร์ ภูมิศาสตร์ เศรษฐศาสตร์ หน้าที่พลเมือง และศาสนา</option>
-                            <option value="สุขศึกษา">สุขศึกษาและพลศึกษา: สุขภาพ การออกกำลังกาย และกีฬา</option>
-                            <option value="ศิลปะ">ศิลปะ: ทัศนศิลป์ ดนตรี นาฏศิลป์ และศิลปะการแสดง</option>
-                            <option value="การงานอาชีพ">การงานอาชีพ: ทักษะอาชีพ เทคโนโลยี และการจัดการ</option>
-                            <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ: โดยเฉพาะภาษาอังกฤษ และอื่นๆ</option>
-                            <option value="อื่นๆ" selected>อื่นๆ</option>
-                        </select>
+                <div class="space-y-4 shrink-0 mb-4">
+                    <div id="subjectSelectorArea" class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">กลุ่มสาระ</label>
+                            <select id="subjectGroup" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                <option value="ภาษาไทย">ภาษาไทย</option>
+                                <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                                <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+                                <option value="สังคมศึกษา">สังคมศึกษา</option>
+                                <option value="สุขศึกษา">สุขศึกษา</option>
+                                <option value="ศิลปะ">ศิลปะ</option>
+                                <option value="การงานอาชีพ">การงานอาชีพ</option>
+                                <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+                                <option value="อื่นๆ" selected>อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ระดับชั้น</label>
+                            <input type="text" id="missionGradeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs focus:ring-2 focus:ring-blue-500" placeholder="เช่น ม.1">
+                        </div>
                     </div>
 
-                    <div id="classroomContextArea" class="hidden p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                    <div id="classroomContextArea" class="hidden p-3 bg-orange-50 border border-orange-100 rounded-xl">
                         <div class="flex items-center gap-3">
                             <i class="fas fa-book-bookmark text-orange-400"></i>
                             <div>
@@ -192,43 +198,73 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ชื่อภารกิจที่ต้องการสร้าง</label>
-                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all shadow-inner" placeholder="เช่น เกมตามหาคำกริยา, บทเรียนเรื่องแรงเสียดทาน...">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
+                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="เช่น เกมคำศัพท์หรรษา">
+                        
+                        <!-- ซ่อน Description ไว้เบื้องหลัง (AI จะมาเติมให้อัตโนมัติเวลาเซฟ) -->
+                        <textarea id="missionDescInput" class="hidden-el"></textarea>
                     </div>
-
-                    <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">คำสั่งเนรมิต (AI Prompt)</label>
-                            <div class="flex gap-1">
-                                <button onclick="optimizePrompt()" class="btn-ai-sparkle">✨ ขัดเกลา</button>
-                                <button onclick="suggestIdeas()" class="btn-ai-sparkle">💡 ไอเดีย</button>
-                                <button onclick="addContext()" class="btn-ai-sparkle">📚 สาระ</button>
-                            </div>
-                        </div>
-                        <textarea id="promptInput" class="w-full h-48 bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 outline-none transition-all resize-y text-sm focus:ring-2 focus:ring-blue-500 shadow-inner leading-relaxed" placeholder="บอกรายละเอียดสื่อที่คุณครูต้องการให้ AI สร้างครับ..."></textarea>
-                    </div>
-
-                    <div id="loadingStatus" class="hidden-el p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center gap-4 animate-pulse">
-                        <div class="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-sm font-bold text-blue-700 italic font-sans">Gemini AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...</span>
-                    </div>
-
-                    <button id="generateBtn" onclick="handleGenerate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-[1.5rem] transition-all shadow-xl shadow-blue-100 text-lg transform active:scale-95 flex items-center justify-center gap-3">
-                        <i class="fas fa-magic"></i> <span>เริ่มเนรมิตภารกิจด้วย AI</span>
-                    </button>
                 </div>
+
+                <!-- พื้นที่แชทกับ AI (Chat History & Input) -->
+                <div class="flex-grow flex flex-col mt-2 min-h-[250px] relative">
+                    <div class="flex justify-between items-end mb-2 shrink-0">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            <i class="fas fa-comment-dots text-blue-500 mr-1"></i> สนทนาและสั่งงาน AI
+                        </label>
+                        <div class="flex gap-1">
+                            <button onclick="optimizePrompt()" class="btn-ai-sparkle"><i class="fas fa-magic text-yellow-500"></i> ขัดเกลา</button>
+                            <button onclick="suggestIdeas()" class="btn-ai-sparkle"><i class="fas fa-lightbulb text-orange-500"></i> ไอเดีย</button>
+                        </div>
+                    </div>
+                    
+                    <!-- กล่องแสดงประวัติการสั่งงาน -->
+                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-3 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto max-h-[250px] scroll-smooth">
+                        <!-- บับเบิ้ลแชทจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
+                    </div>
+
+                    <!-- ช่องพิมพ์คำสั่งใหม่ -->
+                    <div class="relative shrink-0 mt-auto">
+                        <textarea id="promptInput" class="w-full min-h-[100px] bg-white border border-slate-300 rounded-[1.5rem] p-4 pr-14 outline-none transition-all resize-y text-sm focus:ring-2 focus:ring-blue-500 shadow-sm leading-relaxed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
+                        
+                        <div class="absolute bottom-4 right-4 flex items-center gap-2">
+                            <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-10 h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow-md flex items-center justify-center" title="หยุด AI">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                            <button id="generateBtn" onclick="handleGenerate()" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center" title="ส่งคำสั่ง">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="loadingStatus" class="hidden-el mt-3 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center gap-3 animate-pulse">
+                        <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full spinner"></div>
+                        <span id="loadingMessage" class="text-xs font-bold text-blue-700 italic">AI กำลังทำงาน...</span>
+                    </div>
+                </div>
+
             </div>
         </div>
 
         <div class="lg:col-span-7 flex flex-col gap-5">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-6">
-                <div class="flex gap-2 bg-slate-100 p-1.5 rounded-xl">
-                    <button onclick="changeView('mobile')" id="view-mobile" class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center transition-all"><i class="fas fa-mobile-alt"></i></button>
-                    <button onclick="changeView('tablet')" id="view-tablet" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-tablet-alt"></i></button>
-                    <button onclick="changeView('desktop')" id="view-desktop" class="w-10 h-10 hover:bg-white rounded-lg transition-all flex items-center justify-center"><i class="fas fa-desktop"></i></button>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 border border-teal-100">
+                        <i class="fas fa-eye text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-700 leading-tight">Live Preview</h3>
+                        <p class="text-[10px] text-slate-400 font-medium">จำลองการแสดงผลจริง</p>
+                    </div>
                 </div>
-                <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hidden shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
-                    <i class="fas fa-cloud-upload-alt"></i> บันทึกเข้าห้องเรียน
+
+                <div class="flex gap-2 bg-slate-100 p-1.5 rounded-xl">
+                    <button onclick="changeView('mobile')" class="view-btn w-9 h-9 bg-slate-200 text-blue-700 rounded-lg shadow-sm flex items-center justify-center transition-all text-sm"><i class="fas fa-mobile-alt"></i></button>
+                    <button onclick="changeView('tablet')" class="view-btn w-9 h-9 hover:bg-white text-slate-500 rounded-lg transition-all flex items-center justify-center text-sm"><i class="fas fa-tablet-alt"></i></button>
+                    <button onclick="changeView('desktop')" class="view-btn w-9 h-9 hover:bg-white text-slate-500 rounded-lg transition-all flex items-center justify-center text-sm"><i class="fas fa-desktop"></i></button>
+                </div>
+                <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hidden shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
+                    <i class="fas fa-cloud-upload-alt"></i> บันทึกผลงาน
                 </button>
             </div>
 
@@ -238,18 +274,19 @@
                 </div>
             </div>
             <div class="text-center">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] italic">Responsive AI Development System for Educators</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] italic">Interactive App Viewport</p>
             </div>
         </div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-10 mt-auto text-center font-sans">
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto text-center font-sans">
         <p class="text-blue-900 font-bold mb-1 text-sm italic">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
-        <p class="text-slate-400 text-[10px] tracking-wide uppercase font-black">Powered by Gemini Pro Vision AI | Innovation by FlipSchool Team</p>
     </footer>
 
     <script>
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let aiAbortController = null;
+        let aiTimeoutId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.CONFIG) {
@@ -273,6 +310,7 @@
                         return;
                     }
 
+                    currentUserId = session.user.id;
                     await loadKeyFromDB();
                     if (targetCid) await fetchClassroomContext();
                     if (editingMid) await loadExistingMission();
@@ -280,18 +318,35 @@
             }, 500);
         });
 
+        // --- ระบบแสดงประวัติการแชท (Chat History) ---
+        function appendChatBubble(role, text) {
+            const chatBox = document.getElementById("chatHistoryBox");
+            chatBox.classList.remove('hidden-el'); // แสดงกล่องแชทเมื่อมีการคุย
+
+            const bubble = document.createElement("div");
+            bubble.className = `max-w-[90%] rounded-2xl p-3 text-[13px] chat-bubble ${
+                role === 'user'
+                ? 'bg-blue-100 text-blue-900 self-end rounded-tr-sm ml-auto border border-blue-200 shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-700 self-start rounded-tl-sm mr-auto shadow-sm'
+            }`;
+
+            const icon = role === 'user' ? '<i class="fas fa-user text-blue-500 mr-1"></i>' : '<i class="fas fa-robot text-purple-500 mr-1"></i>';
+            const label = role === 'user' ? 'คุณครู' : 'AI Assistant';
+
+            bubble.innerHTML = `<div class="text-[10px] font-bold mb-1 opacity-70 flex items-center gap-1">${icon} ${label}</div><div class="leading-relaxed whitespace-pre-wrap">${text}</div>`;
+
+            chatBox.appendChild(bubble);
+            chatBox.scrollTop = chatBox.scrollHeight; // เลื่อนลงล่างสุดเสมอ
+        }
+
         // --- ระบบสลับตา API Key ---
         function toggleApiKeyVisibility() {
             const input = document.getElementById('apiKeyInput');
             const icon = document.getElementById('eyeIcon');
             if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+                input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         }
 
@@ -301,16 +356,10 @@
             const cancelBtn = document.getElementById('cancelKeyEditBtn');
 
             if (showEdit) {
-                editView.classList.remove('hidden-el');
-                configView.classList.add('hidden-el');
-                if(document.getElementById("apiKeyInput").value) {
-                    cancelBtn.classList.remove('hidden-el');
-                } else {
-                    cancelBtn.classList.add('hidden-el');
-                }
+                editView.classList.remove('hidden-el'); configView.classList.add('hidden-el');
+                cancelBtn.classList.toggle('hidden-el', !document.getElementById("apiKeyInput").value);
             } else {
-                editView.classList.add('hidden-el');
-                configView.classList.remove('hidden-el');
+                editView.classList.add('hidden-el'); configView.classList.remove('hidden-el');
             }
         }
 
@@ -331,7 +380,15 @@
             return !forbidden.some(p => text.toLowerCase().includes(p));
         }
 
-        // --- ระบบ AI ขั้นสูงสุด (รองรับ Multi-Key, เช็ครุ่นอัตโนมัติ, สลับคีย์ทันทีที่โควต้าเต็ม) ---
+        function stopAIGeneration() {
+            if (aiAbortController) {
+                aiAbortController.abort();
+                toggleLoading(false);
+                appendChatBubble('ai', "🛑 ระบบถูกยกเลิกการทำงานตามคำสั่งแล้วครับ");
+            }
+        }
+
+        // --- ระบบ AI ขั้นสูงสุด (Multi-Key, รุ่นสำรอง, ประวัติบริบท) ---
         async function callGemini(userPrompt, systemPrompt = "") {
             if (!isSafe(userPrompt)) throw new Error("ตรวจพบเนื้อหาที่ไม่อนุญาต ระบบขอระงับการทำงานครับ");
             
@@ -341,7 +398,6 @@
             let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k && k.startsWith('AIza'));
             if (keys.length === 0) throw new Error("ไม่พบ API Key ที่ถูกต้องเลย (ต้องขึ้นต้นด้วย AIza)");
             
-            // สลับคีย์แบบสุ่มเพื่อกระจายโหลด
             keys = keys.sort(() => Math.random() - 0.5);
 
             const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
@@ -350,14 +406,16 @@
             let isSuccess = false;
             let lastErrorMsg = "";
 
+            // ควบคุมการหยุด (AbortController) สำหรับ Multi-fetch
+            aiAbortController = new AbortController();
+
             for (let i = 0; i < keys.length; i++) {
                 const currentKey = keys[i];
-                let keyFailed = false;
                 let AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]; 
 
-                // เช็คสิทธิ์และรุ่นของโมเดลผ่าน API
+                // 1. สแกนรุ่น AI ที่รองรับ
                 try {
-                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`);
+                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`, { signal: aiAbortController.signal });
                     if (modelRes.ok) {
                         const modelData = await modelRes.json();
                         if (modelData.models) {
@@ -366,27 +424,21 @@
                                 .map(m => m.name.replace('models/', ''));
                             
                             const flashModels = validModels.filter(m => m.includes("flash"));
-                            if (flashModels.length > 0) {
-                                AI_MODELS = flashModels.reverse(); 
-                            } else if (validModels.length > 0) {
-                                AI_MODELS = validModels;
-                            }
+                            if (flashModels.length > 0) AI_MODELS = flashModels.reverse(); 
+                            else if (validModels.length > 0) AI_MODELS = validModels;
                         }
                     }
-                } catch(e) {
-                    console.warn("สแกนรุ่น AI ไม่สำเร็จ ใช้ค่าเริ่มต้น");
-                }
+                } catch(e) { if(e.name === 'AbortError') throw e; }
 
-                // ทดลองใช้โมเดลในรายการ
+                // 2. ลูปยิง Request ไปที่ Model
                 for (let m = 0; m < AI_MODELS.length; m++) {
                     const currentModel = AI_MODELS[m];
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
 
                     try {
                         const res = await fetch(url, { 
-                            method: 'POST', 
-                            headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify(payload)
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                            body: JSON.stringify(payload), signal: aiAbortController.signal 
                         });
                         
                         if (!res.ok) {
@@ -395,26 +447,18 @@
                             lastErrorMsg = `[${res.status}] ${errorMsg}`;
                             
                             if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
-                                if (errorMsg.includes("limit: 0")) {
-                                    continue; // ลองโมเดลถัดไป
-                                } else {
-                                    keyFailed = true;
-                                    break; // โควต้าเต็ม สลับไป Key ถัดไป
-                                }
-                            } else if (res.status === 404 || res.status === 400) {
-                                continue; 
-                            } else {
-                                keyFailed = true;
-                                break; 
-                            }
+                                if (errorMsg.includes("limit: 0")) continue; 
+                                else break; 
+                            } else if (res.status === 404 || res.status === 400) continue; 
+                            else break; 
                         }
                         
                         resultData = await res.json();
                         isSuccess = true;
                         break; 
                     } catch (fetchErr) {
+                        if(fetchErr.name === 'AbortError') throw fetchErr;
                         lastErrorMsg = fetchErr.message;
-                        keyFailed = true;
                         break; 
                     }
                 } 
@@ -422,61 +466,122 @@
             } 
 
             if (!isSuccess) {
-                if (lastErrorMsg.includes("limit: 0")) {
-                    throw new Error("บัญชี Gmail นี้ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวครับ");
-                } else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
-                    throw new Error("โควต้าเต็มทุกคีย์! ⏳ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น");
-                } else {
-                    throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
-                }
+                if (lastErrorMsg.includes("limit: 0")) throw new Error("บัญชี Gmail นี้ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวครับ");
+                else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) throw new Error("โควต้าเต็มทุกคีย์! ⏳ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น");
+                else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
             }
 
             return resultData.candidates?.[0]?.content?.parts?.[0]?.text;
         }
 
+        // --- จัดการการกดปุ่มสร้าง/แก้ไข ---
         async function handleGenerate() {
-            const prompt = document.getElementById("promptInput").value.trim();
+            const promptInputEl = document.getElementById("promptInput");
+            const prompt = promptInputEl.value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
+            
             if(!prompt || !title) return showMessage("กรุณาระบุชื่อภารกิจและคำสั่งเนรมิตครับ");
 
-            toggleLoading(true, "AI กำลังวิเคราะห์และตรวจสอบความปลอดภัย...");
-            const sys = `สร้างไฟล์ HTML/Tailwind CSS ชุดเดียวที่เป็นสื่อการสอนโต้ตอบ (Interactive) พรีเมียม 
-            กฎ: 
-            - ใช้ภาษาไทยเท่านั้น 
-            - เมื่อจบเรียก window.parent.postMessage({type: 'SAVE_RESULT', score: ..., answers: [...]}, '*') 
-            - ห้ามมี External Dependencies นอกเหนือจาก CDN มาตรฐาน`;
+            // แสดงแชทของ User ลงในกล่องทันที และล้างช่องกรอก
+            appendChatBubble('user', prompt);
+            promptInputEl.value = ""; 
+
+            // เปลี่ยนปุ่มเป็น Stop
+            document.getElementById("generateBtn").classList.add('hidden-el');
+            document.getElementById("aiStopBtn").classList.remove('hidden-el');
+
+            let isUpdate = generatedCode !== "";
+            let statusText = isUpdate ? "AI กำลังอ่านโค้ดเดิมและปรับแก้ตามคำสั่ง..." : "AI กำลังวางโครงสร้างและเนรมิตภารกิจ...";
+            toggleLoading(true, statusText);
+
+            // ประกอบคำสั่งให้ AI รับรู้ว่าเป็นการสร้างใหม่ หรือ สั่งแก้ไขโค้ดเดิม
+            let finalPrompt = "";
+            if (isUpdate) {
+                finalPrompt = `นี่คือคำสั่งให้คุณ "แก้ไข/ปรับปรุง" โค้ดสื่อการสอน\nคำสั่งใหม่จากครู: "${prompt}"\n\nโปรดแก้ไขจากโค้ดฉบับปัจจุบันด้านล่างนี้:\n\`\`\`html\n${generatedCode}\n\`\`\``;
+            } else {
+                finalPrompt = `คำสั่งสร้างสื่อการสอนใหม่: "${prompt}"\nโปรดอ้างอิงรายวิชา: ${document.getElementById("subjectGroup").value}`;
+            }
+
+            const sys = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) ในรูปแบบไฟล์เดียว (Single HTML File)
+            กฎสำคัญ:
+            1. ใช้ภาษาไทย (Thai font) ในส่วนที่แสดงผลให้นักเรียนอ่านทั้งหมด
+            2. ต้องมีปุ่ม ย้อนกลับ หรือ history.back()
+            3. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
+            4. ห้ามดึง External CSS/JS แปลกๆ ให้ใช้เฉพาะ Tailwind และ FontAwesome
+            5. คุณต้องคืนค่าคำตอบทั้งหมดมาในรูปแบบ Strict JSON เท่านั้น ตามโครงสร้างนี้:
+            {
+              "change_log": "อธิบายสิ่งที่คุณสร้างหรือแก้ไขไปเป็นภาษาไทยสั้นๆ อ่านง่าย (ใช้ Bullet points)",
+              "mission_description": "เขียนเป้าหมายภารกิจสั้นๆ 1-2 บรรทัด (สำหรับให้นักเรียนอ่าน)",
+              "html_code": "<!DOCTYPE html><html>...</html>"
+            }`;
+
+            // ตัวแปรเผื่อหลุด Time out
+            isTimeout = false;
+            aiTimeoutId = setTimeout(() => { isTimeout = true; if(aiAbortController) aiAbortController.abort(); }, 120000); // 2 นาที
 
             try {
-                const code = await callGemini(prompt, sys);
-                generatedCode = code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                const jsonText = await callGemini(finalPrompt, sys);
                 
-                // รีเซ็ต Iframe เคลียร์หน่วยความจำเก่า
-                let iframe = document.getElementById("missionFrame");
-                const newIframe = document.createElement('iframe');
-                newIframe.id = 'missionFrame';
-                newIframe.className = "w-full h-full bg-white border-none";
-                newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin";
-                newIframe.title = "Mission Live Preview";
+                // คลีน Format ป้องกัน AI ตอบกลับมามี ```json ครอบ
+                let cleanJsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
+                const result = JSON.parse(cleanJsonText);
                 
-                iframe.parentNode.replaceChild(newIframe, iframe);
-                
-                const iframeDoc = newIframe.contentDocument || newIframe.contentWindow.document;
-                iframeDoc.open();
-                iframeDoc.write(generatedCode);
-                iframeDoc.close();
-                
-                document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                showMessage("เนรมิตภารกิจสำเร็จ! ✨ พรีวิวได้ทางขวามือครับ");
-            } catch (err) { showMessage("❌ " + err.message); }
-            finally { toggleLoading(false); }
+                if (result.html_code) {
+                    generatedCode = result.html_code;
+                    
+                    // สร้าง Iframe ใหม่เสมอเพื่อล้าง Cache (แก้ปัญหาตัวแปรชนกัน)
+                    let iframe = document.getElementById("missionFrame");
+                    const newIframe = document.createElement('iframe');
+                    newIframe.id = 'missionFrame';
+                    newIframe.className = "w-full h-full bg-white border-none";
+                    newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin";
+                    newIframe.title = "Mission Live Preview";
+                    
+                    iframe.parentNode.replaceChild(newIframe, iframe);
+                    
+                    const iframeDoc = newIframe.contentDocument || newIframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(generatedCode);
+                    iframeDoc.close();
+                    
+                    document.getElementById("saveToCloudBtn").classList.remove("hidden");
+                    
+                    // เปลี่ยนปุ่มเป็นสีเหลืองเพื่อบอกว่า "แก้ไขต่อได้"
+                    document.getElementById("generateBtn").innerHTML = `<i class="fas fa-magic text-yellow-300"></i> <span>ปรับปรุง/แก้ไขเพิ่มเติม</span>`;
+                    
+                    // เพิ่มแชทของ AI เพื่อบอกว่าทำอะไรไป
+                    appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
+                    
+                    // นำ Description ไปซ่อนไว้รอ Save
+                    if (result.mission_description) document.getElementById("missionDescInput").value = result.mission_description;
+                    
+                    showMessage("เสร็จสมบูรณ์! ✨ ดูผลลัพธ์ทางขวามือครับ");
+                } else {
+                    throw new Error("AI ส่งข้อมูลกลับมาไม่ครบถ้วน กรุณาสั่งใหม่อีกครั้ง");
+                }
+            } catch (err) { 
+                if (err.name === 'AbortError' || err.message === 'AbortError') {
+                    if(isTimeout) appendChatBubble('ai', "⏳ ขออภัยครับ หมดเวลารอ (เกิน 2 นาที) โค้ดอาจจะมีความซับซ้อนเกินไป กรุณาสั่งทีละส่วนครับ");
+                } else {
+                    appendChatBubble('ai', "❌ " + err.message);
+                    promptInputEl.value = prompt; // คืนค่าคำสั่งให้ครู เผื่อกดใหม่
+                }
+            }
+            finally { 
+                clearTimeout(aiTimeoutId);
+                aiAbortController = null;
+                document.getElementById("generateBtn").classList.remove('hidden-el');
+                document.getElementById("aiStopBtn").classList.add('hidden-el');
+                toggleLoading(false); 
+            }
         }
 
         async function optimizePrompt() {
             const input = document.getElementById("promptInput").value.trim();
             if(!input) return;
-            toggleLoading(true, "AI กำลังปรับแต่งคำสั่งให้เป็นมืออาชีพ...");
+            toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่ง...");
             try {
-                const res = await callGemini(input, "ขยายความคำสั่งนี้ให้ละเอียด ชัดเจน และมีโครงสร้างที่ดีสำหรับการสร้างสื่อการสอน ตอบเป็นภาษาไทย");
+                const res = await callGemini(`จัดเรียงคำสั่งนี้ให้ AI โปรแกรมเมอร์เข้าใจง่าย ชัดเจนเป็นข้อๆ:\n"${input}"`, "คุณคือผู้ช่วยเขียน Prompt ให้กระชับ ได้ใจความ ตอบเป็นภาษาไทยเท่านั้นและไม่ต้องใช้รูปแบบ JSON");
                 document.getElementById("promptInput").value = res;
             } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
@@ -484,57 +589,14 @@
         async function suggestIdeas() {
             const grp = document.getElementById("subjectGroup").value;
             const clsSub = document.getElementById('classroomSubjectText').innerText;
-            toggleLoading(true, "AI กำลังคิดไอเดียใหม่ๆ ให้คุณครู...");
+            toggleLoading(true, "AI กำลังช่วยคิดไอเดีย...");
             try {
-                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถม ตอบภาษาไทยสั้นๆ");
+                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถมและมัธยม ตอบภาษาไทยสั้นๆ ไม่ต้องใช้รูปแบบ JSON");
                 document.getElementById("promptInput").value = res;
             } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
         }
 
-        async function addContext() {
-            const input = document.getElementById("promptInput").value.trim();
-            if(!input) return;
-            toggleLoading(true, "AI กำลังดึงสาระความรู้มาเสริมทัพ...");
-            try {
-                const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
-                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
-            } catch (e) { showMessage("❌ " + e.message); } finally { toggleLoading(false); }
-        }
-
-        async function confirmSave(mode) {
-            if(!window.sysDB || !targetCid) return;
-            try {
-                const clsSub = document.getElementById('classroomSubjectText').innerText;
-                const missionData = {
-                    title: document.getElementById("missionTitleInput").value.trim(),
-                    description: document.getElementById("promptInput").value,
-                    subject_group: targetCid ? "อื่นๆ" : document.getElementById("subjectGroup").value,
-                    subject_name: targetCid ? clsSub : "วิชาทั่วไป",
-                    mission_type: "ai_generated",
-                    content_data: { html: generatedCode },
-                    is_public: true,
-                    updated_at: new Date().toISOString()
-                };
-
-                let mid = editingMid;
-                if (editingMid && currentUserId === originalTeacherId) {
-                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
-                } else {
-                    missionData.created_by = currentUserId;
-                    missionData.created_at = new Date().toISOString();
-                    const { data } = await window.sysDB.from('missions').insert([missionData]).select();
-                    mid = data[0].mission_id;
-                }
-
-                await window.sysDB.from('classroom_missions').upsert({
-                    classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
-                }, { onConflict: 'classroom_id, mission_id' });
-
-                if (mode === 'exit') window.location.href = `classroom-detail.html?id=${targetCid}`;
-            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message); }
-        }
-
-        // --- ระบบตรวจสอบคีย์แบบสดๆ ก่อนบันทึก ---
+        // --- ระบบบันทึกและจัดการ Key ---
         async function saveKeyToDB() {
             const rawKey = document.getElementById("apiKeyInput").value;
             let keys = rawKey.split(',').map(k => k.trim()).filter(k => k);
@@ -555,64 +617,48 @@
             try {
                 for (let key of validKeys) {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-                    if (res.ok) {
-                        workingKeys.push(key);
-                    } else if (res.status === 429) {
-                        console.warn(`Key ถูกจำกัดโควต้าชั่วคราว แต่ยังเก็บไว้ใช้งานต่อได้: ${key.substring(0, 10)}...`);
-                        workingKeys.push(key);
-                    } else {
-                        invalidCount++;
-                    }
+                    if (res.ok) workingKeys.push(key);
+                    else if (res.status === 429) workingKeys.push(key); // โควต้าเต็มเก็บไว้ก่อน
+                    else invalidCount++;
                 }
-            } catch (err) {
-                workingKeys = validKeys; // ยอมให้ผ่านถ้าเช็คไม่ได้
-            }
+            } catch (err) { workingKeys = validKeys; }
 
             btn.innerHTML = originalText;
             btn.disabled = false;
 
-            if (workingKeys.length === 0) {
-                return showMessage("❌ Key หมดอายุ หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ");
-            }
+            if (workingKeys.length === 0) return showMessage("❌ Key เสีย หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ");
 
             const cleanedKey = workingKeys.join(',');
             document.getElementById("apiKeyInput").value = cleanedKey;
 
             try {
-                const { data: { user } } = await window.sysDB.auth.getUser();
-                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', user.id);
+                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
                 toggleKeyEdit(false);
-                
-                if (invalidCount > 0) {
-                    showMessage(`✅ บันทึกสำเร็จ (ตัด ${invalidCount} คีย์ที่เสียออกอัตโนมัติ)`);
-                } else {
-                    showMessage("✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
-                }
-            } catch (e) { 
-                showMessage("ไม่สามารถบันทึกได้"); 
-            }
+                showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
+            } catch (e) { showMessage("ไม่สามารถบันทึกได้"); }
         }
 
         async function loadKeyFromDB() {
-            const { data: { user } } = await window.sysDB.auth.getUser();
-            if(user) {
-                currentUserId = user.id;
-                const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', user.id).single();
-                if(data?.gemini_api_key) {
-                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                    toggleKeyEdit(false);
-                } else {
-                    toggleKeyEdit(true);
-                }
-            }
+            if (!window.sysDB || !currentUserId) return;
+            const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', currentUserId).single();
+            if(data?.gemini_api_key) {
+                document.getElementById("apiKeyInput").value = data.gemini_api_key;
+                toggleKeyEdit(false);
+            } else { toggleKeyEdit(true); }
         }
 
-        function showMessage(text) { document.getElementById("msgText").innerText = text; document.getElementById("msgBox").classList.remove('hidden'); setTimeout(() => document.getElementById("msgBox").classList.add('hidden'), 5000); }
-        function toggleLoading(show, msg = "") { document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); if(msg) document.getElementById("loadingMessage").innerText = msg; document.getElementById("generateBtn").disabled = show; }
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
-        function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
-        function changeView(size) { document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; }
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🎓</h1><p style="text-align:center;">รอรับผลงานจาก AI ของ FlipSchool ครับ</p></div></body>`; }
+        // --- ฟังก์ชันอื่นๆ ของระบบ ---
+        function toggleLoading(show, msg = "") { 
+            document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
+            if(msg) document.getElementById("loadingMessage").innerText = msg; 
+        }
+        function changeView(size) { 
+            document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; 
+            document.querySelectorAll('.view-btn').forEach(b => { b.classList.remove('bg-slate-200','text-blue-700'); b.classList.add('hover:bg-white','text-slate-500'); });
+            event.currentTarget.classList.add('bg-slate-200','text-blue-700');
+            event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
+        }
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun',sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🚀</h1><p style="text-align:center; font-weight:bold; margin-top:10px;">รอรับผลงานระดับพรีเมียมจาก AI ครับ</p></div></body>`; }
     </script>
 </body>
 </html>
