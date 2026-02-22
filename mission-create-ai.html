@@ -220,8 +220,17 @@
                     </div>
                     
                     <!-- กล่องแสดงประวัติการสั่งงาน -->
-                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-3 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto max-h-[250px] scroll-smooth">
+                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-2 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto max-h-[250px] scroll-smooth">
                         <!-- บับเบิ้ลแชทจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
+                    </div>
+
+                    <!-- Loading Status (ย้ายมาไว้ตรงนี้ และปรับให้เหมือน AI กำลังคิด/พิมพ์ตอบ) -->
+                    <div id="loadingStatus" class="hidden-el mb-3 self-start bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3 shadow-sm flex items-center gap-3 max-w-[90%] chat-bubble">
+                        <div class="flex items-center justify-center w-7 h-7 bg-purple-100 text-purple-600 rounded-full shrink-0">
+                            <i class="fas fa-robot text-xs"></i>
+                        </div>
+                        <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full spinner shrink-0"></div>
+                        <span id="loadingMessage" class="text-xs font-bold text-blue-700 italic">AI กำลังทำงาน...</span>
                     </div>
 
                     <!-- ช่องพิมพ์คำสั่งใหม่ -->
@@ -239,11 +248,6 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <div id="loadingStatus" class="hidden-el mt-3 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center gap-3 animate-pulse">
-                        <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full spinner"></div>
-                        <span id="loadingMessage" class="text-xs font-bold text-blue-700 italic">AI กำลังทำงาน...</span>
                     </div>
                 </div>
 
@@ -293,9 +297,27 @@
         let aiTimeoutId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (window.CONFIG) {
-                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
-                document.getElementById('app-slogan-display').innerText = window.CONFIG.APP_SLOGAN;
+            // โหลด Config และตั้งค่าแบรนด์ให้สอดคล้องกับ js/config.js
+            if (typeof APP_CONFIG !== 'undefined') {
+                // 1. เปลี่ยน Title Bar อัตโนมัติ
+                document.title = `AI Mission Creator | ${APP_CONFIG.APP_NAME}`;
+                
+                // 2. เปลี่ยนข้อความแบรนด์เนมและสโลแกนใน Navbar
+                const sloganDisplay = document.getElementById('app-slogan-display');
+                if (sloganDisplay) sloganDisplay.innerText = APP_CONFIG.APP_SLOGAN;
+                
+                // (ทางเลือกเสริม) หากคุณครูต้องการให้ชื่อ Logo เปลี่ยนตาม Config ด้วย
+                const appNameDisplay = document.getElementById('app-name-display');
+                if (appNameDisplay && APP_CONFIG.APP_NAME === 'FlipSchool') {
+                    appNameDisplay.innerHTML = `<span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>`;
+                } else if (appNameDisplay) {
+                    appNameDisplay.innerHTML = `<span class="text-white">${APP_CONFIG.APP_NAME}</span>`;
+                }
+
+                // 3. เปลี่ยนข้อความในส่วน Footer (ลิขสิทธิ์)
+                document.querySelectorAll('.app-slogan-label').forEach(el => {
+                    el.innerText = APP_CONFIG.APP_SLOGAN;
+                });
             }
 
             const params = new URLSearchParams(window.location.search);
@@ -506,6 +528,7 @@
             appendChatBubble('user', prompt);
             promptInputEl.value = ""; 
 
+            // สลับปุ่มเป็นปุ่ม Stop ขณะกำลังประมวลผล
             document.getElementById("generateBtn").classList.add('hidden-el');
             document.getElementById("aiStopBtn").classList.remove('hidden-el');
 
@@ -561,11 +584,6 @@
                     
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
-                    const genBtn = document.getElementById("generateBtn");
-                    genBtn.innerHTML = `<i class="fas fa-magic text-yellow-300"></i>`;
-                    genBtn.className = "w-9 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center text-sm";
-                    genBtn.title = "ปรับปรุง/แก้ไขเพิ่มเติม";
-                    
                     appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
                     
                     if (result.mission_description) document.getElementById("missionDescInput").value = result.mission_description;
@@ -585,8 +603,11 @@
             finally { 
                 clearTimeout(aiTimeoutId);
                 aiAbortController = null; // ปลดล็อกตัวแปรเสมอ
+                
+                // สลับปุ่มกลับมาเป็นปุ่มเริ่มทำงานเหมือนเดิม
                 document.getElementById("generateBtn").classList.remove('hidden-el');
                 document.getElementById("aiStopBtn").classList.add('hidden-el');
+                
                 toggleLoading(false); 
                 promptInputEl.focus(); 
             }
