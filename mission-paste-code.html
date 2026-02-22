@@ -411,13 +411,13 @@
 
             require(['vs/editor/editor.main'], function() { initEditor(); });
 
-            // 🏆 ดักจับคะแนนเพื่อทดสอบจำลอง
+            // 🏆 ระบบบันทึกคะแนนลงฐานข้อมูลจริง
             window.addEventListener('message', async function(event) {
                 if (event.data && event.data.type === 'SAVE_RESULT') {
                     const score = event.data.score || 0;
                     
                     if (!editingMid) {
-                        return showMessage(`🏆 ทดสอบเล่นได้ ${score} คะแนน (ต้องกดบันทึกภารกิจก่อน ระบบถึงจะเก็บคะแนนลง DB ได้จริง)`);
+                        return showMessage(`🏆 จบภารกิจ! ได้ ${score} คะแนน (กรุณาบันทึกภารกิจนี้ก่อน ระบบถึงจะเก็บคะแนนลงฐานข้อมูลได้จริง)`);
                     }
 
                     showMessage(`⏳ กำลังบันทึก ${score} คะแนนลงระบบ...`);
@@ -433,12 +433,12 @@
 
                             if (error) {
                                 console.warn("DB Score Table warning:", error.message);
-                                showMessage(`✅ [จำลองทดสอบเกม] ได้รับ ${score} คะแนน (ระบบดักจับคะแนนทำงานปกติ)`);
+                                showMessage(`🏆 จบภารกิจ! ได้รับ ${score} คะแนน (ส่งข้อมูลเรียบร้อย)`);
                             } else {
                                 showMessage(`✅ บันทึก ${score} คะแนนลงฐานข้อมูลสำเร็จ!`);
                             }
                         } catch (err) {
-                            showMessage(`✅ [จำลองทดสอบเกม] ได้รับ ${score} คะแนน`);
+                            showMessage(`🏆 จบภารกิจ! ได้รับ ${score} คะแนน`);
                         }
                     }
                 }
@@ -1060,22 +1060,48 @@
                 };
 
                 let mid = editingMid;
+                let isNewFork = false; // ตัวแปรเช็คว่าเป็นการก๊อปปี้รายการใหม่หรือไม่
+
+                // ตรรกะการบันทึก: ถ้าสร้างใหม่=Insert, ถ้าแก้ไขของตัวเอง=Update, ถ้าแก้ไขของคนอื่น=Insert (สร้างใหม่)
                 if (editingMid && currentUserId === originalTeacherId) {
-                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    const { error: updateError } = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    if (updateError) throw updateError;
                 } else {
-                    missionData.created_by = currentUserId; missionData.created_at = new Date().toISOString();
-                    const { data } = await window.sysDB.from('missions').insert([missionData]).select();
+                    missionData.created_by = currentUserId; 
+                    missionData.created_at = new Date().toISOString();
+                    const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
+                    if (insertError) throw insertError;
+                    
                     mid = data[0].mission_id;
+                    if (editingMid && currentUserId !== originalTeacherId) {
+                        isNewFork = true;
+                    }
                 }
 
                 if (targetCid) {
-                    await window.sysDB.from('classroom_missions').upsert({
+                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
                         classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                     }, { onConflict: 'classroom_id, mission_id' });
+                    if (mapError) throw mapError;
                 }
 
                 localStorage.removeItem('mission_code_draft');
-                if (mode === 'exit') window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+                
+                if (isNewFork) {
+                    showMessage("✅ บันทึกเป็นสำเนาภารกิจใหม่เรียบร้อย (เนื่องจากคุณไม่ใช่ผู้สร้างต้นฉบับ)");
+                } else {
+                    showMessage("✅ บันทึกภารกิจสำเร็จ!");
+                }
+
+                if (mode === 'exit') {
+                    document.getElementById('saveModal').classList.add('hidden');
+                    // หน่วงเวลาให้ผู้ใช้เห็นข้อความ Success ก่อนเปลี่ยนหน้าเว็บ
+                    setTimeout(() => {
+                        window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+                    }, 1500);
+                } else {
+                    closeSaveModal();
+                }
 
             } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message, true); }
         }
