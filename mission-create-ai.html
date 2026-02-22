@@ -223,17 +223,20 @@
                         <!-- บับเบิ้ลแชทจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
                     </div>
 
-                    <!-- ช่องพิมพ์คำสั่งใหม่ -->
-                    <div class="relative shrink-0 mt-auto">
-                        <textarea id="promptInput" class="w-full min-h-[100px] bg-white border border-slate-300 rounded-[1.5rem] p-4 pr-14 outline-none transition-all resize-y text-sm focus:ring-2 focus:ring-blue-500 shadow-sm leading-relaxed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
+                    <!-- ช่องพิมพ์คำสั่งใหม่ (ปรับโครงสร้างเพื่อรองรับปุ่มข้อความยาวและระบบ Disable) -->
+                    <div class="relative shrink-0 mt-auto bg-white border border-slate-300 rounded-[1.5rem] p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all flex flex-col">
+                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent p-3 outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
                         
-                        <div class="absolute bottom-4 right-4 flex items-center gap-2">
-                            <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-10 h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow-md flex items-center justify-center" title="หยุด AI">
-                                <i class="fas fa-stop"></i>
-                            </button>
-                            <button id="generateBtn" onclick="handleGenerate()" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center" title="ส่งคำสั่ง">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                        <div class="flex justify-between items-center px-2 pb-1 pt-1">
+                            <span class="text-[10px] text-slate-400 font-medium">✨ AI พร้อมรับคำสั่ง</span>
+                            <div class="flex items-center gap-2">
+                                <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-9 h-9 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow-md flex items-center justify-center text-sm" title="หยุด AI">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                                <button id="generateBtn" onclick="handleGenerate()" class="w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center text-sm" title="ส่งคำสั่ง">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -476,6 +479,8 @@
 
         // --- จัดการการกดปุ่มสร้าง/แก้ไข ---
         async function handleGenerate() {
+            if (aiAbortController) return; // ป้องกันการกดซ้ำซ้อนขณะประมวลผล
+
             const promptInputEl = document.getElementById("promptInput");
             const prompt = promptInputEl.value.trim();
             const title = document.getElementById("missionTitleInput").value.trim();
@@ -546,8 +551,11 @@
                     
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
-                    // เปลี่ยนปุ่มเป็นสีเหลืองเพื่อบอกว่า "แก้ไขต่อได้"
-                    document.getElementById("generateBtn").innerHTML = `<i class="fas fa-magic text-yellow-300"></i> <span>ปรับปรุง/แก้ไขเพิ่มเติม</span>`;
+                    // เปลี่ยนรูปร่างปุ่มและข้อความเพื่อบอกว่า "แก้ไขต่อได้" 
+                    const genBtn = document.getElementById("generateBtn");
+                    genBtn.innerHTML = `<i class="fas fa-magic text-yellow-300"></i>`;
+                    genBtn.className = "w-9 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all shadow-md transform active:scale-95 flex items-center justify-center text-sm";
+                    genBtn.title = "ปรับปรุง/แก้ไขเพิ่มเติม";
                     
                     // เพิ่มแชทของ AI เพื่อบอกว่าทำอะไรไป
                     appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
@@ -573,6 +581,7 @@
                 document.getElementById("generateBtn").classList.remove('hidden-el');
                 document.getElementById("aiStopBtn").classList.add('hidden-el');
                 toggleLoading(false); 
+                promptInputEl.focus(); // โฟกัสที่ช่องพิมพ์ พร้อมรับคำสั่งถัดไปทันที
             }
         }
 
@@ -651,6 +660,9 @@
         function toggleLoading(show, msg = "") { 
             document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
             if(msg) document.getElementById("loadingMessage").innerText = msg; 
+            
+            // ล็อกช่องพิมพ์และปุ่มขัดเกลาขณะ AI ทำงาน
+            document.getElementById("promptInput").disabled = show;
         }
         function changeView(size) { 
             document.getElementById("previewWrapper").className = `preview-frame-wrapper device-${size} shadow-2xl`; 
