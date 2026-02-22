@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pro Code Editor | FlipSchool</title>
 
-<!-- ป้องกัน Favicon 404 Error -->
-<link rel="icon" href="data:,">
+    <!-- ป้องกัน Favicon 404 Error -->
+    <link rel="icon" href="data:,">
 
-<!-- Config & Database Scripts -->
+    <!-- Config & Database Scripts -->
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -163,7 +163,7 @@
                         <button onclick="toggleKeyEdit(true)" class="text-[10px] text-emerald-600 underline hover:text-emerald-800">จัดการ Key</button>
                     </div>
                     
-                    <!-- API Key Edit View (Visible by default) -->
+                    <!-- API Key Edit View -->
                     <div id="apiKeyEditView" class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center mb-1">
                             <label class="text-[10px] font-bold text-slate-500 block">Gemini API Key</label>
@@ -178,7 +178,6 @@
                                     <i class="fas fa-eye" id="eyeIcon"></i>
                                 </button>
                             </div>
-                            <!-- เพิ่ม ID ให้ปุ่มเพื่อใช้ทำ Loading State -->
                             <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors min-w-[60px] text-center">บันทึก</button>
                         </div>
                         <p class="text-[9px] text-slate-400 mt-1.5"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-orange-500 font-medium">(ต้องขึ้นต้นด้วย AIza...)</span></p>
@@ -335,7 +334,9 @@
     </main>
 
     <script>
-        const MODEL_ID = "gemini-2.0-flash"; 
+        // เปลี่ยนมาใช้ 1.5-flash เป็นตัวหลัก เพราะเป็นรุ่นที่ปล่อยให้ใช้ฟรีเสถียรที่สุด 
+        // บางบัญชีจะถูกบล็อกไม่ให้ใช้ 2.0-flash ได้แม้จะผูกเบอร์แล้วก็ตาม
+        const MODEL_ID = "gemini-1.5-flash"; 
         
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
@@ -486,13 +487,11 @@
                 
                 if (debounceTimer) clearTimeout(debounceTimer);
                 
-                // เลื่อนการรัน preview แบบอัตโนมัติออกไป เพื่อลดการทำงานซ้อนกันของ iframe
                 debounceTimer = setTimeout(() => { 
                     refreshPreview(); 
                 }, 1000); 
             });
             
-            // ป้องกันการยิงคำสั่ง Preview ซ้ำซ้อนตอนเริ่มต้น
             setTimeout(() => refreshPreview(), 500);
         }
 
@@ -536,14 +535,12 @@
 
             placeholder.classList.add('opacity-0', 'pointer-events-none');
             
-            // สร้าง Iframe ใหม่แทนการใช้ document.write ทับของเดิม เพื่อล้างหน่วยความจำ JavaScript ให้สะอาด 100%
             const newIframe = document.createElement('iframe');
             newIframe.id = 'missionFrame';
             newIframe.className = "w-full h-full bg-white border-none transition-opacity duration-500";
             newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin allow-popups";
             newIframe.title = "Mission Preview";
             
-            // นำ Iframe ใหม่ไปสลับแทนที่อันเดิม
             iframe.parentNode.replaceChild(newIframe, iframe);
             iframe = newIframe;
             
@@ -735,8 +732,8 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
 
-                // ปรับปรุงรายการโมเดลสำรองให้เสถียรที่สุด
-                const AI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+                // สลับเอารุ่น 1.5-flash ที่เปิดให้ใช้ฟรีชัวร์ๆ ขึ้นเป็นอันดับแรกก่อนครับ
+                const AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
                 let resultData = null;
                 let isSuccess = false;
                 let lastErrorMsg = "";
@@ -765,7 +762,7 @@
                             if (!res.ok) {
                                 const errData = await res.json().catch(() => ({}));
                                 let errorMsg = errData.error?.message || `API Error (${res.status})`;
-                                lastErrorMsg = errorMsg;
+                                lastErrorMsg = `[${res.status}] ${errorMsg}`; // ดึง Error แจ้งให้คุณครูทราบตรงๆ
                                 
                                 if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
                                     if (errorMsg.includes("limit: 0")) {
@@ -776,7 +773,7 @@
                                         keyFailed = true;
                                         break; 
                                     }
-                                } else if (res.status === 404) {
+                                } else if (res.status === 404 || res.status === 400) {
                                     continue; 
                                 } else {
                                     keyFailed = true;
@@ -800,11 +797,12 @@
 
                 if (!isSuccess) {
                     if (lastErrorMsg.includes("limit: 0")) {
-                        throw new Error("บัญชีของคุณไม่มีโควต้าฟรี (Limit: 0) อาจเกิดจากใช้อีเมลองค์กร กรุณาใช้ Gmail ส่วนตัวทั่วไปสร้าง Key ครับ");
+                        throw new Error("บัญชี Gmail นี้ไม่ได้รับโควต้าใช้งานฟรีจาก Google (Limit: 0) วิธีแก้: แนะนำให้ใช้บัญชี Gmail ส่วนตัว (บัญชีปกติ) ในการขอ API Key แทนอีเมลองค์กรครับ");
                     } else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
                         throw new Error("โควต้าเต็มทุกคีย์! ⏳ (หากมาจาก Gmail เดียวกัน โควต้าจะนับรวมกันครับ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น)");
                     } else {
-                        throw new Error(`เกิดข้อผิดพลาด: ${lastErrorMsg}`);
+                        // ปล่อย Error ของแท้จาก Google ออกมาโชว์เลยครับ จะได้ทราบสาเหตุชัดเจน
+                        throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
                     }
                 }
                 
@@ -869,7 +867,6 @@
             
             if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
             
-            // กรองเอาเฉพาะคีย์ที่ขึ้นต้นด้วย AIza
             const validKeys = keys.filter(k => k.startsWith('AIza'));
             
             if (validKeys.length === 0) {
@@ -884,21 +881,23 @@
             let workingKeys = [];
             let invalidCount = 0;
 
-            // ตรวจสอบความถูกต้องของ Key ทีละอัน โดยยิงถามเซิร์ฟเวอร์เบาๆ
             try {
                 for (let key of validKeys) {
-                    // เรียก API รุ่น Model List ซึ่งเบา ไม่กินโควต้าความยาว และเช็คสถานะ Key ได้ชัวร์ที่สุด
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
                     if (res.ok) {
-                        workingKeys.push(key); // รหัสใช้งานได้ปกติ
+                        workingKeys.push(key);
+                    } else if (res.status === 429) {
+                        // แก้บั๊ก: ถ้าติด 429 ให้ถือว่า Key ยังใช้ได้ แค่โควต้าเต็มชั่วคราว ไม่ต้องลบทิ้ง
+                        console.warn(`Key ถูกจำกัดโควต้าชั่วคราว (Rate Limit) แต่ยังเก็บไว้ใช้งานต่อได้: ${key.substring(0, 10)}...`);
+                        workingKeys.push(key);
                     } else {
                         invalidCount++;
-                        console.warn(`Key ถูกระงับหรือหมดอายุ: ${key.substring(0, 10)}...`);
+                        console.warn(`Key ถูกระงับหรือเกิดข้อผิดพลาด (Status ${res.status}): ${key.substring(0, 10)}...`);
                     }
                 }
             } catch (err) {
                 console.error("ตรวจสอบ Key ไม่สำเร็จเนื่องจากเน็ตหลุดข้ามไปก่อน", err);
-                workingKeys = validKeys; // ถ้าเน็ตพัง ให้ถือว่ารหัสผ่านไปก่อนเพื่อความยืดหยุ่น
+                workingKeys = validKeys; // ยอมให้ผ่านไปก่อนเผื่อเน็ตมีปัญหาชั่วคราว
             }
 
             btn.innerHTML = originalText;
