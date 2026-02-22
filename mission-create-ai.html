@@ -66,15 +66,17 @@
         /* กล่อง Source Code */
         #codeView { font-family: 'JetBrains Mono', monospace; }
         
-        /* คลาสสำหรับโหมดเต็มจอ */
+        /* คลาสสำหรับโหมดเต็มจอ ให้ครอบคลุมทั้ง Toolbar และ Iframe */
         .fullscreen-active {
             position: fixed !important; inset: 0 !important; z-index: 9999 !important;
-            background: rgba(15, 23, 42, 0.95) !important; padding: 1rem !important;
-            border-radius: 0 !important; border: none !important; backdrop-filter: blur(8px);
+            background: #f1f5f9 !important; padding: 1rem !important;
+            border-radius: 0 !important; border: none !important;
+            width: 100vw !important; height: 100vh !important;
+            display: flex; flex-direction: column; overflow: hidden;
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col h-screen overflow-hidden">
 
     <div id="msgBox" class="custom-message-box">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
@@ -99,7 +101,7 @@
         </div>
     </div>
 
-    <!-- Navbar (ยึดติดด้านบน) -->
+    <!-- Navbar -->
     <nav class="nav-gradient text-white shadow-md shrink-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -122,10 +124,9 @@
     </nav>
 
     <!-- Main Content Area -->
-    <!-- ปรับความสูงให้พอดีจอ 100vh หักความสูงของ Navbar และ Footer -->
     <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-120px)]">
         
-        <!-- Left Panel: Scrollable AI Editor (มี Scrollbar ของตัวเอง) -->
+        <!-- Left Panel: Scrollable AI Editor -->
         <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
             <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
                 <div class="flex justify-between items-center mb-5 shrink-0">
@@ -176,46 +177,44 @@
                     </div>
                 </div>
 
-                <!-- Mission Info (เพิ่มช่องรายละเอียดกลับมาตามที่รีเควส) -->
-                <div class="space-y-4 shrink-0 mb-4">
-                    <div id="subjectSelectorArea" class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">กลุ่มสาระ</label>
-                            <select id="subjectGroup" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                                <option value="ภาษาไทย">ภาษาไทย</option>
-                                <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                                <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-                                <option value="สังคมศึกษา">สังคมศึกษา</option>
-                                <option value="สุขศึกษา">สุขศึกษา</option>
-                                <option value="ศิลปะ">ศิลปะ</option>
-                                <option value="การงานอาชีพ">การงานอาชีพ</option>
-                                <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
-                                <option value="อื่นๆ" selected>อื่นๆ</option>
-                            </select>
+                <!-- Metadata Section (ปรับให้เหมือนหน้า mission-paste-code) -->
+                <div class="flex flex-col gap-3 shrink-0 mb-4">
+                    
+                    <!-- Context Badge -->
+                    <div id="classroomContextArea" class="hidden-el bg-gradient-to-r from-teal-50 to-white border-l-4 border-teal-500 p-3 rounded-r-xl shadow-sm transition-all duration-500">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fas fa-link text-teal-500" id="linkIcon"></i>
+                            <p id="linkStatus" class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">กำลังเชื่อมโยงห้องเรียน...</p>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ระดับชั้น</label>
-                            <input type="text" id="missionGradeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs focus:ring-2 focus:ring-blue-500" placeholder="เช่น ม.1">
+                        <div class="flex flex-wrap gap-2 items-center" id="contextTags">
+                            <span class="bg-slate-200 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">Waiting for data...</span>
                         </div>
                     </div>
 
-                    <div id="classroomContextArea" class="hidden p-3 bg-orange-50 border border-orange-100 rounded-xl">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-book-bookmark text-orange-400"></i>
+                    <!-- Mission Title & Details -->
+                    <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
+                            <input type="text" id="missionTitleInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" placeholder="เช่น เกมตะลุยอวกาศ">
+                        </div>
+                        
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                คำอธิบาย <span class="bg-blue-100 text-blue-600 px-1.5 rounded-sm text-[8px] tracking-normal"><i class="fas fa-magic"></i> AI ช่วยเขียนได้</span>
+                            </label>
+                            <textarea id="missionDescInput" rows="2" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-blue-500 transition-all resize-y shadow-sm" placeholder="รายละเอียดของภารกิจ หรือคำใบ้สำหรับนักเรียน..."></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <p class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">อ้างอิงรายวิชา</p>
-                                <p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p>
+                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">หมวดวิชา</label>
+                                <input type="text" id="missionSubjectInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น วิทยาศาสตร์" value="อื่นๆ">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ระดับชั้น</label>
+                                <input type="text" id="missionGradeInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น ม.1">
                             </div>
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
-                        <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="เช่น เกมคำศัพท์หรรษา">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">คำอธิบายภารกิจ</label>
-                        <textarea id="missionDescInput" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน (AI จะช่วยเติมให้อัตโนมัติเมื่อสร้างเสร็จ)"></textarea>
                     </div>
                 </div>
 
@@ -267,63 +266,69 @@
             </div>
         </div>
 
-        <!-- Right Panel: Preview & Code View (มี Scrollbar ภายใน หากหน้าจอมือถือยาวเกินไป) -->
+        <!-- Right Panel: Preview & Code View (ห่อด้วย Fullscreen Wrapper) -->
         <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
-            <!-- Toolbar ด้านบนของ Preview -->
-            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
+            
+            <!-- Fullscreen Wrapper (ส่วนนี้จะถูกขยายให้เต็มจอ) -->
+            <div id="fullscreenWrapper" class="flex flex-col h-full w-full transition-all duration-300">
                 
-                <!-- Toggle Preview/Code -->
-                <div class="flex bg-slate-100 p-1 rounded-lg">
-                    <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1">
-                        <i class="fas fa-eye"></i> พรีวิว
-                    </button>
-                    <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1">
-                        <i class="fas fa-code"></i> โค้ด
-                    </button>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <!-- Device Controls -->
-                    <div class="flex gap-1 bg-slate-100 p-1 rounded-lg" id="device-controls">
-                        <button onclick="changeView('mobile')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="มือถือ"><i class="fas fa-mobile-alt"></i></button>
-                        <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แท็บเล็ต"><i class="fas fa-tablet-alt"></i></button>
-                        <button onclick="changeView('desktop')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-md flex items-center justify-center transition-all text-xs" title="จอคอมพิวเตอร์"><i class="fas fa-desktop"></i></button>
+                <!-- Toolbar ด้านบนของ Preview -->
+                <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
+                    
+                    <!-- Toggle Preview/Code -->
+                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1">
+                            <i class="fas fa-eye"></i> พรีวิว
+                        </button>
+                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1">
+                            <i class="fas fa-code"></i> โค้ด
+                        </button>
                     </div>
-                    
-                    <!-- Fullscreen Toggle -->
-                    <button onclick="toggleFullScreenPreview()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-all flex items-center justify-center text-xs" title="ขยายเต็มจอ">
-                        <i class="fas fa-expand"></i>
-                    </button>
 
-                    <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold hidden shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
-                        <i class="fas fa-cloud-upload-alt"></i> บันทึก
-                    </button>
-                </div>
-            </div>
+                    <div class="flex items-center gap-3">
+                        <!-- Device Controls -->
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-lg" id="device-controls">
+                            <button onclick="changeView('mobile')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="มือถือ"><i class="fas fa-mobile-alt"></i></button>
+                            <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แท็บเล็ต"><i class="fas fa-tablet-alt"></i></button>
+                            <button onclick="changeView('desktop')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-md flex items-center justify-center transition-all text-xs" title="จอคอมพิวเตอร์"><i class="fas fa-desktop"></i></button>
+                        </div>
+                        
+                        <!-- Fullscreen Toggle -->
+                        <button onclick="toggleFullScreenPreview()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-all flex items-center justify-center text-xs" title="ขยายเต็มจอ / ย่อกลับ">
+                            <i class="fas fa-expand"></i>
+                        </button>
 
-            <!-- Preview Container (Scrollable) -->
-            <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-auto flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
-                
-                <!-- Iframe Wrapper (ขนาดจะเปลี่ยนตาม Device ที่เลือก) -->
-                <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative shrink-0">
-                    <!-- โหมดพรีวิวหน้าเว็บ -->
-                    <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Live Preview"></iframe>
-                    
-                    <!-- โหมดดูโค้ด (ซ่อนอยู่) -->
-                    <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly placeholder="<!-- รหัส Source Code จะแสดงที่นี่เมื่อสร้างเสร็จ -->"></textarea>
+                        <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold hidden shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
+                            <i class="fas fa-cloud-upload-alt"></i> บันทึก
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Preview Container (Scrollable) -->
+                <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-auto flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
+                    
+                    <!-- Iframe Wrapper (ขนาดจะเปลี่ยนตาม Device ที่เลือก) -->
+                    <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative shrink-0 w-full h-full">
+                        <!-- โหมดพรีวิวหน้าเว็บ -->
+                        <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Live Preview"></iframe>
+                        
+                        <!-- โหมดดูโค้ด (ซ่อนอยู่) -->
+                        <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly placeholder="<!-- รหัส Source Code จะแสดงที่นี่เมื่อสร้างเสร็จ -->"></textarea>
+                    </div>
+
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Footer (ยึดติดด้านล่าง) -->
+    <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-3 mt-auto text-center font-sans shrink-0 z-50">
         <p class="text-blue-900 font-bold text-[10px] italic">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
     </footer>
 
     <script>
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let dbSubject = "อื่นๆ", dbGrade = ""; 
         let aiAbortController = null;
         let aiTimeoutId = null;
         let isFullScreen = false;
@@ -375,19 +380,19 @@
             }, 500);
         });
 
-        // --- ระบบขยายเต็มจอ (Full Screen Preview) ---
+        // --- ระบบขยายเต็มจอ (Full Screen Preview) รองรับการสลับเครื่องมือขณะอยู่เต็มจอ ---
         function toggleFullScreenPreview() {
-            const container = document.getElementById('previewContainer');
+            const wrapper = document.getElementById('fullscreenWrapper');
             const icon = document.querySelector('button[onclick="toggleFullScreenPreview()"] i');
             
             isFullScreen = !isFullScreen;
             if (isFullScreen) {
                 // ขยาย Container ให้ทับหน้าจอทั้งหมด
-                container.classList.add('fullscreen-active');
+                wrapper.classList.add('fullscreen-active');
                 icon.className = 'fas fa-compress text-blue-500';
             } else {
                 // คืนค่ากลับสู่ปกติ
-                container.classList.remove('fullscreen-active');
+                wrapper.classList.remove('fullscreen-active');
                 icon.className = 'fas fa-expand';
             }
         }
@@ -427,7 +432,9 @@
             const wrapper = document.getElementById("previewWrapper");
             wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl relative shrink-0`; 
             
-            // อัปเดตปุ่มเฉพาะกรณีที่คลิกเข้ามาเอง หรือโดนบังคับ
+            if(size === 'desktop') wrapper.classList.add('h-full', 'w-full');
+            
+            // อัปเดตสีปุ่ม
             if(event && event.currentTarget) {
                 document.querySelectorAll('.view-btn').forEach(b => { 
                     b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
@@ -498,14 +505,37 @@
 
         async function fetchClassroomContext() {
             try {
-                const { data } = await window.sysDB.from('classrooms').select('subject_name').eq('classroom_id', targetCid).single();
+                const { data, error } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
+                if (error) throw error;
                 if (data) {
-                    document.getElementById('subjectSelectorArea').classList.add('hidden-el');
-                    document.getElementById('classroomContextArea').classList.remove('hidden');
-                    document.getElementById('classroomSubjectText').innerText = data.subject_name;
-                    document.getElementById('subjectGroup').value = "อื่นๆ";
+                    dbSubject = data.subject_name || "อื่นๆ";
+                    dbGrade = data.room_name || "";
+
+                    const subjInput = document.getElementById('missionSubjectInput');
+                    const gradeInput = document.getElementById('missionGradeInput');
+                    if (!subjInput.value || subjInput.value === 'อื่นๆ') subjInput.value = dbSubject;
+                    if (!gradeInput.value) gradeInput.value = dbGrade;
+
+                    document.getElementById('classroomContextArea').classList.remove('hidden-el');
+                    document.getElementById('linkIcon').className = "fas fa-check-circle text-teal-500";
+                    document.getElementById('linkStatus').innerText = "เชื่อมโยงห้องเรียนแล้ว";
+                    
+                    const tagsContainer = document.getElementById('contextTags');
+                    tagsContainer.innerHTML = `
+                        <span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
+                            <i class="fas fa-book"></i> ${dbSubject}
+                        </span>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
+                            <i class="fas fa-layer-group"></i> ${dbGrade || "ไม่ระบุชั้น"}
+                        </span>
+                    `;
                 }
-            } catch (err) {}
+            } catch (err) { 
+                document.getElementById('linkStatus').innerText = "ไม่พบข้อมูลห้องเรียน";
+                document.getElementById('linkStatus').className = "text-[10px] font-bold text-orange-500 uppercase tracking-wider";
+                document.getElementById('linkIcon').className = "fas fa-exclamation-triangle text-orange-500";
+                document.getElementById('contextTags').innerHTML = `<span class="text-xs text-slate-400">ระบุข้อมูลที่ฟอร์มด้านล่างได้เลยครับ</span>`;
+            }
         }
 
         function isSafe(text) {
@@ -634,7 +664,7 @@
             if (isUpdate) {
                 finalPrompt = `นี่คือคำสั่งให้คุณ "แก้ไข/ปรับปรุง" โค้ดสื่อการสอน\nคำสั่งใหม่จากครู: "${prompt}"\n\nโปรดแก้ไขจากโค้ดฉบับปัจจุบันด้านล่างนี้:\n\`\`\`html\n${generatedCode}\n\`\`\``;
             } else {
-                finalPrompt = `คำสั่งสร้างสื่อการสอนใหม่: "${prompt}"\nโปรดอ้างอิงรายวิชา: ${document.getElementById("subjectGroup").value}`;
+                finalPrompt = `คำสั่งสร้างสื่อการสอนใหม่: "${prompt}"\nโปรดอ้างอิงรายวิชา: ${document.getElementById("missionSubjectInput").value}`;
             }
 
             const sys = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) ในรูปแบบไฟล์เดียว (Single HTML File)
@@ -676,7 +706,6 @@
                     iframeDoc.write(generatedCode);
                     iframeDoc.close();
                     
-                    // อัปเดตช่องโค้ดถ้ามีการสลับไปดูโค้ดอยู่
                     document.getElementById("codeView").value = generatedCode;
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
@@ -719,11 +748,10 @@
 
         async function suggestIdeas() {
             if (aiAbortController) return;
-            const grp = document.getElementById("subjectGroup").value;
-            const clsSub = document.getElementById('classroomSubjectText').innerText;
+            const grp = document.getElementById("missionSubjectInput").value;
             toggleLoading(true, "AI กำลังช่วยคิดไอเดีย...");
             try {
-                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${targetCid ? clsSub : grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถมและมัธยม ตอบภาษาไทยสั้นๆ ไม่ต้องใช้รูปแบบ JSON");
+                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถมและมัธยม ตอบภาษาไทยสั้นๆ ไม่ต้องใช้รูปแบบ JSON");
                 document.getElementById("promptInput").value = res;
             } catch (e) { showMessage("❌ " + e.message, true); } 
             finally { toggleLoading(false); aiAbortController = null; } 
@@ -791,15 +819,117 @@
             } else { toggleKeyEdit(true); }
         }
 
+        async function loadExistingMission() {
+            try {
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+                if (error) throw error;
+                if (data) {
+                    originalTeacherId = data.created_by;
+                    
+                    document.getElementById("missionTitleInput").value = data.title || "";
+                    document.getElementById("missionDescInput").value = data.description || "";
+                    document.getElementById("missionSubjectInput").value = data.subject_group || "ทั่วไป";
+                    document.getElementById("missionGradeInput").value = data.grade_level || "";
+
+                    if(data.content_data?.html) {
+                        generatedCode = data.content_data.html;
+                        document.getElementById("codeView").value = generatedCode;
+                        
+                        let iframe = document.getElementById("missionFrame");
+                        const newIframe = document.createElement('iframe');
+                        newIframe.id = 'missionFrame';
+                        newIframe.className = "w-full h-full bg-white border-none absolute inset-0 z-10";
+                        newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin";
+                        newIframe.title = "Mission Live Preview";
+                        
+                        iframe.parentNode.replaceChild(newIframe, iframe);
+                        
+                        const iframeDoc = newIframe.contentDocument || newIframe.contentWindow.document;
+                        iframeDoc.open();
+                        iframeDoc.write(generatedCode);
+                        iframeDoc.close();
+                    }
+                }
+            } catch(e) {
+                console.error("Error loading mission:", e);
+            }
+        }
+
+        async function confirmSave(mode) {
+            const title = document.getElementById("missionTitleInput").value.trim();
+            const desc = document.getElementById("missionDescInput").value.trim();
+            const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
+            const grade = document.getElementById("missionGradeInput").value.trim() || "";
+            
+            if(!title) {
+                closeSaveModal();
+                document.getElementById("missionTitleInput").focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนบันทึก", true);
+            }
+
+            try {
+                const missionData = {
+                    title: title,
+                    description: desc,
+                    subject_group: subject,
+                    grade_level: grade,
+                    mission_type: "ai_generated",
+                    content_data: { html: generatedCode },
+                    is_public: true,
+                    updated_at: new Date().toISOString()
+                };
+
+                let mid = editingMid;
+                if (editingMid && currentUserId === originalTeacherId) {
+                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                } else {
+                    missionData.created_by = currentUserId;
+                    missionData.created_at = new Date().toISOString();
+                    const { data } = await window.sysDB.from('missions').insert([missionData]).select();
+                    mid = data[0].mission_id;
+                }
+
+                // เชื่อมโยงกับห้องเรียน (ถ้ามาผ่านห้องเรียน)
+                if (targetCid) {
+                    await window.sysDB.from('classroom_missions').upsert({
+                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                    }, { onConflict: 'classroom_id, mission_id' });
+                }
+
+                if (mode === 'exit') window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message, true); }
+        }
+
         function toggleLoading(show, msg = "") { 
             document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
             if(msg) document.getElementById("loadingMessage").innerText = msg; 
             document.getElementById("promptInput").disabled = show;
         }
 
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun',sans-serif; color:#94a3b8; background:#fff; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🚀</h1><p style="text-align:center; font-weight:bold; margin-top:10px;">รอรับผลงานระดับพรีเมียมจาก AI ครับ</p></div></body>`; }
+        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun',sans-serif; color:#94a3b8; background:#f1f5f9; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🚀</h1><p style="text-align:center; font-weight:bold; margin-top:10px;">รอรับผลงานระดับพรีเมียมจาก AI ครับ</p></div></body>`; }
         
-        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
+        function openSaveModal() { 
+            const title = document.getElementById("missionTitleInput").value.trim() || "(ยังไม่ตั้งชื่อ)";
+            const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
+            const grade = document.getElementById("missionGradeInput").value.trim() || "-";
+
+            const detailBox = document.getElementById('saveConfirmDetails');
+            detailBox.innerHTML = `
+                <div class="flex justify-between border-b border-slate-200 pb-2">
+                    <span class="text-slate-500">ภารกิจ:</span> 
+                    <span class="font-bold text-slate-800 truncate max-w-[150px]">${title}</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-2 pt-2">
+                    <span class="text-slate-500">วิชา:</span> 
+                    <span class="font-bold text-teal-600">${subject}</span>
+                </div>
+                <div class="flex justify-between pt-2">
+                    <span class="text-slate-500">ระดับชั้น:</span> 
+                    <span class="font-bold text-blue-600">${grade}</span>
+                </div>
+            `;
+            document.getElementById('saveModal').classList.remove('hidden'); 
+        }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
     </script>
 </body>
