@@ -18,20 +18,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
+        /* ล็อก Body ไม่ให้เลื่อน เพื่อให้แผงซ้ายขวาเลื่อนแยกกันแบบอิสระ */
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
-        .preview-outer-container {
-            width: 100%; display: flex; justify-content: center; align-items: flex-start;
-            padding: 1.5rem; height: calc(100vh - 200px); min-height: 650px; overflow: hidden;
-        }
-
         .preview-frame-wrapper {
             background: #1e293b; border-radius: 2rem; overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            position: relative; transform-origin: top center;
-            display: flex; flex-direction: column;
+            position: relative; flex-shrink: 0;
         }
 
         .device-mobile { width: 375px; height: 667px; }
@@ -59,26 +54,33 @@
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
         
-        /* ปรับแต่ง Scrollbar ทั่วไป */
+        /* ปรับแต่ง Scrollbar ทั่วไปให้ดูสวยงาม */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* สไตล์กล่อง Chat Bubble */
         .chat-bubble { animation: fadeInBubble 0.3s ease-out forwards; }
         @keyframes fadeInBubble { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* กล่อง Source Code */
         #codeView { font-family: 'JetBrains Mono', monospace; }
+        
+        /* คลาสสำหรับโหมดเต็มจอ */
+        .fullscreen-active {
+            position: fixed !important; inset: 0 !important; z-index: 9999 !important;
+            background: rgba(15, 23, 42, 0.95) !important; padding: 1rem !important;
+            border-radius: 0 !important; border: none !important; backdrop-filter: blur(8px);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col h-screen overflow-hidden">
+<body>
 
     <div id="msgBox" class="custom-message-box">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
+    <!-- Save Modal -->
     <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
             <div class="text-center mb-6">
@@ -97,21 +99,21 @@
         </div>
     </div>
 
-    <!-- Navbar -->
-    <nav class="nav-gradient text-white shadow-lg shrink-0 z-50">
+    <!-- Navbar (ยึดติดด้านบน) -->
+    <nav class="nav-gradient text-white shadow-md shrink-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border-2 border-white/20">
-                    <span class="text-2xl">🎓</span>
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/20">
+                    <span class="text-xl">🎓</span>
                 </div>
                 <div class="flex flex-col">
-                    <div id="app-name-display" class="text-xl md:text-2xl font-bold tracking-tight leading-none">
+                    <div id="app-name-display" class="text-xl font-bold tracking-tight leading-none">
                         <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
                     </div>
-                    <span id="app-slogan-display" class="text-[10px] md:text-xs text-blue-100 font-medium mt-0.5 tracking-wide opacity-90 italic">...</span>
+                    <span id="app-slogan-display" class="text-[10px] text-blue-100 font-medium mt-0.5 tracking-wide opacity-90 italic">...</span>
                 </div>
             </div>
-            <div class="flex gap-4">
+            <div class="flex gap-3">
                 <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
                     <i class="fas fa-arrow-left"></i> ย้อนกลับ
                 </button>
@@ -119,25 +121,25 @@
         </div>
     </nav>
 
-    <!-- Main Content Area (Scrollable Sections) -->
-    <main class="flex-grow container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-140px)]">
+    <!-- Main Content Area -->
+    <!-- ปรับความสูงให้พอดีจอ 100vh หักความสูงของ Navbar และ Footer -->
+    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-120px)]">
         
-        <!-- Left Panel: Scrollable AI Editor -->
-        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-4">
-            <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
-                <div class="flex justify-between items-start mb-6 shrink-0">
+        <!-- Left Panel: Scrollable AI Editor (มี Scrollbar ของตัวเอง) -->
+        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
+            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
+                <div class="flex justify-between items-center mb-5 shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
-                            <i class="fas fa-robot text-2xl"></i>
+                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner">
+                            <i class="fas fa-robot text-xl"></i>
                         </div>
-                        <h2 id="pageModeDisplay" class="text-2xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
+                        <h2 class="text-xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
                     </div>
-                    <div id="ownershipStatus" class="hidden-el"></div>
                 </div>
 
                 <!-- API Key Config Section -->
-                <div class="mb-6 shrink-0">
-                    <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-[1.5rem] border border-emerald-200 flex justify-between items-center shadow-sm">
+                <div class="mb-5 shrink-0">
+                    <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm text-sm">
                                 <i class="fas fa-check"></i>
@@ -152,7 +154,7 @@
                         </button>
                     </div>
 
-                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-200 shadow-inner">
+                    <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
                         <div class="flex justify-between items-center mb-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                 Gemini API Configuration
@@ -174,7 +176,7 @@
                     </div>
                 </div>
 
-                <!-- Mission Info -->
+                <!-- Mission Info (เพิ่มช่องรายละเอียดกลับมาตามที่รีเควส) -->
                 <div class="space-y-4 shrink-0 mb-4">
                     <div id="subjectSelectorArea" class="grid grid-cols-2 gap-3">
                         <div>
@@ -210,14 +212,17 @@
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
                         <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="เช่น เกมคำศัพท์หรรษา">
-                        <textarea id="missionDescInput" class="hidden-el"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">คำอธิบายภารกิจ</label>
+                        <textarea id="missionDescInput" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน (AI จะช่วยเติมให้อัตโนมัติเมื่อสร้างเสร็จ)"></textarea>
                     </div>
                 </div>
 
                 <!-- Chat & AI Prompt Area -->
-                <div class="flex-grow flex flex-col mt-2 relative min-h-[300px]">
+                <div class="flex-grow flex flex-col mt-2 min-h-[300px] relative">
                     <div class="flex justify-between items-end mb-2 shrink-0">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                             <i class="fas fa-comment-dots text-blue-500 mr-1"></i> สนทนาและสั่งงาน AI
                         </label>
                         <div class="flex gap-1 flex-wrap justify-end">
@@ -228,11 +233,11 @@
                     </div>
                     
                     <!-- Chat History Box -->
-                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-2 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto h-[200px] scroll-smooth">
+                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-2 p-3 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto h-[150px] scroll-smooth">
                         <!-- Bubbles -->
                     </div>
 
-                    <!-- AI Loading Indicator (In Chat) -->
+                    <!-- AI Loading Indicator -->
                     <div id="loadingStatus" class="hidden-el mb-3 self-start bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3 shadow-sm flex items-center gap-3 max-w-[90%] chat-bubble">
                         <div class="flex items-center justify-center w-7 h-7 bg-purple-100 text-purple-600 rounded-full shrink-0">
                             <i class="fas fa-robot text-xs"></i>
@@ -242,12 +247,12 @@
                     </div>
 
                     <!-- Input Box -->
-                    <div class="relative shrink-0 mt-auto bg-white border border-slate-300 rounded-[1.5rem] p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all flex flex-col">
-                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent p-3 pr-14 outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งให้แก้ไขจุดต่างๆ ของโค้ดเดิมได้ที่นี่..."></textarea>
+                    <div class="relative shrink-0 mt-auto bg-white border border-slate-300 rounded-2xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all flex flex-col">
+                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent p-2 pr-12 outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งแก้ไขจากโค้ดเดิมได้ที่นี่..."></textarea>
                         
-                        <div class="flex justify-between items-center px-2 pb-1 pt-1">
+                        <div class="flex justify-between items-center px-1 pb-1 pt-1">
                             <span class="text-[10px] text-slate-400 font-medium">✨ AI พร้อมรับคำสั่ง</span>
-                            <div class="flex items-center gap-2 absolute right-3 bottom-3">
+                            <div class="flex items-center gap-2 absolute right-2 bottom-2">
                                 <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-9 h-9 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow-md flex items-center justify-center text-sm" title="หยุด AI">
                                     <i class="fas fa-stop"></i>
                                 </button>
@@ -262,59 +267,69 @@
             </div>
         </div>
 
-        <!-- Right Panel: Preview & Code View -->
-        <div class="lg:col-span-7 flex flex-col h-full overflow-hidden pb-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center px-4 shrink-0 mb-4">
+        <!-- Right Panel: Preview & Code View (มี Scrollbar ภายใน หากหน้าจอมือถือยาวเกินไป) -->
+        <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
+            <!-- Toolbar ด้านบนของ Preview -->
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
                 
                 <!-- Toggle Preview/Code -->
                 <div class="flex bg-slate-100 p-1 rounded-lg">
-                    <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-4 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1">
+                    <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1">
                         <i class="fas fa-eye"></i> พรีวิว
                     </button>
-                    <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-4 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1">
+                    <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1">
                         <i class="fas fa-code"></i> โค้ด
                     </button>
                 </div>
 
-                <!-- Device View Controls -->
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-lg" id="device-controls">
-                    <button onclick="changeView('mobile')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-md flex items-center justify-center transition-all text-xs"><i class="fas fa-mobile-alt"></i></button>
-                    <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs"><i class="fas fa-tablet-alt"></i></button>
-                    <button onclick="changeView('desktop')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs"><i class="fas fa-desktop"></i></button>
-                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Device Controls -->
+                    <div class="flex gap-1 bg-slate-100 p-1 rounded-lg" id="device-controls">
+                        <button onclick="changeView('mobile')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="มือถือ"><i class="fas fa-mobile-alt"></i></button>
+                        <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แท็บเล็ต"><i class="fas fa-tablet-alt"></i></button>
+                        <button onclick="changeView('desktop')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-md flex items-center justify-center transition-all text-xs" title="จอคอมพิวเตอร์"><i class="fas fa-desktop"></i></button>
+                    </div>
+                    
+                    <!-- Fullscreen Toggle -->
+                    <button onclick="toggleFullScreenPreview()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-all flex items-center justify-center text-xs" title="ขยายเต็มจอ">
+                        <i class="fas fa-expand"></i>
+                    </button>
 
-                <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold hidden shadow-md transition-all flex items-center gap-2 transform active:scale-95">
-                    <i class="fas fa-cloud-upload-alt"></i> บันทึกผลงาน
-                </button>
+                    <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold hidden shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
+                        <i class="fas fa-cloud-upload-alt"></i> บันทึก
+                    </button>
+                </div>
             </div>
 
-            <!-- Preview Outer Container -->
-            <div class="preview-outer-container bg-slate-100 rounded-[3rem] border-4 border-dashed border-slate-300 flex-grow relative">
+            <!-- Preview Container (Scrollable) -->
+            <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-auto flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
                 
-                <!-- Iframe Wrapper -->
-                <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative w-full h-full">
+                <!-- Iframe Wrapper (ขนาดจะเปลี่ยนตาม Device ที่เลือก) -->
+                <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative shrink-0">
                     <!-- โหมดพรีวิวหน้าเว็บ -->
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Mission Live Preview"></iframe>
                     
                     <!-- โหมดดูโค้ด (ซ่อนอยู่) -->
                     <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly placeholder="<!-- รหัส Source Code จะแสดงที่นี่เมื่อสร้างเสร็จ -->"></textarea>
                 </div>
+
             </div>
-            
         </div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-center font-sans shrink-0">
-        <p class="text-blue-900 font-bold text-xs italic">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
+    <!-- Footer (ยึดติดด้านล่าง) -->
+    <footer class="bg-white border-t border-slate-200 py-3 mt-auto text-center font-sans shrink-0 z-50">
+        <p class="text-blue-900 font-bold text-[10px] italic">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
     </footer>
 
     <script>
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
         let aiAbortController = null;
         let aiTimeoutId = null;
+        let isFullScreen = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลด Config และตั้งค่าแบรนด์ให้สอดคล้องกับ js/config.js
+            // โหลด Config จาก config.js
             if (typeof APP_CONFIG !== 'undefined') {
                 document.title = `AI Mission Creator | ${APP_CONFIG.APP_NAME}`;
                 document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
@@ -360,6 +375,23 @@
             }, 500);
         });
 
+        // --- ระบบขยายเต็มจอ (Full Screen Preview) ---
+        function toggleFullScreenPreview() {
+            const container = document.getElementById('previewContainer');
+            const icon = document.querySelector('button[onclick="toggleFullScreenPreview()"] i');
+            
+            isFullScreen = !isFullScreen;
+            if (isFullScreen) {
+                // ขยาย Container ให้ทับหน้าจอทั้งหมด
+                container.classList.add('fullscreen-active');
+                icon.className = 'fas fa-compress text-blue-500';
+            } else {
+                // คืนค่ากลับสู่ปกติ
+                container.classList.remove('fullscreen-active');
+                icon.className = 'fas fa-expand';
+            }
+        }
+
         // --- ระบบสลับโหมด Preview / Code ---
         function switchViewMode(mode) {
             const frame = document.getElementById('missionFrame');
@@ -372,8 +404,8 @@
                 frame.classList.remove('hidden-el');
                 codeBox.classList.add('hidden-el');
                 
-                btnPreview.className = "px-4 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
-                btnCode.className = "px-4 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
+                btnPreview.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
+                btnCode.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
                 deviceControls.classList.remove('opacity-50', 'pointer-events-none');
             } else {
                 frame.classList.add('hidden-el');
@@ -381,30 +413,38 @@
                 
                 codeBox.value = generatedCode || "<!-- ข้อมูลโค้ด HTML จะแสดงที่นี่เมื่อให้ AI สร้างเสร็จครับ -->";
                 
-                btnCode.className = "px-4 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
-                btnPreview.className = "px-4 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
+                btnCode.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
+                btnPreview.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
                 
                 // บังคับให้เป็น Desktop Mode เมื่อดูโค้ด เพื่อให้อ่านง่าย
-                changeView('desktop');
+                changeView('desktop', true);
                 deviceControls.classList.add('opacity-50', 'pointer-events-none');
             }
         }
 
-        function changeView(size) { 
+        // --- ระบบเปลี่ยนขนาดจอจำลอง ---
+        function changeView(size, forceUpdateUI = false) { 
             const wrapper = document.getElementById("previewWrapper");
-            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl relative w-full`; 
-            if(size === 'desktop') wrapper.classList.add('h-full');
-            else wrapper.classList.remove('h-full');
-
-            document.querySelectorAll('.view-btn').forEach(b => { 
-                b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
-                b.classList.add('hover:bg-white','text-slate-500'); 
-            });
-            event.currentTarget.classList.add('bg-white','text-blue-700', 'shadow-sm');
-            event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
+            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl relative shrink-0`; 
+            
+            // อัปเดตปุ่มเฉพาะกรณีที่คลิกเข้ามาเอง หรือโดนบังคับ
+            if(event && event.currentTarget) {
+                document.querySelectorAll('.view-btn').forEach(b => { 
+                    b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
+                    b.classList.add('hover:bg-white','text-slate-500'); 
+                });
+                event.currentTarget.classList.add('bg-white','text-blue-700', 'shadow-sm');
+                event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
+            } else if (forceUpdateUI) {
+                document.querySelectorAll('.view-btn').forEach(b => { 
+                    b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
+                    b.classList.add('hover:bg-white','text-slate-500'); 
+                });
+                document.querySelector(`button[onclick="changeView('${size}')"]`).classList.add('bg-white','text-blue-700', 'shadow-sm');
+            }
         }
 
-        // --- ระบบแสดงข้อความแจ้งเตือน ---
+        // --- ฟังก์ชันอื่นๆ ---
         function showMessage(text, isError = false) { 
             const msgBox = document.getElementById("msgBox");
             document.getElementById("msgText").innerText = text; 
@@ -413,7 +453,6 @@
             setTimeout(() => msgBox.style.display = 'none', 5000); 
         }
 
-        // --- ระบบแสดงประวัติการแชท (Chat History) ---
         function appendChatBubble(role, text) {
             const chatBox = document.getElementById("chatHistoryBox");
             chatBox.classList.remove('hidden-el'); 
@@ -637,13 +676,11 @@
                     iframeDoc.write(generatedCode);
                     iframeDoc.close();
                     
-                    // อัปเดตช่อง Code View เผื่อเปิดอยู่
+                    // อัปเดตช่องโค้ดถ้ามีการสลับไปดูโค้ดอยู่
                     document.getElementById("codeView").value = generatedCode;
-                    
                     document.getElementById("saveToCloudBtn").classList.remove("hidden");
                     
                     appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
-                    
                     if (result.mission_description) document.getElementById("missionDescInput").value = result.mission_description;
                     
                     showMessage("เสร็จสมบูรณ์! ✨ ดูผลลัพธ์ทางขวามือครับ");
