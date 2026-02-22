@@ -178,9 +178,10 @@
                                     <i class="fas fa-eye" id="eyeIcon"></i>
                                 </button>
                             </div>
-                            <button onclick="saveKeyToDB()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">บันทึก</button>
+                            <!-- เพิ่ม ID ให้ปุ่มเพื่อใช้ทำ Loading State -->
+                            <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors min-w-[60px] text-center">บันทึก</button>
                         </div>
-                        <p class="text-[9px] text-slate-400 mt-1.5"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-orange-500 font-medium">(ระบบจะสลับและค้นหาให้เองอัตโนมัติหากโควต้าเต็ม)</span></p>
+                        <p class="text-[9px] text-slate-400 mt-1.5"><i class="fas fa-info-circle"></i> ใส่หลายคีย์ด้วย <b>,</b> คั่น <span class="text-orange-500 font-medium">(ต้องขึ้นต้นด้วย AIza...)</span></p>
                     </div>
 
                     <!-- Mission Title & Details -->
@@ -868,17 +869,46 @@
             
             if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
             
+            // กรองเอาเฉพาะคีย์ที่ขึ้นต้นด้วย AIza
             const validKeys = keys.filter(k => k.startsWith('AIza'));
             
             if (validKeys.length === 0) {
                 return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)", true);
             }
 
-            if (validKeys.length < keys.length) {
-                console.warn("ตัดข้อความที่ไม่ใช่ API Key ออกอัตโนมัติ");
+            const btn = document.getElementById("saveKeyBtn");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            let workingKeys = [];
+            let invalidCount = 0;
+
+            // ตรวจสอบความถูกต้องของ Key ทีละอัน โดยยิงถามเซิร์ฟเวอร์เบาๆ
+            try {
+                for (let key of validKeys) {
+                    // เรียก API รุ่น Model List ซึ่งเบา ไม่กินโควต้าความยาว และเช็คสถานะ Key ได้ชัวร์ที่สุด
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                    if (res.ok) {
+                        workingKeys.push(key); // รหัสใช้งานได้ปกติ
+                    } else {
+                        invalidCount++;
+                        console.warn(`Key ถูกระงับหรือหมดอายุ: ${key.substring(0, 10)}...`);
+                    }
+                }
+            } catch (err) {
+                console.error("ตรวจสอบ Key ไม่สำเร็จเนื่องจากเน็ตหลุดข้ามไปก่อน", err);
+                workingKeys = validKeys; // ถ้าเน็ตพัง ให้ถือว่ารหัสผ่านไปก่อนเพื่อความยืดหยุ่น
             }
 
-            const cleanedKey = validKeys.join(',');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            if (workingKeys.length === 0) {
+                return showMessage("❌ Key หมดอายุ หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ", true);
+            }
+
+            const cleanedKey = workingKeys.join(',');
             document.getElementById("apiKeyInput").value = cleanedKey;
 
             if (window.sysDB && currentUserId) {
@@ -888,7 +918,12 @@
                 toggleKeyEdit(false);
                 document.getElementById("apiKeyConfiguredView").classList.remove("hidden-el");
             }
-            showMessage("✅ บันทึก Key แล้ว");
+
+            if (invalidCount > 0) {
+                showMessage(`✅ บันทึกสำเร็จ (ตัด ${invalidCount} คีย์ที่เสียออกอัตโนมัติ)`);
+            } else {
+                showMessage("✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
+            }
         }
 
         async function loadExistingMission() {
