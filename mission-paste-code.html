@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pro Code Editor | FlipSchool</title>
 
-    <!-- Config & Database Scripts -->
+<!-- ป้องกัน Favicon 404 Error -->
+<link rel="icon" href="data:,">
+
+<!-- Config & Database Scripts -->
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -516,14 +519,14 @@
         function refreshPreview() {
             if(!editor) return;
             const code = editor.getValue();
-            const iframe = document.getElementById('missionFrame');
+            let iframe = document.getElementById('missionFrame');
             const placeholder = document.getElementById('previewPlaceholder');
             const statusEl = document.getElementById('validationStatus');
             const saveBtn = document.getElementById('saveToCloudBtn');
 
             if (!code || code.trim().length === 0) {
                 placeholder.classList.remove('opacity-0', 'pointer-events-none');
-                iframe.classList.add('opacity-0');
+                if (iframe) iframe.classList.add('opacity-0');
                 statusEl.innerHTML = `<span class="text-[10px] font-bold text-slate-400 flex items-center gap-1"><i class="fas fa-circle text-[8px]"></i> ว่างเปล่า</span>`;
                 saveBtn.disabled = true;
                 saveBtn.className = "bg-slate-200 text-slate-400 cursor-not-allowed px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2";
@@ -531,11 +534,20 @@
             }
 
             placeholder.classList.add('opacity-0', 'pointer-events-none');
-            iframe.classList.remove('opacity-0');
             
-            // ล้างหน้า iframe แบบสมบูรณ์ก่อนเพื่อป้องกันเรื่องสคริปต์ตีกัน (เช่นเรื่อง canvas)
+            // สร้าง Iframe ใหม่แทนการใช้ document.write ทับของเดิม เพื่อล้างหน่วยความจำ JavaScript ให้สะอาด 100%
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'missionFrame';
+            newIframe.className = "w-full h-full bg-white border-none transition-opacity duration-500";
+            newIframe.sandbox = "allow-scripts allow-forms allow-modals allow-same-origin allow-popups";
+            newIframe.title = "Mission Preview";
+            
+            // นำ Iframe ใหม่ไปสลับแทนที่อันเดิม
+            iframe.parentNode.replaceChild(newIframe, iframe);
+            iframe = newIframe;
+            
             const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open("text/html", "replace"); // เพิ่มพารามิเตอร์เพื่อเคลียร์ตัวแปรเก่า
+            iframeDoc.open();
             iframeDoc.write(code);
             iframeDoc.close();
             
@@ -722,7 +734,8 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
 
-                const AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b"];
+                // ปรับปรุงรายการโมเดลสำรองให้เสถียรที่สุด
+                const AI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
                 let resultData = null;
                 let isSuccess = false;
                 let lastErrorMsg = "";
