@@ -78,6 +78,7 @@
 
         .hidden-el { display: none !important; }
         .drawer-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .modal-overlay { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -87,6 +88,49 @@
     <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
         <div class="spinner"></div>
         <p class="mt-4 text-blue-900 font-bold animate-pulse text-sm font-sans" id="loadingText">กำลังเปิดห้องเรียน...</p>
+    </div>
+
+    <!-- Modal เลือกเครื่องมือสร้างภารกิจ -->
+    <div id="addMissionModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 opacity-0" id="addMissionModalCard">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xl font-bold text-blue-900"><i class="fas fa-plus-circle text-orange-500 mr-2"></i>เพิ่มภารกิจใหม่</h3>
+                <button onclick="closeAddMissionModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center transition outline-none"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-slate-500 mb-6">ระบุเข้าหมวดหมู่: <span id="targetFolderSpan" class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg"></span></p>
+            
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="navigateToAdd('mission-create-ai.html')" class="flex items-center gap-4 p-4 border-2 border-purple-100 hover:border-purple-500 rounded-2xl hover:bg-purple-50 transition-all text-left group outline-none">
+                    <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-purple-700">สร้างด้วย AI</h4>
+                        <p class="text-xs text-slate-500">ให้ AI เนรมิตสื่อการสอนแบบ Interactive</p>
+                    </div>
+                </button>
+
+                <button onclick="navigateToAdd('mission-paste-code.html')" class="flex items-center gap-4 p-4 border-2 border-teal-100 hover:border-teal-500 rounded-2xl hover:bg-teal-50 transition-all text-left group outline-none">
+                    <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-teal-700">เครื่องมือ Pro Editor</h4>
+                        <p class="text-xs text-slate-500">เขียนและปรับแต่งโค้ด HTML/JS ด้วยตนเอง</p>
+                    </div>
+                </button>
+
+                <button onclick="navigateToAdd('mission-library.html')" class="flex items-center gap-4 p-4 border-2 border-orange-100 hover:border-orange-500 rounded-2xl hover:bg-orange-50 transition-all text-left group outline-none">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-orange-700">ดึงจากคลังสื่อ</h4>
+                        <p class="text-xs text-slate-500">เลือกภารกิจจากคลังสาธารณะเข้าสู่บทเรียน</p>
+                    </div>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Drawer Menu -->
@@ -176,11 +220,17 @@
 
         <!-- โหมด 2: หน้าจอแสดงภารกิจในโฟลเดอร์ที่เลือก (Mission Path View) -->
         <div id="viewMissionPath" class="hidden-el">
-            <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-4">
-                <button onclick="backToFolders()" class="text-slate-500 hover:text-blue-600 font-bold transition flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-200 pb-4 gap-4">
+                <button onclick="backToFolders()" class="text-slate-500 hover:text-blue-600 font-bold transition flex items-center gap-2 self-start">
                     <i class="fas fa-arrow-left"></i> กลับไปหมวดหมู่
                 </button>
-                <h2 id="currentFolderNameDisplay" class="text-xl font-bold text-blue-900 font-sans">ชื่อโฟลเดอร์</h2>
+                <div class="flex items-center gap-3">
+                    <h2 id="currentFolderNameDisplay" class="text-xl font-bold text-blue-900 font-sans">ชื่อโฟลเดอร์</h2>
+                    <!-- 🎯 เพิ่มปุ่มในหมวดหมู่ -->
+                    <button onclick="openAddMissionModal(currentOpenedFolder)" class="bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-orange-200 hover:border-orange-500">
+                        <i class="fas fa-plus"></i> เพิ่มภารกิจ
+                    </button>
+                </div>
             </div>
             <div id="missionPath" class="mission-path">
                 <div id="missionListContent" class="w-full flex flex-col items-center">
@@ -191,12 +241,12 @@
 
         <!-- โหมด 3: โหมดจัดการเนื้อหา (Admin Manage View - Drag & Drop) -->
         <div id="viewManageMode" class="hidden-el">
-            <div class="flex items-center justify-between mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-blue-900 font-sans"><i class="fas fa-cogs text-blue-500 mr-2"></i> จัดการโครงสร้างห้องเรียน</h2>
                     <p class="text-sm text-slate-500 mt-1">คลิกค้างที่ <i class="fas fa-grip-vertical mx-1"></i> เพื่อลากย้ายภารกิจข้ามหมวดหมู่ หรือสลับลำดับ</p>
                 </div>
-                <button onclick="promptAddFolder()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                <button onclick="promptAddFolder()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap self-start sm:self-center">
                     <i class="fas fa-folder-plus"></i> เพิ่มหมวดหมู่
                 </button>
             </div>
@@ -209,7 +259,7 @@
     </main>
 
     <!-- Floating Add Mission Button -->
-    <button onclick="location.href='mission-create.html?cid=' + currentClassId" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 z-40" title="สร้างภารกิจใหม่">
+    <button onclick="openAddMissionModal(currentOpenedFolder)" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 z-40" title="เพิ่มภารกิจ">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -226,6 +276,9 @@
         let folders = []; 
         let isManageMode = false;
         let sortableInstances = [];
+        
+        let currentOpenedFolder = null; // ตัวแปรเก็บโฟลเดอร์ที่เปิดอยู่
+        let selectedFolderForAdd = 'ทั่วไป'; // ตัวแปรเก็บโฟลเดอร์เป้าหมายที่จะสร้างภารกิจลงไป
 
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
@@ -284,7 +337,6 @@
                     missions = data.filter(m => m.missions !== null);
                     missions.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
-                    // หากไม่เคยมีโฟลเดอร์ ให้สร้าง "ทั่วไป" เป็นค่าเริ่มต้น
                     if (folders.length === 0) {
                         const uniqueFolders = [...new Set(missions.map(m => m.folder_name).filter(Boolean))];
                         folders = uniqueFolders.length > 0 ? uniqueFolders : ['ทั่วไป'];
@@ -293,7 +345,7 @@
                     document.getElementById('missionCount').innerText = missions.length;
                     document.getElementById('manageModeBtn').classList.remove('hidden');
                     
-                    showFolderGrid(); // โหลดเสร็จให้แสดงหน้าโฟลเดอร์
+                    showFolderGrid(); 
                 }
             } catch (err) { console.error("Query Exception:", err); }
         }
@@ -301,16 +353,55 @@
         function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
 
         // ==========================================
+        // 🎯 ระบบเพิ่มภารกิจ (Add Mission Modal)
+        // ==========================================
+        function openAddMissionModal(folderName) {
+            // ถ้าไม่ระบุ หรือคลิกปุ่มลอยตอนอยู่หน้า Grid ให้ค่าเริ่มต้นเป็น "ทั่วไป"
+            selectedFolderForAdd = folderName || 'ทั่วไป'; 
+            document.getElementById('targetFolderSpan').innerText = selectedFolderForAdd;
+            
+            const modal = document.getElementById('addMissionModal');
+            const card = document.getElementById('addMissionModalCard');
+            modal.classList.remove('hidden');
+            
+            // Animation เด้งขึ้น
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeAddMissionModal() {
+            const modal = document.getElementById('addMissionModal');
+            const card = document.getElementById('addMissionModalCard');
+            
+            // Animation หดตัว
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function navigateToAdd(targetPage) {
+            // บันทึกเป้าหมายไว้ใน LocalStorage เผื่อหน้าต่างๆ ต้องการดึงไปใช้งาน
+            localStorage.setItem('flip_target_folder', selectedFolderForAdd);
+            // แนบพารามิเตอร์ไปกับ URL ด้วย ให้รู้ว่าเซฟลงหมวดไหน
+            window.location.href = `${targetPage}?cid=${currentClassId}&folder=${encodeURIComponent(selectedFolderForAdd)}`;
+        }
+
+
+        // ==========================================
         // ส่วนที่ 1: การแสดงผลโหมดโฟลเดอร์ (Drill-down)
         // ==========================================
         function showFolderGrid() {
+            currentOpenedFolder = null; // รีเซ็ตสถานะ
             document.getElementById('viewFolderGrid').classList.remove('hidden-el');
             document.getElementById('viewMissionPath').classList.add('hidden-el');
             document.getElementById('viewManageMode').classList.add('hidden-el');
             
             const grid = document.getElementById('folderGridContent');
             
-            // เช็คว่ามีภารกิจตกหล่นไหม ถ้ามีให้สร้างหมวดทั่วไปรองรับ
             const hasOrphans = missions.some(m => !folders.includes(m.folder_name || 'ทั่วไป'));
             if (hasOrphans && !folders.includes('ทั่วไป')) folders.push('ทั่วไป');
 
@@ -336,6 +427,7 @@
         }
 
         function openFolder(folderName) {
+            currentOpenedFolder = folderName; // อัปเดตสถานะให้ปุ่มลอยรู้
             document.getElementById('viewFolderGrid').classList.add('hidden-el');
             document.getElementById('viewMissionPath').classList.remove('hidden-el');
             document.getElementById('currentFolderNameDisplay').innerText = folderName;
@@ -348,6 +440,7 @@
                     <div class="py-20 opacity-30 text-center">
                         <i class="fas fa-box-open text-6xl mb-4 text-slate-300"></i>
                         <h3 class="text-xl font-bold font-sans text-slate-500">หมวดหมู่นี้ยังว่างเปล่า</h3>
+                        <p class="text-sm font-sans text-slate-400 mt-2">กดปุ่ม "+ เพิ่มภารกิจ" เพื่อสร้างได้เลยครับ</p>
                     </div>`;
                 return;
             }
@@ -391,7 +484,7 @@
                 btn.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
                 btn.classList.replace('bg-emerald-500', 'bg-white/10');
                 btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
-                saveNewOrderAndFolders(); // สั่งเซฟ
+                saveNewOrderAndFolders(); 
             }
         }
 
@@ -414,7 +507,13 @@
                     <div class="admin-folder-box" data-folder="${folderName}">
                         <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
                             <h3 class="font-bold text-lg text-slate-800"><i class="fas fa-folder-open text-orange-400 mr-2"></i> ${folderName}</h3>
-                            ${deleteBtnHtml}
+                            <div class="flex items-center gap-2">
+                                <!-- 🎯 เพิ่มปุ่มในโหมดจัดการ -->
+                                <button onclick="openAddMissionModal('${folderName}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1" title="เพิ่มภารกิจลงหมวดหมู่นี้">
+                                    <i class="fas fa-plus"></i> เพิ่ม
+                                </button>
+                                ${deleteBtnHtml}
+                            </div>
                         </div>
                         
                         <!-- พื้นที่สำหรับลากวางของ SortableJS -->
@@ -453,7 +552,7 @@
             const containers = document.querySelectorAll('.sortable-list');
             containers.forEach(container => {
                 sortableInstances.push(new Sortable(container, {
-                    group: 'shared-folders', // ให้ลากข้ามกล่องได้
+                    group: 'shared-folders', 
                     animation: 150,
                     handle: '.drag-handle-icon',
                     ghostClass: 'sortable-ghost',
@@ -470,7 +569,7 @@
                     return;
                 }
                 folders.push(cleanName);
-                renderAdminManageView(); // รีเฟรชหน้าจัดการ
+                renderAdminManageView(); 
             }
         }
 
@@ -493,7 +592,6 @@
                 const updates = [];
                 const folderSections = document.querySelectorAll('.admin-folder-box');
                 
-                // อ่านค่าจาก DOM หลังจากที่ผู้ใช้ลากสลับไปมา
                 folderSections.forEach(section => {
                     const folderName = section.getAttribute('data-folder');
                     const missionItems = section.querySelectorAll('.admin-mission-item');
@@ -515,7 +613,6 @@
                     await window.sysDB.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
                 } catch(e) {}
 
-                // โหลดข้อมูลใหม่จาก DB แล้วกลับไปหน้าแรก
                 await fetchMissions();
                 showFolderGrid();
                 
