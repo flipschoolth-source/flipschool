@@ -222,6 +222,7 @@
                 </button>
                 <div class="flex items-center gap-3">
                     <h2 id="currentFolderNameDisplay" class="text-xl font-bold text-blue-900 font-sans">ชื่อโฟลเดอร์</h2>
+                    <!-- ปุ่มเพิ่มภารกิจ ในหน้ารายละเอียดโฟลเดอร์ -->
                     <button onclick="navigateToAddLibrary(currentOpenedFolder)" class="bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-orange-200 hover:border-orange-500 shadow-sm">
                         <i class="fas fa-plus"></i> เพิ่มภารกิจ
                     </button>
@@ -236,16 +237,21 @@
 
         <!-- โหมด 3: โหมดจัดการเนื้อหา (Admin Manage View - Drag & Drop) -->
         <div id="viewManageMode" class="hidden-el">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 gap-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-blue-900 font-sans"><i class="fas fa-cogs text-blue-500 mr-2"></i> จัดการโครงสร้างห้องเรียน</h2>
                     <p class="text-sm text-slate-500 mt-1">ลากย้ายสลับที่ได้อิสระ หรือกดถังขยะเพื่อนำภารกิจออกจากห้องเรียน</p>
                 </div>
-                <div class="flex flex-wrap gap-2 self-start sm:self-center">
+                <div class="flex flex-wrap gap-2 self-start md:self-center">
+                    <!-- 🌟 ปุ่มยกเลิกการแก้ไข (ใหม่) -->
+                    <button onclick="cancelManageMode()" class="bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-undo"></i> ยกเลิก
+                    </button>
+                    <!-- ปุ่มเพิ่มหมวดหมู่ -->
                     <button onclick="handleAddFolderPrompt()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
                         <i class="fas fa-folder-plus"></i> เพิ่มหมวดหมู่
                     </button>
-                    <!-- 🌟 เพิ่มปุ่มลบห้องเรียนตรงนี้ 🌟 -->
+                    <!-- ปุ่มลบห้องเรียน -->
                     <button onclick="handleDeleteClassroom()" class="bg-white border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
                         <i class="fas fa-trash-alt"></i> ลบห้องเรียน
                     </button>
@@ -326,7 +332,6 @@
 
         async function fetchMissions() {
             try {
-                // 🌟 เพิ่มการดึงข้อมูลคอลัมน์ custom_title เข้ามา
                 const { data, error } = await window.sysDB
                     .from('classroom_missions')
                     .select('assignment_id, mission_id, order_index, folder_name, custom_title, missions(*)') 
@@ -346,7 +351,7 @@
                     document.getElementById('missionCount').innerText = missions.length;
                     document.getElementById('manageModeBtn').classList.remove('hidden');
                     
-                    showFolderGrid(); 
+                    if (!isManageMode) showFolderGrid(); 
                 }
             } catch (err) { console.error("Query Exception:", err); }
         }
@@ -511,7 +516,6 @@
                 return;
             }
 
-            // 🌟 นำชื่อ custom_title มาใช้หากมี ถ้าไม่มีใช้ชื่อจากตาราง missions
             container.innerHTML = folderMissions.map((m, idx) => {
                 const displayTitle = m.custom_title || m.missions.title;
                 return `
@@ -541,20 +545,43 @@
         // ส่วนที่ 2: โหมดจัดการเนื้อหา (Admin Manage Mode)
         // ==========================================
         function toggleManageMode() {
-            isManageMode = !isManageMode;
             const btn = document.getElementById('manageModeBtn');
 
-            if (isManageMode) {
+            if (!isManageMode) {
+                // เปิดโหมดจัดการ
+                isManageMode = true;
                 btn.innerHTML = '<i class="fas fa-save"></i> บันทึกข้อมูล';
                 btn.classList.replace('bg-white/10', 'bg-emerald-500');
                 btn.classList.replace('hover:bg-white/20', 'hover:bg-emerald-600');
                 renderAdminManageView();
             } else {
+                // หากกดปุ่มที่ Navbar ขณะอยู่ในโหมดจัดการ ให้ทำการบันทึก
+                saveNewOrderAndFolders(); 
+            }
+        }
+
+        // 🌟 ฟังก์ชันยกเลิกการเปลี่ยนแปลง (ใหม่) 🌟
+        function cancelManageMode() {
+            openCustomConfirm('ยกเลิกการแก้ไข', 'คุณต้องการยกเลิกการเปลี่ยนแปลงทั้งหมด และคืนค่าเดิมใช่หรือไม่?', false, async () => {
+                isManageMode = false;
+                deletedAssignments = []; // ล้างคิวการลบ
+                
+                // รีเซ็ตปุ่มที่ Navbar
+                const btn = document.getElementById('manageModeBtn');
                 btn.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
                 btn.classList.replace('bg-emerald-500', 'bg-white/10');
                 btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
-                saveNewOrderAndFolders(); 
-            }
+
+                document.getElementById('loadingText').innerText = "กำลังคืนค่าเดิม...";
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // รีโหลดข้อมูลจากฐานข้อมูลใหม่ทับข้อมูลที่แก้ไขในหน้าจอ
+                folders = [];
+                await fetchClassroomData();
+                await fetchMissions(); 
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+            });
         }
 
         function renderAdminManageView() {
@@ -608,7 +635,6 @@
                                 <p class="font-bold text-sm text-slate-700 truncate">${displayTitle}</p>
                                 <p class="text-[10px] text-slate-400">ID: ${m.assignment_id.substring(0,6)}...</p>
                             </div>
-                            <!-- 🌟 ปุ่มแก้ไขชื่อภารกิจ (เฉพาะห้องนี้) -->
                             <button onclick="handleRenameMission('${m.assignment_id}', '${safeDisplayTitle}', '${safeOriginalTitle}')" class="text-amber-500 hover:text-amber-600 hover:bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 mr-1" title="เปลี่ยนชื่อภารกิจนี้">
                                 <i class="fas fa-pen text-xs"></i>
                             </button>
@@ -693,7 +719,6 @@
             });
         }
 
-        // 🌟 ฟังก์ชันแก้ไขชื่อภารกิจ (จะอัปเดตลง Database ทันที)
         function handleRenameMission(assignmentId, currentTitle, originalTitle) {
             const defaultText = currentTitle !== originalTitle ? currentTitle : '';
             openCustomPrompt('เปลี่ยนชื่อภารกิจ (เฉพาะห้องนี้)', 'ชื่อภารกิจใหม่ (ปล่อยว่างเพื่อใช้ชื่อเดิม)', async (newName) => {
@@ -704,15 +729,13 @@
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 try {
-                    // อัปเดตลง Database ทันทีเพื่อความปลอดภัย
                     await window.sysDB.from('classroom_missions')
                         .update({ custom_title: newCustomTitle })
                         .eq('assignment_id', assignmentId);
                     
-                    // ดึงข้อมูลใหม่เพื่อรีเฟรชหน้าจอ
                     await fetchMissions();
                     showMessage("✅ อัปเดตชื่อภารกิจเรียบร้อย!");
-                    renderAdminManageView(); // วาดหน้าจอจัดการใหม่
+                    renderAdminManageView(); 
                 } catch (e) {
                     console.error(e);
                     showMessage("❌ เกิดข้อผิดพลาด", true);
@@ -722,7 +745,6 @@
             }, defaultText, 'fas fa-pen', `ชื่อต้นฉบับ: ${originalTitle}`);
         }
 
-        // 🌟 ฟังก์ชันลบห้องเรียนทั้งหมด 🌟
         function handleDeleteClassroom() {
             const message = `คุณแน่ใจหรือไม่ว่าต้องการ <b>"ลบห้องเรียนนี้"</b>?<br><span class="text-xs text-rose-500 mt-2 block">*ข้อมูลนักเรียน ภารกิจ และคะแนนในห้องเรียนนี้จะถูกลบทิ้งถาวรและไม่สามารถกู้คืนได้!</span>`;
             
@@ -731,13 +753,8 @@
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 
                 try {
-                    // 1. เตะนักเรียนออกจากห้อง (ลบความเชื่อมโยง)
                     await window.sysDB.from('classroom_students').delete().eq('classroom_id', currentClassId);
-                    
-                    // 2. นำภารกิจออกจากห้อง (ลบความเชื่อมโยง)
                     await window.sysDB.from('classroom_missions').delete().eq('classroom_id', currentClassId);
-                    
-                    // 3. ลบตัวห้องเรียนทิ้ง
                     const { error } = await window.sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
                     
                     if (error) throw error;
@@ -804,6 +821,13 @@
                     await window.sysDB.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
                 } catch(e) {}
 
+                // รีเซ็ตการแสดงปุ่ม Navbar ให้กลับมาเป็นโหมดปกติเมื่อเซฟสำเร็จ
+                isManageMode = false;
+                const btn = document.getElementById('manageModeBtn');
+                btn.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+                btn.classList.replace('bg-emerald-500', 'bg-white/10');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
+
                 await fetchMissions();
                 showFolderGrid();
                 showMessage("✅ บันทึกโครงสร้างห้องเรียนสำเร็จ!");
@@ -811,7 +835,7 @@
             } catch (err) { 
                 console.error(err);
                 showMessage('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล', true); 
-                showFolderGrid();
+                // หากผิดพลาด ไม่ต้องเด้งออกจากโหมด เพื่อให้ครูลองกดเซฟใหม่ได้
             }
             
             document.getElementById('loadingOverlay').style.display = 'none';
