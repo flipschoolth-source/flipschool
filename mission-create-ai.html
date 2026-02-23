@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        /* ล็อก Body ไม่ให้เลื่อน เพื่อให้แผงซ้ายขวาเลื่อนแยกกันแบบอิสระ */
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
@@ -53,6 +54,7 @@
         .hidden-el { display: none !important; }
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
         
+        /* ปรับแต่ง Scrollbar ทั่วไปให้ดูสวยงาม */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -61,8 +63,10 @@
         .chat-bubble { animation: fadeInBubble 0.3s ease-out forwards; }
         @keyframes fadeInBubble { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* กล่อง Source Code */
         #codeView { font-family: 'JetBrains Mono', monospace; }
         
+        /* คลาสสำหรับโหมดเต็มจอ */
         .fullscreen-active {
             position: fixed !important; inset: 0 !important; z-index: 9999 !important;
             background: #f1f5f9 !important; padding: 1rem !important;
@@ -87,6 +91,9 @@
                 </div>
                 <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
                 <p id="saveModalDesc" class="text-sm text-slate-500 mt-2 px-4 italic font-medium">ภารกิจจะถูกจัดเก็บเข้าคลังสื่อสาระและพร้อมมอบหมายให้นักเรียน</p>
+                <div id="saveConfirmDetails" class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-left space-y-2">
+                    <!-- JS will inject content here -->
+                </div>
             </div>
             <div class="space-y-3">
                 <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">
@@ -102,7 +109,7 @@
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/20">
-                    <span class="text-xl">🎓</span>
+                    <span class="text-xl text-blue-900">🎓</span>
                 </div>
                 <div class="flex flex-col">
                     <div id="app-name-display" class="text-xl font-bold tracking-tight leading-none">
@@ -134,10 +141,22 @@
                     </div>
                 </div>
 
+                <!-- 🚀 ห่อหุ้มส่วนข้อมูลด้วย div สำหรับระบบย่อ/ขยาย -->
                 <div id="missionMetadataSection" class="transition-all duration-300 origin-top overflow-hidden">
                     
+                    <!-- Context Badge -->
+                    <div id="classroomContextArea" class="hidden-el bg-gradient-to-r from-teal-50 to-white border-l-4 border-teal-500 p-3 rounded-xl shadow-sm transition-all mb-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fas fa-link text-teal-500 animate-pulse" id="linkIcon"></i>
+                            <p id="linkStatus" class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">กำลังเชื่อมโยงห้องเรียน...</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center opacity-50" id="contextTags">
+                            <span class="bg-slate-200 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">Waiting for data...</span>
+                        </div>
+                    </div>
+
                     <!-- API Key Config Section -->
-                    <div class="mb-5 shrink-0">
+                    <div class="mb-4 shrink-0">
                         <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex justify-between items-center shadow-sm">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm text-sm">
@@ -176,48 +195,30 @@
                     </div>
 
                     <!-- Mission Info -->
-                    <div class="space-y-4 shrink-0 mb-4">
-                        <div id="subjectSelectorArea" class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">กลุ่มสาระ</label>
-                                <select id="subjectGroup" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                                    <option value="ภาษาไทย">ภาษาไทย</option>
-                                    <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                                    <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-                                    <option value="สังคมศึกษา">สังคมศึกษา</option>
-                                    <option value="สุขศึกษา">สุขศึกษา</option>
-                                    <option value="ศิลปะ">ศิลปะ</option>
-                                    <option value="การงานอาชีพ">การงานอาชีพ</option>
-                                    <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
-                                    <option value="อื่นๆ" selected>อื่นๆ</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ระดับชั้น</label>
-                                <input type="text" id="missionGradeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none text-xs focus:ring-2 focus:ring-blue-500" placeholder="เช่น ม.1">
-                            </div>
-                        </div>
-
-                        <div id="classroomContextArea" class="hidden p-3 bg-orange-50 border border-orange-100 rounded-xl">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-book-bookmark text-orange-400"></i>
-                                <div>
-                                    <p class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">อ้างอิงรายวิชา</p>
-                                    <p id="classroomSubjectText" class="text-sm font-bold text-slate-700">...</p>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
-                            <input type="text" id="missionTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="เช่น เกมคำศัพท์หรรษา">
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
+                            <input type="text" id="missionTitleInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" placeholder="เช่น เกมคำศัพท์หรรษา">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">คำอธิบายภารกิจ</label>
-                            <textarea id="missionDescInput" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน (AI จะช่วยเติมให้อัตโนมัติเมื่อสร้างเสร็จ)"></textarea>
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                คำอธิบายภารกิจ <span class="bg-purple-100 text-purple-600 px-1.5 rounded-sm text-[8px] tracking-normal"><i class="fas fa-magic"></i> AI ช่วยเขียนได้</span>
+                            </label>
+                            <textarea id="missionDescInput" rows="2" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน (AI จะช่วยเติมให้อัตโนมัติเมื่อสร้างเสร็จ)"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">หมวดวิชา</label>
+                                <input type="text" id="missionSubjectInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น วิทยาศาสตร์" value="อื่นๆ">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ระดับชั้น</label>
+                                <input type="text" id="missionGradeInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น ม.1">
+                            </div>
                         </div>
                     </div>
                 </div>
+                <!-- 🚀 สิ้นสุดส่วนข้อมูลภารกิจ -->
 
                 <!-- ปุ่มย่อขยาย เปลี่ยนเป็นสี่เหลี่ยมมุมมน rounded-xl -->
                 <div class="flex justify-end mb-2 shrink-0">
@@ -283,11 +284,11 @@
                 
                 <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
                     <div class="flex bg-slate-100 p-1 rounded-lg">
-                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1">
-                            <i class="fas fa-eye"></i> พรีวิว
+                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
+                            <i class="fas fa-eye"></i>
                         </button>
-                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1">
-                            <i class="fas fa-code"></i> โค้ด
+                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="โค้ด">
+                            <i class="fas fa-code"></i>
                         </button>
                     </div>
 
@@ -373,16 +374,15 @@
                     
                     if (window.sysDB && currentUserId) {
                         try {
-                            // บันทึกคะแนนลงตาราง (ปรับชื่อตาราง 'student_scores' หรือ 'mission_results' ตามที่ออกแบบไว้ใน DB ของคุณครูได้เลยครับ)
                             const { error } = await window.sysDB.from('student_scores').insert([{
-                                student_id: currentUserId, // ในหน้าโหมดสร้างนี้ ใช้ ID ของครูจำลองเป็น ID นักเรียนชั่วคราว
+                                student_id: currentUserId, 
                                 mission_id: editingMid,
                                 score: score,
                                 completed_at: new Date().toISOString()
                             }]);
 
                             if (error) {
-                                console.warn("ระบบฐานข้อมูลยังไม่พบตารางรองรับคะแนน (Table missing):", error.message);
+                                console.warn("DB Score Table warning:", error.message);
                                 showMessage(`✅ [จำลองทดสอบเกม] ได้รับ ${score} คะแนน (ระบบดักจับคะแนนทำงานปกติ)`);
                             } else {
                                 showMessage(`✅ บันทึก ${score} คะแนนลงฐานข้อมูลสำเร็จ!`);
@@ -457,8 +457,8 @@
                 frame.classList.remove('hidden-el');
                 codeBox.classList.add('hidden-el');
                 
-                btnPreview.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
-                btnCode.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
+                btnPreview.className = "w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs";
+                btnCode.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
                 deviceControls.classList.remove('opacity-50', 'pointer-events-none');
             } else {
                 frame.classList.add('hidden-el');
@@ -466,8 +466,8 @@
                 
                 codeBox.value = generatedCode || "<!-- ข้อมูลโค้ด HTML จะแสดงที่นี่เมื่อให้ AI สร้างเสร็จครับ -->";
                 
-                btnCode.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600 transition-all flex items-center gap-1";
-                btnPreview.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1";
+                btnCode.className = "w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs";
+                btnPreview.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
                 
                 changeView('desktop', true);
                 deviceControls.classList.add('opacity-50', 'pointer-events-none');
@@ -606,6 +606,7 @@
                             <i class="fas fa-layer-group"></i> ${dbGrade || "ไม่ระบุชั้น"}
                         </span>
                     `;
+                    tagsContainer.classList.remove('opacity-50');
                 }
             } catch (err) { 
                 document.getElementById('linkStatus').innerText = "ไม่พบข้อมูลห้องเรียน";
@@ -984,22 +985,47 @@
                 };
 
                 let mid = editingMid;
+                let isNewFork = false; // ตัวแปรเช็คว่าเป็นการก๊อปปี้รายการใหม่หรือไม่
+
+                // ตรรกะการบันทึก: ถ้าสร้างใหม่=Insert, ถ้าแก้ไขของตัวเอง=Update, ถ้าแก้ไขของคนอื่น=Insert (สร้างใหม่)
                 if (editingMid && currentUserId === originalTeacherId) {
-                    await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    const { error: updateError } = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    if (updateError) throw updateError;
                 } else {
-                    missionData.created_by = currentUserId;
+                    missionData.created_by = currentUserId; 
                     missionData.created_at = new Date().toISOString();
-                    const { data } = await window.sysDB.from('missions').insert([missionData]).select();
+                    const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
+                    if (insertError) throw insertError;
+                    
                     mid = data[0].mission_id;
+                    if (editingMid && currentUserId !== originalTeacherId) {
+                        isNewFork = true;
+                    }
                 }
 
+                // การเชื่อมโยงห้องเรียน
                 if (targetCid) {
-                    await window.sysDB.from('classroom_missions').upsert({
+                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
                         classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
                     }, { onConflict: 'classroom_id, mission_id' });
+                    if (mapError) throw mapError;
                 }
 
-                if (mode === 'exit') window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+                if (isNewFork) {
+                    showMessage("✅ บันทึกเป็นสำเนาภารกิจใหม่เรียบร้อย (เนื่องจากคุณไม่ใช่ผู้สร้างต้นฉบับ)");
+                } else {
+                    showMessage("✅ บันทึกภารกิจสำเร็จ!");
+                }
+
+                if (mode === 'exit') {
+                    document.getElementById('saveModal').classList.add('hidden');
+                    // หน่วงเวลาให้ผู้ใช้เห็นข้อความ Success ก่อนเปลี่ยนหน้าเว็บ
+                    setTimeout(() => {
+                        window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+                    }, 1500);
+                } else {
+                    closeSaveModal();
+                }
             } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message, true); }
         }
 
