@@ -279,17 +279,19 @@
             renderMissions(filtered);
         }
 
+        let isImporting = false; // ตัวแปรป้องกันการกดปุ่มซ้ำเบิ้ล
+
         // ==========================================
         // 🚀 ระบบคัดกรองโหมดการนำเข้า (Direct vs Modal)
         // ==========================================
         async function openImportModal(mid) {
+            if (isImporting) return;
             selectedMissionIdForImport = mid;
 
-            // หากมี URL Params มาจากหน้าห้องเรียน ให้เรียกใช้ "โหมดนำเข้าด่วน" ทันที
+            // หากมี URL Params มาจากหน้าห้องเรียน ให้นำเข้าทันทีแบบ 1-Click (ไม่ต้องกดยืนยัน)
             if (directCid && directFolder) {
-                if(confirm(`ยืนยันนำเข้าภารกิจนี้ไปที่หมวดหมู่ "${directFolder}" ใช่หรือไม่?`)) {
-                    executeDirectImport(directCid, directFolder);
-                }
+                isImporting = true;
+                executeDirectImport(directCid, directFolder);
                 return;
             }
             
@@ -435,6 +437,7 @@
                     btn.innerText = "ยืนยันการนำเข้า";
                     btn.disabled = false;
                 }
+                isImporting = false; // ปลดล็อกปุ่มให้กดใหม่ได้เมื่อเกิด Error
             }
         }
 
