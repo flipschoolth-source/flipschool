@@ -98,11 +98,11 @@
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
-    <!-- 🌟 Modal แบบฟอร์มเพิ่มหมวดหมู่ (Custom Prompt) 🌟 -->
+    <!-- 🌟 Modal แบบฟอร์มเพิ่ม/แก้ไขหมวดหมู่ (Custom Prompt) 🌟 -->
     <div id="customPromptModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl transform transition-all scale-95 opacity-0 text-center" id="customPromptCard">
-            <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                <i class="fas fa-folder-plus"></i>
+            <div id="promptIconBox" class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i id="promptIcon" class="fas fa-folder-plus"></i>
             </div>
             <h3 id="promptTitle" class="text-xl font-bold text-slate-800 mb-2 font-sans">สร้างหมวดหมู่</h3>
             <input type="text" id="promptInputVal" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-center mb-6 font-bold text-slate-700 font-sans" placeholder="...">
@@ -266,7 +266,7 @@
         let folders = []; 
         let isManageMode = false;
         let sortableInstances = [];
-        let deletedAssignments = []; // เก็บรายการ assignment_id ที่โดนลบ เพื่อเซฟลง DB ทีเดียว
+        let deletedAssignments = []; // เก็บรายการ assignment_id ที่โดนลบ
         
         let currentOpenedFolder = null;
 
@@ -359,11 +359,14 @@
         }
 
         let promptCallback = null;
-        function openCustomPrompt(title, placeholder, callback) {
+        function openCustomPrompt(title, placeholder, callback, defaultValue = '', iconClass = 'fas fa-folder-plus') {
             document.getElementById('promptTitle').innerText = title;
             const input = document.getElementById('promptInputVal');
-            input.placeholder = placeholder; input.value = '';
+            input.placeholder = placeholder; 
+            input.value = defaultValue;
             promptCallback = callback;
+            
+            document.getElementById('promptIcon').className = iconClass;
             
             const modal = document.getElementById('customPromptModal');
             const card = document.getElementById('customPromptCard');
@@ -372,8 +375,10 @@
                 card.classList.remove('scale-95', 'opacity-0');
                 card.classList.add('scale-100', 'opacity-100');
                 input.focus();
+                input.select(); // คลุมดำข้อความอัตโนมัติให้พิมพ์ทับง่ายๆ
             }, 10);
         }
+        
         function closeCustomPrompt() {
             const modal = document.getElementById('customPromptModal');
             const card = document.getElementById('customPromptCard');
@@ -381,6 +386,7 @@
             card.classList.add('scale-95', 'opacity-0');
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         }
+        
         function executeCustomPrompt() {
             if(promptCallback) promptCallback(document.getElementById('promptInputVal').value);
             closeCustomPrompt();
@@ -414,6 +420,7 @@
                 card.classList.add('scale-100', 'opacity-100');
             }, 10);
         }
+        
         function closeCustomConfirm() {
             const modal = document.getElementById('customConfirmModal');
             const card = document.getElementById('customConfirmCard');
@@ -421,6 +428,7 @@
             card.classList.add('scale-95', 'opacity-0');
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         }
+        
         function executeCustomConfirm() {
             if(confirmCallback) confirmCallback();
             closeCustomConfirm();
@@ -484,7 +492,7 @@
                     <div class="py-20 opacity-30 text-center">
                         <i class="fas fa-box-open text-6xl mb-4 text-slate-300"></i>
                         <h3 class="text-xl font-bold font-sans text-slate-500">หมวดหมู่นี้ยังว่างเปล่า</h3>
-                        <p class="text-sm font-sans text-slate-400 mt-2">กดปุ่ม "+ เพิ่มภารกิจ" ด้านบนเพื่อนำเข้าจากคลังสื่อได้เลยครับ</p>
+                        <p class="text-sm font-sans text-slate-400 mt-2">กดปุ่ม "เพิ่มภารกิจ" ด้านบนเพื่อนำเข้าจากคลังสื่อได้เลยครับ</p>
                     </div>`;
                 return;
             }
@@ -543,18 +551,27 @@
             folders.forEach(folderName => {
                 const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
                 
-                const deleteBtnHtml = folderName !== 'ทั่วไป' 
+                const isGeneral = folderName === 'ทั่วไป';
+                
+                // ปุ่มแก้ไขชื่อโฟลเดอร์
+                const editBtnHtml = !isGeneral 
+                    ? `<button onclick="handleRenameFolder('${folderName}')" class="text-amber-500 hover:text-white hover:bg-amber-500 bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="แก้ไขชื่อหมวดหมู่"><i class="fas fa-edit"></i></button>`
+                    : '';
+                
+                // ปุ่มลบโฟลเดอร์
+                const deleteBtnHtml = !isGeneral 
                     ? `<button onclick="handleDeleteFolder('${folderName}')" class="text-rose-500 hover:text-white hover:bg-rose-500 bg-rose-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="ลบหมวดหมู่"><i class="fas fa-trash-alt"></i></button>`
                     : '';
 
                 html += `
                     <div class="admin-folder-box" data-folder="${folderName}">
-                        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                        <div class="flex flex-wrap gap-2 justify-between items-center mb-4 border-b border-slate-100 pb-2">
                             <h3 class="font-bold text-lg text-slate-800"><i class="fas fa-folder-open text-orange-400 mr-2"></i> ${folderName}</h3>
                             <div class="flex items-center gap-2">
                                 <button onclick="navigateToAddLibrary('${folderName}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1 shadow-sm" title="เพิ่มภารกิจลงหมวดหมู่นี้">
                                     <i class="fas fa-plus"></i> เพิ่ม
                                 </button>
+                                ${editBtnHtml}
                                 ${deleteBtnHtml}
                             </div>
                         </div>
@@ -574,7 +591,6 @@
                                 <p class="font-bold text-sm text-slate-700 truncate">${m.missions.title}</p>
                                 <p class="text-[10px] text-slate-400">ID: ${m.assignment_id.substring(0,6)}...</p>
                             </div>
-                            <!-- 🗑️ ปุ่มลบภารกิจ -->
                             <button onclick="handleRemoveMission('${m.assignment_id}', '${safeTitle}')" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="นำออกจากห้องเรียน">
                                 <i class="fas fa-minus-circle"></i>
                             </button>
@@ -607,22 +623,47 @@
             });
         }
 
-        // สร้างหมวดหมู่ (ใช้ Custom Prompt)
+        // 🌟 สร้างหมวดหมู่ (พร้อมชื่อเริ่มต้น)
         function handleAddFolderPrompt() {
-            openCustomPrompt('สร้างหมวดหมู่ใหม่', 'ชื่อหมวดหมู่ (เช่น บทที่ 1, แบบทดสอบ)', (folderName) => {
-                if (folderName && folderName.trim() !== "") {
-                    const cleanName = folderName.trim();
-                    if (folders.includes(cleanName)) {
-                        showMessage("⚠️ ชื่อหมวดหมู่นี้มีอยู่แล้วครับ", true);
-                        return;
-                    }
-                    folders.push(cleanName);
-                    renderAdminManageView(); 
+            openCustomPrompt('สร้างหมวดหมู่ใหม่', 'ชื่อหมวดหมู่ (เช่น บทที่ 1)', (folderName) => {
+                const cleanName = (folderName || '').trim();
+                if (cleanName === "") return;
+                
+                if (folders.includes(cleanName)) {
+                    showMessage("⚠️ ชื่อหมวดหมู่นี้มีอยู่แล้วครับ", true);
+                    return;
                 }
-            });
+                folders.push(cleanName);
+                renderAdminManageView(); 
+            }, 'โฟลเดอร์ใหม่');
         }
 
-        // ลบหมวดหมู่ (ใช้ Custom Confirm)
+        // 🌟 แก้ไขชื่อหมวดหมู่
+        function handleRenameFolder(oldName) {
+            openCustomPrompt('แก้ไขชื่อหมวดหมู่', 'ชื่อหมวดหมู่ใหม่', (newName) => {
+                const cleanName = (newName || '').trim();
+                if (cleanName === "" || cleanName === oldName) return; 
+                
+                if (folders.includes(cleanName)) {
+                    showMessage("⚠️ ชื่อหมวดหมู่นี้มีอยู่แล้วครับ", true);
+                    return;
+                }
+                
+                // อัปเดตในลิสต์โฟลเดอร์
+                const folderIndex = folders.indexOf(oldName);
+                if(folderIndex !== -1) folders[folderIndex] = cleanName;
+                
+                // อัปเดตในตัวภารกิจที่อยู่ในโฟลเดอร์เก่า
+                missions.forEach(m => {
+                    if ((m.folder_name || 'ทั่วไป') === oldName) {
+                        m.folder_name = cleanName;
+                    }
+                });
+                
+                renderAdminManageView();
+            }, oldName, 'fas fa-edit'); // ส่งชื่อเดิมไปเป็นค่าเริ่มต้น
+        }
+
         function handleDeleteFolder(folderName) {
             const message = `ต้องการลบหมวดหมู่ <b>"${folderName}"</b> ใช่หรือไม่?<br><span class="text-xs text-rose-500 mt-2 block">*ภารกิจข้างในจะไม่หาย แต่จะถูกย้ายไปที่หมวด "ทั่วไป" อัตโนมัติ</span>`;
             openCustomConfirm('ลบหมวดหมู่', message, true, () => {
@@ -635,39 +676,31 @@
             });
         }
 
-        // ลบภารกิจออกจากห้อง (ใช้ Custom Confirm)
         function handleRemoveMission(assignmentId, title) {
             const message = `ต้องการนำภารกิจ <b>"${title}"</b><br>ออกจากห้องเรียนนี้ใช่หรือไม่?<br><span class="text-xs text-slate-400 mt-2 block">(ตัวภารกิจยังคงอยู่ในคลังสื่อของคุณ)</span>`;
             openCustomConfirm('ลบภารกิจ', message, true, () => {
-                // 1. นำไปพักไว้ในคิวลบ
                 deletedAssignments.push(assignmentId);
-                
-                // 2. ลบออกจาก DOM เพื่อให้ภาพหายไปทันที
                 const el = document.querySelector(`[data-assignment-id="${assignmentId}"]`);
                 if(el) el.remove();
                 
-                // 3. เอาออกจากอาเรย์ภารกิจ และอัปเดตตัวเลข
                 missions = missions.filter(m => String(m.assignment_id) !== String(assignmentId));
                 document.getElementById('missionCount').innerText = missions.length;
             });
         }
 
-        // ระบบบันทึกข้อมูล (เซฟเรียงลำดับ, ลบที่ค้างไว้, อัปเดตโฟลเดอร์)
         async function saveNewOrderAndFolders() {
             document.getElementById('loadingText').innerText = "กำลังบันทึกข้อมูล...";
             document.getElementById('loadingOverlay').style.display = 'flex';
             
             try {
-                // 1. จัดการคำสั่งลบที่ค้างไว้ (ถ้ามี)
                 if (deletedAssignments.length > 0) {
                     const deletePromises = deletedAssignments.map(id => 
                         window.sysDB.from('classroom_missions').delete().eq('assignment_id', id)
                     );
                     await Promise.all(deletePromises);
-                    deletedAssignments = []; // ล้างคิวหลังทำงานเสร็จ
+                    deletedAssignments = []; 
                 }
 
-                // 2. จัดการคำสั่งอัปเดตตำแหน่งและการย้ายโฟลเดอร์
                 const updates = [];
                 const folderSections = document.querySelectorAll('.admin-folder-box');
                 
@@ -688,12 +721,10 @@
 
                 await Promise.all(updates);
 
-                // 3. บันทึกโครงสร้างโฟลเดอร์ใหม่ลง classrooms
                 try {
                     await window.sysDB.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
                 } catch(e) {}
 
-                // รีเฟรชข้อมูลจาก Database อีกรอบเพื่อความแม่นยำ
                 await fetchMissions();
                 showFolderGrid();
                 showMessage("✅ บันทึกโครงสร้างห้องเรียนสำเร็จ!");
