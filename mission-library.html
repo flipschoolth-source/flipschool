@@ -41,7 +41,7 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Modal เลือกห้องเรียนสำหรับนำเข้าภารกิจ -->
+    <!-- Modal เลือกห้องเรียน (แสดงเฉพาะกรณีที่ไม่ได้ลิงก์มาจากหน้าห้องเรียนโดยตรง) -->
     <div id="importModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center mb-4">
@@ -61,7 +61,7 @@
     </div>
 
     <!-- กล่องข้อความแจ้งเตือน -->
-    <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-green-500 shadow-lg rounded-xl p-4 animate-bounce-in">
+    <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-orange-500 shadow-lg rounded-xl p-4 transition-all">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
@@ -70,7 +70,7 @@
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border-2 border-white/20">
-                    <span class="text-2xl">🎓</span>
+                    <span class="text-2xl text-blue-900">🎓</span>
                 </div>
                 <div class="flex flex-col">
                     <div class="text-xl font-bold tracking-tight leading-none">
@@ -80,7 +80,7 @@
                 </div>
             </div>
             <div class="flex gap-4">
-                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
+                <button onclick="goBackOrHome()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
                     <i class="fas fa-arrow-left"></i> ย้อนกลับ
                 </button>
             </div>
@@ -88,8 +88,24 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-8">
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
         
+        <!-- แถบแจ้งเตือนโหมดนำเข้าด่วน (ถ้ามาจากหน้าห้องเรียน) -->
+        <div id="importContextBanner" class="hidden-el bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-500 shadow-sm rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center animate-pulse">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">โหมดนำเข้าด่วน</h3>
+                    <p class="text-xs text-slate-500">เลือกภารกิจเพื่อส่งตรงไปยังหมวดหมู่ <span id="targetFolderBadge" class="bg-orange-500 text-white px-2 py-0.5 rounded-md font-bold mx-1"></span> ทันที</p>
+                </div>
+            </div>
+            <button onclick="cancelDirectImport()" class="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg transition-all font-bold shadow-sm whitespace-nowrap">
+                <i class="fas fa-times mr-1"></i> ยกเลิก
+            </button>
+        </div>
+
         <!-- ส่วนค้นหาและตัวกรอง -->
         <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 mb-8">
             <h1 class="text-2xl font-bold text-blue-900 mb-6 flex items-center gap-2">
@@ -146,8 +162,20 @@
         let allMissions = [];
         let currentUserId = null;
         let selectedMissionIdForImport = null;
+        
+        // อ่านค่าพารามิเตอร์เพื่อใช้โหมดนำเข้าด่วน
+        const urlParams = new URLSearchParams(window.location.search);
+        let directCid = urlParams.get('cid');
+        let directFolder = urlParams.get('folder');
 
         document.addEventListener('DOMContentLoaded', async () => {
+            
+            // แสดงแถบนำเข้าด่วน ถ้ามี URL Params
+            if (directCid && directFolder) {
+                document.getElementById('importContextBanner').classList.remove('hidden-el');
+                document.getElementById('targetFolderBadge').innerText = directFolder;
+            }
+
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -217,12 +245,12 @@
                         <p class="text-xs text-slate-500 mb-6 line-clamp-2 flex-grow">${desc}</p>
                         
                         <div class="flex gap-2 mt-auto pt-4 border-t border-slate-100">
-                            <a href="play-mission.html?mid=${m.mission_id}" target="_blank" class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-600 py-2.5 rounded-lg text-xs font-bold text-center transition-colors flex items-center justify-center gap-1">
-                                <i class="fas fa-play"></i> ทดลองเล่น
+                            <a href="play-mission.html?mid=${m.mission_id}" target="_blank" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 rounded-lg text-xs font-bold text-center transition-colors flex items-center justify-center gap-1 border border-slate-200">
+                                <i class="fas fa-play"></i> พรีวิว
                             </a>
                             
                             ${currentUserId ? `
-                            <button onclick="openImportModal('${m.mission_id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1">
+                            <button onclick="openImportModal('${m.mission_id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1">
                                 <i class="fas fa-download"></i> นำเข้า
                             </button>
                             ` : ''}
@@ -251,8 +279,21 @@
             renderMissions(filtered);
         }
 
+        // ==========================================
+        // 🚀 ระบบคัดกรองโหมดการนำเข้า (Direct vs Modal)
+        // ==========================================
         async function openImportModal(mid) {
             selectedMissionIdForImport = mid;
+
+            // หากมี URL Params มาจากหน้าห้องเรียน ให้เรียกใช้ "โหมดนำเข้าด่วน" ทันที
+            if (directCid && directFolder) {
+                if(confirm(`ยืนยันนำเข้าภารกิจนี้ไปที่หมวดหมู่ "${directFolder}" ใช่หรือไม่?`)) {
+                    executeDirectImport(directCid, directFolder);
+                }
+                return;
+            }
+            
+            // หากไม่ได้มาจากหน้าห้องเรียน (เข้าคลังสื่อปกติ) ให้แสดง Modal เลือกห้อง
             const modal = document.getElementById('importModal');
             const list = document.getElementById('classroomList');
             const btn = document.getElementById('confirmImportBtn');
@@ -293,18 +334,50 @@
             selectedMissionIdForImport = null;
         }
 
-        // 🌟 แก้ไข: ใช้เทคนิคระบุคอลัมน์ชัดเจน ป้องกัน Error Schema Mismatch แน่นอน 100% 🌟
+        function cancelDirectImport() {
+            // ยกเลิกการนำเข้าด่วน ให้พาตัวกลับไปโหมดปกติ
+            directCid = null;
+            directFolder = null;
+            document.getElementById('importContextBanner').classList.add('hidden-el');
+            // ทำการลบ URL Params ออกเพื่อให้ URL สะอาดขึ้น (ไม่ต้องโหลดหน้าใหม่)
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function goBackOrHome() {
+            if (directCid) {
+                window.location.href = `classroom-detail.html?id=${directCid}`;
+            } else {
+                window.location.href = 'teacher-dashboard.html';
+            }
+        }
+
+        // ==========================================
+        // 🎯 ฟังก์ชันบันทึกข้อมูลเข้าฐานข้อมูล (Explicit Mapping ป้องกัน Schema Error)
+        // ==========================================
+        
+        // 1. นำเข้าผ่าน Modal (เลือกลงหมวด "ทั่วไป")
         async function executeImport() {
             const radios = document.getElementsByName('targetClassroom');
             let selectedClassId = null;
             for (const r of radios) { if (r.checked) selectedClassId = r.value; }
 
             if (!selectedClassId || !selectedMissionIdForImport) return;
-
+            
             const btn = document.getElementById('confirmImportBtn');
             btn.innerText = "กำลังนำเข้า...";
             btn.disabled = true;
 
+            await processImportToDB(selectedClassId, 'ทั่วไป');
+        }
+
+        // 2. นำเข้าแบบด่วน (เลือกลงหมวดที่ระบุจาก URL)
+        async function executeDirectImport(targetCid, targetFolder) {
+            showMessage("⏳ กำลังนำเข้าภารกิจ...");
+            await processImportToDB(targetCid, targetFolder);
+        }
+
+        // Core Logic สำหรับการคัดลอกภารกิจและจับยัดห้องเรียน
+        async function processImportToDB(targetCid, targetFolder) {
             try {
                 // 1. ดึงข้อมูลต้นฉบับ ระบุเฉพาะคอลัมน์ที่มีอยู่จริงเท่านั้น! (ตัด id ออกแต่แรกเลย)
                 const { data: sourceMission, error: fetchError } = await window.sysDB
@@ -315,7 +388,7 @@
 
                 if (fetchError || !sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
 
-                // 2. จับคู่ข้อมูลสร้างแถวใหม่ (สะอาด 100% ไม่มี origin_mission_id)
+                // 2. จับคู่ข้อมูลสร้างแถวใหม่ (สะอาด 100% ป้องกัน Origin Error)
                 const newMissionData = {
                     title: sourceMission.title,
                     description: sourceMission.description,
@@ -324,7 +397,7 @@
                     mission_type: sourceMission.mission_type,
                     content_data: sourceMission.content_data,
                     reward_points: sourceMission.reward_points || 10,
-                    can_replay: sourceMission.can_replay !== false, // ถ้าไม่มีให้เป็น true
+                    can_replay: sourceMission.can_replay !== false,
                     is_public: false, // นำเข้าให้เป็นส่วนตัวในห้องเรียน
                     created_by: currentUserId,
                     created_at: new Date().toISOString(),
@@ -335,31 +408,33 @@
                 const { data: newMission, error: insertError } = await window.sysDB
                     .from('missions')
                     .insert([newMissionData])
-                    .select('mission_id') // ขอกลับมาแค่ mission_id ที่สร้างใหม่
+                    .select('mission_id') 
                     .single();
 
                 if (insertError) throw insertError;
 
-                // 4. นำ mission_id ไปผูกกับ classroom (อัปเดตให้รองรับระบบ Folder ใหม่)
+                // 4. นำ mission_id ไปผูกกับ classroom_missions พร้อมระบุ folder_name 🎯
                 await window.sysDB.from('classroom_missions').insert([{
-                    classroom_id: selectedClassId,
+                    classroom_id: targetCid,
                     mission_id: newMission.mission_id,
                     assigned_at: new Date().toISOString(),
-                    folder_name: 'ทั่วไป', // บังคับให้ภารกิจที่นำเข้าใหม่ตกไปอยู่หมวด "ทั่วไป"
-                    order_index: 99 // ให้อยู่ลำดับท้ายๆ ไว้ก่อน
+                    folder_name: targetFolder, // 👈 ระบุโฟลเดอร์ปลายทาง
+                    order_index: 99 // โยนไปไว้ท้ายสุดของโฟลเดอร์
                 }]);
 
-                showMessage("✅ นำเข้าภารกิจสำเร็จ! ไปยังห้องเรียนได้เลย");
+                showMessage(`✅ นำเข้าสู่หมวดหมู่ "${targetFolder}" สำเร็จ! กำลังพากลับห้องเรียน...`);
                 
-                // ดีเลย์นิดนึงให้ผู้ใช้เห็นข้อความสำเร็จ ก่อนเด้งหน้า
                 setTimeout(() => {
-                    window.location.href = `classroom-detail.html?id=${selectedClassId}`;
+                    window.location.href = `classroom-detail.html?id=${targetCid}`;
                 }, 1500);
 
             } catch (err) {
                 alert("เกิดข้อผิดพลาด: " + err.message);
-                btn.innerText = "ยืนยันการนำเข้า";
-                btn.disabled = false;
+                const btn = document.getElementById('confirmImportBtn');
+                if(btn) {
+                    btn.innerText = "ยืนยันการนำเข้า";
+                    btn.disabled = false;
+                }
             }
         }
 
