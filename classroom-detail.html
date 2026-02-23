@@ -22,19 +22,23 @@
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; overflow-x: hidden; }
         .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
+        /* --- รูปแบบการ์ดโฟลเดอร์ (หน้าแรก) --- */
+        .folder-card {
+            background: white; border-radius: 1.5rem; padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0; transition: all 0.3s ease; cursor: pointer;
+            display: flex; align-items: center; gap: 1rem;
+        }
+        .folder-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
+        .folder-icon-box {
+            width: 60px; height: 60px; border-radius: 1rem;
+            display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #2563eb;
+        }
+
+        /* --- รูปแบบเส้นทางภารกิจ (เมื่อเข้าโฟลเดอร์) --- */
         .mission-path { position: relative; padding: 20px 0 60px 0; display: flex; flex-direction: column; align-items: center; min-height: 300px; }
         .mission-path::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8px; background: #e2e8f0; transform: translateX(-50%); border-radius: 4px; z-index: 0; }
-        
-        .folder-section { width: 100%; display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 20px; }
-        .folder-header { 
-            background: #1e3a8a; color: white; padding: 8px 24px; border-radius: 50px; 
-            font-family: 'Kanit'; font-weight: 600; font-size: 15px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10;
-            display: flex; align-items: center; gap: 10px; margin-bottom: 30px; margin-top: 10px;
-            border: 2px solid white; transition: all 0.3s;
-        }
-        .folder-header:hover { transform: scale(1.05); }
-        .mission-list-container { width: 100%; display: flex; flex-direction: column; align-items: center; min-height: 80px; z-index: 10; }
         
         .mission-node { position: relative; z-index: 10; margin-bottom: 50px; display: flex; flex-direction: column; align-items: center; width: 100%; transition: all 0.3s ease; }
         .node-circle { 
@@ -52,20 +56,27 @@
             text-align: center; min-width: 260px; max-width: 320px; border: 1px solid #f1f5f9; 
         }
 
-        /* --- Drag & Drop Controls --- */
-        .drag-handle { 
-            display: none; position: absolute; right: -60px; top: 50%; transform: translateY(-50%);
-            width: 45px; height: 45px; background: white; border-radius: 14px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); align-items: center; justify-content: center; 
-            color: #94a3b8; transition: 0.2s; border: 1px solid #e2e8f0; cursor: grab; font-size: 18px;
+        /* --- โหมดจัดการ (โชว์กล่องลากวาง) --- */
+        .admin-folder-box {
+            background: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem;
+            border: 2px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
-        .drag-handle:active { cursor: grabbing; background: #1e3a8a; color: white; transform: translateY(-50%) scale(1.1); }
-        .reorder-active .drag-handle { display: flex; }
-        .reorder-active .mission-node:hover .node-circle { transform: none; border-color: white; color: #1e3a8a; cursor: default; }
+        .admin-mission-list {
+            min-height: 100px; padding: 1rem; border-radius: 1rem;
+            background: #f8fafc; border: 2px dashed #cbd5e1;
+            display: flex; flex-direction: column; gap: 0.5rem; transition: background 0.2s;
+        }
+        .admin-mission-list.sortable-drag { background: #eff6ff; border-color: #93c5fd; }
+        
+        .admin-mission-item {
+            background: white; border-radius: 0.75rem; padding: 1rem;
+            border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex; align-items: center; gap: 1rem; cursor: grab;
+        }
+        .admin-mission-item:active { cursor: grabbing; }
+        .drag-handle-icon { color: #94a3b8; font-size: 1.2rem; cursor: grab; }
 
-        .sortable-ghost { opacity: 0.4; transform: scale(0.95); }
-        .sortable-drag { cursor: grabbing !important; }
-
+        .hidden-el { display: none !important; }
         .drawer-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -118,8 +129,8 @@
         </div>
         
         <div class="flex items-center gap-3">
-            <button onclick="toggleReorder()" id="reorderMainBtn" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all border border-white/20">
-                <i class="fas fa-sort"></i> จัดหมวดหมู่และลำดับ
+            <button onclick="toggleManageMode()" id="manageModeBtn" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all border border-white/20">
+                <i class="fas fa-cog"></i> จัดการเนื้อหา
             </button>
             <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-white/30 shadow-sm cursor-pointer hover:scale-105 transition-transform" onclick="toggleDrawer()">
         </div>
@@ -134,9 +145,6 @@
                     <div class="flex flex-wrap items-center gap-4 mt-4 opacity-90 font-medium">
                         <span class="bg-white/20 px-4 py-1.5 rounded-xl text-sm flex items-center gap-2 font-sans">
                             <i class="fas fa-door-open"></i> ห้อง <span id="roomName">...</span>
-                        </span>
-                        <span class="bg-white/20 px-4 py-1.5 rounded-xl text-sm flex items-center gap-2 font-sans">
-                            <i class="fas fa-calendar-alt"></i> <span id="termText">...</span>
                         </span>
                     </div>
                 </div>
@@ -155,32 +163,59 @@
         <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
     </header>
 
-    <!-- Main Mission Path -->
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-5xl relative">
         
-        <!-- แถบเครื่องมือจัดการโฟลเดอร์ (แสดงเฉพาะตอนกดจัดลำดับ) -->
-        <div id="manageToolbar" class="hidden-el w-full flex justify-center mb-8">
-            <button onclick="promptAddFolder()" class="bg-white border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-500 hover:text-blue-600 px-6 py-3 rounded-2xl font-bold transition-all shadow-sm flex items-center gap-2 transform active:scale-95">
-                <i class="fas fa-folder-plus text-lg"></i> สร้างหมวดหมู่ / บทเรียนใหม่
-            </button>
-        </div>
-
-        <!-- กล่องเก็บโฟลเดอร์และภารกิจ -->
-        <div id="missionPath" class="mission-path">
-            <div id="missionListContent" class="w-full flex flex-col items-center">
+        <!-- โหมด 1: หน้าจอแสดงโฟลเดอร์ทั้งหมด (Folder Grid View) -->
+        <div id="viewFolderGrid">
+            <h2 class="text-xl font-bold text-blue-900 mb-6 font-sans"><i class="fas fa-folder-open text-orange-500 mr-2"></i> หมวดหมู่บทเรียน</h2>
+            <div id="folderGridContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Data goes here -->
             </div>
         </div>
+
+        <!-- โหมด 2: หน้าจอแสดงภารกิจในโฟลเดอร์ที่เลือก (Mission Path View) -->
+        <div id="viewMissionPath" class="hidden-el">
+            <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-4">
+                <button onclick="backToFolders()" class="text-slate-500 hover:text-blue-600 font-bold transition flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> กลับไปหมวดหมู่
+                </button>
+                <h2 id="currentFolderNameDisplay" class="text-xl font-bold text-blue-900 font-sans">ชื่อโฟลเดอร์</h2>
+            </div>
+            <div id="missionPath" class="mission-path">
+                <div id="missionListContent" class="w-full flex flex-col items-center">
+                    <!-- Data goes here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- โหมด 3: โหมดจัดการเนื้อหา (Admin Manage View - Drag & Drop) -->
+        <div id="viewManageMode" class="hidden-el">
+            <div class="flex items-center justify-between mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <div>
+                    <h2 class="text-xl font-bold text-blue-900 font-sans"><i class="fas fa-cogs text-blue-500 mr-2"></i> จัดการโครงสร้างห้องเรียน</h2>
+                    <p class="text-sm text-slate-500 mt-1">คลิกค้างที่ <i class="fas fa-grip-vertical mx-1"></i> เพื่อลากย้ายภารกิจข้ามหมวดหมู่ หรือสลับลำดับ</p>
+                </div>
+                <button onclick="promptAddFolder()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                    <i class="fas fa-folder-plus"></i> เพิ่มหมวดหมู่
+                </button>
+            </div>
+            
+            <div id="manageContent" class="space-y-6">
+                <!-- Manage Data goes here -->
+            </div>
+        </div>
+
     </main>
 
     <!-- Floating Add Mission Button -->
-    <button onclick="location.href='mission-create.html?cid=' + currentClassId" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 z-40">
+    <button onclick="location.href='mission-create.html?cid=' + currentClassId" class="fixed bottom-8 right-8 w-16 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition-all transform hover:scale-110 active:scale-95 z-40" title="สร้างภารกิจใหม่">
         <i class="fas fa-plus"></i>
     </button>
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-100 py-10 text-center mt-auto">
-        <p class="text-blue-900 font-bold mb-1 italic font-sans">© 2026 FlipSchool. <span class="app-slogan-label"></span></p>
+        <p class="text-blue-900 font-bold mb-1 italic font-sans">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
         <p id="footerOwnerText" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest"></p>
     </footer>
 
@@ -188,8 +223,8 @@
         let currentUserId = null;
         let currentClassId = null;
         let missions = [];
-        let folders = []; // เก็บรายชื่อโฟลเดอร์
-        let isReorderMode = false;
+        let folders = []; 
+        let isManageMode = false;
         let sortableInstances = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -198,6 +233,7 @@
             if (!currentClassId) return location.href = 'teacher-dashboard.html';
 
             if (window.CONFIG) {
+                document.getElementById('currentYear').innerText = window.CONFIG.YEAR || new Date().getFullYear();
                 document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
                 document.getElementById('footerOwnerText').innerText = `${window.CONFIG.OWNER.NAME} | ${window.CONFIG.OWNER.SCHOOL}`;
             }
@@ -225,9 +261,7 @@
             if (data) {
                 document.getElementById('subjectName').innerText = data.subject_name;
                 document.getElementById('roomName').innerText = data.room_name;
-                document.getElementById('termText').innerText = `ปีการศึกษา ${data.academic_year} / เทอม ${data.semester}`;
                 
-                // ดึงโฟลเดอร์จาก DB (ถ้ามีบันทึกไว้ใน metadata/settings)
                 if (data.folders && Array.isArray(data.folders)) {
                     folders = data.folders;
                 }
@@ -250,75 +284,153 @@
                     missions = data.filter(m => m.missions !== null);
                     missions.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
-                    // หากไม่มีโฟลเดอร์ใน DB ให้สร้างโครงสร้างเริ่มต้น
+                    // หากไม่เคยมีโฟลเดอร์ ให้สร้าง "ทั่วไป" เป็นค่าเริ่มต้น
                     if (folders.length === 0) {
                         const uniqueFolders = [...new Set(missions.map(m => m.folder_name).filter(Boolean))];
                         folders = uniqueFolders.length > 0 ? uniqueFolders : ['ทั่วไป'];
                     }
 
                     document.getElementById('missionCount').innerText = missions.length;
-                    document.getElementById('reorderMainBtn').classList.toggle('hidden', missions.length === 0 && folders.length === 0);
-                    renderMissions();
+                    document.getElementById('manageModeBtn').classList.remove('hidden');
+                    
+                    showFolderGrid(); // โหลดเสร็จให้แสดงหน้าโฟลเดอร์
                 }
             } catch (err) { console.error("Query Exception:", err); }
         }
 
-        function renderMissions() {
-            const container = document.getElementById('missionListContent');
+        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
+
+        // ==========================================
+        // ส่วนที่ 1: การแสดงผลโหมดโฟลเดอร์ (Drill-down)
+        // ==========================================
+        function showFolderGrid() {
+            document.getElementById('viewFolderGrid').classList.remove('hidden-el');
+            document.getElementById('viewMissionPath').classList.add('hidden-el');
+            document.getElementById('viewManageMode').classList.add('hidden-el');
             
-            // กรณีไม่มีทั้งภารกิจและโฟลเดอร์เลย
-            if (missions.length === 0 && folders.length === 0) {
+            const grid = document.getElementById('folderGridContent');
+            
+            // เช็คว่ามีภารกิจตกหล่นไหม ถ้ามีให้สร้างหมวดทั่วไปรองรับ
+            const hasOrphans = missions.some(m => !folders.includes(m.folder_name || 'ทั่วไป'));
+            if (hasOrphans && !folders.includes('ทั่วไป')) folders.push('ทั่วไป');
+
+            if (folders.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10">ยังไม่มีหมวดหมู่</div>`;
+                return;
+            }
+
+            grid.innerHTML = folders.map(folderName => {
+                const count = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName).length;
+                return `
+                    <div class="folder-card group" onclick="openFolder('${folderName}')">
+                        <div class="folder-icon-box group-hover:scale-110 transition-transform">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">${folderName}</h3>
+                            <p class="text-sm text-slate-500">${count} ภารกิจ</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openFolder(folderName) {
+            document.getElementById('viewFolderGrid').classList.add('hidden-el');
+            document.getElementById('viewMissionPath').classList.remove('hidden-el');
+            document.getElementById('currentFolderNameDisplay').innerText = folderName;
+
+            const container = document.getElementById('missionListContent');
+            const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
+
+            if (folderMissions.length === 0) {
                 container.innerHTML = `
-                    <div class="py-24 opacity-30 text-center">
-                        <i class="fas fa-map-marked-alt text-9xl mb-6 text-slate-300"></i>
-                        <h3 class="text-2xl font-bold font-sans text-slate-500">ยังไม่มีภารกิจในห้องเรียน</h3>
-                        <p class="text-sm font-sans text-slate-400">กดปุ่ม + เพื่อเนรมิตภารกิจใหม่หรือเลือกจากคลังสื่อครับ</p>
+                    <div class="py-20 opacity-30 text-center">
+                        <i class="fas fa-box-open text-6xl mb-4 text-slate-300"></i>
+                        <h3 class="text-xl font-bold font-sans text-slate-500">หมวดหมู่นี้ยังว่างเปล่า</h3>
                     </div>`;
                 return;
             }
 
+            container.innerHTML = folderMissions.map((m, idx) => `
+                <div class="mission-node">
+                    <div class="node-circle shadow-lg" onclick="location.href='play-mission.html?mid=${m.mission_id}'">
+                        <i class="${getIcon(m.missions.mission_type)}"></i>
+                    </div>
+                    <div class="node-content">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">ลำดับที่ ${idx + 1}</span>
+                            <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-lg font-bold">
+                                <i class="fas fa-star mr-1"></i>${m.missions.reward_points || 10}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm leading-tight truncate font-sans">${m.missions.title}</h3>
+                        <p class="text-[10px] text-slate-400 mt-1 italic font-sans">${m.missions.subject_group || 'ทั่วไป'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function backToFolders() {
+            showFolderGrid();
+        }
+
+        // ==========================================
+        // ส่วนที่ 2: โหมดจัดการลากวาง (Admin Manage Mode)
+        // ==========================================
+        function toggleManageMode() {
+            isManageMode = !isManageMode;
+            const btn = document.getElementById('manageModeBtn');
+
+            if (isManageMode) {
+                btn.innerHTML = '<i class="fas fa-save"></i> บันทึกข้อมูล';
+                btn.classList.replace('bg-white/10', 'bg-emerald-500');
+                btn.classList.replace('hover:bg-white/20', 'hover:bg-emerald-600');
+                renderAdminManageView();
+            } else {
+                btn.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+                btn.classList.replace('bg-emerald-500', 'bg-white/10');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
+                saveNewOrderAndFolders(); // สั่งเซฟ
+            }
+        }
+
+        function renderAdminManageView() {
+            document.getElementById('viewFolderGrid').classList.add('hidden-el');
+            document.getElementById('viewMissionPath').classList.add('hidden-el');
+            document.getElementById('viewManageMode').classList.remove('hidden-el');
+
+            const container = document.getElementById('manageContent');
             let html = '';
 
-            // วนลูปวาดโฟลเดอร์แต่ละอัน
             folders.forEach(folderName => {
                 const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
                 
-                // ปุ่มลบโฟลเดอร์จะโชว์เฉพาะโหมดจัดการ
-                const deleteBtnHtml = isReorderMode && folderName !== 'ทั่วไป' 
-                    ? `<button onclick="deleteFolder('${folderName}')" class="ml-auto bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-rose-600 transition" title="ลบหมวดหมู่นี้"><i class="fas fa-times text-[10px]"></i></button>`
+                const deleteBtnHtml = folderName !== 'ทั่วไป' 
+                    ? `<button onclick="deleteFolder('${folderName}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-2 rounded-lg transition" title="ลบหมวดหมู่"><i class="fas fa-trash-alt"></i></button>`
                     : '';
 
                 html += `
-                    <div class="folder-section w-full" data-folder="${folderName}">
-                        <!-- หัวโฟลเดอร์ -->
-                        <div class="folder-header">
-                            <i class="fas fa-folder-open text-orange-300"></i> 
-                            <span>${folderName}</span>
+                    <div class="admin-folder-box" data-folder="${folderName}">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                            <h3 class="font-bold text-lg text-slate-800"><i class="fas fa-folder-open text-orange-400 mr-2"></i> ${folderName}</h3>
                             ${deleteBtnHtml}
                         </div>
                         
-                        <!-- พื้นที่สำหรับลากภารกิจมาวาง (Sortable target) -->
-                        <div class="mission-list-container w-full flex flex-col items-center pb-4 min-h-[60px]" data-folder="${folderName}">
+                        <!-- พื้นที่สำหรับลากวางของ SortableJS -->
+                        <div class="admin-mission-list sortable-list" data-folder="${folderName}">
                 `;
 
-                folderMissions.forEach((m, idx) => {
+                folderMissions.forEach(m => {
                     html += `
-                        <div class="mission-node ${isReorderMode ? 'reorder-active' : ''}" data-assignment-id="${m.assignment_id}">
-                            <div class="node-circle shadow-lg" onclick="${isReorderMode ? '' : `location.href='play-mission.html?mid=${m.mission_id}'`}">
-                                <i class="${getIcon(m.missions.mission_type)}"></i>
+                        <div class="admin-mission-item" data-assignment-id="${m.assignment_id}">
+                            <i class="fas fa-grip-vertical drag-handle-icon"></i>
+                            <div class="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <i class="${getIcon(m.missions.mission_type)} text-sm"></i>
                             </div>
-                            <div class="drag-handle" title="ลากเพื่อย้าย">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
-                            <div class="node-content">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">ลำดับที่ ${idx + 1}</span>
-                                    <span class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-lg font-bold">
-                                        <i class="fas fa-star mr-1"></i>${m.missions.reward_points || 10}
-                                    </span>
-                                </div>
-                                <h3 class="font-bold text-slate-800 text-sm leading-tight truncate font-sans">${m.missions.title}</h3>
-                                <p class="text-[10px] text-slate-400 mt-1 italic font-sans">${m.missions.subject_group || 'กลุ่มสาระทั่วไป'}</p>
+                            <div class="flex-grow min-w-0">
+                                <p class="font-bold text-sm text-slate-700 truncate">${m.missions.title}</p>
+                                <p class="text-[10px] text-slate-400">ID: ${m.assignment_id.substring(0,6)}...</p>
                             </div>
                         </div>
                     `;
@@ -330,45 +442,25 @@
                 `;
             });
 
-            // ภารกิจที่ไม่มีโฟลเดอร์ (ตกหล่น) จับยัดเข้ากลุ่ม "ทั่วไป" ให้หมด
-            const orphanMissions = missions.filter(m => !folders.includes(m.folder_name || 'ทั่วไป'));
-            if (orphanMissions.length > 0) {
-                if(!folders.includes('ทั่วไป')) folders.push('ทั่วไป');
-                setTimeout(renderMissions, 10); // Re-render to put them in General
-            }
-
             container.innerHTML = html;
-
-            // หากอยู่ในโหมดจัดการ ให้เปิดใช้งาน SortableJS
-            if (isReorderMode) {
-                initSortable();
-            }
+            initSortable();
         }
 
-        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
+        function initSortable() {
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
 
-        // --- ระบบเปิด/ปิด โหมดจัดการหมวดหมู่ ---
-        function toggleReorder() {
-            isReorderMode = !isReorderMode;
-            const btn = document.getElementById('reorderMainBtn');
-            const toolbar = document.getElementById('manageToolbar');
-
-            if (isReorderMode) {
-                btn.innerHTML = '<i class="fas fa-check"></i> บันทึกข้อมูล';
-                btn.classList.replace('bg-white/10', 'bg-emerald-500');
-                btn.classList.replace('hover:bg-white/20', 'hover:bg-emerald-600');
-                toolbar.classList.remove('hidden-el');
-            } else {
-                btn.innerHTML = '<i class="fas fa-sort"></i> จัดหมวดหมู่และลำดับ';
-                btn.classList.replace('bg-emerald-500', 'bg-white/10');
-                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
-                toolbar.classList.add('hidden-el');
-                saveNewOrderAndFolders(); // บันทึกเมื่อกดออกจากโหมด
-            }
-            renderMissions();
+            const containers = document.querySelectorAll('.sortable-list');
+            containers.forEach(container => {
+                sortableInstances.push(new Sortable(container, {
+                    group: 'shared-folders', // ให้ลากข้ามกล่องได้
+                    animation: 150,
+                    handle: '.drag-handle-icon',
+                    ghostClass: 'sortable-ghost',
+                }));
+            });
         }
 
-        // --- ระบบสร้างและลบโฟลเดอร์ ---
         function promptAddFolder() {
             const folderName = prompt("ตั้งชื่อหมวดหมู่ใหม่ (เช่น บทที่ 1, แบบทดสอบ):");
             if (folderName && folderName.trim() !== "") {
@@ -378,67 +470,36 @@
                     return;
                 }
                 folders.push(cleanName);
-                renderMissions();
+                renderAdminManageView(); // รีเฟรชหน้าจัดการ
             }
         }
 
         function deleteFolder(folderName) {
-            if (confirm(`คุณต้องการลบหมวดหมู่ "${folderName}" ใช่หรือไม่?\n\n*ภารกิจที่อยู่ในหมวดหมู่นี้จะถูกย้ายไปที่ "ทั่วไป" อัตโนมัติ`)) {
-                // อัปเดต state ภารกิจในความจำชั่วคราว ให้ย้ายไป "ทั่วไป"
+            if (confirm(`ต้องการลบหมวดหมู่ "${folderName}" ใช่หรือไม่?\n*ภารกิจข้างในจะถูกย้ายไป "ทั่วไป"`)) {
                 missions.forEach(m => {
                     if ((m.folder_name || 'ทั่วไป') === folderName) m.folder_name = 'ทั่วไป';
                 });
-                // ลบโฟลเดอร์ออกจากลิสต์
                 folders = folders.filter(f => f !== folderName);
-                // ตรวจสอบว่ามีทั่วไปไหม ถ้าไม่มีให้สร้าง
                 if(!folders.includes('ทั่วไป')) folders.push('ทั่วไป');
-                renderMissions();
+                renderAdminManageView();
             }
         }
 
-        // --- ระบบ Drag & Drop ด้วย SortableJS ---
-        function initSortable() {
-            // เคลียร์อันเก่าก่อน
-            sortableInstances.forEach(instance => instance.destroy());
-            sortableInstances = [];
-
-            // ผูก Sortable เข้ากับทุกๆ โฟลเดอร์
-            const containers = document.querySelectorAll('.mission-list-container');
-            containers.forEach(container => {
-                sortableInstances.push(new Sortable(container, {
-                    group: 'shared-missions', // ทำให้ลากข้ามโฟลเดอร์ได้
-                    animation: 200,
-                    handle: '.drag-handle', // ลากได้เฉพาะตรงจุดจับ
-                    ghostClass: 'sortable-ghost',
-                    dragClass: 'sortable-drag',
-                    easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-                    onEnd: function (evt) {
-                        // เมื่อปล่อยเมาส์ ให้อัปเดต UI ภายในให้ถูกต้อง (ไม่ต้องทำอะไรมาก เพราะ HTML เรียงให้แล้ว)
-                        // การบันทึกเข้า DB จะเกิดตอนกดปุ่ม "บันทึกข้อมูล" ทีเดียว
-                    }
-                }));
-            });
-        }
-
-        // --- ระบบบันทึกข้อมูลทั้งหมดลง Database ---
         async function saveNewOrderAndFolders() {
             document.getElementById('loadingText').innerText = "กำลังบันทึกโครงสร้าง...";
             document.getElementById('loadingOverlay').style.display = 'flex';
             
             try {
                 const updates = [];
+                const folderSections = document.querySelectorAll('.admin-folder-box');
                 
-                // อ่านข้อมูลจาก DOM ที่ผู้ใช้จัดเรียงไว้
-                const folderSections = document.querySelectorAll('.folder-section');
-                
+                // อ่านค่าจาก DOM หลังจากที่ผู้ใช้ลากสลับไปมา
                 folderSections.forEach(section => {
                     const folderName = section.getAttribute('data-folder');
-                    const missionNodes = section.querySelectorAll('.mission-node');
+                    const missionItems = section.querySelectorAll('.admin-mission-item');
                     
-                    missionNodes.forEach((node, index) => {
+                    missionItems.forEach((node, index) => {
                         const assignmentId = node.getAttribute('data-assignment-id');
-                        
-                        // สร้าง Promise สำหรับอัปเดตแต่ละรายการ
                         updates.push(
                             window.sysDB.from('classroom_missions').update({ 
                                 order_index: index, 
@@ -448,28 +509,26 @@
                     });
                 });
 
-                // รอให้อัปเดตภารกิจเสร็จทั้งหมด
                 await Promise.all(updates);
 
-                // บันทึกรายชื่อโฟลเดอร์ลงไปในตาราง classrooms ด้วย เพื่อให้เก็บโฟลเดอร์เปล่าไว้ได้
                 try {
                     await window.sysDB.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
-                } catch(e) {
-                    console.warn("Table 'classrooms' might not have 'folders' column yet, skipping folder-only save.");
-                }
+                } catch(e) {}
 
-                // โหลดข้อมูลใหม่เพื่อความชัวร์
+                // โหลดข้อมูลใหม่จาก DB แล้วกลับไปหน้าแรก
                 await fetchMissions();
+                showFolderGrid();
                 
             } catch (err) { 
                 console.error(err);
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล'); 
+                showFolderGrid();
             }
             
             document.getElementById('loadingOverlay').style.display = 'none';
         }
 
-        // --- UI & Utility Functions ---
+        // --- Utils ---
         function toggleDrawer() {
             const dr = document.getElementById('sideDrawer');
             const ov = document.getElementById('drawerOverlay');
