@@ -60,6 +60,27 @@
         </div>
     </div>
 
+    <!-- 🌟 Modal ยืนยันการนำเข้าแบบด่วนที่สวยงาม (แทนที่ confirm ปกติ) 🌟 -->
+    <div id="directImportConfirmModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100 transform transition-all scale-95 opacity-0 text-center" id="directImportConfirmCard">
+            <div class="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner border-4 border-white ring-2 ring-blue-100">
+                <i class="fas fa-file-import"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2 font-sans">ยืนยันการนำเข้า</h3>
+            <p class="text-sm text-slate-500 mb-6 font-sans">
+                คุณต้องการนำเข้าภารกิจนี้ไปยังหมวดหมู่<br>
+                <span id="confirmFolderNameDisplay" class="font-bold text-blue-700 text-base mt-2 inline-block bg-blue-50 px-4 py-1.5 rounded-xl border border-blue-100 shadow-sm"></span><br>
+                ใช่หรือไม่?
+            </p>
+            <div class="flex gap-3">
+                <button onclick="closeDirectImportConfirm()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all font-sans">ยกเลิก</button>
+                <button id="btnConfirmDirectImport" onclick="proceedDirectImport()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 font-sans flex justify-center items-center gap-2">
+                    <i class="fas fa-check-circle"></i> นำเข้าทันที
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- กล่องข้อความแจ้งเตือน -->
     <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-orange-500 shadow-lg rounded-xl p-4 transition-all">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
@@ -162,6 +183,7 @@
         let allMissions = [];
         let currentUserId = null;
         let selectedMissionIdForImport = null;
+        let isImporting = false;
         
         // อ่านค่าพารามิเตอร์เพื่อใช้โหมดนำเข้าด่วน
         const urlParams = new URLSearchParams(window.location.search);
@@ -279,8 +301,6 @@
             renderMissions(filtered);
         }
 
-        let isImporting = false; // ตัวแปรป้องกันการกดปุ่มซ้ำเบิ้ล
-
         // ==========================================
         // 🚀 ระบบคัดกรองโหมดการนำเข้า (Direct vs Modal)
         // ==========================================
@@ -288,14 +308,21 @@
             if (isImporting) return;
             selectedMissionIdForImport = mid;
 
-            // หากมี URL Params มาจากหน้าห้องเรียน ให้นำเข้าทันทีแบบ 1-Click (ไม่ต้องกดยืนยัน)
+            // 🌟 1. หากมี URL Params มาจากหน้าห้องเรียน ให้แสดง Custom Modal ยืนยันที่สวยงาม
             if (directCid && directFolder) {
-                isImporting = true;
-                executeDirectImport(directCid, directFolder);
+                document.getElementById('confirmFolderNameDisplay').innerText = directFolder;
+                const confirmModal = document.getElementById('directImportConfirmModal');
+                const confirmCard = document.getElementById('directImportConfirmCard');
+                
+                confirmModal.classList.remove('hidden');
+                setTimeout(() => {
+                    confirmCard.classList.remove('scale-95', 'opacity-0');
+                    confirmCard.classList.add('scale-100', 'opacity-100');
+                }, 10);
                 return;
             }
             
-            // หากไม่ได้มาจากหน้าห้องเรียน (เข้าคลังสื่อปกติ) ให้แสดง Modal เลือกห้อง
+            // 🌟 2. หากไม่ได้มาจากหน้าห้องเรียน (เข้าคลังสื่อปกติ) ให้แสดง Modal เลือกห้องเรียนแบบเดิม
             const modal = document.getElementById('importModal');
             const list = document.getElementById('classroomList');
             const btn = document.getElementById('confirmImportBtn');
@@ -331,17 +358,25 @@
             }
         }
 
+        // ปิด Custom Modal นำเข้าด่วน
+        function closeDirectImportConfirm() {
+            const confirmModal = document.getElementById('directImportConfirmModal');
+            const confirmCard = document.getElementById('directImportConfirmCard');
+            confirmCard.classList.remove('scale-100', 'opacity-100');
+            confirmCard.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { confirmModal.classList.add('hidden'); }, 300);
+        }
+
+        // ปิด Modal เลือกห้องแบบปกติ
         function closeImportModal() {
             document.getElementById('importModal').classList.add('hidden');
             selectedMissionIdForImport = null;
         }
 
         function cancelDirectImport() {
-            // ยกเลิกการนำเข้าด่วน ให้พาตัวกลับไปโหมดปกติ
             directCid = null;
             directFolder = null;
             document.getElementById('importContextBanner').classList.add('hidden-el');
-            // ทำการลบ URL Params ออกเพื่อให้ URL สะอาดขึ้น (ไม่ต้องโหลดหน้าใหม่)
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
@@ -354,28 +389,35 @@
         }
 
         // ==========================================
-        // 🎯 ฟังก์ชันบันทึกข้อมูลเข้าฐานข้อมูล (Explicit Mapping ป้องกัน Schema Error)
+        // 🎯 ฟังก์ชันบันทึกข้อมูลเข้าฐานข้อมูล
         // ==========================================
         
-        // 1. นำเข้าผ่าน Modal (เลือกลงหมวด "ทั่วไป")
+        // 1. นำเข้าผ่าน Modal เลือกห้องปกติ (เลือกลงหมวด "ทั่วไป")
         async function executeImport() {
+            if (isImporting) return;
             const radios = document.getElementsByName('targetClassroom');
             let selectedClassId = null;
             for (const r of radios) { if (r.checked) selectedClassId = r.value; }
 
             if (!selectedClassId || !selectedMissionIdForImport) return;
             
+            isImporting = true;
             const btn = document.getElementById('confirmImportBtn');
-            btn.innerText = "กำลังนำเข้า...";
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังนำเข้า...';
             btn.disabled = true;
 
             await processImportToDB(selectedClassId, 'ทั่วไป');
         }
 
-        // 2. นำเข้าแบบด่วน (เลือกลงหมวดที่ระบุจาก URL)
-        async function executeDirectImport(targetCid, targetFolder) {
-            showMessage("⏳ กำลังนำเข้าภารกิจ...");
-            await processImportToDB(targetCid, targetFolder);
+        // 2. นำเข้าแบบด่วนจากปุ่ม Custom Modal
+        async function proceedDirectImport() {
+            if (isImporting) return;
+            isImporting = true;
+            const btn = document.getElementById('btnConfirmDirectImport');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังนำเข้า...';
+            btn.disabled = true;
+            
+            await processImportToDB(directCid, directFolder);
         }
 
         // Core Logic สำหรับการคัดลอกภารกิจและจับยัดห้องเรียน
@@ -426,17 +468,30 @@
 
                 showMessage(`✅ นำเข้าสู่หมวดหมู่ "${targetFolder}" สำเร็จ! กำลังพากลับห้องเรียน...`);
                 
+                // ปิด Modal (ถ้าเปิดอยู่) ก่อนพากลับ
+                closeDirectImportConfirm();
+                
                 setTimeout(() => {
                     window.location.href = `classroom-detail.html?id=${targetCid}`;
                 }, 1500);
 
             } catch (err) {
                 alert("เกิดข้อผิดพลาด: " + err.message);
-                const btn = document.getElementById('confirmImportBtn');
-                if(btn) {
-                    btn.innerText = "ยืนยันการนำเข้า";
-                    btn.disabled = false;
+                
+                // Reset ปุ่มกดยืนยันปกติ
+                const btnNormal = document.getElementById('confirmImportBtn');
+                if(btnNormal) {
+                    btnNormal.innerText = "ยืนยันการนำเข้า";
+                    btnNormal.disabled = false;
                 }
+                
+                // Reset ปุ่มกดยืนยันด่วน
+                const btnDirect = document.getElementById('btnConfirmDirectImport');
+                if(btnDirect) {
+                    btnDirect.innerHTML = '<i class="fas fa-check-circle"></i> นำเข้าทันที';
+                    btnDirect.disabled = false;
+                }
+                
                 isImporting = false; // ปลดล็อกปุ่มให้กดใหม่ได้เมื่อเกิด Error
             }
         }
