@@ -287,10 +287,14 @@
             currentClassId = params.get('id');
             if (!currentClassId) return location.href = 'teacher-dashboard.html';
 
-            if (window.CONFIG) {
-                document.getElementById('currentYear').innerText = window.CONFIG.YEAR || new Date().getFullYear();
-                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = window.CONFIG.APP_SLOGAN);
-                document.getElementById('footerOwnerText').innerText = `${window.CONFIG.OWNER.NAME} | ${window.CONFIG.OWNER.SCHOOL}`;
+            // 🌟 แก้ไข: เรียกใช้ APP_CONFIG และ initAppUI() ให้ถูกต้อง
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN);
+                document.getElementById('footerOwnerText').innerText = `${APP_CONFIG.OWNER.NAME} | ${APP_CONFIG.OWNER.SCHOOL}`;
+                
+                // เรียกใช้ฟังก์ชันอัปเดต UI พื้นฐานจาก config.js
+                if (typeof initAppUI === 'function') initAppUI();
             }
 
             document.getElementById('promptInputVal').addEventListener('keypress', (e) => {
@@ -320,6 +324,10 @@
             if (data) {
                 document.getElementById('subjectName').innerText = data.subject_name;
                 document.getElementById('roomName').innerText = data.room_name;
+                
+                // 🌟 อัปเดต Title Bar ให้แสดง "ชื่อวิชา | ชื่อแอปพลิเคชัน" อัตโนมัติ
+                const appName = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.APP_NAME : 'FlipSchool';
+                document.title = `${data.subject_name} | ${appName}`;
                 
                 if (data.folders && Array.isArray(data.folders)) {
                     folders = data.folders;
