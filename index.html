@@ -14,6 +14,12 @@
     <meta name="apple-mobile-web-app-title" content="FlipSchool">
     <meta name="theme-color" content="#ffffff">
 
+    <!-- Supabase Scripts (ต้องโหลดก่อนเผื่อใช้งานระบบเช็ค Login) -->
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -35,6 +41,29 @@
             min-height: 100vh;
             display: flex; flex-direction: column;
             overflow-x: hidden;
+        }
+
+        /* --- หน้าจอ Loading (ปิดบังหน้าเว็บตอนกำลังเช็คสถานะ Login) --- */
+        #authLoader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffffff; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-icon {
+            font-size: 50px; color: var(--primary); margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        .loader-text {
+            font-family: 'Kanit', sans-serif; font-size: 18px; color: var(--text-muted);
+            animation: pulse 1.5s infinite; font-weight: 500;
+        }
+
+        /* --- ซ่อนเนื้อหาหลักจนกว่าจะเช็คเสร็จ --- */
+        #mainContent {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         /* --- Navbar --- */
@@ -185,75 +214,157 @@
 </head>
 
 <body>
-    <nav>
-        <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo">
-            <div class="logo-text-group">
-                <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan">...</div>
-            </div>
-        </a>
-        <a href="login.html" class="nav-btn-outline">เข้าสู่ระบบ</a>
-    </nav>
-
-    <section class="hero-container">
-        <div class="hero-card">
-            <div class="hero-image-side"></div>
-            <div class="hero-text-side">
-                <div class="hero-badge" onclick="openGloryModal()">
-                    <i class="fas fa-star"></i> นวัตกรรม GLORY Model <i class="fas fa-chevron-right" style="font-size: 10px; margin-left: 5px;"></i>
-                </div>
-                <h1 class="hero-title">เรียนรู้ที่บ้าน<br><span>เสริมสร้างประสบการณ์</span><br>ที่โรงเรียน</h1>
-                <p class="hero-description">เปลี่ยนการบ้านเป็นการเรียนรู้ผ่านเกม เปลี่ยนห้องเรียนเป็นพื้นที่ปฏิบัติจริง ด้วยนวัตกรรม GLORY Model</p>
-                
-                <div id="installAlert" class="install-alert">
-                    <i class="fas fa-exclamation-circle"></i> กรุณาติดตั้งแอปเพื่อใช้งานระบบที่สมบูรณ์
-                </div>
-                <button id="installBtn" class="btn-install-modern" onclick="installApp()">
-                    <i class="fas fa-download"></i> ติดตั้งแอปพลิเคชัน
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <div id="iosPrompt" class="ios-prompt-overlay" onclick="closeIosPrompt()">
-        <div class="ios-prompt-card" onclick="event.stopPropagation()">
-            <button class="close-prompt" onclick="closeIosPrompt()">&times;</button>
-            <h3 style="margin-top:0; color:#1f2937; font-family:'Kanit';">ติดตั้ง FlipSchool</h3>
-            <p style="color:#6b7280; font-size:0.9rem; margin-bottom:20px;">เพิ่มแอปลงหน้าจอโฮมเพื่อเข้าใช้งานระบบ</p>
-            <div class="ios-step"><i class="fas fa-share-square"></i><span>1. กดปุ่ม <b>"แชร์"</b> ที่แถบด้านล่างของ Safari</span></div>
-            <div class="ios-step"><i class="fas fa-plus-square"></i><span>2. เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b></span></div>
-            <div class="ios-step"><i class="fas fa-plus"></i><span style="font-weight:bold; color:#007aff; margin-left:8px;">เพิ่ม</span><span>3. กดปุ่ม <b>"เพิ่ม"</b> ที่มุมขวาบน</span></div>
-        </div>
+    
+    <!-- หน้าจอ Loading (ตรวจสอบสถานะ Login) -->
+    <div id="authLoader">
+        <div class="loader-icon"><i class="fas fa-spinner fa-spin"></i></div>
+        <div class="loader-text">กำลังตรวจสอบการเข้าสู่ระบบ...</div>
     </div>
 
-    <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
-            <h2 style="font-family:'Kanit'; color:var(--primary); text-align:center; font-size:clamp(24px, 4vw, 30px); margin-bottom:5px;">GLORY Model</h2>
-            <div style="height: 3px; width: 50px; background: var(--accent); margin: 0 auto 20px; border-radius: 2px;"></div>
-            <div class="process-grid">
-                <div class="process-card card-home">
-                    <h3 style="font-family:'Kanit'; color:var(--accent); margin-bottom:15px; font-size:clamp(18px, 3vw, 22px);"><i class="fas fa-home"></i> เรียนรู้ที่บ้าน</h3>
-                    <div id="homeDetail"></div>
+    <!-- ส่วนเนื้อหาหลัก (แสดงเมื่อเช็คเสร็จแล้ว) -->
+    <div id="mainContent">
+        <nav>
+            <a href="index.html" class="logo-container">
+                <img src="img/favicon.png" alt="Logo">
+                <div class="logo-text-group">
+                    <div class="brand-name">Flip<span>School</span></div>
+                    <div class="slogan">...</div>
                 </div>
-                <div class="process-card card-school">
-                    <h3 style="font-family:'Kanit'; color:var(--primary); margin-bottom:15px; font-size:clamp(18px, 3vw, 22px);"><i class="fas fa-school"></i> ประสบการณ์ที่โรงเรียน</h3>
-                    <div id="schoolDetail"></div>
+            </a>
+            <a href="login.html" class="nav-btn-outline">เข้าสู่ระบบ</a>
+        </nav>
+
+        <section class="hero-container">
+            <div class="hero-card">
+                <div class="hero-image-side"></div>
+                <div class="hero-text-side">
+                    <div class="hero-badge" onclick="openGloryModal()">
+                        <i class="fas fa-star"></i> นวัตกรรม GLORY Model <i class="fas fa-chevron-right" style="font-size: 10px; margin-left: 5px;"></i>
+                    </div>
+                    <h1 class="hero-title">เรียนรู้ที่บ้าน<br><span>เสริมสร้างประสบการณ์</span><br>ที่โรงเรียน</h1>
+                    <p class="hero-description">เปลี่ยนการบ้านเป็นการเรียนรู้ผ่านเกม เปลี่ยนห้องเรียนเป็นพื้นที่ปฏิบัติจริง ด้วยนวัตกรรม GLORY Model</p>
+                    
+                    <div id="installAlert" class="install-alert">
+                        <i class="fas fa-exclamation-circle"></i> กรุณาติดตั้งแอปเพื่อใช้งานระบบที่สมบูรณ์
+                    </div>
+                    <button id="installBtn" class="btn-install-modern" onclick="installApp()">
+                        <i class="fas fa-download"></i> ติดตั้งแอปพลิเคชัน
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <div id="iosPrompt" class="ios-prompt-overlay" onclick="closeIosPrompt()">
+            <div class="ios-prompt-card" onclick="event.stopPropagation()">
+                <button class="close-prompt" onclick="closeIosPrompt()">&times;</button>
+                <h3 style="margin-top:0; color:#1f2937; font-family:'Kanit';">ติดตั้ง FlipSchool</h3>
+                <p style="color:#6b7280; font-size:0.9rem; margin-bottom:20px;">เพิ่มแอปลงหน้าจอโฮมเพื่อเข้าใช้งานระบบ</p>
+                <div class="ios-step"><i class="fas fa-share-square"></i><span>1. กดปุ่ม <b>"แชร์"</b> ที่แถบด้านล่างของ Safari</span></div>
+                <div class="ios-step"><i class="fas fa-plus-square"></i><span>2. เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b></span></div>
+                <div class="ios-step"><i class="fas fa-plus"></i><span style="font-weight:bold; color:#007aff; margin-left:8px;">เพิ่ม</span><span>3. กดปุ่ม <b>"เพิ่ม"</b> ที่มุมขวาบน</span></div>
+            </div>
+        </div>
+
+        <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
+                <h2 style="font-family:'Kanit'; color:var(--primary); text-align:center; font-size:clamp(24px, 4vw, 30px); margin-bottom:5px;">GLORY Model</h2>
+                <div style="height: 3px; width: 50px; background: var(--accent); margin: 0 auto 20px; border-radius: 2px;"></div>
+                <div class="process-grid">
+                    <div class="process-card card-home">
+                        <h3 style="font-family:'Kanit'; color:var(--accent); margin-bottom:15px; font-size:clamp(18px, 3vw, 22px);"><i class="fas fa-home"></i> เรียนรู้ที่บ้าน</h3>
+                        <div id="homeDetail"></div>
+                    </div>
+                    <div class="process-card card-school">
+                        <h3 style="font-family:'Kanit'; color:var(--primary); margin-bottom:15px; font-size:clamp(18px, 3vw, 22px);"><i class="fas fa-school"></i> ประสบการณ์ที่โรงเรียน</h3>
+                        <div id="schoolDetail"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="footer">...</div>
+        <div class="footer footer-display-text">...</div>
+    </div> <!-- ปิด mainContent -->
 
-    <script src="js/env-config.js"></script> 
-    <script src="js/config.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // โหลด UI ขั้นพื้นฐาน
             if (typeof initAppUI === 'function') initAppUI();
+            
+            // ปรับ Footer ให้แสดงผลถูกต้อง
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.querySelectorAll('.footer-display-text').forEach(el => {
+                    el.innerHTML = `&copy; ${APP_CONFIG.YEAR || new Date().getFullYear()} FlipSchool - ${APP_CONFIG.APP_SLOGAN}`;
+                });
+            }
+
             renderGloryDetails();
-            checkPWAStatus(); // ตรวจสอบสถานะการติดตั้ง
+            checkPWAStatus(); // ตรวจสอบสถานะการติดตั้ง PWA
+            
+            // --- 🚀 ระบบ Auto Redirect ---
+            const loader = document.getElementById('authLoader');
+            const mainContent = document.getElementById('mainContent');
+
+            function showMainContent() {
+                if (loader) loader.style.opacity = '0';
+                setTimeout(() => {
+                    if (loader) loader.style.display = 'none';
+                    if (mainContent) mainContent.style.display = 'flex';
+                }, 500);
+            }
+
+            let checkCount = 0;
+            const checkDB = setInterval(async () => {
+                checkCount++;
+                
+                // รอจนกว่าหน้าต่าง Supabase จะพร้อมทำงาน
+                if (window.sysDB && typeof window.sysDB.auth !== 'undefined') {
+                    clearInterval(checkDB);
+                    
+                    try {
+                        const { data: { session } } = await window.sysDB.auth.getSession();
+                        
+                        if (session && session.user) {
+                            const userId = session.user.id;
+                            
+                            // 1. ตรวจสอบว่าเป็น "ครู" หรือไม่
+                            const { data: teacherData } = await window.sysDB.from('teachers')
+                                .select('teacher_id')
+                                .eq('teacher_id', userId)
+                                .maybeSingle();
+                                
+                            if (teacherData) {
+                                window.location.replace('teacher-dashboard.html');
+                                return;
+                            }
+                            
+                            // 2. หากไม่ใช่ครู ให้ตรวจสอบว่าเป็น "นักเรียน" หรือไม่
+                            const { data: studentData } = await window.sysDB.from('students')
+                                .select('student_id')
+                                .eq('student_id', userId)
+                                .maybeSingle();
+                                
+                            if (studentData) {
+                                window.location.replace('student-dashboard.html');
+                                return;
+                            }
+                            
+                            // หากมี Session แต่ไม่พบข้อมูลในตาราง (ข้อมูลอาจถูกลบ)
+                            showMainContent();
+                        } else {
+                            // ไม่มีเซสชันล็อกอิน
+                            showMainContent();
+                        }
+                    } catch (err) {
+                        console.error("Auto Login Check Error:", err);
+                        showMainContent();
+                    }
+                } else if (checkCount > 10) { 
+                    // ป้องกันระบบค้าง หากโหลด DB ไม่สำเร็จภายใน 5 วินาที
+                    clearInterval(checkDB);
+                    showMainContent();
+                }
+            }, 500);
         });
 
         function renderGloryDetails() {
@@ -290,7 +401,7 @@
             document.body.style.overflow = 'auto';
         }
 
-        /* --- ส่วนที่แก้ไข: PWA Logic เลียนแบบ TAS-SPB --- */
+        /* --- PWA Logic --- */
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const installAlert = document.getElementById('installAlert');
@@ -300,11 +411,9 @@
 
         function checkPWAStatus() {
             if (isStandalone) {
-                // ติดตั้งแล้ว -> ซ่อน UI ติดตั้ง
                 installBtn.style.display = 'none';
                 installAlert.style.display = 'none';
             } else {
-                // ยังไม่ติดตั้ง -> แสดง UI ติดตั้ง
                 installBtn.style.display = 'inline-flex';
                 installAlert.style.display = 'block';
             }
@@ -320,10 +429,8 @@
 
         function installApp() {
             if (isIOS) {
-                // iOS: แสดงวิธีติดตั้งแบบ Manual
                 iosPrompt.style.display = 'flex';
             } else if (deferredPrompt) {
-                // Android: เรียก Prompt อัตโนมัติ
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -333,7 +440,6 @@
                     deferredPrompt = null;
                 });
             } else {
-                // Fallback กรณีอื่นๆ
                 alert('กรุณากดเมนูเบราว์เซอร์แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"');
             }
         }
