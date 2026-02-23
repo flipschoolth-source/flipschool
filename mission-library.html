@@ -41,6 +41,7 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- Modal เลือกห้องเรียนสำหรับนำเข้าภารกิจ -->
     <div id="importModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center mb-4">
@@ -59,10 +60,12 @@
         </div>
     </div>
 
+    <!-- กล่องข้อความแจ้งเตือน -->
     <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-green-500 shadow-lg rounded-xl p-4 animate-bounce-in">
         <p id="msgText" class="text-sm font-bold text-slate-700"></p>
     </div>
 
+    <!-- Navbar -->
     <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -84,8 +87,10 @@
         </div>
     </nav>
 
+    <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-8">
         
+        <!-- ส่วนค้นหาและตัวกรอง -->
         <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 mb-8">
             <h1 class="text-2xl font-bold text-blue-900 mb-6 flex items-center gap-2">
                 <i class="fas fa-layer-group text-orange-500"></i> คลังภารกิจ (Mission Library)
@@ -102,7 +107,7 @@
                         <option value="">ทุกกลุ่มสาระ</option>
                         <option value="ภาษาไทย">ภาษาไทย</option>
                         <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                        <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                        <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
                         <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
                         <option value="สังคมศึกษา">สังคมศึกษา</option>
                         <option value="การงานอาชีพ">การงานอาชีพ</option>
@@ -123,6 +128,7 @@
             </div>
         </div>
 
+        <!-- รายการภารกิจ -->
         <div id="missionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div class="col-span-full text-center py-20">
                 <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
@@ -154,7 +160,6 @@
             }, 500);
         });
 
-        // 1. ดึงข้อมูลภารกิจ (Select subject_group และ grade_level แทน subject_name)
         async function fetchMissions() {
             try {
                 const { data, error } = await window.sysDB
@@ -172,7 +177,6 @@
             }
         }
 
-        // 2. แสดงผลการ์ด
         function renderMissions(missions) {
             const grid = document.getElementById('missionGrid');
             grid.innerHTML = '';
@@ -183,12 +187,10 @@
             }
 
             missions.forEach(m => {
-                // ✅ ใช้ subject_group แทน subject_name
                 const subject = m.subject_group || 'อื่นๆ';
                 const grade = m.grade_level || 'ไม่ระบุ';
                 const desc = m.description || 'ไม่มีคำอธิบาย';
                 
-                // ตรวจสอบไอคอนตามวิชา
                 let icon = 'fas fa-cube';
                 let colorClass = 'text-blue-500 bg-blue-50';
                 if(subject.includes('ภาษาไทย')) { icon = 'fas fa-pen-nib'; colorClass = 'text-pink-500 bg-pink-50'; }
@@ -231,7 +233,6 @@
             });
         }
 
-        // 3. ระบบ Filter (แก้ให้ค้นหาจาก subject_group)
         function filterMissions() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const subject = document.getElementById('subjectFilter').value;
@@ -239,9 +240,9 @@
 
             const filtered = allMissions.filter(m => {
                 const matchQuery = m.title.toLowerCase().includes(query) || 
-                                   (m.subject_group && m.subject_group.toLowerCase().includes(query)); // ✅ ค้นหาจาก subject_group
+                                   (m.subject_group && m.subject_group.toLowerCase().includes(query));
                 
-                const matchSubject = subject === '' || m.subject_group === subject; // ✅ กรองจาก subject_group
+                const matchSubject = subject === '' || m.subject_group === subject;
                 const matchGrade = grade === '' || (m.grade_level && m.grade_level.includes(grade));
 
                 return matchQuery && matchSubject && matchGrade;
@@ -261,7 +262,6 @@
             btn.disabled = true;
 
             try {
-                // ดึงรายชื่อห้องเรียนของครู (จากตาราง classrooms ยังคงมี subject_name ได้อยู่ตาม Schema)
                 const { data: classrooms } = await window.sysDB
                     .from('classrooms')
                     .select('classroom_id, room_name, subject_name')
@@ -293,6 +293,7 @@
             selectedMissionIdForImport = null;
         }
 
+        // 🌟 แก้ไข: ใช้เทคนิคระบุคอลัมน์ชัดเจน ป้องกัน Error Schema Mismatch แน่นอน 100% 🌟
         async function executeImport() {
             const radios = document.getElementsByName('targetClassroom');
             let selectedClassId = null;
@@ -305,33 +306,41 @@
             btn.disabled = true;
 
             try {
-                const { data: sourceMission } = await window.sysDB
+                // 1. ดึงข้อมูลต้นฉบับ ระบุเฉพาะคอลัมน์ที่มีอยู่จริงเท่านั้น! (ตัด id ออกแต่แรกเลย)
+                const { data: sourceMission, error: fetchError } = await window.sysDB
                     .from('missions')
-                    .select('*')
+                    .select('title, description, subject_group, grade_level, mission_type, content_data, reward_points, can_replay')
                     .eq('mission_id', selectedMissionIdForImport)
                     .single();
 
-                if (!sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
+                if (fetchError || !sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
 
+                // 2. จับคู่ข้อมูลสร้างแถวใหม่ (สะอาด 100% ไม่มี origin_mission_id)
                 const newMissionData = {
-                    ...sourceMission,
-                    mission_id: undefined,
+                    title: sourceMission.title,
+                    description: sourceMission.description,
+                    subject_group: sourceMission.subject_group,
+                    grade_level: sourceMission.grade_level,
+                    mission_type: sourceMission.mission_type,
+                    content_data: sourceMission.content_data,
+                    reward_points: sourceMission.reward_points || 10,
+                    can_replay: sourceMission.can_replay !== false, // ถ้าไม่มีให้เป็น true
+                    is_public: false, // นำเข้าให้เป็นส่วนตัวในห้องเรียน
                     created_by: currentUserId,
                     created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                    is_public: false,
-                    origin_mission_id: selectedMissionIdForImport
+                    updated_at: new Date().toISOString()
                 };
-                delete newMissionData.mission_id;
 
+                // 3. Insert ข้อมูลลง missions
                 const { data: newMission, error: insertError } = await window.sysDB
                     .from('missions')
                     .insert([newMissionData])
-                    .select()
+                    .select('mission_id') // ขอกลับมาแค่ mission_id ที่สร้างใหม่
                     .single();
 
                 if (insertError) throw insertError;
 
+                // 4. นำ mission_id ไปผูกกับ classroom
                 await window.sysDB.from('classroom_missions').insert([{
                     classroom_id: selectedClassId,
                     mission_id: newMission.mission_id,
@@ -339,6 +348,8 @@
                 }]);
 
                 showMessage("✅ นำเข้าภารกิจสำเร็จ! ไปยังห้องเรียนได้เลย");
+                
+                // ดีเลย์นิดนึงให้ผู้ใช้เห็นข้อความสำเร็จ ก่อนเด้งหน้า
                 setTimeout(() => {
                     window.location.href = `classroom-detail.html?id=${selectedClassId}`;
                 }, 1500);
