@@ -3,190 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบนักเรียน - FlipSchool</title>
-    <link rel="icon" href="img/favicon.png">
-    <script src="js/env-config.js"></script>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        body.auth-page { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
-        .student-login-card {
-            background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 400px; width: 90%; text-align: center;
-        }
-        .school-badge {
-            background: #eef2ff; color: #4361ee; padding: 8px 15px; border-radius: 12px;
-            font-size: 14px; font-weight: 600; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 8px;
-            border: 1px solid #c7d2fe; cursor: pointer;
-        }
-        .school-badge:hover { background: #e0e7ff; }
-        
-        /* Search Box Styles (ย่อมาจากหน้า Register) */
-        #searchSection { position: relative; margin-bottom: 20px; text-align: left; }
-        #resultsBox { position: absolute; top: 105%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 100; display: none; border: 1px solid #eee; }
-        .result-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 14px; text-align: left; }
-        .result-item:hover { background-color: #f0f7ff; }
-    </style>
-</head>
-<body class="auth-page">
+    <title>นักเรียนเข้าสู่ระบบ | FlipSchool</title>
 
-    <div class="student-login-card">
-        <img src="img/favicon.png" style="width:50px; margin-bottom:5px;">
-        <h2 style="margin:0 0 15px 0; color:#333; font-family:'Kanit';">เข้าห้องเรียน</h2>
-
-        <div id="selectedSchoolDisplay" style="display:none;">
-            <div class="school-badge" onclick="resetSchool()">
-                <i class="fas fa-school"></i> <span id="schoolNameText">โรงเรียน...</span> <i class="fas fa-times" style="color:#ff4757; margin-left:5px;"></i>
-            </div>
-        </div>
-
-        <div id="searchSection">
-            <label style="font-size:14px; font-weight:600; color:#555; display:block; margin-bottom:5px;">เลือกโรงเรียนก่อนครับ</label>
-            <div class="input-wrapper">
-                <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียน..." autocomplete="off">
-                <i class="fas fa-search icon"></i>
-            </div>
-            <div id="resultsBox"></div>
-        </div>
-
-        <form onsubmit="handleStudentLogin(event)" id="loginForm" style="display:none; animation: fadeIn 0.5s;">
-            <div class="input-group">
-                <label style="text-align:left;">เลขประจำตัวนักเรียน</label>
-                <div class="input-wrapper">
-                    <input type="tel" id="stCode" placeholder="เลขประจำตัว" required autocomplete="off">
-                    <i class="fas fa-id-card icon"></i>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label style="text-align:left;">รหัสผ่าน (วันเกิด)</label>
-                <div class="input-wrapper">
-                    <input type="tel" id="stDob" placeholder="05012012 (ค.ศ.)" required maxlength="8" autocomplete="off">
-                    <i class="fas fa-birthday-cake icon"></i>
-                    <i class="fas fa-eye toggle-password" onclick="togglePass()"></i>
-                </div>
-            </div>
-
-            <button type="submit" class="btn-submit" id="btnLogin">เข้าสู่ระบบ</button>
-        </form>
-    </div>
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
+
+    <!-- Tailwind & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
     
+    <style>
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f4f7f9; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        
+        .login-bg {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            position: relative;
+        }
+        
+        /* ของตกแต่งพื้นหลัง */
+        .shape-blob { position: absolute; filter: blur(40px); z-index: 0; opacity: 0.6; }
+        .shape-1 { top: -10%; left: -10%; width: 300px; height: 300px; background: #60a5fa; border-radius: 50%; }
+        .shape-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; background: #fca5a5; border-radius: 50%; }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            z-index: 10;
+        }
+
+        .input-field {
+            width: 100%; bg-slate-50; border: 2px solid #e2e8f0; border-radius: 1rem;
+            padding: 0.75rem 1rem 0.75rem 2.5rem; outline: none; transition: all 0.3s;
+            font-family: 'Sarabun', sans-serif; font-size: 1rem;
+        }
+        .input-field:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; transition: all 0.3s; }
+        .input-group:focus-within .input-icon { color: #3b82f6; }
+
+        .btn-login {
+            background: linear-gradient(135deg, #FF8C00 0%, #f97316 100%);
+            color: white; border-radius: 1rem; padding: 1rem; width: 100%;
+            font-family: 'Kanit', sans-serif; font-weight: 700; font-size: 1.1rem;
+            transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.3);
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 15px 20px -3px rgba(249, 115, 22, 0.4); }
+        .btn-login:active { transform: translateY(0); }
+
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes bounceIn { 0% { transform: translateY(-20px); opacity: 0; } 50% { transform: translateY(5px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
+        .animate-bounce-in { animation: bounceIn 0.4s ease-out forwards; }
+        
+        .hidden-el { display: none !important; }
+    </style>
+</head>
+<body class="login-bg flex items-center justify-center">
+
+    <div class="shape-blob shape-1"></div>
+    <div class="shape-blob shape-2"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
+        <div class="spinner"></div>
+        <p class="mt-4 text-blue-900 font-bold animate-pulse text-sm font-sans" id="loadingText">กำลังตรวจสอบข้อมูล...</p>
+    </div>
+
+    <!-- Toast Message -->
+    <div id="msgBox" class="fixed top-10 right-5 z-[210] hidden bg-white border-l-4 shadow-xl rounded-xl p-4 transition-all animate-bounce-in max-w-sm">
+        <div class="flex items-start gap-3">
+            <div id="msgIcon" class="mt-0.5"></div>
+            <p id="msgText" class="text-sm font-bold text-slate-700"></p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 w-full max-w-md relative z-10 my-8">
+        
+        <!-- Logo & Header -->
+        <div class="text-center mb-8 cursor-pointer transform hover:scale-105 transition-transform" onclick="location.href='index.html'">
+            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4 border-2 border-white/50">
+                <span class="text-4xl text-blue-900">🎓</span>
+            </div>
+            <div class="brand-name text-3xl font-black tracking-tight leading-none text-slate-800 drop-shadow-sm">
+                Flip<span class="text-[#FF8C00]">School</span>
+            </div>
+            <span class="app-slogan-label text-xs text-slate-600 font-bold mt-1 tracking-wide">นวัตกรรมเพื่อการจัดการเรียนรู้</span>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card p-8">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-3">
+                    <i class="fas fa-user-graduate text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 font-sans">นักเรียนเข้าสู่ระบบ</h2>
+                <p class="text-sm text-slate-500 mt-1 font-sans">พร้อมลุยภารกิจกันหรือยัง?</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">อีเมล</label>
+                    <div class="relative input-group">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" required class="input-field" placeholder="student@example.com">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">รหัสผ่าน</label>
+                    <div class="relative input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" required class="input-field" placeholder="••••••••">
+                        <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-login mt-6 flex items-center justify-center gap-2">
+                    เข้าสู่ระบบ <i class="fas fa-arrow-right text-sm"></i>
+                </button>
+            </form>
+
+            <div class="mt-8 text-center border-t border-slate-100 pt-6">
+                <p class="text-sm text-slate-500 font-sans">คุณครูใช่ไหม? 
+                    <a href="teacher-login.html" class="text-blue-600 hover:text-blue-800 font-bold transition-colors">เข้าสู่ระบบสำหรับครู</a>
+                </p>
+                <div class="mt-4">
+                    <a href="index.html" class="text-xs text-slate-400 hover:text-slate-600 transition-colors font-bold"><i class="fas fa-home mr-1"></i> กลับหน้าแรก</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8">
+            <p class="text-slate-500 font-bold text-[10px] uppercase tracking-widest opacity-70">© <span id="currentYear"></span> <span class="brand-name">FlipSchool</span></p>
+        </div>
+    </div>
+
     <script>
-        let selectedSchoolId = null;
-
         document.addEventListener('DOMContentLoaded', () => {
-            // ✅ เช็คว่าเคยเลือกโรงเรียนไว้ไหม? (จำค่าในเครื่อง)
-            const savedSchool = localStorage.getItem('flip_school_data');
-            if (savedSchool) {
-                const school = JSON.parse(savedSchool);
-                selectSchool(school, false); // false = ไม่ต้องบันทึกซ้ำ
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+                if (typeof initAppUI === 'function') initAppUI();
             }
+
+            const checkDB = setInterval(() => { 
+                if (window.sysDB) { 
+                    clearInterval(checkDB); 
+                    checkSession(); 
+                } 
+            }, 500);
         });
 
-        // --- School Search Logic ---
-        const searchInput = document.getElementById('schoolInput');
-        const resultsBox = document.getElementById('resultsBox');
-        let debounceTimer;
+        async function checkSession() {
+            try {
+                const { data: { session } } = await window.sysDB.auth.getSession();
+                
+                if (session && session.user) {
+                    const userId = session.user.id;
+                    
+                    // ตรวจสอบว่าเป็นนักเรียนหรือไม่
+                    const { data: studentData } = await window.sysDB.from('students')
+                        .select('student_id')
+                        .eq('student_id', userId)
+                        .maybeSingle();
+                        
+                    if (studentData) {
+                        window.location.replace('student-dashboard.html');
+                        return;
+                    }
 
-        searchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            const q = this.value.trim();
-            if (q.length < 2) { resultsBox.style.display = 'none'; return; }
-            debounceTimer = setTimeout(() => searchSchool(q), 500);
-        });
+                    // ตรวจสอบว่าเป็นครูหรือไม่ (ถ้าใช่ให้เด้งไปหน้าครู)
+                    const { data: teacherData } = await window.sysDB.from('teachers')
+                        .select('teacher_id')
+                        .eq('teacher_id', userId)
+                        .maybeSingle();
 
-        async function searchSchool(k) {
-            if (!sysDB) return;
-            const { data } = await sysDB.from('schools').select('*').ilike('school_name', `%${k}%`).limit(5);
-            resultsBox.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(s => {
-                    const d = document.createElement('div');
-                    d.className = 'result-item';
-                    d.innerHTML = `<strong>${s.school_name}</strong><br><small style="color:#888;">${s.province}</small>`;
-                    d.onclick = () => selectSchool(s, true);
-                    resultsBox.appendChild(d);
-                });
-                resultsBox.style.display = 'block';
+                    if (teacherData) {
+                        window.location.replace('teacher-dashboard.html');
+                        return;
+                    }
+                }
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (err) {
+                console.error("Session Check Error:", err);
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
         }
 
-        function selectSchool(s, saveToLocal) {
-            selectedSchoolId = s.school_id;
-            
-            // แสดง UI ว่าเลือกแล้ว
-            document.getElementById('searchSection').style.display = 'none';
-            document.getElementById('selectedSchoolDisplay').style.display = 'block';
-            document.getElementById('schoolNameText').innerText = s.school_name;
-            document.getElementById('loginForm').style.display = 'block';
-
-            // บันทึกจำไว้ในเครื่อง (เด็กเข้าครั้งหน้าไม่ต้องเลือกใหม่)
-            if (saveToLocal) {
-                localStorage.setItem('flip_school_data', JSON.stringify(s));
-            }
-        }
-
-        function resetSchool() {
-            selectedSchoolId = null;
-            localStorage.removeItem('flip_school_data'); // ล้างความจำ
-            
-            document.getElementById('searchSection').style.display = 'block';
-            document.getElementById('selectedSchoolDisplay').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'none';
-            searchInput.value = '';
-            resultsBox.style.display = 'none';
-        }
-
-        // --- Login Logic ---
-        function togglePass() {
-            const input = document.getElementById('stDob');
-            input.type = input.type === 'password' ? 'text' : 'password';
-        }
-
-        async function handleStudentLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
-            const code = document.getElementById('stCode').value.trim();
-            let dobInput = document.getElementById('stDob').value.trim();
-            const btn = document.getElementById('btnLogin');
-
-            if (dobInput.length !== 8) { alert('กรุณากรอกวันเกิด 8 หลัก'); return; }
-
-            // แปลงวันที่ (DDMMYYYY -> YYYY-MM-DD)
-            const day = dobInput.substring(0, 2);
-            const month = dobInput.substring(2, 4);
-            const year = dobInput.substring(4, 8);
-            const dbDate = `${year}-${month}-${day}`;
-
-            btn.disabled = true; btn.innerText = 'กำลังตรวจสอบ...';
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            const btn = document.getElementById('submitBtn');
+            const originalBtnHtml = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i>';
+            btn.disabled = true;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
 
             try {
-                // ✅ Query ที่ถูกต้อง: ต้องเช็คทั้ง Student Code และ School ID
-                // เนื่องจากตาราง students เชื่อมกับ classrooms และ classrooms เชื่อมกับ schools
-                // เราใช้ Supabase Join Table (Query ข้ามตาราง)
-                
-                const { data, error } = await sysDB
+                // 1. เข้าสู่ระบบผ่าน Supabase Auth
+                const { data, error } = await window.sysDB.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                const userId = data.user.id;
+
+                // 2. ตรวจสอบสิทธิ์ว่าบัญชีนี้อยู่ในตารางนักเรียนหรือไม่
+                const { data: studentData, error: checkError } = await window.sysDB
                     .from('students')
-                    .select('*, classrooms!inner(school_id, schools(school_name))') 
-                    .eq('student_code', code)
-                    .eq('birth_date', dbDate)
-                    .eq('classrooms.school_id', selectedSchoolId) // 🔥 ต้องตรงกับโรงเรียนที่เลือก
+                    .select('student_id')
+                    .eq('student_id', userId)
                     .maybeSingle();
 
-                if (error || !data) throw new Error('ไม่พบข้อมูล หรือ ผิดโรงเรียน');
+                if (checkError) throw checkError;
 
-                // สำเร็จ
-                alert(`ยินดีต้อนรับ ${data.student_name} 🎉`);
-                // window.location.href = 'student-dashboard.html';
+                if (!studentData) {
+                    // หากล็อกอินผ่าน แต่ไม่มีชื่อในตารางนักเรียน (เช่น เป็นบัญชีครู)
+                    await window.sysDB.auth.signOut();
+                    throw new Error("บัญชีนี้ไม่ใช่บัญชีนักเรียน หากคุณเป็นคุณครู กรุณาเข้าสู่ระบบผ่านหน้าสำหรับครูครับ");
+                }
+
+                showMessage("เข้าสู่ระบบสำเร็จ! กำลังพาไปที่ห้องเรียน...", "success");
+                
+                setTimeout(() => {
+                    window.location.href = 'student-dashboard.html';
+                }, 1000);
 
             } catch (err) {
-                alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + err.message);
-                btn.disabled = false; btn.innerText = 'เข้าสู่ระบบ';
+                let errorMsg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+                if (err.message.includes("ไม่ใช่บัญชีนักเรียน")) {
+                    errorMsg = err.message;
+                } else if (err.message.includes("Invalid login credentials")) {
+                    errorMsg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+                }
+                
+                showMessage(errorMsg, "error");
+                
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
             }
+        }
+
+        function togglePassword() {
+            const pwdInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+                eyeIcon.classList.add('text-blue-500');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+                eyeIcon.classList.remove('text-blue-500');
+            }
+        }
+
+        function showMessage(text, type = "success") {
+            const box = document.getElementById('msgBox');
+            const msgText = document.getElementById('msgText');
+            const icon = document.getElementById('msgIcon');
+            
+            msgText.innerText = text;
+            
+            if (type === "error") {
+                box.className = "fixed top-10 right-5 z-[210] bg-white border-l-4 border-rose-500 shadow-xl rounded-xl p-4 transition-all animate-bounce-in max-w-sm";
+                icon.innerHTML = '<i class="fas fa-exclamation-circle text-rose-500 text-lg"></i>';
+            } else {
+                box.className = "fixed top-10 right-5 z-[210] bg-white border-l-4 border-emerald-500 shadow-xl rounded-xl p-4 transition-all animate-bounce-in max-w-sm";
+                icon.innerHTML = '<i class="fas fa-check-circle text-emerald-500 text-lg"></i>';
+            }
+            
+            box.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.add('hidden');
+            }, 4000);
         }
     </script>
 </body>
