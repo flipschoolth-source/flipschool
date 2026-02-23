@@ -241,9 +241,15 @@
                     <h2 class="text-xl font-bold text-blue-900 font-sans"><i class="fas fa-cogs text-blue-500 mr-2"></i> จัดการโครงสร้างห้องเรียน</h2>
                     <p class="text-sm text-slate-500 mt-1">ลากย้ายสลับที่ได้อิสระ หรือกดถังขยะเพื่อนำภารกิจออกจากห้องเรียน</p>
                 </div>
-                <button onclick="handleAddFolderPrompt()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap self-start sm:self-center">
-                    <i class="fas fa-folder-plus"></i> เพิ่มหมวดหมู่
-                </button>
+                <div class="flex flex-wrap gap-2 self-start sm:self-center">
+                    <button onclick="handleAddFolderPrompt()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-folder-plus"></i> เพิ่มหมวดหมู่
+                    </button>
+                    <!-- 🌟 เพิ่มปุ่มลบห้องเรียนตรงนี้ 🌟 -->
+                    <button onclick="handleDeleteClassroom()" class="bg-white border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-trash-alt"></i> ลบห้องเรียน
+                    </button>
+                </div>
             </div>
             
             <div id="manageContent" class="space-y-6">
@@ -714,6 +720,39 @@
                     document.getElementById('loadingOverlay').style.display = 'none';
                 }
             }, defaultText, 'fas fa-pen', `ชื่อต้นฉบับ: ${originalTitle}`);
+        }
+
+        // 🌟 ฟังก์ชันลบห้องเรียนทั้งหมด 🌟
+        function handleDeleteClassroom() {
+            const message = `คุณแน่ใจหรือไม่ว่าต้องการ <b>"ลบห้องเรียนนี้"</b>?<br><span class="text-xs text-rose-500 mt-2 block">*ข้อมูลนักเรียน ภารกิจ และคะแนนในห้องเรียนนี้จะถูกลบทิ้งถาวรและไม่สามารถกู้คืนได้!</span>`;
+            
+            openCustomConfirm('ลบห้องเรียนถาวร', message, true, async () => {
+                document.getElementById('loadingText').innerText = "กำลังลบข้อมูลห้องเรียน...";
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                try {
+                    // 1. เตะนักเรียนออกจากห้อง (ลบความเชื่อมโยง)
+                    await window.sysDB.from('classroom_students').delete().eq('classroom_id', currentClassId);
+                    
+                    // 2. นำภารกิจออกจากห้อง (ลบความเชื่อมโยง)
+                    await window.sysDB.from('classroom_missions').delete().eq('classroom_id', currentClassId);
+                    
+                    // 3. ลบตัวห้องเรียนทิ้ง
+                    const { error } = await window.sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
+                    
+                    if (error) throw error;
+                    
+                    showMessage("✅ ลบห้องเรียนสำเร็จ!");
+                    setTimeout(() => {
+                        window.location.href = 'teacher-dashboard.html';
+                    }, 1500);
+
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    showMessage("❌ เกิดข้อผิดพลาด ไม่สามารถลบได้", true);
+                }
+            });
         }
 
         function handleRemoveMission(assignmentId, title) {
