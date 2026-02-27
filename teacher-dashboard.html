@@ -54,9 +54,11 @@
 
         /* Search Suggestion */
         .search-container { position: relative; }
-        .search-results { position: absolute; width: 100%; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eef2f7; margin-top: -10px; }
+        .search-results { position: absolute; width: 100%; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 250px; overflow-y: auto; display: none; border: 1px solid #eef2f7; margin-top: -10px; }
         .search-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f8f9fa; font-size: 14px; color: #333; transition: 0.2s; }
         .search-item:hover { background: #f0f4ff; color: var(--primary); }
+        .search-item-add { color: var(--primary); font-weight: 600; text-align: center; background: #f0f4ff; }
+        .search-item-add:hover { background: #e0e8ff; }
 
         /* Main Area */
         .main-container { flex: 1; padding: 40px 50px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; }
@@ -86,6 +88,9 @@
         .incomplete-box::before { content:''; position: absolute; top:0; left:0; width:100%; height:8px; background: #ff4757; }
         .file-upload-box { border: 2px dashed #ccc; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; background: #fafafa; }
         .file-upload-box:hover { border-color: var(--primary); background: #f0f4ff; }
+        
+        /* สไตล์ฟอร์มเพิ่มโรงเรียนใหม่ */
+        .new-school-form { display: none; background: #f8f9fa; border: 1px solid #eef2f7; padding: 20px; border-radius: 15px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -110,11 +115,24 @@
                 <label class="form-label">นามสกุล</label><input type="text" id="editLastName" class="form-input" placeholder="นามสกุล">
                 <label class="form-label">ค้นหาโรงเรียน</label>
                 <div class="search-container">
-                    <input type="text" id="schoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียน..." oninput="searchSchools(this.value, 'schoolResults', 'schoolSearch', 'selectedSchoolId')">
+                    <input type="text" id="schoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียน..." oninput="searchSchools(this.value, 'schoolResults', 'schoolSearch', 'selectedSchoolId', 'newSchoolFormEdit')" autocomplete="off">
                     <div id="schoolResults" class="search-results"></div>
                     <input type="hidden" id="selectedSchoolId">
                 </div>
-                <button class="btn-save" onclick="saveProfileInfo()">บันทึกข้อมูล</button>
+                
+                <!-- ฟอร์มเพิ่มโรงเรียนใหม่ (ในโหมดแก้ไขโปรไฟล์) -->
+                <div id="newSchoolFormEdit" class="new-school-form">
+                    <label class="form-label">ชื่อโรงเรียนใหม่</label>
+                    <input type="text" id="newSchoolNameEdit" class="form-input" placeholder="ระบุชื่อโรงเรียนเต็ม" oninput="autoSuggestAbbr('newSchoolNameEdit', 'newSchoolAbbrEdit')">
+                    
+                    <label class="form-label" style="margin-top:10px;">อักษรย่อภาษาอังกฤษ <span style="font-size:11px; color:#ff4757;">(สำคัญ: ใช้เป็นลิงก์เข้าระบบของนักเรียน)</span></label>
+                    <input type="text" id="newSchoolAbbrEdit" class="form-input" placeholder="เช่น t1sk (ระบบแนะนำให้อัตโนมัติ)" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()">
+                    
+                    <button type="button" class="btn-save" style="padding:10px; font-size:14px; background:#2ed573;" onclick="saveNewSchool('newSchoolNameEdit', 'newSchoolAbbrEdit', 'newSchoolFormEdit', 'schoolSearch', 'selectedSchoolId')">บันทึกโรงเรียนลงระบบ</button>
+                    <button type="button" class="btn-link" style="color:#ff4757;" onclick="cancelNewSchoolForm('newSchoolFormEdit')">ยกเลิก</button>
+                </div>
+
+                <button class="btn-save" onclick="saveProfileInfo()">บันทึกข้อมูลส่วนตัว</button>
                 <button class="btn-link" onclick="showPasswordForm()">ต้องการเปลี่ยนรหัสผ่าน?</button>
             </div>
             
@@ -148,7 +166,7 @@
 
     <main class="main-container">
         
-        <!-- ================= 1. ส่วนแจ้งเตือนข้อมูลไม่ครบ (แสดงเมื่อข้อมูลขาดหาย) ================= -->
+        <!-- ================= 1. ส่วนแจ้งเตือนข้อมูลไม่ครบ (แสดงเมื่อ Login ด้วย Google ครั้งแรก) ================= -->
         <div id="incompleteProfileSection" style="display: none;">
             <div class="incomplete-box">
                 <div style="text-align: center; margin-bottom: 30px;">
@@ -167,9 +185,21 @@
                     <div class="info-item" id="reqSchoolGroup">
                         <label class="form-label" style="font-size:14px;">สังกัดโรงเรียน <span style="color:red;">*</span></label>
                         <div class="search-container">
-                            <input type="text" id="reqSchoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียนเพื่อค้นหา..." oninput="searchSchools(this.value, 'reqSchoolResults', 'reqSchoolSearch', 'reqSchoolId')" autocomplete="off" required>
+                            <input type="text" id="reqSchoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียนเพื่อค้นหา..." oninput="searchSchools(this.value, 'reqSchoolResults', 'reqSchoolSearch', 'reqSchoolId', 'newSchoolFormReq')" autocomplete="off" required>
                             <div id="reqSchoolResults" class="search-results"></div>
                             <input type="hidden" id="reqSchoolId" required>
+                        </div>
+                        
+                        <!-- ฟอร์มเพิ่มโรงเรียนใหม่ (ในโหมดกรอกข้อมูลไม่ครบ) -->
+                        <div id="newSchoolFormReq" class="new-school-form">
+                            <label class="form-label">ชื่อโรงเรียนใหม่</label>
+                            <input type="text" id="newSchoolNameReq" class="form-input" placeholder="ระบุชื่อโรงเรียนเต็ม" oninput="autoSuggestAbbr('newSchoolNameReq', 'newSchoolAbbrReq')">
+                            
+                            <label class="form-label" style="margin-top:10px;">อักษรย่อภาษาอังกฤษ <span style="font-size:11px; color:#ff4757;">(ระบบแนะนำให้อัตโนมัติ - แก้ไขได้)</span></label>
+                            <input type="text" id="newSchoolAbbrReq" class="form-input" placeholder="เช่น t1sk" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()">
+                            
+                            <button type="button" class="btn-save" style="padding:10px; font-size:14px; background:#2ed573;" onclick="saveNewSchool('newSchoolNameReq', 'newSchoolAbbrReq', 'newSchoolFormReq', 'reqSchoolSearch', 'reqSchoolId')">บันทึกโรงเรียนลงระบบ</button>
+                            <button type="button" class="btn-link" style="color:#ff4757;" onclick="cancelNewSchoolForm('newSchoolFormReq')">ยกเลิก</button>
                         </div>
                     </div>
 
@@ -183,13 +213,13 @@
                     </div>
 
                     <button type="submit" class="btn-save" id="btnSaveIncomplete" style="font-size: 18px; padding: 15px; border-radius: 50px; margin-top:20px;">
-                        บันทึกข้อมูลและส่งคำขอ <i class="fas fa-paper-plane"></i>
+                        ส่งคำขออนุมัติ <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- ================= 2. ส่วน Dashboard ปกติ (ซ่อนไว้ถ้าข้อมูลไม่ครบ) ================= -->
+        <!-- ================= 2. ส่วน Dashboard ปกติ ================= -->
         <div id="mainDashboardContent">
             <div class="welcome-hero">
                 <div class="hero-text-content">
@@ -214,7 +244,7 @@
 
     <a href="classroom-add.html" class="fab-add" id="fabAddBtn"><i class="fas fa-plus"></i></a>
 
-    <!-- ================= MODAL อนุมัติครู (สำหรับแอดมิน) ================= -->
+    <!-- ================= MODAL อนุมัติครู ================= -->
     <div id="approvalModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
         <div style="background: white; border-radius: 24px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
             <div style="padding: 20px 30px; background: #f8faff; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
@@ -244,7 +274,6 @@
         });
 
         async function fetchProfile() {
-            // ดึงข้อมูลครู
             const { data, error } = await sysDB.from('teachers').select('*, schools:school_id(school_name)').eq('teacher_id', currentUser.id).single();
             
             // 1. ตรวจสอบข้อมูลว่าครบถ้วนหรือไม่
@@ -254,12 +283,11 @@
             }
 
             if (!isComplete) {
-                // ซ่อน Dashboard ปลอมๆ และเปิดโหมดให้กรอกข้อมูล
+                // ข้อมูลไม่ครบ: เปิดโหมดบังคับกรอกข้อมูล
                 document.getElementById('mainDashboardContent').style.display = 'none';
                 document.getElementById('fabAddBtn').style.display = 'none';
                 document.getElementById('incompleteProfileSection').style.display = 'block';
                 
-                // ถ้าระบบมีข้อมูลบางส่วนแล้ว ให้ดึงมาแสดงไว้เลย
                 if(data) {
                     if(data.first_name) document.getElementById('reqFullName').value = `${data.first_name} ${data.last_name || ''}`.trim();
                     if(data.school_id) {
@@ -267,7 +295,7 @@
                         document.getElementById('reqSchoolSearch').value = data.schools?.school_name || '';
                     }
                     if(data.verification_card_url) {
-                        document.getElementById('reqIdCardGroup').style.display = 'none'; // มีรูปบัตรแล้ว ซ่อนช่องอัปโหลดไปเลย
+                        document.getElementById('reqIdCardGroup').style.display = 'none'; 
                         document.getElementById('reqIdCardImage').removeAttribute('required');
                     } else {
                         document.getElementById('reqIdCardImage').setAttribute('required', 'true');
@@ -276,15 +304,13 @@
                     document.getElementById('reqIdCardImage').setAttribute('required', 'true');
                 }
                 
-                // ตั้งค่ารูปโปรไฟล์เผื่อไว้ใช้ Google Avatar ด้านบน
                 setupProfilePicture(null);
-                return; // หยุดการทำงานโหลด Dashboard ปกติ
+                return;
             }
 
             // ================= 2. ถ้าข้อมูลครบถ้วน โหลด Dashboard ปกติ =================
             currentUserData = data;
             
-            // จัดการรูปโปรไฟล์ (ลำดับความสำคัญ: รูปที่ตั้งเอง -> รูปจาก Google -> อิโมจิ)
             setupProfilePicture(data.profile_pic, data.first_name);
 
             document.getElementById('welcomeHeader').innerText = `สวัสดีครับ ครู${data.first_name}`;
@@ -300,17 +326,14 @@
             handleVerificationStatus(data.verification_status);
         }
 
-        // ฟังก์ชันจัดการรูปโปรไฟล์ให้ฉลาดขึ้น
+        // ดึงรูปโปรไฟล์: ใช้รูปจาก Google ก่อน ถ้าไม่มีค่อยใช้อิโมจิ
         function setupProfilePicture(dbPic, firstName = 'User') {
             let finalImg = '';
-            
-            // 1. ถ้ารูปใน DB เป็นค่าว่าง หรือเป็นรูปอิโมจิพื้นฐาน 
-            // ให้พยายามดึงรูปจาก Google (currentUser.user_metadata.avatar_url) มาใช้ก่อน
             if (!dbPic || dbPic.includes('dicebear')) {
+                // ตรวจสอบข้อมูลจาก Google Login
                 if (currentUser.user_metadata && currentUser.user_metadata.avatar_url) {
                     finalImg = currentUser.user_metadata.avatar_url;
                 } else {
-                    // ถ้าไม่มีทั้งรูปใน DB และไม่มีรูป Google ค่อยใช้อิโมจิ
                     finalImg = dbPic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`;
                 }
             } else {
@@ -319,6 +342,118 @@
 
             document.getElementById('navProfileImg').src = finalImg;
             document.getElementById('sidebarImg').src = finalImg;
+        }
+
+
+        // ================= ระบบค้นหาและเพิ่มโรงเรียนใหม่ =================
+        
+        async function searchSchools(query, resultBoxId, inputId, valueBoxId, newSchoolFormId) {
+            const resultBox = document.getElementById(resultBoxId);
+            if (query.trim().length < 2) { resultBox.style.display = 'none'; return; }
+            
+            const { data } = await sysDB.from('schools').select('school_id, school_name').ilike('school_name', `%${query}%`).limit(10);
+            
+            let html = '';
+            if (data && data.length > 0) {
+                html += data.map(s => `
+                    <div class="search-item" onclick="selectSchoolItem('${s.school_id}', '${s.school_name}', '${inputId}', '${valueBoxId}', '${resultBoxId}')">
+                        <i class="fas fa-school" style="margin-right: 8px; opacity: 0.5;"></i> ${s.school_name}
+                    </div>
+                `).join('');
+            } else { 
+                html += `<div style="padding:12px 15px; color:#888; font-size:14px; text-align:center;">ไม่พบโรงเรียนนี้ในระบบ</div>`; 
+            }
+            
+            // เพิ่มปุ่มสร้างโรงเรียนใหม่ไว้ด้านล่างเสมอ
+            html += `
+                <div class="search-item search-item-add" onclick="showNewSchoolForm('${newSchoolFormId}', '${inputId}', '${resultBoxId}')">
+                    <i class="fas fa-plus-circle"></i> + เพิ่มโรงเรียนใหม่เข้าระบบ
+                </div>`;
+                
+            resultBox.innerHTML = html;
+            resultBox.style.display = 'block';
+        }
+
+        function selectSchoolItem(id, name, inputId, valueBoxId, resultBoxId) {
+            document.getElementById(inputId).value = name;
+            document.getElementById(valueBoxId).value = id;
+            document.getElementById(resultBoxId).style.display = 'none';
+        }
+
+        function showNewSchoolForm(formId, searchInputId, resultBoxId) {
+            document.getElementById(resultBoxId).style.display = 'none';
+            document.getElementById(formId).style.display = 'block';
+            
+            // ดึงคำที่พิมพ์ค้างไว้มาใส่ในช่องชื่อโรงเรียนใหม่
+            const searchVal = document.getElementById(searchInputId).value;
+            const nameInputId = formId === 'newSchoolFormReq' ? 'newSchoolNameReq' : 'newSchoolNameEdit';
+            
+            document.getElementById(nameInputId).value = searchVal;
+            autoSuggestAbbr(nameInputId, formId === 'newSchoolFormReq' ? 'newSchoolAbbrReq' : 'newSchoolAbbrEdit');
+        }
+
+        function cancelNewSchoolForm(formId) {
+            document.getElementById(formId).style.display = 'none';
+        }
+
+        // ระบบแปลงภาษาไทยเป็นอักษรย่อภาษาอังกฤษอัตโนมัติ
+        function suggestAbbreviation(thaiText) {
+            let txt = thaiText.replace(/โรงเรียน/g, '').replace(/เทศบาล/g, 't').replace(/บ้าน/g, 'b').trim();
+            let abbr = '';
+            let hasNum = txt.match(/\d+/);
+            
+            const chars = {
+                'ก':'k','ข':'k','ค':'k','ง':'ng', 'จ':'j','ช':'ch','ซ':'s',
+                'ญ':'y','ฎ':'d','ฏ':'t','ฐ':'t','ด':'d','ต':'t','ถ':'t','ท':'t','ธ':'t','น':'n',
+                'บ':'b','ป':'p','ผ':'p','พ':'p','ฟ':'f','ภ':'p','ม':'m',
+                'ย':'y','ร':'r','ล':'l','ว':'w','ศ':'s','ส':'s','ห':'h','อ':'a'
+            };
+            
+            for(let i=0; i<txt.length; i++) {
+                if(chars[txt[i]] && abbr.length < 3) {
+                    // ป้องกันพยัญชนะซ้ำติดกัน
+                    if(abbr.slice(-1) !== chars[txt[i]]) abbr += chars[txt[i]];
+                } else if(/[a-zA-Z]/.test(txt[i]) && abbr.length < 4) {
+                    abbr += txt[i].toLowerCase();
+                }
+            }
+            if(hasNum) abbr += hasNum[0];
+            return abbr || 'sch' + Math.floor(Math.random()*100);
+        }
+
+        function autoSuggestAbbr(nameInputId, abbrInputId) {
+            const name = document.getElementById(nameInputId).value;
+            document.getElementById(abbrInputId).value = suggestAbbreviation(name);
+        }
+
+        // บันทึกโรงเรียนใหม่ลงฐานข้อมูล
+        async function saveNewSchool(nameId, abbrId, formId, searchInputId, valueInputId) {
+            const name = document.getElementById(nameId).value.trim();
+            const abbr = document.getElementById(abbrId).value.trim().toLowerCase();
+            
+            if(!name || !abbr) return alert('กรุณากรอกชื่อและอักษรย่อโรงเรียนให้ครบถ้วน');
+            
+            // เช็คว่าอักษรย่อซ้ำไหม
+            const { data: existing } = await sysDB.from('schools').select('school_id').eq('school_abbr', abbr);
+            if(existing && existing.length > 0) {
+                return alert('❌ อักษรย่อ "' + abbr + '" มีโรงเรียนอื่นใช้งานแล้ว กรุณาเปลี่ยนอักษรย่อใหม่ครับ');
+            }
+            
+            // บันทึกโรงเรียนใหม่
+            const newId = crypto.randomUUID();
+            const { error } = await sysDB.from('schools').insert([{
+                school_id: newId,
+                school_name: name,
+                school_abbr: abbr
+            }]);
+            
+            if(error) return alert('เกิดข้อผิดพลาดในการสร้างโรงเรียน: ' + error.message);
+            
+            // เลือกโรงเรียนที่เพิ่งสร้างให้อัตโนมัติ
+            document.getElementById(valueInputId).value = newId;
+            document.getElementById(searchInputId).value = name;
+            document.getElementById(formId).style.display = 'none';
+            alert('✅ เพิ่มโรงเรียนใหม่สำเร็จ! (อักษรย่อสำหรับนักเรียนคือ: ' + abbr + ')');
         }
 
 
@@ -345,18 +480,14 @@
             try {
                 let cardUrl = currentUserData?.verification_card_url || '';
 
-                // อัปโหลดรูปบัตรถ้ามีการเลือกใหม่
                 if (idCardFile) {
                     const fileExt = idCardFile.name.split('.').pop();
                     const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
-                    const { error: uploadError } = await sysDB.storage
-                        .from('teacher-verifications')
-                        .upload(fileName, idCardFile);
+                    const { error: uploadError } = await sysDB.storage.from('teacher-verifications').upload(fileName, idCardFile);
                     if (uploadError) throw uploadError;
                     cardUrl = fileName;
                 }
 
-                // บันทึกลงตาราง teachers แบบ Upsert (มีแล้วอัปเดต ไม่มีให้สร้างใหม่)
                 const { error: dbError } = await sysDB.from('teachers').upsert([{
                     teacher_id: currentUser.id,
                     first_name: fname,
@@ -370,39 +501,17 @@
 
                 if (dbError) throw dbError;
 
-                alert('บันทึกข้อมูลเรียบร้อยแล้ว');
-                window.location.reload(); // รีโหลดหน้าเพื่อกลับไปทำงานแบบ Dashboard ปกติ
+                alert('บันทึกข้อมูลและส่งคำขออนุมัติเรียบร้อยแล้ว');
+                window.location.reload(); 
 
             } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
                 btn.disabled = false;
-                btn.innerHTML = 'บันทึกข้อมูลและส่งคำขอ <i class="fas fa-paper-plane"></i>';
+                btn.innerHTML = 'ส่งคำขออนุมัติ <i class="fas fa-paper-plane"></i>';
             }
         }
 
-
-        // ================= ส่วนอื่นๆ (Search School, Status, Approval) คงเดิม =================
-        async function searchSchools(query, resultBoxId, inputId, valueBoxId) {
-            const resultBox = document.getElementById(resultBoxId);
-            if (query.trim().length < 2) { resultBox.style.display = 'none'; return; }
-            
-            const { data } = await sysDB.from('schools').select('school_id, school_name').ilike('school_name', `%${query}%`).limit(10);
-            if (data && data.length > 0) {
-                resultBox.innerHTML = data.map(s => `
-                    <div class="search-item" onclick="selectSchoolItem('${s.school_id}', '${s.school_name}', '${inputId}', '${valueBoxId}', '${resultBoxId}')">
-                        <i class="fas fa-school" style="margin-right: 8px; opacity: 0.5;"></i> ${s.school_name}
-                    </div>
-                `).join('');
-                resultBox.style.display = 'block';
-            } else { resultBox.style.display = 'none'; }
-        }
-
-        function selectSchoolItem(id, name, inputId, valueBoxId, resultBoxId) {
-            document.getElementById(inputId).value = name;
-            document.getElementById(valueBoxId).value = id;
-            document.getElementById(resultBoxId).style.display = 'none';
-        }
-
+        // ================= ส่วนจัดการสถานะ และการอนุมัติ (คงเดิม) =================
         function handleVerificationStatus(status) {
             const badge = document.getElementById('verificationStatusBadge');
             const classSection = document.getElementById('classroomSection');
@@ -503,8 +612,8 @@
         function toggleEditForm() { document.getElementById('infoDisplay').style.display = 'none'; document.getElementById('editProfileForm').style.display = 'block'; document.getElementById('mainEditBtn').style.display = 'none'; }
         function showPasswordForm() { document.getElementById('editProfileForm').style.display = 'none'; document.getElementById('changePasswordForm').style.display = 'block'; }
         
-        async function saveProfileInfo() { /* ...logic เดิม... */ }
-        async function updatePassword() { /* ...logic เดิม... */ }
+        async function saveProfileInfo() { /* โค้ดบันทึกโปรไฟล์เดิม */ }
+        async function updatePassword() { /* โค้ดเปลี่ยนรหัสผ่านเดิม */ }
 
         async function handleLogout() { if(confirm('ต้องการออกจากระบบ?')) { await sysDB.auth.signOut(); location.href='teacher-login.html'; } }
     </script>
