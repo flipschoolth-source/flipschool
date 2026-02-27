@@ -113,13 +113,6 @@
                 <h2 style="font-family: 'Kanit', sans-serif; color: var(--primary); font-weight: 700;">ลงทะเบียนครูผู้สอน</h2>
                 <p style="color: var(--text-muted);">สร้างบัญชีเพื่อบริหารจัดการห้องเรียนของคุณ</p>
             </div>
-            
-            <!-- กล่องรองรับปุ่ม Google แท้ -->
-            <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 20px;">
-                <div id="googleSignInBtn" onclick="checkFormFieldsBeforeGoogle()"></div>
-            </div>
-
-            <div class="divider">หรือ สมัครด้วยอีเมล</div>
 
             <form id="registerForm" onsubmit="handleRegister(event)">
                 <div class="input-group">
@@ -181,22 +174,7 @@
                     </div>
                 </div>
 
-                <div class="input-group">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">อีเมล <span style="color:red;">*</span></label>
-                    <div class="input-wrapper">
-                        <input type="email" id="email" placeholder="name@email.com" required>
-                        <i class="fas fa-envelope icon"></i>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสผ่าน <span style="color:red;">*</span></label>
-                    <div class="input-wrapper">
-                        <input type="password" id="password" placeholder="กำหนดรหัสผ่าน (6 ตัวขึ้นไป)" minlength="6" required>
-                        <i class="fas fa-lock icon"></i>
-                    </div>
-                </div>
-
+                <!-- เลื่อน PDPA มาไว้ก่อนการเลือกล็อกอิน เพื่อให้ครูที่ล็อกอิน Google กดยอมรับได้เลย -->
                 <div class="pdpa-box">
                     <label style="display: flex; align-items: start; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="pdpaCheck" required style="margin-top: 3px;">
@@ -204,9 +182,38 @@
                     </label>
                 </div>
 
-                <button type="submit" class="btn-submit" id="btnSubmit">
-                    สมัครสมาชิก <i class="fas fa-arrow-right"></i>
-                </button>
+                <!-- กล่องรองรับปุ่ม Google ย้ายมาจัดกลุ่มไว้ตรงนี้ -->
+                <div style="display: flex; justify-content: center; width: 100%; margin-top: 20px; margin-bottom: 20px;">
+                    <div id="googleSignInBtn" onclick="checkFormFieldsBeforeGoogle()"></div>
+                </div>
+
+                <!-- ปุ่ม Toggle เปิด/ปิด ฟอร์มอีเมล -->
+                <div class="divider" style="cursor: pointer; color: var(--primary); font-weight: 500;" onclick="toggleEmailForm()">
+                    <span id="emailToggleText">หรือ สมัครด้วยอีเมลและรหัสผ่าน</span> <i class="fas fa-chevron-down" id="emailToggleIcon"></i>
+                </div>
+
+                <!-- ส่วนอีเมลและรหัสผ่าน (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+                <div id="emailAuthSection" style="display: none;">
+                    <div class="input-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">อีเมล <span style="color:red;">*</span></label>
+                        <div class="input-wrapper">
+                            <input type="email" id="email" placeholder="name@email.com">
+                            <i class="fas fa-envelope icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสผ่าน <span style="color:red;">*</span></label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" placeholder="กำหนดรหัสผ่าน (6 ตัวขึ้นไป)" minlength="6">
+                            <i class="fas fa-lock icon"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmit">
+                        สมัครสมาชิก <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -240,6 +247,28 @@
             if (needsAbbrUpdate) {
                 const abbr = document.getElementById('missingSchoolAbbr').value.trim();
                 if(!abbr) alert("กรุณาตั้งค่าอักษรย่อโรงเรียนที่ขาดหายไป ก่อนทำการสมัครด้วย Google ครับ");
+            }
+        }
+
+        // ฟังก์ชันซ่อน/แสดงส่วนของอีเมลและรหัสผ่าน
+        function toggleEmailForm() {
+            const section = document.getElementById('emailAuthSection');
+            const icon = document.getElementById('emailToggleIcon');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+                // เมื่อเปิดฟอร์ม ค่อยบังคับให้ต้องกรอกอีเมลและรหัสผ่าน
+                document.getElementById('email').setAttribute('required', 'true');
+                document.getElementById('password').setAttribute('required', 'true');
+            } else {
+                section.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+                // ยกเลิกการบังคับเมื่อซ่อน
+                document.getElementById('email').removeAttribute('required');
+                document.getElementById('password').removeAttribute('required');
             }
         }
 
