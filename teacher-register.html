@@ -10,6 +10,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- เพิ่มสคริปต์ Google Identity Services (วิธีที่ 3) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         /* --- ธีมหลักและการตั้งค่าพื้นฐาน --- */
@@ -62,9 +65,7 @@
         .btn-submit:hover:not(:disabled) { background-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 139, 0.3); }
         .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .btn-google { background-color: white; border: 1px solid #ddd; color: #333; padding: 12px; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; cursor: pointer; transition: 0.3s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;}
-        .btn-google img { width: 20px; }
-        .btn-google:hover { background-color: #f1f1f1; }
+        /* ลบ .btn-google ออก เพราะเราจะใช้ปุ่มมาตรฐานจาก Google แทน */
 
         /* --- เส้นคั่น --- */
         .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #aaa; font-size: 14px; }
@@ -106,10 +107,10 @@
                 <p style="color: var(--text-muted);">สร้างบัญชีเพื่อบริหารจัดการห้องเรียนของคุณ</p>
             </div>
             
-            <button type="button" class="btn-google" onclick="registerWithGoogle()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
-                สมัครด้วย Google
-            </button>
+            <!-- เปลี่ยนเป็นกล่องรองรับปุ่ม Google แท้ -->
+            <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 20px;">
+                <div id="googleSignInBtn"></div>
+            </div>
 
             <div class="divider">หรือ สมัครด้วยอีเมล</div>
 
@@ -182,6 +183,49 @@
     <script src="js/supabase-db.js"></script>
     
     <script>
+        // --- ตั้งค่าระบบ Google Login ---
+        // ** สำคัญ: ต้องนำ Client ID จาก Google Cloud Console มาใส่ตรงนี้ **
+        const GOOGLE_CLIENT_ID = "ใส่_CLIENT_ID_ของ_GOOGLE_ตรงนี้.apps.googleusercontent.com";
+
+        window.onload = function () {
+            // โหลดปุ่ม Google ลงในหน้าเว็บ
+            if(window.google) {
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredentialResponse,
+                    context: "signup"
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById("googleSignInBtn"),
+                    { theme: "outline", size: "large", width: 420, text: "signup_with", shape: "rectangular", borderRadius: 12 } 
+                );
+            }
+        };
+
+        // ฟังก์ชันรับ Token จาก Google แล้วส่งให้ Supabase
+        async function handleGoogleCredentialResponse(response) {
+            try {
+                // 1. รับ Token สดๆ จาก Google ที่ส่งมาจากหน้าเว็บเราเอง
+                const idToken = response.credential;
+
+                // 2. ล็อกอินเข้า Supabase แบบเงียบๆ หลังบ้าน
+                const { data, error } = await sysDB.auth.signInWithIdToken({
+                    provider: 'google',
+                    token: idToken,
+                });
+
+                if (error) throw error;
+
+                // ล็อกอินสำเร็จ
+                alert("เข้าสู่ระบบด้วย Google สำเร็จ!");
+                window.location.href = 'teacher-dashboard.html';
+
+            } catch (err) {
+                console.error("Google Auth Error:", err);
+                alert("เกิดข้อผิดพลาดในการลงทะเบียนด้วย Google: " + err.message);
+            }
+        }
+
         // แสดงชื่อไฟล์เมื่ออัปโหลดรูป
         function updateFileName(input) {
             const display = document.getElementById('fileNameDisplay');
@@ -238,7 +282,7 @@
             document.getElementById('searchSection').style.display = 'block';
         }
 
-        // --- Logic การสมัครสมาชิกและอัปโหลดไฟล์ ---
+        // --- Logic การสมัครสมาชิกและอัปโหลดไฟล์ (ด้วยอีเมล) ---
         async function handleRegister(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSubmit');
@@ -312,22 +356,7 @@
             }
         }
 
-        // ลงทะเบียนด้วย Google
-        async function registerWithGoogle() {
-            try {
-                const { error } = await sysDB.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { 
-                        redirectTo: window.location.origin + '/teacher-dashboard.html' 
-                    }
-                });
-                if (error) throw error;
-            } catch (err) {
-                alert("Google Sign-In Error: " + err.message);
-            }
-            // ข้อควรระวัง: สำหรับ Google Login เราอาจต้องเขียน Logic ตรวจสอบที่หน้า Dashboard เพิ่ม
-            // ว่าถ้าเป็นครูใหม่ที่เพิ่ง Login Google ครั้งแรก ให้บังคับกรอกโรงเรียนและอัปโหลดรูปบัตรก่อนใช้งาน
-        }
+        // ลบฟังก์ชัน registerWithGoogle แบบเก่าทิ้งไปเลย (เพราะใช้ handleGoogleCredentialResponse แทนแล้ว)
     </script>
 </body>
 </html>
