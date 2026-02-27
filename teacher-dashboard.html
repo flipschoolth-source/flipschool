@@ -91,6 +91,13 @@
         
         /* สไตล์ฟอร์มเพิ่มโรงเรียนใหม่ */
         .new-school-form { display: none; background: #f8f9fa; border: 1px solid #eef2f7; padding: 20px; border-radius: 15px; margin-top: 10px; }
+        
+        /* แบนเนอร์เตือนอักษรย่อ */
+        .warning-banner { background: #fff3cd; border: 1px solid #ffeeba; border-radius: 15px; padding: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .warning-banner h4 { margin: 0 0 5px 0; color: #856404; font-family: 'Kanit'; font-size: 18px; }
+        .warning-banner p { margin: 0; color: #856404; font-size: 14px; }
+        .btn-warning-action { background: #ffc107; border: none; padding: 10px 20px; border-radius: 10px; font-family: 'Kanit'; font-weight: 600; color: #664d03; cursor: pointer; transition: 0.3s; }
+        .btn-warning-action:hover { background: #e0a800; }
     </style>
 </head>
 <body>
@@ -221,6 +228,16 @@
 
         <!-- ================= 2. ส่วน Dashboard ปกติ ================= -->
         <div id="mainDashboardContent">
+            
+            <!-- แบนเนอร์เตือนให้ตั้งค่าอักษรย่อ (สำหรับโรงเรียนเดิมที่ยังไม่มี) -->
+            <div id="missingAbbrBanner" class="warning-banner" style="display: none;">
+                <div>
+                    <h4><i class="fas fa-exclamation-triangle"></i> โรงเรียนของคุณยังไม่มีอักษรย่อสำหรับนักเรียน</h4>
+                    <p>นักเรียนจำเป็นต้องใช้อักษรย่อโรงเรียนเพื่อเข้าสู่ระบบ (รูปแบบ: รหัสนักเรียน@อักษรย่อ)</p>
+                </div>
+                <button onclick="openAbbrModal()" class="btn-warning-action">ตั้งค่าอักษรย่อ</button>
+            </div>
+
             <div class="welcome-hero">
                 <div class="hero-text-content">
                     <h1 class="welcome-header"><span id="welcomeHeader">กำลังโหลด...</span> <span id="verificationStatusBadge"></span></h1>
@@ -259,6 +276,26 @@
         </div>
     </div>
 
+    <!-- ================= MODAL ตั้งค่าอักษรย่อโรงเรียน (สำหรับโรงเรียนเดิมที่ไม่มีข้อมูล) ================= -->
+    <div id="abbrModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div style="background: white; border-radius: 24px; width: 100%; max-width: 450px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+            <div style="padding: 20px 30px; background: #f8faff; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-family: 'Kanit'; color: var(--primary); font-size: 20px;">ตั้งค่าอักษรย่อโรงเรียน</h3>
+                <i class="fas fa-times" style="cursor: pointer; font-size: 24px; color: #b2bec3;" onclick="closeAbbrModal()"></i>
+            </div>
+            <div style="padding: 30px;">
+                <label class="form-label">ชื่อโรงเรียน</label>
+                <input type="text" id="existingSchoolName" class="form-input" disabled style="background: #f4f7fe; color: #888; border-color: #eef2f7;">
+                
+                <label class="form-label" style="margin-top: 15px;">อักษรย่อภาษาอังกฤษ <span style="color:red;">*</span></label>
+                <input type="text" id="existingSchoolAbbr" class="form-input" placeholder="เช่น t1sk" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()">
+                <p style="font-size: 12px; color: #888; margin-top: -5px; margin-bottom: 20px;">*นักเรียนจะใช้รูปแบบ <b>รหัสนักเรียน@อักษรย่อ</b> ในการเข้าสู่ระบบ</p>
+                
+                <button type="button" class="btn-submit" onclick="saveExistingSchoolAbbr()" style="margin-top: 0;">บันทึกอักษรย่อ</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let currentUserData = null; 
@@ -274,7 +311,11 @@
         });
 
         async function fetchProfile() {
-            const { data, error } = await sysDB.from('teachers').select('*, schools:school_id(school_name)').eq('teacher_id', currentUser.id).single();
+            // อัปเดตการดึงข้อมูล ให้ดึง school_abbr ออกมาด้วย
+            const { data, error } = await sysDB.from('teachers')
+                .select('*, schools:school_id(school_id, school_name, school_abbr)')
+                .eq('teacher_id', currentUser.id)
+                .single();
             
             // 1. ตรวจสอบข้อมูลว่าครบถ้วนหรือไม่
             let isComplete = true;
@@ -283,7 +324,6 @@
             }
 
             if (!isComplete) {
-                // ข้อมูลไม่ครบ: เปิดโหมดบังคับกรอกข้อมูล
                 document.getElementById('mainDashboardContent').style.display = 'none';
                 document.getElementById('fabAddBtn').style.display = 'none';
                 document.getElementById('incompleteProfileSection').style.display = 'block';
@@ -411,7 +451,6 @@
             
             for(let i=0; i<txt.length; i++) {
                 if(chars[txt[i]] && abbr.length < 3) {
-                    // ป้องกันพยัญชนะซ้ำติดกัน
                     if(abbr.slice(-1) !== chars[txt[i]]) abbr += chars[txt[i]];
                 } else if(/[a-zA-Z]/.test(txt[i]) && abbr.length < 4) {
                     abbr += txt[i].toLowerCase();
@@ -433,13 +472,11 @@
             
             if(!name || !abbr) return alert('กรุณากรอกชื่อและอักษรย่อโรงเรียนให้ครบถ้วน');
             
-            // เช็คว่าอักษรย่อซ้ำไหม
             const { data: existing } = await sysDB.from('schools').select('school_id').eq('school_abbr', abbr);
             if(existing && existing.length > 0) {
                 return alert('❌ อักษรย่อ "' + abbr + '" มีโรงเรียนอื่นใช้งานแล้ว กรุณาเปลี่ยนอักษรย่อใหม่ครับ');
             }
             
-            // บันทึกโรงเรียนใหม่
             const newId = crypto.randomUUID();
             const { error } = await sysDB.from('schools').insert([{
                 school_id: newId,
@@ -449,11 +486,48 @@
             
             if(error) return alert('เกิดข้อผิดพลาดในการสร้างโรงเรียน: ' + error.message);
             
-            // เลือกโรงเรียนที่เพิ่งสร้างให้อัตโนมัติ
             document.getElementById(valueInputId).value = newId;
             document.getElementById(searchInputId).value = name;
             document.getElementById(formId).style.display = 'none';
             alert('✅ เพิ่มโรงเรียนใหม่สำเร็จ! (อักษรย่อสำหรับนักเรียนคือ: ' + abbr + ')');
+        }
+
+        // ================= แจ้งเตือนและอัปเดตโรงเรียนเดิมที่ยังไม่มีอักษรย่อ =================
+        function openAbbrModal() {
+            document.getElementById('abbrModal').style.display = 'flex';
+            document.getElementById('existingSchoolName').value = currentUserData.schools.school_name;
+            // ใช้ระบบแนะนำอักษรย่อช่วยคิดให้
+            document.getElementById('existingSchoolAbbr').value = suggestAbbreviation(currentUserData.schools.school_name);
+        }
+
+        function closeAbbrModal() {
+            document.getElementById('abbrModal').style.display = 'none';
+        }
+
+        async function saveExistingSchoolAbbr() {
+            const abbr = document.getElementById('existingSchoolAbbr').value.trim().toLowerCase();
+            if(!abbr) return alert('กรุณาระบุอักษรย่อภาษาอังกฤษ');
+            
+            // เช็คซ้ำในระบบ
+            const { data: existing } = await sysDB.from('schools')
+                .select('school_id')
+                .eq('school_abbr', abbr)
+                .neq('school_id', currentUserData.schools.school_id); // ป้องกันไม่ให้เช็คซ้ำกับตัวเอง
+
+            if(existing && existing.length > 0) {
+                return alert('❌ อักษรย่อ "' + abbr + '" มีโรงเรียนอื่นใช้งานแล้ว กรุณาเปลี่ยนใหม่ครับ');
+            }
+            
+            // บันทึกอัปเดตอักษรย่อ
+            const { error } = await sysDB.from('schools').update({ school_abbr: abbr }).eq('school_id', currentUserData.schools.school_id);
+            if(!error) {
+                alert('บันทึกอักษรย่อสำเร็จ! นักเรียนสามารถใช้ ' + abbr + ' ในการเข้าระบบได้แล้ว');
+                currentUserData.schools.school_abbr = abbr; // อัปเดตค่าในตัวแปรทันที
+                closeAbbrModal();
+                document.getElementById('missingAbbrBanner').style.display = 'none'; // ปิดแถบแจ้งเตือน
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
         }
 
 
@@ -511,25 +585,36 @@
             }
         }
 
-        // ================= ส่วนจัดการสถานะ และการอนุมัติ (คงเดิม) =================
+        // ================= ส่วนจัดการสถานะ และการอนุมัติ =================
         function handleVerificationStatus(status) {
-            const badge = document.getElementById('verificationStatusBadge');
             const classSection = document.getElementById('classroomSection');
             const alertSection = document.getElementById('pendingAlertSection');
             const fabBtn = document.getElementById('fabAddBtn');
+            const badge = document.getElementById('verificationStatusBadge');
+            const banner = document.getElementById('missingAbbrBanner');
 
             if (status === 'approved' || status === 'admin') {
                 badge.innerHTML = "";
                 classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
                 fetchClassrooms();
                 if(currentUserData.school_id) checkPendingTeachers();
+
+                // เช็คว่าโรงเรียนมีอักษรย่อหรือยัง (ถ้าไม่มีให้โชว์ Banner เตือน)
+                if (currentUserData.schools && !currentUserData.schools.school_abbr) {
+                    banner.style.display = 'flex';
+                } else {
+                    banner.style.display = 'none';
+                }
+
             } else if (status === 'rejected') {
                 badge.innerHTML = `<span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> ถูกปฏิเสธ</span>`;
                 classSection.style.display = 'none'; alertSection.style.display = 'none'; fabBtn.style.display = 'none';
+                banner.style.display = 'none';
                 alert("บัญชีของคุณถูกปฏิเสธการเข้าร่วมโรงเรียน");
             } else {
                 badge.innerHTML = `<span class="status-badge status-pending"><i class="fas fa-spinner fa-spin"></i> รอการอนุมัติ</span>`;
                 classSection.style.display = 'none'; alertSection.style.display = 'block'; fabBtn.style.display = 'none';
+                banner.style.display = 'none';
             }
         }
 
