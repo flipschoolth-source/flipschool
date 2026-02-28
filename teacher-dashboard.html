@@ -632,44 +632,46 @@
             checkPendingTeachers(); closeApprovalModal();
         }
 
-        // ================= ระบบดึงข้อมูลห้องเรียน (ปรับปรุงใหม่ให้รองรับการสลับ รร.) =================
+        // ================= ระบบดึงข้อมูลห้องเรียน (ปรับปรุงใหม่ให้ดึงห้องเรียนเก่ามาแสดง) =================
         async function fetchClassrooms() {
             const grid = document.getElementById('classGrid');
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูลห้องเรียน...</div>';
 
             try {
-                // ดึงข้อมูลจากตาราง classrooms ที่ครูคนนี้เป็นคนสร้าง
-                let query = sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id);
-
-                // กรองข้อมูลตามกลุ่มโรงเรียนที่กำลัง Active อยู่
-                if (activeSchool) {
-                    query = query.eq('school_id', activeSchool.school_id);
-                } else {
-                    // ถ้าเป็นโหมดครูอิสระ ให้ดึงเฉพาะห้องเรียนที่ไม่ได้ผูกกับ รร. ใดๆ
-                    query = query.is('school_id', null);
-                }
-
-                // เรียงจากห้องเรียนที่เพิ่งสร้างล่าสุด
-                query = query.order('created_at', { ascending: false });
-
-                const { data, error } = await query;
+                // 1. ดึงข้อมูลห้องเรียน "ทั้งหมด" ของครูคนนี้มาก่อน
+                const { data, error } = await sysDB.from('classrooms')
+                    .select('*')
+                    .eq('teacher_id', currentUser.id)
+                    .order('created_at', { ascending: false });
 
                 if (error) throw error;
 
-                if (!data || data.length === 0) {
+                let displayData = [];
+
+                if (activeSchool) {
+                    // โหมดกลุ่มโรงเรียน: แสดงเฉพาะห้องที่ผูกกับโรงเรียนนี้
+                    displayData = data.filter(c => c.school_id === activeSchool.school_id);
+                } else {
+                    // โหมดพื้นที่ส่วนตัว (อิสระ): แสดงห้องที่ไม่ได้ผูกกับ รร. ใดๆ
+                    // **และรวมถึง** ห้องเรียนเก่าที่เคยมี school_id แต่ครูยังไม่ได้เข้าร่วมกลุ่มโรงเรียนนั้นในระบบใหม่
+                    const joinedSchoolIds = userSchools.map(s => s.school_id);
+                    displayData = data.filter(c => !c.school_id || !joinedSchoolIds.includes(c.school_id));
+                }
+
+                if (!displayData || displayData.length === 0) {
                     grid.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 35px; border: 2px dashed #edf2f7;">
                             <div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;">
                                 <i class="fas fa-chalkboard"></i>
                             </div>
                             <h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีห้องเรียนในพื้นที่นี้</h3>
-                            <p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนแรกของคุณได้เลยครับ</p>
+                            <p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนได้เลยครับ</p>
                         </div>`;
                     return;
                 }
 
                 let html = '';
-                data.forEach(c => {
+                displayData.forEach(c => {
                     const color = c.color_code || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                     const termText = (c.semester && c.academic_year) ? `ภาคเรียนที่ ${c.semester}/${c.academic_year}` : 'ไม่ระบุภาคเรียน';
                     
