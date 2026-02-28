@@ -632,7 +632,71 @@
             checkPendingTeachers(); closeApprovalModal();
         }
 
-        async function fetchClassrooms() { /* ดึงข้อมูลห้องเรียน (จะทำในสเต็ปถัดไป) */ }
+        // ================= ระบบดึงข้อมูลห้องเรียน (ปรับปรุงใหม่ให้รองรับการสลับ รร.) =================
+        async function fetchClassrooms() {
+            const grid = document.getElementById('classGrid');
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูลห้องเรียน...</div>';
+
+            try {
+                // ดึงข้อมูลจากตาราง classrooms ที่ครูคนนี้เป็นคนสร้าง
+                let query = sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id);
+
+                // กรองข้อมูลตามกลุ่มโรงเรียนที่กำลัง Active อยู่
+                if (activeSchool) {
+                    query = query.eq('school_id', activeSchool.school_id);
+                } else {
+                    // ถ้าเป็นโหมดครูอิสระ ให้ดึงเฉพาะห้องเรียนที่ไม่ได้ผูกกับ รร. ใดๆ
+                    query = query.is('school_id', null);
+                }
+
+                // เรียงจากห้องเรียนที่เพิ่งสร้างล่าสุด
+                query = query.order('created_at', { ascending: false });
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 35px; border: 2px dashed #edf2f7;">
+                            <div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;">
+                                <i class="fas fa-chalkboard"></i>
+                            </div>
+                            <h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีห้องเรียนในพื้นที่นี้</h3>
+                            <p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนแรกของคุณได้เลยครับ</p>
+                        </div>`;
+                    return;
+                }
+
+                let html = '';
+                data.forEach(c => {
+                    const color = c.color_code || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    const termText = (c.semester && c.academic_year) ? `ภาคเรียนที่ ${c.semester}/${c.academic_year}` : 'ไม่ระบุภาคเรียน';
+                    
+                    html += `
+                        <div class="class-card" onclick="window.location.href='classroom-detail.html?id=${c.classroom_id}'">
+                            <div class="card-banner" style="background: ${color};">
+                                <i class="fas fa-book-reader" style="opacity: 0.8;"></i>
+                            </div>
+                            <div class="card-body">
+                                <div class="room-badge">${c.room_name || 'ไม่ระบุห้อง'}</div>
+                                <h3 class="subject-title">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
+                                <div style="color: var(--text-muted); font-size: 14px; margin-top: 15px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-calendar-alt" style="color: #a4b0be;"></i> ${termText}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                grid.innerHTML = html;
+
+            } catch (err) {
+                console.error("Fetch classrooms error:", err);
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #ff4757; padding: 40px;">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</div>`;
+            }
+        }
+
         window.toggleSidebar = function() { document.getElementById('profileSidebar').classList.toggle('active'); document.getElementById('sidebarOverlay').style.display = document.getElementById('sidebarOverlay').style.display === 'block' ? 'none' : 'block'; };
         async function handleLogout() { if(confirm('ต้องการออกจากระบบ?')) { await sysDB.auth.signOut(); localStorage.removeItem('active_school_id'); location.href='teacher-login.html'; } }
     </script>
