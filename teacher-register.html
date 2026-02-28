@@ -115,7 +115,7 @@
                     </div>
 
                     <div class="input-group" style="margin-bottom: 0;">
-                        <label class="input-label">สังกัดโรงเรียน <span style="color:red;">*</span></label>
+                        <label class="input-label">สังกัดโรงเรียน (เลือกเพื่อส่งคำขอเข้าร่วม) <span style="color:red;">*</span></label>
                         <div class="input-wrapper" id="searchSection">
                             <input type="text" id="schoolInput" placeholder="พิมพ์ชื่อโรงเรียนเพื่อค้นหา..." autocomplete="off">
                             <i class="fas fa-school icon"></i>
@@ -153,7 +153,7 @@
                     <div class="section-title"><i class="fas fa-file-shield"></i> 2. ยืนยันตัวตน (สำหรับแอดมินคนแรก)</div>
                     
                     <div id="adminNotice" style="background: #e0fbfc; border: 1px solid #90e0ef; color: #0077b6; padding: 12px 15px; border-radius: 10px; font-size: 13px; margin-bottom: 15px;">
-                        <i class="fas fa-info-circle"></i> เนื่องจากคุณเป็นผู้สมัครคนแรก คุณจะได้รับสิทธิ์ <b>ผู้ดูแลระบบ (Admin)</b> ของโรงเรียนนี้ กรุณาอัปโหลดเอกสารเพื่อส่งให้ระบบส่วนกลางตรวจสอบและอนุมัติ
+                        <i class="fas fa-info-circle"></i> เนื่องจากคุณเป็นผู้สมัครเข้าร่วมโรงเรียนนี้เป็นคนแรก คุณจะได้รับสิทธิ์ <b>ผู้ดูแลระบบ (Admin)</b> ของโรงเรียนนี้ กรุณาอัปโหลดเอกสารเพื่อส่งให้ระบบส่วนกลางตรวจสอบและอนุมัติ
                     </div>
 
                     <div class="input-group" style="margin-bottom: 0;">
@@ -297,8 +297,14 @@
             document.getElementById('searchSection').style.display = 'none';
             document.getElementById('resultsBox').style.display = 'none';
 
-            // ตรวจสอบว่าโรงเรียนนี้มีแอดมินหรือยัง
-            const { data: admins } = await sysDB.from('teachers').select('teacher_id').eq('school_id', id).eq('role', 'admin').eq('verification_status', 'approved').limit(1);
+            // ตรวจสอบว่าโรงเรียนนี้มีแอดมินหรือยัง (เปลี่ยนไปเช็คจาก teacher_schools)
+            const { data: admins } = await sysDB.from('teacher_schools')
+                .select('teacher_id')
+                .eq('school_id', id)
+                .eq('role', 'admin')
+                .eq('verification_status', 'approved')
+                .limit(1);
+            
             schoolHasAdmin = (admins && admins.length > 0);
 
             if (schoolHasAdmin) {
@@ -406,14 +412,29 @@
                     if (uploadError) throw uploadError; cardUrl = fileName;
                 }
 
-                // แอดมินคนแรกจะได้ role = 'admin', คนอื่นๆ จะได้ role = 'teacher'
                 const applyRole = schoolHasAdmin ? 'teacher' : 'admin';
 
+                // ขั้นที่ 1: บันทึกข้อมูลครูลงตาราง teachers (ไม่ต้องระบุ school_id แล้ว)
                 const { error: dbError } = await sysDB.from('teachers').upsert([{
-                    teacher_id: userId, first_name: fname, last_name: lname, school_id: schoolId, email: userEmail,
-                    verification_card_url: cardUrl, verification_status: 'pending', role: applyRole
+                    teacher_id: userId, first_name: fname, last_name: lname, email: userEmail
                 }]);
                 if (dbError) throw dbError;
+
+                // ขั้นที่ 2: บันทึกการขอเข้าร่วมโรงเรียนลงตาราง teacher_schools
+                // ป้องกันการสมัครโรงเรียนเดิมซ้ำโดยเช็คก่อน
+                const { data: existingEntry } = await sysDB.from('teacher_schools')
+                    .select('id').eq('teacher_id', userId).eq('school_id', schoolId).single();
+
+                if (!existingEntry) {
+                    const { error: tsError } = await sysDB.from('teacher_schools').insert([{
+                        teacher_id: userId,
+                        school_id: schoolId,
+                        role: applyRole,
+                        verification_card_url: cardUrl,
+                        verification_status: 'pending'
+                    }]);
+                    if (tsError) throw tsError;
+                }
 
                 const successMsg = schoolHasAdmin 
                     ? "สมัครสมาชิกสำเร็จ! กรุณารอแอดมินของโรงเรียนอนุมัติบัญชี" 
@@ -451,11 +472,26 @@
 
                 const applyRole = schoolHasAdmin ? 'teacher' : 'admin';
 
-                const { error: dbError } = await sysDB.from('teachers').insert([{
-                    teacher_id: userId, first_name: fname, last_name: lname, school_id: schoolId, email: email,
-                    verification_card_url: cardUrl, verification_status: 'pending', role: applyRole
+                // ขั้นที่ 1: บันทึกข้อมูลลงตาราง teachers
+                const { error: dbError } = await sysDB.from('teachers').upsert([{
+                    teacher_id: userId, first_name: fname, last_name: lname, email: email
                 }]);
                 if (dbError) throw dbError;
+
+                // ขั้นที่ 2: บันทึกการเข้าร่วมลงตาราง teacher_schools
+                const { data: existingEntry } = await sysDB.from('teacher_schools')
+                    .select('id').eq('teacher_id', userId).eq('school_id', schoolId).single();
+
+                if (!existingEntry) {
+                    const { error: tsError } = await sysDB.from('teacher_schools').insert([{
+                        teacher_id: userId,
+                        school_id: schoolId,
+                        role: applyRole,
+                        verification_card_url: cardUrl,
+                        verification_status: 'pending'
+                    }]);
+                    if (tsError) throw tsError;
+                }
 
                 const successMsg = schoolHasAdmin 
                     ? "สมัครสมาชิกสำเร็จ! กรุณารอแอดมินของโรงเรียนอนุมัติบัญชี" 
