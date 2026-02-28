@@ -213,7 +213,7 @@
             } else if (type === 'warning') {
                 iconEl.className = 'fas fa-exclamation-triangle';
                 iconEl.style.color = '#ffa502';
-                titleEl.innerText = 'ข้อควรระวัง';
+                titleEl.innerText = 'แจ้งเตือน';
             } else {
                 iconEl.className = 'fas fa-times-circle';
                 iconEl.style.color = '#ff4757';
@@ -265,16 +265,37 @@
             }
         });
 
-        // 4. ฟังก์ชันรับ Token และล็อกอินผ่าน Google
+        // 4. ฟังก์ชันรับ Token และล็อกอินผ่าน Google (เพิ่มการตรวจสอบข้อมูลตารางครู)
         async function handleGoogleCredentialResponse(response) {
             try {
                 const idToken = response.credential;
+                
+                // ล็อกอินเข้า Auth ก่อน
                 const { data, error } = await sysDB.auth.signInWithIdToken({
                     provider: 'google',
                     token: idToken,
                 });
 
                 if (error) throw error;
+
+                // ** สำคัญมาก: ตรวจสอบว่ามีข้อมูลครูในระบบจริงๆ แล้วหรือไม่ **
+                const { data: teacherData, error: teacherError } = await sysDB.from('teachers')
+                    .select('teacher_id')
+                    .eq('teacher_id', data.user.id)
+                    .single();
+
+                // ถ้าค้นหาไม่พบ (ไม่มีข้อมูลในตาราง) แปลว่ายังไม่เคยลงทะเบียน
+                if (!teacherData) {
+                    // ให้ล็อกเอาท์ออกทันที ป้องกันคนใช้สิทธิ์เซสชันเปล่าๆ
+                    await sysDB.auth.signOut();
+                    
+                    showCustomAlert("ไม่พบข้อมูลบัญชีนี้ในระบบ กรุณาลงทะเบียนเป็นผู้สอนใหม่ก่อนเข้าใช้งานครับ", "warning", () => {
+                        window.location.href = 'teacher-register.html';
+                    });
+                    return;
+                }
+
+                // ถ้ามีข้อมูลครบถ้วน ไปที่หน้า Dashboard ได้เลย
                 window.location.href = 'teacher-dashboard.html';
 
             } catch (err) {
@@ -298,7 +319,7 @@
             }
         }
 
-        // 6. ฟังก์ชันเข้าสู่ระบบด้วยอีเมล
+        // 6. ฟังก์ชันเข้าสู่ระบบด้วยอีเมล (เพิ่มการดัก Error ให้สวยงาม)
         async function handleLogin(e) {
             e.preventDefault();
             
@@ -335,17 +356,17 @@
             } catch (err) {
                 console.error(err);
                 
-                // แปลงข้อความ Error ให้เข้าใจง่ายขึ้น (เพิ่มกรณี Email disabled)
+                // แปลงข้อความ Error ให้เข้าใจง่ายขึ้น พร้อมแนะนำการสมัครใหม่
                 let errorMsg = err.message;
                 if (errorMsg === "Invalid login credentials") {
-                    errorMsg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากคุณสมัครด้วย Google กรุณากดปุ่มเข้าสู่ระบบด้วย Google ครับ)";
+                    errorMsg = "ไม่พบข้อมูลบัญชีนี้ หรือรหัสผ่านไม่ถูกต้อง (หากคุณยังไม่มีบัญชี กรุณาคลิกลงทะเบียนใหม่ครับ)";
                 } else if (errorMsg === "Email not confirmed") {
-                    errorMsg = "กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ (หรือไปปิดการตั้งค่า Confirm Email ใน Supabase)";
+                    errorMsg = "กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ";
                 } else if (errorMsg === "Email logins are disabled") {
-                    errorMsg = "ระบบเข้าสู่ระบบด้วยอีเมลถูกปิดใช้งานอยู่ กรุณาติดต่อผู้ดูแลระบบให้เปิดใช้งาน Email Provider ใน Supabase";
+                    errorMsg = "ระบบเข้าสู่ระบบด้วยอีเมลถูกปิดใช้งานอยู่ครับ";
                 }
                 
-                showCustomAlert('เข้าสู่ระบบไม่สำเร็จ: ' + errorMsg, 'error');
+                showCustomAlert(errorMsg, 'warning');
                 
                 btn.disabled = false;
                 btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>';
