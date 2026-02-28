@@ -222,7 +222,7 @@
                         <div style="text-align: right;"><button type="button" onclick="cancelNewSchool()" style="background: none; border: none; color: #ff4757; cursor: pointer; font-family: 'Kanit'; text-decoration: underline; margin-top: -10px;">ยกเลิกการสร้างใหม่</button></div>
                     </div>
 
-                    <!-- อัปโหลดบัตร (อัปเกรดปุ่มและพรีวิวภาพ) -->
+                    <!-- อัปโหลดบัตร (อัปเกรดปุ่มและพรีวิวภาพ แก้ปัญหากล้องไม่เปิด) -->
                     <div id="reqIdCardGroup" style="display: none;">
                         <div style="background: #fff8e1; border: 1px solid #ffecb3; color: #b08d00; padding: 12px 15px; border-radius: 10px; font-size: 13px; margin-bottom: 15px; line-height: 1.5;">
                             <i class="fas fa-info-circle"></i> <b>ส่วนกลางต้องการยืนยันตัวตน:</b> เนื่องจากกลุ่มนี้ยังไม่มีผู้ดูแล คุณจะได้รับสิทธิ์ <b>Admin</b> กรุณาแนบภาพถ่ายของคุณถ่ายคู่กับบัตรข้าราชการ/บัตรพนักงาน (งดใช้บัตรประชาชนเนื่องจากไม่ระบุสังกัด)
@@ -235,18 +235,19 @@
                                 <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
                             </div>
                             
-                            <!-- ปุ่มเลือกวิธีแนบไฟล์ -->
+                            <!-- ปุ่มเลือกวิธีแนบไฟล์ สั่งให้ไปกด input ที่ซ่อนอยู่ -->
                             <div style="display: flex; gap: 10px; justify-content: center;">
-                                <button type="button" class="btn-upload-option btn-upload-gallery" onclick="openImageSelector(false)">
+                                <button type="button" class="btn-upload-option btn-upload-gallery" onclick="document.getElementById('reqIdCardImageGallery').click()">
                                     <i class="fas fa-image"></i> เลือกรูปภาพ
                                 </button>
-                                <button type="button" class="btn-upload-option btn-upload-camera" onclick="openImageSelector(true)">
+                                <button type="button" class="btn-upload-option btn-upload-camera" onclick="document.getElementById('reqIdCardImageCamera').click()">
                                     <i class="fas fa-camera"></i> ถ่ายเซลฟี่
                                 </button>
                             </div>
                             
-                            <!-- Input สำหรับรับไฟล์ (ซ่อนไว้) -->
-                            <input type="file" id="reqIdCardImage" accept="image/*" style="display: none;" onchange="updateFileNameReq(this)">
+                            <!-- Input ซ่อนไว้ 2 ตัว (แยกกล้องและแกลลอรี่ให้ชัดเจน เพื่อแก้ปัญหามือถือบางรุ่น) -->
+                            <input type="file" id="reqIdCardImageGallery" accept="image/*" style="display: none;" onchange="processSelectedImage(this, 'gallery')">
+                            <input type="file" id="reqIdCardImageCamera" accept="image/*" capture="user" style="display: none;" onchange="processSelectedImage(this, 'camera')">
                         </div>
                     </div>
 
@@ -280,6 +281,8 @@
         let isSuperAdmin = false;
         let reqSchoolHasAdmin = false;
         let isCreatingNewSchool = false;
+        
+        let activeImageFile = null; // ตัวแปรเก็บไฟล์รูปภาพที่ถูกเลือก ไม่ว่าจะมาจากกล้องหรือแกลลอรี่
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
@@ -509,6 +512,7 @@
             }
         }
 
+        // ================= Modal เข้าร่วมโรงเรียน =================
         function openJoinSchoolModal() {
             document.getElementById('joinSchoolModal').style.display = 'flex';
             document.getElementById('profileSidebar').classList.remove('active');
@@ -553,10 +557,8 @@
 
             if (reqSchoolHasAdmin) {
                 document.getElementById('reqIdCardGroup').style.display = 'none';
-                document.getElementById('reqIdCardImage').removeAttribute('required');
             } else {
                 document.getElementById('reqIdCardGroup').style.display = 'block';
-                document.getElementById('reqIdCardImage').setAttribute('required', 'true');
             }
         }
 
@@ -571,7 +573,6 @@
             autoSuggestAbbr('newSchoolName', 'newSchoolAbbr');
             
             document.getElementById('reqIdCardGroup').style.display = 'block';
-            document.getElementById('reqIdCardImage').setAttribute('required', 'true');
         }
 
         function cancelNewSchool() {
@@ -579,7 +580,7 @@
             document.getElementById('newSchoolGroup').style.display = 'none';
             document.getElementById('searchSchoolGroup').style.display = 'block';
             document.getElementById('reqIdCardGroup').style.display = 'none';
-            document.getElementById('reqIdCardImage').removeAttribute('required');
+            resetImagePreview();
         }
 
         function resetSchoolSelection() {
@@ -588,7 +589,7 @@
             document.getElementById('selectedSchoolCard').style.display = 'none';
             document.getElementById('searchSchoolGroup').style.display = 'block';
             document.getElementById('reqIdCardGroup').style.display = 'none';
-            document.getElementById('reqIdCardImage').removeAttribute('required');
+            resetImagePreview();
         }
 
         function suggestAbbreviation(thaiText) {
@@ -599,38 +600,40 @@
         }
         function autoSuggestAbbr(nameId, abbrId) { document.getElementById(abbrId).value = suggestAbbreviation(document.getElementById(nameId).value); }
 
-        // ================= ฟังก์ชันจัดการกล้องและพรีวิวภาพ =================
-        function openImageSelector(useCamera) {
-            const input = document.getElementById('reqIdCardImage');
-            if (useCamera) {
-                input.setAttribute('capture', 'user'); // เรียกกล้องหน้าเซลฟี่สำหรับมือถือ
-            } else {
-                input.removeAttribute('capture'); // เปิดแกลลอรี่ภาพ
-            }
-            input.click();
-        }
-
-        function updateFileNameReq(input) {
-            const display = document.getElementById('reqFileNameDisplay');
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
+        // ================= ฟังก์ชันจัดการรูปภาพใหม่ (แยก 2 Input) =================
+        function processSelectedImage(inputElement, source) {
+            if (inputElement.files && inputElement.files[0]) {
+                activeImageFile = inputElement.files[0];
                 
+                // เคลียร์ค่าของอีกปุ่มหนึ่งทิ้ง เพื่อไม่ให้มีไฟล์ซ้อนกัน
+                if (source === 'gallery') {
+                    document.getElementById('reqIdCardImageCamera').value = '';
+                } else {
+                    document.getElementById('reqIdCardImageGallery').value = '';
+                }
+
+                // พรีวิวภาพบนหน้าจอ
+                const reader = new FileReader();
                 reader.onload = function(e) {
-                    display.innerHTML = `
+                    document.getElementById('reqFileNameDisplay').innerHTML = `
                         <div style="margin-bottom: 10px;">
                             <img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
                         </div>
-                        <div style="color: #2ed573; font-weight: 600; font-size: 15px;"><i class="fas fa-check-circle"></i> เลือกรูปภาพแล้ว</div>
+                        <div style="color: #2ed573; font-weight: 600; font-size: 15px;"><i class="fas fa-check-circle"></i> ภาพพร้อมส่งแล้ว</div>
                     `;
                 }
-                reader.readAsDataURL(file);
-            } else {
-                display.innerHTML = `
-                    <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
-                    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
-                `;
+                reader.readAsDataURL(activeImageFile);
             }
+        }
+
+        function resetImagePreview() {
+            activeImageFile = null;
+            if (document.getElementById('reqIdCardImageGallery')) document.getElementById('reqIdCardImageGallery').value = '';
+            if (document.getElementById('reqIdCardImageCamera')) document.getElementById('reqIdCardImageCamera').value = '';
+            document.getElementById('reqFileNameDisplay').innerHTML = `
+                <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
+                <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
+            `;
         }
 
         // --- Submit การเข้าร่วมหรือสร้าง รร ---
@@ -668,11 +671,11 @@
                 if (alreadyJoined) { alert('คุณอยู่ในกลุ่มหรือได้ส่งคำขอของโรงเรียนนี้ไปแล้วครับ!'); throw new Error('Already joined'); }
 
                 let cardUrl = null;
-                const idCardFile = document.getElementById('reqIdCardImage').files[0];
+                // เปลี่ยนมารับไฟล์จากตัวแปรส่วนกลางที่รวมไว้ให้แล้ว
                 if (needsCardUpload) {
-                    if (!idCardFile) { alert('กรุณาอัปโหลดภาพเซลฟี่คู่กับบัตรยืนยันตัวตนครับ'); throw new Error('No ID card'); }
-                    const fileName = `${currentUser.id}_${Date.now()}.${idCardFile.name.split('.').pop()}`;
-                    await sysDB.storage.from('teacher-verifications').upload(fileName, idCardFile);
+                    if (!activeImageFile) { alert('กรุณาอัปโหลดภาพเซลฟี่คู่กับบัตรยืนยันตัวตนครับ'); throw new Error('No ID card'); }
+                    const fileName = `${currentUser.id}_${Date.now()}.${activeImageFile.name.split('.').pop()}`;
+                    await sysDB.storage.from('teacher-verifications').upload(fileName, activeImageFile);
                     cardUrl = fileName;
                 }
 
