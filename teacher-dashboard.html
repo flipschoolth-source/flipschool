@@ -436,17 +436,9 @@
         });
 
         async function fetchProfile() {
-            isSuperAdmin = (currentUser.email === 'flipschool.th@gmail.com');
+            const { data: teacher, error: profileError } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
 
-            const { data: teacher } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
-
-            if (isSuperAdmin) {
-                currentUserData = teacher || { first_name: 'แอดมิน', last_name: 'สูงสุด', role: 'super_admin' };
-                setupSuperAdminDashboard();
-                return;
-            }
-
-            if (!teacher || !teacher.first_name) {
+            if (profileError || !teacher || !teacher.first_name) {
                 showCustomAlert("เกิดข้อผิดพลาดในการโหลดข้อมูลโปรไฟล์ กรุณาล็อกอินใหม่อีกครั้ง", 'error', () => {
                     handleLogout();
                 });
@@ -454,7 +446,16 @@
             }
 
             currentUserData = teacher;
+            
+            // เช็คสิทธิ์ Super Admin จาก Database แทนการล็อคด้วยอีเมล
+            isSuperAdmin = (teacher.role === 'super_admin');
 
+            if (isSuperAdmin) {
+                setupSuperAdminDashboard();
+                return; // หยุดการดึงข้อมูลส่วนอื่นเพราะเข้าโหมด Admin ส่วนกลาง
+            }
+
+            // ถ้าเป็นครูทั่วไป ให้ดึงข้อมูลกลุ่มโรงเรียนต่อ
             const { data: schools } = await sysDB.from('teacher_schools')
                 .select('*, schools(school_name, school_abbr)')
                 .eq('teacher_id', currentUser.id);
@@ -645,7 +646,7 @@
                 document.getElementById('pendingAlertTitle').style.color = '#d35400';
                 
                 if(activeSchool && activeSchool.role === 'admin') {
-                    document.getElementById('pendingAlertDesc').innerHTML = "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ ระหว่างรอส่วนกลางตรวจสอบสิทธิ์ <b>คุณสามารถสร้างและจัดการห้องเรียนล่วงหน้าได้ทันทีครับ</b>";
+                    document.getElementById('pendingAlertDesc').innerHTML = "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ ระหว่างรอส่วนกลางตรวจสอบสิทธิ์ <b>คุณสามารถสร้างและจัดการห้องเรียนล่วงหน้าได้ทันทีครับ</b><br><small style='color: #d35400;'>*คุณสามารถตั้งค่าการแจ้งเตือนทางอีเมลเพิ่มเติมได้โดยใช้ระบบ Make.com หรือ Zapier เชื่อมต่อกับฐานข้อมูล</small>";
                 } else {
                     document.getElementById('pendingAlertDesc').innerHTML = "ระหว่างรอแอดมินของกลุ่มอนุมัติ <b>คุณสามารถสร้างและจัดการห้องเรียนล่วงหน้าได้ทันทีครับ</b>";
                 }
