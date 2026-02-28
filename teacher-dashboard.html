@@ -107,8 +107,14 @@
         .search-item:hover { background: #f0f4ff; color: var(--primary); padding-left: 25px; }
         .search-item-add { color: var(--primary); font-weight: 600; justify-content: center; background: #f8faff; border-bottom: none; }
 
-        .file-upload-box { border: 2px dashed #dcdde1; border-radius: 15px; padding: 25px 20px; text-align: center; cursor: pointer; transition: 0.3s; background: #fafbfc; margin-bottom: 20px; }
+        .file-upload-box { border: 2px dashed #dcdde1; border-radius: 15px; padding: 25px 20px; text-align: center; transition: 0.3s; background: #fafbfc; margin-bottom: 20px; }
         .file-upload-box:hover { border-color: var(--primary-light); background: #f0f4ff; }
+        
+        .btn-upload-option { padding: 10px 15px; border-radius: 12px; font-family: 'Kanit'; cursor: pointer; font-size: 14px; transition: 0.2s; flex: 1; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-upload-gallery { background: white; border: 1px solid var(--primary-light); color: var(--primary-light); }
+        .btn-upload-gallery:hover { background: #e0e8ff; }
+        .btn-upload-camera { background: var(--primary-light); color: white; box-shadow: 0 4px 10px rgba(0,82,212,0.2); }
+        .btn-upload-camera:hover { background: var(--primary); transform: translateY(-1px); }
 
         @media (max-width: 768px) { nav { padding: 0 20px; height: 75px; } .main-container { padding: 20px; } .welcome-hero { padding: 40px 30px; } .welcome-header { font-size: 28px; } .fab-add { bottom: 30px; right: 30px; width: 60px; height: 60px; font-size: 24px; } }
     </style>
@@ -216,15 +222,30 @@
                         <div style="text-align: right;"><button type="button" onclick="cancelNewSchool()" style="background: none; border: none; color: #ff4757; cursor: pointer; font-family: 'Kanit'; text-decoration: underline; margin-top: -10px;">ยกเลิกการสร้างใหม่</button></div>
                     </div>
 
-                    <!-- อัปโหลดบัตร (สำหรับคนสร้างกลุ่ม/คนแรก) -->
+                    <!-- อัปโหลดบัตร (อัปเกรดปุ่มและพรีวิวภาพ) -->
                     <div id="reqIdCardGroup" style="display: none;">
                         <div style="background: #fff8e1; border: 1px solid #ffecb3; color: #b08d00; padding: 12px 15px; border-radius: 10px; font-size: 13px; margin-bottom: 15px; line-height: 1.5;">
                             <i class="fas fa-info-circle"></i> <b>ส่วนกลางต้องการยืนยันตัวตน:</b> เนื่องจากกลุ่มนี้ยังไม่มีผู้ดูแล คุณจะได้รับสิทธิ์ <b>Admin</b> กรุณาแนบภาพถ่ายของคุณถ่ายคู่กับบัตรข้าราชการ/บัตรพนักงาน (งดใช้บัตรประชาชนเนื่องจากไม่ระบุสังกัด)
                         </div>
                         <label class="form-label">ภาพถ่ายเซลฟี่คู่กับบัตรข้าราชการ <span style="color:red;">*</span></label>
-                        <div class="file-upload-box" onclick="document.getElementById('reqIdCardImage').click()">
-                            <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
-                            <div id="reqFileNameDisplay" style="font-size: 14px; color: var(--text-muted);">คลิกเพื่ออัปโหลดไฟล์ (.jpg, .png)</div>
+                        
+                        <div class="file-upload-box">
+                            <div id="reqFileNameDisplay">
+                                <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
+                                <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
+                            </div>
+                            
+                            <!-- ปุ่มเลือกวิธีแนบไฟล์ -->
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button type="button" class="btn-upload-option btn-upload-gallery" onclick="openImageSelector(false)">
+                                    <i class="fas fa-image"></i> เลือกรูปภาพ
+                                </button>
+                                <button type="button" class="btn-upload-option btn-upload-camera" onclick="openImageSelector(true)">
+                                    <i class="fas fa-camera"></i> ถ่ายเซลฟี่
+                                </button>
+                            </div>
+                            
+                            <!-- Input สำหรับรับไฟล์ (ซ่อนไว้) -->
                             <input type="file" id="reqIdCardImage" accept="image/*" style="display: none;" onchange="updateFileNameReq(this)">
                         </div>
                     </div>
@@ -273,7 +294,6 @@
         async function fetchProfile() {
             isSuperAdmin = (currentUser.email === 'flipschool.th@gmail.com');
 
-            // 1. ดึงประวัติส่วนตัว
             const { data: teacher } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
 
             if (isSuperAdmin) {
@@ -290,29 +310,25 @@
 
             currentUserData = teacher;
 
-            // 2. ดึงประวัติกลุ่มโรงเรียนที่เข้าร่วม
             const { data: schools } = await sysDB.from('teacher_schools')
                 .select('*, schools(school_name, school_abbr)')
                 .eq('teacher_id', currentUser.id);
 
             userSchools = schools || [];
 
-            // 3. กำหนด Active School (อนุญาตให้เป็น Null ถ้ายังไม่มีกลุ่ม หรือเลือกโหมดอิสระ)
             const savedSchoolId = localStorage.getItem('active_school_id');
             if (userSchools.length > 0 && savedSchoolId) {
                 activeSchool = userSchools.find(s => s.school_id === savedSchoolId);
             } else if (userSchools.length > 0 && !savedSchoolId) {
-                // ถ้าไม่เคยเลือก แต่มีโรงเรียนอยู่ ให้ดึง รร. แรกมาแสดง
                 activeSchool = userSchools[0];
                 localStorage.setItem('active_school_id', activeSchool.school_id);
             } else {
-                activeSchool = null; // เป็นครูอิสระ
+                activeSchool = null; 
             }
 
             renderDashboard();
         }
 
-        // ================= หน้าตาสำหรับ Super Admin =================
         function setupSuperAdminDashboard() {
             document.getElementById('fabAddBtn').style.display = 'none'; 
             document.getElementById('welcomeHeader').innerText = 'สวัสดี แอดมินส่วนกลาง';
@@ -326,7 +342,6 @@
             handleVerificationStatus('approved');
         }
 
-        // ================= หน้าตาสำหรับครู (มีสังกัด และ ไม่มีสังกัด) =================
         function renderDashboard() {
             document.getElementById('welcomeHeader').innerText = `สวัสดีครับ ครู${currentUserData.first_name}`;
             document.getElementById('dispFullName').innerText = `${currentUserData.first_name} ${currentUserData.last_name}`;
@@ -336,11 +351,9 @@
             renderSchoolSwitcher();
 
             if (!activeSchool) {
-                // โหมดครูอิสระ
                 document.getElementById('welcomeSub').innerHTML = '<i class="fas fa-layer-group"></i> พื้นที่ส่วนตัว (แสดงห้องเรียนทั้งหมด)';
                 handleVerificationStatus('independent');
             } else {
-                // โหมดมีสังกัดโรงเรียน
                 document.getElementById('welcomeSub').innerHTML = `<i class="fas fa-school"></i> สังกัด: ${activeSchool.schools?.school_name}`;
                 handleVerificationStatus(activeSchool.verification_status);
             }
@@ -355,14 +368,12 @@
             document.getElementById('navProfileImg').src = finalImg; document.getElementById('sidebarImg').src = finalImg;
         }
 
-        // ================= ระบบสลับโรงเรียน (School Switcher) =================
         function renderSchoolSwitcher() {
             const container = document.getElementById('schoolSwitcherList');
             if (!container) return;
             
             let html = '';
             
-            // เพิ่มปุ่ม "โหมดอิสระ" ไว้บนสุด
             const isIndy = !activeSchool;
             html += `
                 <div class="school-switcher-item ${isIndy ? 'active' : ''}" onclick="switchSchool('independent')">
@@ -397,7 +408,6 @@
             window.location.reload(); 
         }
 
-        // ================= จัดการสถานะ UI Dashboard =================
         function handleVerificationStatus(status) {
             const badge = document.getElementById('verificationStatusBadge');
             const classSection = document.getElementById('classroomSection');
@@ -405,7 +415,6 @@
             const fabBtn = document.getElementById('fabAddBtn');
 
             if (status === 'independent') {
-                // อัปเกรดป้ายสถานะให้เป็นแบบสลับข้อความเมื่อเอาเมาส์ชี้ได้
                 badge.innerHTML = `
                     <span class="status-badge badge-interactive" onclick="openJoinSchoolModal()">
                         <span class="default-text"><i class="fas fa-user-tag"></i> โหมดครูอิสระ</span>
@@ -421,7 +430,6 @@
                     const roleTxt = activeSchool.role === 'admin' ? '<i class="fas fa-star"></i> Admin' : 'Teacher';
                     badge.innerHTML = `<span class="status-badge" style="background:#e0e8ff; color:var(--primary);"><i class="fas fa-check-circle"></i> อนุมัติแล้ว (${roleTxt})</span>`;
                 }
-                
                 classSection.style.display = 'block'; fabBtn.style.display = 'flex'; alertSection.style.display = 'none';
                 fetchClassrooms(); checkPendingTeachers(); 
             } 
@@ -444,27 +452,19 @@
             }
         }
 
-        // ================= ระบบดึงข้อมูลห้องเรียน (โชว์ห้องเก่า) =================
         async function fetchClassrooms() {
             const grid = document.getElementById('classGrid');
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูลห้องเรียน...</div>';
 
             try {
-                // ดึงข้อมูลห้องเรียน "ทั้งหมด" ของครูคนนี้
-                const { data, error } = await sysDB.from('classrooms')
-                    .select('*')
-                    .eq('teacher_id', currentUser.id)
-                    .order('created_at', { ascending: false });
-
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id).order('created_at', { ascending: false });
                 if (error) throw error;
 
                 let displayData = [];
 
                 if (activeSchool) {
-                    // โหมดกลุ่มโรงเรียน: แสดงเฉพาะห้องที่ผูกกับโรงเรียนนี้
                     displayData = data.filter(c => c.school_id === activeSchool.school_id);
                 } else {
-                    // โหมดพื้นที่ส่วนตัว (อิสระ): แสดงห้องเรียนทั้งหมดที่มี
                     displayData = data;
                 }
 
@@ -509,7 +509,6 @@
             }
         }
 
-        // ================= Modal เข้าร่วมโรงเรียน =================
         function openJoinSchoolModal() {
             document.getElementById('joinSchoolModal').style.display = 'flex';
             document.getElementById('profileSidebar').classList.remove('active');
@@ -600,10 +599,38 @@
         }
         function autoSuggestAbbr(nameId, abbrId) { document.getElementById(abbrId).value = suggestAbbreviation(document.getElementById(nameId).value); }
 
+        // ================= ฟังก์ชันจัดการกล้องและพรีวิวภาพ =================
+        function openImageSelector(useCamera) {
+            const input = document.getElementById('reqIdCardImage');
+            if (useCamera) {
+                input.setAttribute('capture', 'user'); // เรียกกล้องหน้าเซลฟี่สำหรับมือถือ
+            } else {
+                input.removeAttribute('capture'); // เปิดแกลลอรี่ภาพ
+            }
+            input.click();
+        }
+
         function updateFileNameReq(input) {
             const display = document.getElementById('reqFileNameDisplay');
-            if (input.files && input.files[0]) display.innerHTML = `<span style="color: var(--primary); font-weight:bold;"><i class="fas fa-check-circle"></i> ${input.files[0].name}</span>`;
-            else display.innerHTML = 'คลิกเพื่ออัปโหลดไฟล์รูปภาพ (.jpg, .png)';
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    display.innerHTML = `
+                        <div style="margin-bottom: 10px;">
+                            <img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                        </div>
+                        <div style="color: #2ed573; font-weight: 600; font-size: 15px;"><i class="fas fa-check-circle"></i> เลือกรูปภาพแล้ว</div>
+                    `;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                display.innerHTML = `
+                    <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
+                    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
+                `;
+            }
         }
 
         // --- Submit การเข้าร่วมหรือสร้าง รร ---
@@ -643,7 +670,7 @@
                 let cardUrl = null;
                 const idCardFile = document.getElementById('reqIdCardImage').files[0];
                 if (needsCardUpload) {
-                    if (!idCardFile) { alert('กรุณาอัปโหลดภาพบัตรยืนยันตัวตนครับ'); throw new Error('No ID card'); }
+                    if (!idCardFile) { alert('กรุณาอัปโหลดภาพเซลฟี่คู่กับบัตรยืนยันตัวตนครับ'); throw new Error('No ID card'); }
                     const fileName = `${currentUser.id}_${Date.now()}.${idCardFile.name.split('.').pop()}`;
                     await sysDB.storage.from('teacher-verifications').upload(fileName, idCardFile);
                     cardUrl = fileName;
@@ -663,7 +690,6 @@
             }
         }
 
-        // ================= ระบบอนุมัติครู (สำหรับ Admin/SuperAdmin) =================
         async function checkPendingTeachers() {
             let query = sysDB.from('teacher_schools').select('*, teachers(first_name, last_name, email, profile_pic), schools(school_name)').eq('verification_status', 'pending');
             if (isSuperAdmin) query = query.not('verification_card_url', 'is', null);
@@ -696,7 +722,7 @@
                         <div style="color:#666; font-size:14px;"><i class="fas fa-envelope"></i> ${req.teachers?.email}</div>
                         ${isSuperAdmin ? `<div style="color:var(--primary); font-size:13px; font-weight:bold; margin-top:5px;"><i class="fas fa-school"></i> ขอเปิดโรงเรียน: ${req.schools?.school_name}</div>` : ''}
                     </div>
-                    ${cardUrl ? `<div style="margin-bottom: 15px; text-align:center;"><img src="${cardUrl}" style="max-width: 100%; max-height: 250px; border-radius:8px; border:1px solid #ddd;"></div>` : '<div style="color:#2ed573; font-size:13px; margin-bottom:15px;"><i class="fas fa-check-circle"></i> ตรวจสอบโดยระบบ (ไม่ต้องใช้เอกสาร)</div>'}
+                    ${cardUrl ? `<div style="margin-bottom: 15px; text-align:center;"><img src="${cardUrl}" style="max-width: 100%; max-height: 250px; border-radius:8px; border:1px solid #ddd; object-fit: contain;"></div>` : '<div style="color:#2ed573; font-size:13px; margin-bottom:15px;"><i class="fas fa-check-circle"></i> ตรวจสอบโดยระบบ (ไม่ต้องใช้เอกสาร)</div>'}
                     <div style="display:flex; gap:10px;">
                         <button onclick="approveTeacher('${req.id}', '${req.role}')" style="flex:1; padding:12px; border:none; border-radius:10px; background:#2ed573; color:white; cursor:pointer; font-family:'Kanit';"><i class="fas fa-check"></i> อนุมัติ</button>
                         <button onclick="rejectTeacher('${req.id}')" style="flex:1; padding:12px; border:none; border-radius:10px; background:#ff4757; color:white; cursor:pointer; font-family:'Kanit';"><i class="fas fa-times"></i> ปฏิเสธ</button>
