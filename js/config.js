@@ -74,3 +74,100 @@ function initAppUI() {
 }
 
 console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #fff; border-radius: 3px;');
+
+// ==============================================================
+// ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือทุกหน้า
+// ==============================================================
+(function() {
+    // 1. ตรวจสอบให้ทำงานเฉพาะบนมือถือและแท็บเล็ตเท่านั้น
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
+    let startY = 0;
+    let currentY = 0;
+    let isPulling = false;
+    let ptrIndicator = null;
+
+    // 2. ฟังก์ชันสร้างไอคอนโหลดกลมๆ (เหมือนแอปทั่วไป)
+    function createIndicator() {
+        if (document.getElementById('ptr-indicator')) return;
+        ptrIndicator = document.createElement('div');
+        ptrIndicator.id = 'ptr-indicator';
+        ptrIndicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        ptrIndicator.style.cssText = `
+            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 40px; background: white; border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex;
+            align-items: center; justify-content: center; z-index: 99999;
+            color: var(--primary-light, #0052D4); font-size: 18px; 
+            transition: top 0.2s ease, transform 0.2s ease-out;
+        `;
+        document.body.appendChild(ptrIndicator);
+    }
+
+    // 3. ฟังก์ชันเช็คว่าหน้าจออยู่ตำแหน่ง "บนสุด" หรือยัง (เพื่อไม่ให้ขัดจังหวะตอนเลื่อนอ่านปกติ)
+    function getScrollTop() {
+        const windowScroll = window.scrollY || document.documentElement.scrollTop;
+        const containerScroll = document.querySelector('.container') ? document.querySelector('.container').scrollTop : 0;
+        return Math.max(windowScroll, containerScroll);
+    }
+
+    // เริ่มแตะหน้าจอ
+    window.addEventListener('touchstart', function(e) {
+        if (getScrollTop() <= 0) {
+            startY = e.touches[0].clientY;
+            isPulling = true;
+            createIndicator();
+        } else {
+            isPulling = false;
+        }
+    }, { passive: true });
+
+    // กำลังลากนิ้วลง
+    window.addEventListener('touchmove', function(e) {
+        if (!isPulling) return;
+        currentY = e.touches[0].clientY;
+        let diffY = currentY - startY;
+
+        // ถ้าดึงลงมามากกว่า 0 (ดึงลง) และหน้าจออยู่บนสุด
+        if (diffY > 0 && getScrollTop() <= 0) {
+            // คำนวณระยะการดึง (ให้หนืดๆ นิดหน่อยเพื่อให้ความรู้สึกเหมือนสปริง)
+            let pullDistance = Math.min(diffY * 0.4, 90); 
+            
+            if (ptrIndicator) {
+                ptrIndicator.style.transition = 'none'; // ปิดแอนิเมชันเพื่อให้ตามนิ้วทันที
+                ptrIndicator.style.top = (pullDistance - 50) + 'px';
+                ptrIndicator.style.transform = `translateX(-50%) rotate(${pullDistance * 4}deg)`;
+            }
+            
+            // ถ้าเบราว์เซอร์ยอม ให้ระงับการเลื่อนหน้าจอกลางคันเพื่อดึงปุ่มนี้ลงมาแทน
+            if (e.cancelable && diffY > 10) e.preventDefault();
+        }
+    }, { passive: false });
+
+    // ปล่อยนิ้ว
+    window.addEventListener('touchend', function(e) {
+        if (!isPulling) return;
+        isPulling = false;
+        let diffY = currentY - startY;
+
+        if (ptrIndicator) {
+            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; // เปิดแอนิเมชันตอนเด้งกลับ
+            
+            // ถ้าดึงลงมาลึกเกิน 120px ให้ทำการ "รีโหลดหน้าจอ"
+            if (diffY > 120 && getScrollTop() <= 0) {
+                ptrIndicator.style.top = '25px'; // ค้างไอคอนไว้บนจอ
+                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // เปลี่ยนเป็นไอคอนโหลด
+                
+                // สั่งรีโหลดหน้าเว็บ (ดีเลย์ 0.3 วิ ให้เห็นแอนิเมชันหมุนก่อน)
+                setTimeout(() => {
+                    window.location.reload();
+                }, 300);
+            } else {
+                // ถ้าดึงลงมานิดเดียว เปลี่ยนใจปล่อยนิ้ว ให้เด้งกลับซ่อนไปเหมือนเดิม
+                ptrIndicator.style.top = '-60px';
+                ptrIndicator.style.transform = `translateX(-50%) rotate(0deg)`;
+            }
+        }
+    });
+})();
