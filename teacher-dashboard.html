@@ -235,18 +235,19 @@
                                 <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
                             </div>
                             
-                            <!-- ปุ่มฉลาด: ตรวจจับมือถือ/PC อัตโนมัติ -->
+                            <!-- ปุ่มแยก 2 รูปแบบ เพื่อให้มือถือสามารถบังคับเปิดกล้องหน้าได้ทันที -->
                             <div style="display: flex; gap: 10px; justify-content: center;" id="uploadBtnContainer">
-                                <button type="button" class="btn-upload-option btn-upload-gallery" id="btnStandardUpload" onclick="document.getElementById('reqIdCardImageMain').click()">
+                                <button type="button" class="btn-upload-option btn-upload-gallery" onclick="document.getElementById('reqIdCardImageGallery').click()">
                                     <i class="fas fa-image"></i> เลือกรูปภาพ
                                 </button>
-                                <button type="button" class="btn-upload-option btn-upload-camera" id="btnWebcamUpload" onclick="openCameraModal()">
-                                    <i class="fas fa-desktop"></i> ถ่ายด้วยเว็บแคม
+                                <button type="button" class="btn-upload-option btn-upload-camera" onclick="openCameraOrWebcam()">
+                                    <i class="fas fa-camera"></i> ถ่ายเซลฟี่
                                 </button>
                             </div>
                             
-                            <!-- Input หลักตัวเดียวสำหรับเลือกไฟล์ (มือถือจะขึ้นให้เลือกกล้อง/แกลลอรี่อัตโนมัติ) -->
-                            <input type="file" id="reqIdCardImageMain" accept="image/*" style="display: none;" onchange="processSelectedImage(this)">
+                            <!-- Inputs ซ่อนไว้ (แยกเป็น 2 ตัวเพื่อความเสถียร) -->
+                            <input type="file" id="reqIdCardImageGallery" accept="image/*" style="display: none;" onchange="processSelectedImage(this, 'gallery')">
+                            <input type="file" id="reqIdCardImageCamera" accept="image/*" capture="user" style="display: none;" onchange="processSelectedImage(this, 'camera')">
                         </div>
                     </div>
 
@@ -545,7 +546,6 @@
             document.getElementById('joinSchoolModal').style.display = 'flex';
             document.getElementById('profileSidebar').classList.remove('active');
             document.getElementById('sidebarOverlay').style.display = 'none';
-            setupUploadButtons();
         }
 
         function closeJoinSchoolModal() {
@@ -630,21 +630,13 @@
         function autoSuggestAbbr(nameId, abbrId) { document.getElementById(abbrId).value = suggestAbbreviation(document.getElementById(nameId).value); }
 
         // ================= ฟังก์ชันจัดการกล้องและรูปภาพแบบฉลาด =================
-        function setupUploadButtons() {
+        function openCameraOrWebcam() {
             if (isMobileDevice) {
-                // มือถือ: ซ่อนปุ่มเว็บแคม และปรับปุ่มเลือกไฟล์ให้เป็นปุ่มถ่ายรูป/เลือกรูป
-                document.getElementById('btnWebcamUpload').style.display = 'none';
-                const btnStandard = document.getElementById('btnStandardUpload');
-                btnStandard.innerHTML = '<i class="fas fa-camera"></i> ถ่ายรูป / เลือกจากเครื่อง';
-                btnStandard.classList.remove('btn-upload-gallery');
-                btnStandard.classList.add('btn-upload-camera'); 
+                // มือถือ: เปิดกล้องหน้า (เซลฟี่) ด้วย capture="user"
+                document.getElementById('reqIdCardImageCamera').click();
             } else {
-                // PC: แสดงทั้งปุ่มเลือกไฟล์และเว็บแคม
-                document.getElementById('btnWebcamUpload').style.display = 'flex';
-                const btnStandard = document.getElementById('btnStandardUpload');
-                btnStandard.innerHTML = '<i class="fas fa-folder-open"></i> เลือกไฟล์ใน PC';
-                btnStandard.classList.add('btn-upload-gallery');
-                btnStandard.classList.remove('btn-upload-camera'); 
+                // PC: เปิด WebCam Modal
+                openCameraModal();
             }
         }
 
@@ -704,7 +696,8 @@
                 // สร้างไฟล์ภาพจำลองเพื่อส่งเข้าฐานข้อมูล
                 activeImageFile = new File([blob], "webcam_capture_" + Date.now() + ".jpg", { type: "image/jpeg" });
                 
-                document.getElementById('reqIdCardImageMain').value = '';
+                document.getElementById('reqIdCardImageGallery').value = '';
+                document.getElementById('reqIdCardImageCamera').value = '';
 
                 // แสดงพรีวิวในฟอร์มหลัก
                 const reader = new FileReader();
@@ -721,10 +714,13 @@
             }, 'image/jpeg', 0.9);
         }
 
-        function processSelectedImage(inputElement) {
+        function processSelectedImage(inputElement, source) {
             if (inputElement.files && inputElement.files[0]) {
                 activeImageFile = inputElement.files[0];
                 
+                if (source === 'gallery') document.getElementById('reqIdCardImageCamera').value = '';
+                else document.getElementById('reqIdCardImageGallery').value = '';
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('reqFileNameDisplay').innerHTML = `
@@ -740,7 +736,8 @@
 
         function resetImagePreview() {
             activeImageFile = null;
-            if (document.getElementById('reqIdCardImageMain')) document.getElementById('reqIdCardImageMain').value = '';
+            if (document.getElementById('reqIdCardImageGallery')) document.getElementById('reqIdCardImageGallery').value = '';
+            if (document.getElementById('reqIdCardImageCamera')) document.getElementById('reqIdCardImageCamera').value = '';
             document.getElementById('reqFileNameDisplay').innerHTML = `
                 <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
                 <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
