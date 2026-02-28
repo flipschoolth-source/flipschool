@@ -131,6 +131,8 @@
         .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
         .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
 
+        .mobile-break { display: none; }
+
         @media (max-width: 768px) { 
             nav { padding: 0 20px; height: 75px; } 
             .main-container { padding: 20px; } 
@@ -139,6 +141,8 @@
             .status-badge { margin-left: 0 !important; font-size: 14px; }
             .welcome-sub { font-size: 14px; }
             #welcomeSchool { font-size: 15px !important; margin-bottom: 8px !important; }
+            #loginInfoBox { font-size: 13px !important; padding: 12px !important; width: 100%; box-sizing: border-box; }
+            .mobile-break { display: block; margin-bottom: 5px; }
             .hero-bg-icon { right: -20px !important; bottom: -20px; font-size: 90px !important; opacity: 0.3; }
             .class-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; } 
             .fab-add { bottom: 30px; right: 30px; width: 60px; height: 60px; font-size: 24px; } 
@@ -200,6 +204,14 @@
                 <div id="welcomeSchool" style="font-family: 'Kanit'; font-size: 18px; font-weight: 500; margin-bottom: 10px; color: #ffeaa7;">
                     <i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...
                 </div>
+                
+                <!-- กล่องคำอธิบายการเข้าสู่ระบบของนักเรียน -->
+                <div id="loginInfoBox" style="display: none; margin-bottom: 15px; background: rgba(0, 0, 0, 0.15); padding: 8px 15px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); max-width: fit-content; line-height: 1.5;">
+                    <i class="fas fa-user-graduate" style="color: #ffeaa7; margin-right: 5px;"></i> <b>รูปแบบล็อกอินนักเรียน:</b> ใช้ <br class="mobile-break">
+                    <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 6px; margin: 0 2px;">เลขประจำตัว</span> + <span id="dispLoginFormat" style="color: #ffeaa7; font-weight: bold; font-family: monospace; font-size: 15px;">@abbr</span> 
+                    <span style="opacity: 0.8; font-size: 13px; margin-left: 5px;">(ตัวอย่าง: 12345<span id="dispLoginExample" style="font-family: monospace;">@abbr</span>)</span>
+                </div>
+
                 <p class="welcome-sub" id="welcomeSub">ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมการจัดการเรียนรู้แบบ GLORY Model</p>
             </div>
             <i class="fas fa-gem hero-bg-icon" style="font-size: 110px; color: rgba(255,255,255,0.12); position: absolute; right: 60px;"></i>
@@ -487,6 +499,7 @@
             document.getElementById('fabAddBtn').style.display = 'none'; 
             document.getElementById('welcomeHeader').innerText = 'สวัสดี แอดมินส่วนกลาง';
             document.getElementById('welcomeSchool').innerHTML = '<i class="fas fa-globe"></i> ระบบจัดการคำขออนุญาตเปิดโรงเรียนใหม่ทั่วประเทศ';
+            document.getElementById('loginInfoBox').style.display = 'none';
             document.getElementById('dispFullName').innerText = currentUserData.first_name + ' ' + (currentUserData.last_name||'');
             document.getElementById('sideDisplayName').innerText = 'แอดมินสูงสุด';
             document.getElementById('schoolSwitcherList').innerHTML = '<div style="color:var(--primary); font-size:14px; font-weight:bold; text-align:center; padding:10px 0;">ระบบจัดการส่วนกลาง</div>';
@@ -504,11 +517,29 @@
             setupProfilePicture(currentUserData.profile_pic, currentUserData.first_name);
             renderSchoolSwitcher();
 
+            const loginInfoBox = document.getElementById('loginInfoBox');
+
             if (!activeSchool) {
                 document.getElementById('welcomeSchool').innerHTML = '<i class="fas fa-layer-group"></i> พื้นที่ส่วนตัว (แสดงห้องเรียนทั้งหมด)';
+                loginInfoBox.style.display = 'none';
                 handleVerificationStatus('independent');
             } else {
-                document.getElementById('welcomeSchool').innerHTML = `<i class="fas fa-school"></i> สังกัด: ${activeSchool.schools?.school_name}`;
+                const schoolName = activeSchool.schools?.school_name || 'ไม่ระบุชื่อโรงเรียน';
+                const schoolAbbr = activeSchool.schools?.school_abbr || '';
+                
+                let schoolHtml = `<i class="fas fa-school"></i> สังกัด: ${schoolName}`;
+                
+                if (schoolAbbr) {
+                    schoolHtml += ` <span style="background: rgba(255, 255, 255, 0.2); color: #fff; padding: 2px 10px; border-radius: 15px; font-size: 14px; margin-left: 8px; vertical-align: middle; display: inline-block;">@${schoolAbbr}</span>`;
+                    
+                    document.getElementById('dispLoginFormat').innerText = `@${schoolAbbr}`;
+                    document.getElementById('dispLoginExample').innerText = `@${schoolAbbr}`;
+                    loginInfoBox.style.display = 'inline-block';
+                } else {
+                    loginInfoBox.style.display = 'none';
+                }
+
+                document.getElementById('welcomeSchool').innerHTML = schoolHtml;
                 handleVerificationStatus(activeSchool.verification_status);
             }
         }
@@ -541,12 +572,13 @@
                 const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle" style="color:#2ed573;"></i>' : 
                                   (s.verification_status === 'pending' ? '<i class="fas fa-clock" style="color:#ffa502;"></i>' : '<i class="fas fa-times-circle" style="color:#ff4757;"></i>');
                 const roleBadge = s.role === 'admin' ? '<span style="background:#ffeaa7; color:#d63031; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">Admin</span>' : '';
+                const abbrBadge = s.schools?.school_abbr ? `<span style="color: #a4b0be; font-size: 12px; margin-left: 5px;">(@${s.schools.school_abbr})</span>` : '';
                 
                 // เพิ่มปุ่มออกจากกลุ่ม
                 html += `
                     <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')">
                         <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">
-                            ${statusIcon} ${s.schools?.school_name} ${roleBadge}
+                            ${statusIcon} ${s.schools?.school_name} ${abbrBadge} ${roleBadge}
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}
