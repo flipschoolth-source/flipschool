@@ -762,16 +762,15 @@
             const diffDay = Math.floor(diffHour / 24);
             if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
             return date.toLocaleDateString('th-TH');
-        }
-
+        // ================= กระดิ่งแจ้งเตือนแบบ Realtime ที่ปลอดภัยและแม่นยำ =================
         function setupRealtimePendingRequests() {
             if (pendingRequestsSubscription) {
                 sysDB.removeChannel(pendingRequestsSubscription);
                 pendingRequestsSubscription = null;
             }
 
-            // คัดกรองเฉพาะโรงเรียนที่ครูคนนี้เป็น "admin" เท่านั้น จึงจะเห็นคำขอ
-            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved' && s.role === 'admin').map(s => s.school_id);
+            // คัดกรองเฉพาะโรงเรียนที่ครูคนนี้ได้รับการอนุมัติแล้ว (ทุกคนในกลุ่มช่วยอนุมัติได้ ไม่จำกัดแค่ admin)
+            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
 
             if (approvedSchoolIds.length > 0) {
                 checkPendingTeachers(); 
@@ -795,7 +794,8 @@
         }
 
         async function checkPendingTeachers() {
-            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved' && s.role === 'admin').map(s => s.school_id);
+            // ทุกคนในกลุ่มที่ได้รับการอนุมัติแล้ว จะเห็นคำขอที่รอเข้ากลุ่ม
+            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
             if (approvedSchoolIds.length === 0) {
                 document.getElementById('notificationBtn').style.display = 'none';
