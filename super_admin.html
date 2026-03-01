@@ -159,23 +159,23 @@
             fetchPendingRequests();
         }
 
-        // 2. ดึงข้อมูลคำขอจากฐานข้อมูล (แสดงโชว์กลางจอ)
+        // 2. ดึงข้อมูลคำขอจากฐานข้อมูล (แสดงโชว์กลางจอ) - เปลี่ยนมาใช้การประกอบร่างข้อมูลด้วย JS แก้ปัญหาบั๊ก 100%
         async function fetchPendingRequests() {
             const container = document.getElementById('requestContainer');
             
             try {
-                // แก้ไขการดึงข้อมูล teachers โดยระบุ Foreign Key (!teacher_id) ให้ชัดเจน
-                const { data, error } = await sysDB.from('teacher_schools')
-                    .select('*, teachers!teacher_id(first_name, last_name, email, profile_pic), schools(school_name, school_abbr)')
+                // ขั้นตอนที่ 1: ดึงเฉพาะข้อมูลในตารางคำขอ (teacher_schools)
+                const { data: reqData, error: reqError } = await sysDB.from('teacher_schools')
+                    .select('*')
                     .eq('verification_status', 'pending')
                     .eq('role', 'admin')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (reqError) throw reqError;
 
-                document.getElementById('badgeCount').innerText = data.length;
+                document.getElementById('badgeCount').innerText = reqData.length;
 
-                if (!data || data.length === 0) {
+                if (!reqData || reqData.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-check-circle" style="color: #2ed573;"></i>
@@ -185,9 +185,27 @@
                     return;
                 }
 
+                // ขั้นตอนที่ 2: รวบรวม ID เพื่อไปดึงตารางที่เกี่ยวข้องแยกกัน
+                const teacherIds = reqData.map(r => r.teacher_id);
+                const schoolIds = reqData.map(r => r.school_id);
+
+                // ดึงข้อมูลครูและโรงเรียน
+                const { data: teachersData } = await sysDB.from('teachers').select('teacher_id, first_name, last_name, email, profile_pic').in('teacher_id', teacherIds);
+                const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
+
+                // ขั้นตอนที่ 3: ประกอบร่างข้อมูลเข้าด้วยกัน (ปลอดภัยและเสถียรที่สุด)
+                const finalData = reqData.map(req => {
+                    return {
+                        ...req,
+                        teachers: teachersData ? teachersData.find(t => t.teacher_id === req.teacher_id) : {},
+                        schools: schoolsData ? schoolsData.find(s => s.school_id === req.school_id) : {}
+                    };
+                });
+
+                // นำมาแสดงผล
                 let html = '';
-                data.forEach(req => {
-                    const avatar = req.teachers?.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.teachers?.first_name}`;
+                finalData.forEach(req => {
+                    const avatar = req.teachers?.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.teachers?.first_name || 'A'}`;
                     const supabaseUrl = APP_CONFIG.SUPABASE_URL;
                     const cardUrl = req.verification_card_url ? `${supabaseUrl}/storage/v1/object/public/teacher-verifications/${req.verification_card_url}` : null;
                     const date = new Date(req.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
@@ -197,10 +215,10 @@
                             <div class="req-info">
                                 <img src="${avatar}" class="req-avatar">
                                 <div class="req-details">
-                                    <h3>ครู${req.teachers?.first_name} ${req.teachers?.last_name || ''}</h3>
-                                    <p><i class="fas fa-envelope"></i> ${req.teachers?.email}</p>
+                                    <h3>ครู${req.teachers?.first_name || 'ไม่ทราบชื่อ'} ${req.teachers?.last_name || ''}</h3>
+                                    <p><i class="fas fa-envelope"></i> ${req.teachers?.email || 'ไม่มีอีเมล'}</p>
                                     <p><i class="fas fa-clock"></i> ส่งเมื่อ: ${date}</p>
-                                    <div class="req-school-badge"><i class="fas fa-school"></i> ขอเปิด: ${req.schools?.school_name} (@${req.schools?.school_abbr})</div>
+                                    <div class="req-school-badge"><i class="fas fa-school"></i> ขอเปิด: ${req.schools?.school_name || 'ไม่ทราบชื่อโรงเรียน'} (@${req.schools?.school_abbr || '-'})</div>
                                 </div>
                             </div>
                             <div class="req-actions">
