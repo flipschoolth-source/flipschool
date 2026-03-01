@@ -458,7 +458,7 @@
         }
 
         function renderDashboard() {
-            document.getElementById('welcomeHeader').innerText = `สวัสดีครับ.. ครู${currentUserData.first_name}`;
+            document.getElementById('welcomeHeader').innerText = `สวัสดีครับ ครู${currentUserData.first_name}`;
             document.getElementById('dispFullName').innerText = `${currentUserData.first_name} ${currentUserData.last_name}`;
             document.getElementById('sideDisplayName').innerHTML = `ครู${currentUserData.first_name}`;
             document.getElementById('sideDisplayEmail').innerText = currentUser.email || '';
@@ -696,7 +696,7 @@
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
 
             if (approvedSchoolIds.length > 0) {
-                checkPendingTeachers(approvedSchoolIds); // โหลดครั้งแรก
+                checkPendingTeachers(); // โหลดครั้งแรก โดยไม่ต้องส่งพารามิเตอร์แล้ว
 
                 pendingRequestsSubscription = sysDB.channel('custom-update-channel')
                 .on(
@@ -705,7 +705,7 @@
                     (payload) => {
                         const record = payload.new || payload.old;
                         if (record && approvedSchoolIds.includes(record.school_id)) {
-                            checkPendingTeachers(approvedSchoolIds);
+                            checkPendingTeachers(); // รีโหลดเมื่อมีการอัปเดต
                         }
                     }
                 )
@@ -716,34 +716,47 @@
             }
         }
 
-        async function checkPendingTeachers(approvedSchoolIds) {
-            if (!approvedSchoolIds || approvedSchoolIds.length === 0) return;
-
-            let pendingData = [];
-            // ดึงคำขอทั้งหมดที่ pending อยู่ในโรงเรียนที่เขามีสิทธิ์อนุมัติ
-            const { data: reqs, error } = await sysDB.from('teacher_schools')
-                .select('id, school_id, role, verification_card_url, teachers(teacher_id, first_name, last_name, email, profile_pic)')
-                .eq('verification_status', 'pending')
-                .in('school_id', approvedSchoolIds);
+        async function checkPendingTeachers() {
+            // คำนวณหาโรงเรียนที่ได้รับสิทธิ์ในฟังก์ชันเลย ป้องกันปัญหาพารามิเตอร์หาย
+            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
-            if (!error && reqs) {
+            if (approvedSchoolIds.length === 0) {
+                document.getElementById('notificationBtn').style.display = 'none';
+                window.pendingRequests = [];
+                return;
+            }
+
+            try {
+                // ดึงคำขอทั้งหมดที่ pending ใช้ *, teachers(*) ป้องกันปัญหาเรื่อง Join Column ผิดพลาด
+                const { data: reqs, error } = await sysDB.from('teacher_schools')
+                    .select('*, teachers(*)')
+                    .eq('verification_status', 'pending')
+                    .in('school_id', approvedSchoolIds);
+                
+                if (error) throw error;
+
                 // กรองไม่ให้เห็นคำขอของตัวเอง
-                pendingData = reqs.filter(r => r.teachers && r.teachers.teacher_id !== currentUser.id);
-            }
+                let pendingData = (reqs || []).filter(r => r.teacher_id !== currentUser.id);
 
-            const notifBtn = document.getElementById('notificationBtn');
-            const badge = document.getElementById('notifBadge');
+                const notifBtn = document.getElementById('notificationBtn');
+                const badge = document.getElementById('notifBadge');
 
-            if (pendingData.length > 0) {
-                notifBtn.style.display = 'block'; badge.style.display = 'inline-block';
-                badge.innerText = pendingData.length; window.pendingRequests = pendingData;
-            } else {
-                notifBtn.style.display = 'block'; badge.style.display = 'none'; window.pendingRequests = [];
-            }
-            
-            // อัปเดต Modal ถ้าเปิดอยู่
-            if (document.getElementById('approvalModal').style.display === 'flex') {
-                 renderPendingList();
+                window.pendingRequests = pendingData;
+
+                if (pendingData.length > 0) {
+                    notifBtn.style.display = 'block'; 
+                    badge.style.display = 'inline-block';
+                    badge.innerText = pendingData.length; 
+                } else {
+                    notifBtn.style.display = 'block'; 
+                    badge.style.display = 'none'; 
+                }
+                
+                if (document.getElementById('approvalModal').style.display === 'flex') {
+                     renderPendingList();
+                }
+            } catch (err) {
+                console.error("Error fetching pending requests: ", err);
             }
         }
 
@@ -757,7 +770,10 @@
             
             let html = '';
             for (const req of requests) {
-                const t = req.teachers;
+                // เผื่อกรณี Supabase คืนค่า Object Teachers มาเป็น Array
+                const t = Array.isArray(req.teachers) ? req.teachers[0] : req.teachers;
+                if (!t) continue; // ป้องกันพังถ้าหา User ต้นทางไม่เจอ
+
                 const avatar = t.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.first_name || 'T'}`;
                 const viewCardBtn = req.verification_card_url ? `<div style="margin-top:10px;"><a href="${sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl}" target="_blank" style="color:var(--primary-light); font-size:13px; text-decoration:underline;"><i class="fas fa-id-card"></i> คลิกดูรูปบัตรที่แนบมาพร้อมคำขอ</a></div>` : '';
                 
