@@ -40,7 +40,7 @@
         .section-title { font-family: 'Kanit'; font-size: 24px; color: var(--primary-dark); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         
         .request-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .request-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #dfe4ea; display: flex; flex-direction: column; gap: 15px; }
+        .request-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #dfe4ea; display: flex; flex-direction: column; gap: 15px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         
         @media (min-width: 768px) {
             .request-card { flex-direction: row; justify-content: space-between; align-items: center; }
@@ -58,10 +58,10 @@
         
         .btn-action { padding: 12px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; font-size: 15px; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; flex: 1; }
         .btn-view { background: #f1f2f6; color: #2f3542; } .btn-view:hover { background: #dfe4ea; }
-        .btn-approve { background: #2ed573; color: white; } .btn-approve:hover { background: #26de81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 213, 115, 0.3); }
-        .btn-reject { background: #ff4757; color: white; } .btn-reject:hover { background: #ff6b81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
+        .btn-approve { background: #2ed573; color: white; } .btn-approve:hover:not(:disabled) { background: #26de81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 213, 115, 0.3); }
+        .btn-reject { background: #ff4757; color: white; } .btn-reject:hover:not(:disabled) { background: #ff6b81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
 
-        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 25px; border: 2px dashed #dfe4ea; color: #a4b0be; }
+        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 25px; border: 2px dashed #dfe4ea; color: #a4b0be; transition: 0.3s; }
         .empty-state i { font-size: 50px; margin-bottom: 15px; color: #ced6e0; }
         .empty-state h3 { font-family: 'Kanit'; font-size: 22px; color: #747d8c; margin: 0; }
 
@@ -72,6 +72,19 @@
         .modal-header h3 { margin: 0; font-family: 'Kanit'; color: var(--primary-dark); font-size: 18px; }
         .modal-body { padding: 20px; overflow-y: auto; text-align: center; background: #000; }
         .modal-body img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; }
+
+        /* --- Custom Alert Modal --- */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
+        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
+        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
+        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
+        .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
+        .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
 
         @media (max-width: 768px) { nav { padding: 0 20px; height: 70px; } .main-container { padding: 20px; } .hero-banner { padding: 30px 20px; } .hero-title { font-size: 24px; } }
     </style>
@@ -126,33 +139,85 @@
 
     <!-- Modal ระบุเหตุผลที่ปฏิเสธ -->
     <div id="rejectModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3 style="color: #ff4757;"><i class="fas fa-exclamation-circle"></i> ระบุเหตุผลที่ปฏิเสธ</h3>
-                <i class="fas fa-times" style="cursor: pointer; font-size: 20px; color: #a4b0be;" onclick="closeRejectModal()"></i>
-            </div>
-            <div class="modal-body" style="background: white; text-align: left;">
-                <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">เลือกเหตุผลที่พบบ่อย:</label>
-                <select id="commonRejectReasons" class="form-input" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; margin-bottom: 15px; font-family: 'Sarabun';" onchange="document.getElementById('rejectReasonText').value = this.value">
-                    <option value="">-- เลือกเหตุผล หรือพิมพ์ใหม่ด้านล่าง --</option>
-                    <option value="รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน">รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน</option>
-                    <option value="ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร">ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร</option>
-                    <option value="ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน">ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน</option>
-                </select>
+        <div class="modal-box" style="max-width: 500px; background: transparent; box-shadow: none;">
+            <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                <div class="modal-header">
+                    <h3 style="color: #ff4757;"><i class="fas fa-exclamation-circle"></i> ระบุเหตุผลที่ปฏิเสธ</h3>
+                    <i class="fas fa-times" style="cursor: pointer; font-size: 20px; color: #a4b0be;" onclick="closeRejectModal()"></i>
+                </div>
+                <div class="modal-body" style="background: white; text-align: left;">
+                    <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">เลือกเหตุผลที่พบบ่อย:</label>
+                    <select id="commonRejectReasons" class="form-input" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; margin-bottom: 15px; font-family: 'Sarabun';" onchange="document.getElementById('rejectReasonText').value = this.value">
+                        <option value="">-- เลือกเหตุผล หรือพิมพ์ใหม่ด้านล่าง --</option>
+                        <option value="รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน">รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน</option>
+                        <option value="ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร">ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร</option>
+                        <option value="ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน">ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน</option>
+                    </select>
 
-                <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">หรือ พิมพ์เหตุผลเพิ่มเติม:</label>
-                <textarea id="rejectReasonText" rows="3" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; font-family: 'Sarabun'; box-sizing: border-box;" placeholder="ระบุเหตุผลเพื่อแจ้งให้ผู้ใช้งานทราบ..."></textarea>
-                
-                <input type="hidden" id="rejectTsId">
-                <input type="hidden" id="rejectCardUrl">
-                
-                <button id="btnConfirmReject" onclick="confirmReject()" style="width: 100%; padding: 12px; background: #ff4757; color: white; border: none; border-radius: 10px; font-family: 'Kanit'; font-size: 16px; margin-top: 20px; cursor: pointer; transition: 0.3s;">ยืนยันการปฏิเสธ</button>
+                    <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">หรือ พิมพ์เหตุผลเพิ่มเติม:</label>
+                    <textarea id="rejectReasonText" rows="3" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; font-family: 'Sarabun'; box-sizing: border-box;" placeholder="ระบุเหตุผลเพื่อแจ้งให้ผู้ใช้งานทราบ..."></textarea>
+                    
+                    <input type="hidden" id="rejectTsId">
+                    <input type="hidden" id="rejectCardUrl">
+                    
+                    <button id="btnConfirmReject" onclick="confirmReject()" style="width: 100%; padding: 12px; background: #ff4757; color: white; border: none; border-radius: 10px; font-family: 'Kanit'; font-size: 16px; margin-top: 20px; cursor: pointer; transition: 0.3s;">ยืนยันการปฏิเสธ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon">
+                <i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i>
+            </div>
+            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="custom-modal-message"></p>
+            <div style="display: flex; justify-content: center; margin-top: 20px;" id="customAlertBtns">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="handleCustomAlertOk()">ตกลง</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display:none;" onclick="handleCustomAlertCancel()">ยกเลิก</button>
             </div>
         </div>
     </div>
 
     <script>
         let currentUser = null;
+        let alertCallback = null;
+        let alertCancelCallback = null;
+
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const titleEl = document.getElementById('customAlertTitle');
+            const msgEl = document.getElementById('customAlertMessage');
+            const iconEl = document.getElementById('customAlertIcon');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+            const okBtn = document.getElementById('customAlertOkBtn');
+
+            msgEl.innerText = message;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; cancelBtn.style.display = 'none'; okBtn.style.background = '#2ed573';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; cancelBtn.style.display = 'none'; okBtn.style.background = '#ffa502';
+            } else if (type === 'confirm') {
+                iconEl.className = 'fas fa-question-circle'; iconEl.style.color = 'var(--primary)';
+                titleEl.innerText = 'ยืนยันการดำเนินการ'; cancelBtn.style.display = 'block'; okBtn.style.background = 'var(--primary)';
+            } else if (type === 'error') {
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; cancelBtn.style.display = 'none'; okBtn.style.background = '#ff4757';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeCustomAlert() { document.getElementById('customAlertModal').classList.remove('show'); }
+        function handleCustomAlertOk() { closeCustomAlert(); if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; alertCancelCallback = null; } }
+        function handleCustomAlertCancel() { closeCustomAlert(); if (alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; } }
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof sysDB !== 'undefined') {
@@ -187,12 +252,11 @@
             fetchPendingRequests();
         }
 
-        // 2. ดึงข้อมูลคำขอจากฐานข้อมูล (แสดงโชว์กลางจอ) - เปลี่ยนมาใช้การประกอบร่างข้อมูลด้วย JS แก้ปัญหาบั๊ก 100%
+        // 2. ดึงข้อมูลคำขอจากฐานข้อมูล (แสดงโชว์กลางจอ) - ประกอบร่างข้อมูล
         async function fetchPendingRequests() {
             const container = document.getElementById('requestContainer');
             
             try {
-                // ขั้นตอนที่ 1: ดึงเฉพาะข้อมูลในตารางคำขอ (teacher_schools)
                 const { data: reqData, error: reqError } = await sysDB.from('teacher_schools')
                     .select('*')
                     .eq('verification_status', 'pending')
@@ -204,24 +268,16 @@
                 document.getElementById('badgeCount').innerText = reqData.length;
 
                 if (!reqData || reqData.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-check-circle" style="color: #2ed573;"></i>
-                            <h3>ไม่มีคำขอค้างอยู่</h3>
-                            <p style="margin-top: 10px; color: #a4b0be;">ระบบได้รับการจัดการเรียบร้อยแล้ว</p>
-                        </div>`;
+                    showEmptyState();
                     return;
                 }
 
-                // ขั้นตอนที่ 2: รวบรวม ID เพื่อไปดึงตารางที่เกี่ยวข้องแยกกัน
                 const teacherIds = reqData.map(r => r.teacher_id);
                 const schoolIds = reqData.map(r => r.school_id);
 
-                // ดึงข้อมูลครูและโรงเรียน
                 const { data: teachersData } = await sysDB.from('teachers').select('teacher_id, first_name, last_name, email, profile_pic').in('teacher_id', teacherIds);
                 const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
 
-                // ขั้นตอนที่ 3: ประกอบร่างข้อมูลเข้าด้วยกัน (ปลอดภัยและเสถียรที่สุด)
                 const finalData = reqData.map(req => {
                     return {
                         ...req,
@@ -230,7 +286,6 @@
                     };
                 });
 
-                // นำมาแสดงผล
                 let html = '';
                 finalData.forEach(req => {
                     const avatar = req.teachers?.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.teachers?.first_name || 'A'}`;
@@ -238,8 +293,9 @@
                     const cardUrl = req.verification_card_url ? `${supabaseUrl}/storage/v1/object/public/teacher-verifications/${req.verification_card_url}` : null;
                     const date = new Date(req.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
 
+                    // เพิ่ม ID ให้กับการ์ดแต่ละใบ เพื่อเตรียมไว้ลบเฉพาะจุด
                     html += `
-                        <div class="request-card">
+                        <div class="request-card" id="req-card-${req.id}">
                             <div class="req-info">
                                 <img src="${avatar}" class="req-avatar">
                                 <div class="req-details">
@@ -254,21 +310,55 @@
                                     ? `<button class="btn-action btn-view" onclick="viewImage('${cardUrl}')"><i class="fas fa-id-card"></i> ดูบัตร</button>` 
                                     : `<button class="btn-action btn-view" disabled style="opacity: 0.5;"><i class="fas fa-id-card"></i> ไม่มีรูปบัตร</button>`
                                 }
-                                <button class="btn-action btn-approve" onclick="approveRequest('${req.id}', '${req.verification_card_url}')"><i class="fas fa-check"></i> อนุมัติ</button>
-                                <button class="btn-action btn-reject" onclick="openRejectModal('${req.id}', '${req.verification_card_url}')"><i class="fas fa-times"></i> ปฏิเสธ</button>
+                                <button class="btn-action btn-approve" id="btn-approve-${req.id}" onclick="approveRequest('${req.id}', '${req.verification_card_url}')"><i class="fas fa-check"></i> อนุมัติ</button>
+                                <button class="btn-action btn-reject" id="btn-reject-${req.id}" onclick="openRejectModal('${req.id}', '${req.verification_card_url}')"><i class="fas fa-times"></i> ปฏิเสธ</button>
                             </div>
                         </div>
                     `;
                 });
                 container.innerHTML = html;
                 
-                // ดึงประวัติเหตุผลที่เคยปฏิเสธมาใส่ใน Dropdown อัตโนมัติ
                 loadHistoricalRejectReasons();
 
             } catch (err) {
                 console.error(err);
                 container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle" style="color: #ff4757;"></i><h3>เกิดข้อผิดพลาดในการดึงข้อมูล</h3><p>${err.message}</p></div>`;
             }
+        }
+
+        // ================= ฟังก์ชันลบการ์ดออกหน้าจอ (ไม่ต้องโหลดหน้าใหม่) =================
+        function removeRequestCardFromUI(tsId) {
+            const card = document.getElementById(`req-card-${tsId}`);
+            if (card) {
+                // เอฟเฟกต์เฟดออก
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9) translateX(50px)';
+                
+                setTimeout(() => {
+                    // ลบ HTML ทิ้งหลังจากเฟดเสร็จ
+                    card.remove();
+                    
+                    // อัปเดตตัวเลขแจ้งเตือน (ลบทีละ 1)
+                    const badge = document.getElementById('badgeCount');
+                    let currentCount = parseInt(badge.innerText) || 0;
+                    currentCount = Math.max(0, currentCount - 1);
+                    badge.innerText = currentCount;
+                    
+                    // หากคำขอหมดแล้ว ให้โชว์หน้าจอว่าง
+                    if (currentCount === 0) {
+                        showEmptyState();
+                    }
+                }, 400); // ตรงกับ transition: 0.4s
+            }
+        }
+
+        function showEmptyState() {
+            document.getElementById('requestContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle" style="color: #2ed573;"></i>
+                    <h3>ไม่มีคำขอค้างอยู่</h3>
+                    <p style="margin-top: 10px; color: #a4b0be;">ระบบได้รับการจัดการเรียบร้อยแล้ว</p>
+                </div>`;
         }
 
         // 3. ฟังก์ชันจัดการคำขอ
@@ -281,18 +371,27 @@
             document.getElementById('imageModal').style.display = 'none';
         }
 
-        // --- ฟังก์ชันลบรูปภาพเพื่อประหยัดพื้นที่ Storage ---
         async function deleteCardFromStorage(fileName) {
             if (!fileName) return;
             try {
                 await sysDB.storage.from('teacher-verifications').remove([fileName]);
-                // เคลียร์ชื่อไฟล์ใน DB ด้วยเพื่อความสะอาด
                 await sysDB.from('teacher_schools').update({ verification_card_url: null }).eq('verification_card_url', fileName);
             } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
         }
 
         async function approveRequest(tsId, cardUrl) {
             showCustomAlert('ยืนยันให้สิทธิ์ Admin กลุ่มสถานศึกษานี้?', 'confirm', async () => {
+                
+                // แจ้งเตือนสถานะโหลดที่ปุ่ม
+                const btn = document.getElementById(`btn-approve-${tsId}`);
+                let originalText = "";
+                if (btn) {
+                    originalText = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> รอสักครู่...';
+                    btn.style.opacity = '0.7';
+                }
+
                 try {
                     await sysDB.from('teacher_schools').update({ 
                         verification_status: 'approved', 
@@ -301,17 +400,24 @@
                         approved_at: new Date().toISOString() 
                     }).eq('id', tsId);
                     
-                    // ลบรูปภาพทิ้งหลังอนุมัติเสร็จ
                     if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
                     
                     showCustomAlert('อนุมัติสิทธิ์สำเร็จ!', 'success', () => {
-                        fetchPendingRequests();
+                        // ไม่โหลดข้อมูลใหม่ แต่สั่ง "ลบการ์ดใบทิ้ง" แทน
+                        removeRequestCardFromUI(tsId);
                     });
-                } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+                } catch (err) { 
+                    showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); 
+                    // หาก Error คืนค่าปุ่มให้กดใหม่ได้
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        btn.style.opacity = '1';
+                    }
+                }
             });
         }
 
-        // --- ระบบปฏิเสธแบบใหม่ ---
         function openRejectModal(tsId, cardUrl) {
             document.getElementById('rejectTsId').value = tsId;
             document.getElementById('rejectCardUrl').value = cardUrl;
@@ -334,7 +440,6 @@
                 return;
             }
 
-            // 1. เปลี่ยนสถานะปุ่มเพื่อแจ้งเตือนให้ผู้ใช้รู้ว่าระบบกำลังทำงานเบื้องหลัง
             const originalBtnText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
@@ -347,20 +452,17 @@
                     reject_reason: reason
                 }).eq('id', tsId);
 
-                // ลบรูปภาพทิ้งหลังปฏิเสธเสร็จ (เพราะเดี๋ยวต้องให้ผู้ใช้ส่งมาใหม่)
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
 
-                // 2. ปิดป๊อปอัปเหตุผล "ทันที" เพื่อไม่ให้ขวางหน้าจอ
                 closeRejectModal();
 
-                // 3. แสดงแจ้งเตือนความสำเร็จและรีเฟรชรายการ
                 showCustomAlert('ปฏิเสธคำขอและส่งกลับให้แก้ไขเรียบร้อย', 'success', () => {
-                    fetchPendingRequests();
+                    // ไม่โหลดข้อมูลใหม่ แต่สั่ง "ลบการ์ดใบทิ้ง" แทน
+                    removeRequestCardFromUI(tsId);
                 });
             } catch (err) { 
                 showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); 
             } finally {
-                // คืนค่าปุ่มกลับมาเผื่อกรณีที่เกิด Error แล้วต้องกดใหม่
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
                 btn.style.opacity = '1';
@@ -368,14 +470,12 @@
             }
         }
 
-        // ดึงเหตุผลเก่าๆ มาเป็นตัวเลือก
         async function loadHistoricalRejectReasons() {
             try {
                 const { data } = await sysDB.from('teacher_schools').select('reject_reason').not('reject_reason', 'is', null);
                 if (data && data.length > 0) {
                     const uniqueReasons = [...new Set(data.map(item => item.reject_reason))];
                     const select = document.getElementById('commonRejectReasons');
-                    // เก็บ option 3 อันแรกที่เป็น Default ไว้
                     const defaultOptions = Array.from(select.options).slice(0, 4).map(o => o.value);
                     
                     uniqueReasons.forEach(reason => {
