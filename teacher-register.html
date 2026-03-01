@@ -207,10 +207,17 @@
                 const { data, error } = await sysDB.auth.signInWithIdToken({ provider: 'google', token: response.credential });
                 if (error) throw error;
                 const userId = data.user.id; const userEmail = data.user.email;
+                
+                // ดึงรูปโปรไฟล์จากบัญชี Google
+                const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
-                // บันทึกเฉพาะข้อมูลบัญชีพื้นฐานลงตาราง teachers (ตัด school_id ทิ้ง)
+                // บันทึกข้อมูลบัญชีพื้นฐานพร้อม "รูปโปรไฟล์" ลงตาราง teachers
                 const { error: dbError } = await sysDB.from('teachers').upsert([{
-                    teacher_id: userId, first_name: fname, last_name: lname, email: userEmail
+                    teacher_id: userId, 
+                    first_name: fname, 
+                    last_name: lname, 
+                    email: userEmail,
+                    profile_pic: googlePic
                 }]);
                 if (dbError) throw dbError;
 
