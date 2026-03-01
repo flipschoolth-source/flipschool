@@ -796,7 +796,6 @@
         }
 
         async function checkPendingTeachers() {
-            // ทุกคนในกลุ่มที่ได้รับการอนุมัติแล้ว จะเห็นคำขอที่รอเข้ากลุ่ม
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
             if (approvedSchoolIds.length === 0) {
@@ -806,21 +805,34 @@
             }
 
             try {
-                // แก้บั๊ก Foreign key ซ้ำซ้อนโดยใช้ teachers!teacher_id
-                const { data: reqs, error } = await sysDB.from('teacher_schools')
-                    .select('*, teachers!teacher_id(teacher_id, first_name, last_name, email, profile_pic), schools(school_name)')
+                // 1. เปลี่ยนมาใช้วิธี Manual Join (ดึงแยกตาราง) เพื่อแก้ปัญหาบั๊ก Foreign Key 100%
+                const { data: reqs, error: reqErr } = await sysDB.from('teacher_schools')
+                    .select('*')
                     .eq('verification_status', 'pending')
                     .in('school_id', approvedSchoolIds)
                     .order('created_at', { ascending: false });
                 
-                if (error) throw error;
+                if (reqErr) throw reqErr;
 
                 let pendingData = [];
-                if (reqs) {
+                if (reqs && reqs.length > 0) {
+                    const teacherIds = reqs.map(r => r.teacher_id);
+                    const schoolIds = reqs.map(r => r.school_id);
+
+                    // 2. ดึงข้อมูลครูและโรงเรียน
+                    const { data: teachersData } = await sysDB.from('teachers').select('teacher_id, first_name, last_name, email, profile_pic').in('teacher_id', teacherIds);
+                    const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
+
+                    // 3. ประกอบร่างข้อมูลเข้าด้วยกัน
                     reqs.forEach(r => {
-                        const teacherData = Array.isArray(r.teachers) ? r.teachers[0] : r.teachers;
-                        if (teacherData && teacherData.teacher_id !== currentUser.id) {
-                            pendingData.push({ ...r, teacher: teacherData });
+                        if (r.teacher_id !== currentUser.id) { // ป้องกันไม่ให้เห็นคำขอของตัวเอง
+                            const tData = teachersData ? teachersData.find(t => t.teacher_id === r.teacher_id) : {};
+                            const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
+                            pendingData.push({
+                                ...r,
+                                teacher: tData || {},
+                                schools: sData || {}
+                            });
                         }
                     });
                 }
@@ -835,7 +847,7 @@
                     notifBtn.style.display = 'flex'; 
                     badge.style.display = 'inline-block';
                     badge.innerText = pendingData.length; 
-                    btnWrapper.classList.add('ringing'); // เล่นอนิเมชันสั่นกระดิ่ง
+                    btnWrapper.classList.add('ringing'); 
                 } else {
                     notifBtn.style.display = 'flex'; 
                     badge.style.display = 'none'; 
@@ -899,7 +911,7 @@
             
             let html = '';
             for (const req of requests) {
-                const t = req.teacher;
+                const t = req.teacher || {};
                 const schoolName = req.schools?.school_name || 'กลุ่มสถานศึกษา';
                 const avatar = t.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.first_name || 'T'}`;
                 const timeAgo = getTimeAgo(req.created_at);
@@ -916,12 +928,12 @@
                     <img src="${avatar}" class="notif-avatar">
                     <div class="notif-content">
                         <p class="notif-text">
-                            <b>ครู${t.first_name} ${t.last_name || ''}</b> ขอเข้าร่วม <b>${schoolName}</b>
+                            <b>ครู${t.first_name || 'ไม่ระบุชื่อ'} ${t.last_name || ''}</b> ขอเข้าร่วม <b>${schoolName}</b>
                             ${viewCardBtn}
                         </p>
                         
                         <div class="notif-actions" id="action-box-${req.id}">
-                            <button class="btn-notif-action btn-notif-approve" id="btn-approve-${req.id}" onclick="approveTeacherFB('${req.id}', '${req.role}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
+                            <button class="btn-notif-action btn-notif-approve" id="btn-approve-${req.id}" onclick="approveTeacherFB('${req.id}', '${req.role}', '${req.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
                             <button class="btn-notif-action btn-notif-reject" onclick="showRejectBoxFB('${req.id}')">ลบคำขอ</button>
                         </div>
 
@@ -929,7 +941,7 @@
                         <div id="reject-box-${req.id}" style="display:none; margin-top: 10px; flex-direction: column; gap: 8px;">
                             <input type="text" id="reject-reason-${req.id}" class="form-input" style="font-size:13px; padding: 8px 12px; margin-bottom: 0; border-radius: 8px; border: 1px solid #ccd0d5; background: #f0f2f5;" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
                             <div style="display:flex; gap:8px;">
-                                <button class="btn-notif-action" id="btn-reject-${req.id}" style="background:#e41e3f; color:white;" onclick="rejectTeacherFB('${req.id}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
+                                <button class="btn-notif-action" id="btn-reject-${req.id}" style="background:#e41e3f; color:white;" onclick="rejectTeacherFB('${req.id}', '${req.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
                                 <button class="btn-notif-action btn-notif-reject" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
                             </div>
                         </div>
