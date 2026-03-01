@@ -442,13 +442,7 @@
             closeCustomAlert();
             if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; alertCancelCallback = null; }
         });
-
-        document.getElementById('customAlertCancelBtn').addEventListener('click', () => {
-            closeCustomAlert();
-            if (alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
-        });
-
-        // ================= ดึงข้อมูลโปรไฟล์ (ปลดล็อกโหมดควบ 2 หน้าที่) =================
+        // ================= ดึงข้อมูลโปรไฟล์ (เตะแอดมินไปหน้าระบบส่วนกลาง) =================
         async function fetchProfile() {
             const { data: teacher, error: profileError } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
 
@@ -462,7 +456,13 @@
             currentUserData = teacher;
             isSuperAdmin = (teacher.role === 'super_admin');
 
-            // **ยกเลิกการบล็อกแอดมินสูงสุด ให้แอดมินโหลดหน้าจอและห้องเรียนได้เหมือนครูปกติ 100%**
+            // 🔴 ถ้าพบว่าเป็น Super Admin ให้เตะไปหน้าใหม่ทันที
+            if (isSuperAdmin) {
+                window.location.href = 'super_admin.html';
+                return;
+            }
+
+            // ถ้าเป็นครูทั่วไป ให้ดึงข้อมูลกลุ่มโรงเรียนตามปกติ
             const { data: schools } = await sysDB.from('teacher_schools')
                 .select('*, schools(school_name, school_abbr)')
                 .eq('teacher_id', currentUser.id);
