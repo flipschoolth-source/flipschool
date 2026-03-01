@@ -720,22 +720,22 @@
         async function checkPendingTeachers() {
             let pendingData = [];
 
-            // 1. ดึงคำขอเปิดโรงเรียนใหม่ทั้งหมด (สำหรับ Super Admin)
+            // 1. ดึงคำขอเปิดโรงเรียนใหม่ทั้งหมด (สำหรับ Super Admin อนุมัติคนที่จะเป็น Admin โรงเรียน)
             if (isSuperAdmin) {
                 const { data: globalReqs } = await sysDB.from('teacher_schools')
                     .select('*, teachers(first_name, last_name, email, profile_pic), schools(school_name)')
                     .eq('verification_status', 'pending')
-                    .not('verification_card_url', 'is', null);
+                    .eq('role', 'admin'); // เปลี่ยนมาเช็คจาก role แทนรูปภาพ เพื่อป้องกันคำขอตกหล่น
                 if (globalReqs) pendingData = [...pendingData, ...globalReqs];
             }
 
-            // 2. ดึงคำขอครูเข้าร่วมกลุ่ม (สำหรับ Local Admin ของโรงเรียนนั้น)
+            // 2. ดึงคำขอครูเข้าร่วมกลุ่ม (สำหรับ Local Admin ของโรงเรียนนั้น อนุมัติครูทั่วไป)
             if (activeSchool && activeSchool.role === 'admin' && activeSchool.verification_status === 'approved') {
                 const { data: localReqs } = await sysDB.from('teacher_schools')
                     .select('*, teachers(first_name, last_name, email, profile_pic), schools(school_name)')
                     .eq('verification_status', 'pending')
                     .eq('school_id', activeSchool.school_id)
-                    .is('verification_card_url', null);
+                    .eq('role', 'teacher'); // เปลี่ยนมาเช็คจาก role เพื่อความแม่นยำ
                 if (localReqs) pendingData = [...pendingData, ...localReqs];
             }
 
