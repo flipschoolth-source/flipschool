@@ -124,6 +124,33 @@
         </div>
     </div>
 
+    <!-- Modal ระบุเหตุผลที่ปฏิเสธ -->
+    <div id="rejectModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 style="color: #ff4757;"><i class="fas fa-exclamation-circle"></i> ระบุเหตุผลที่ปฏิเสธ</h3>
+                <i class="fas fa-times" style="cursor: pointer; font-size: 20px; color: #a4b0be;" onclick="closeRejectModal()"></i>
+            </div>
+            <div class="modal-body" style="background: white; text-align: left;">
+                <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">เลือกเหตุผลที่พบบ่อย:</label>
+                <select id="commonRejectReasons" class="form-input" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; margin-bottom: 15px; font-family: 'Sarabun';" onchange="document.getElementById('rejectReasonText').value = this.value">
+                    <option value="">-- เลือกเหตุผล หรือพิมพ์ใหม่ด้านล่าง --</option>
+                    <option value="รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน">รูปภาพบัตรยืนยันตัวตนไม่ชัดเจน</option>
+                    <option value="ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร">ชื่อบนบัตรไม่ตรงกับชื่อผู้สมัคร</option>
+                    <option value="ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน">ไม่ใช่บัตรข้าราชการ/บัตรพนักงานโรงเรียน</option>
+                </select>
+
+                <label style="font-family: 'Kanit'; font-weight: 500; color: #2d3436; margin-bottom: 10px; display: block;">หรือ พิมพ์เหตุผลเพิ่มเติม:</label>
+                <textarea id="rejectReasonText" rows="3" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #dfe4ea; font-family: 'Sarabun'; box-sizing: border-box;" placeholder="ระบุเหตุผลเพื่อแจ้งให้ผู้ใช้งานทราบ..."></textarea>
+                
+                <input type="hidden" id="rejectTsId">
+                <input type="hidden" id="rejectCardUrl">
+                
+                <button onclick="confirmReject()" style="width: 100%; padding: 12px; background: #ff4757; color: white; border: none; border-radius: 10px; font-family: 'Kanit'; font-size: 16px; margin-top: 20px; cursor: pointer;">ยืนยันการปฏิเสธ</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
 
@@ -226,13 +253,16 @@
                                     ? `<button class="btn-action btn-view" onclick="viewImage('${cardUrl}')"><i class="fas fa-id-card"></i> ดูบัตร</button>` 
                                     : `<button class="btn-action btn-view" disabled style="opacity: 0.5;"><i class="fas fa-id-card"></i> ไม่มีรูปบัตร</button>`
                                 }
-                                <button class="btn-action btn-approve" onclick="approveRequest('${req.id}')"><i class="fas fa-check"></i> อนุมัติ</button>
-                                <button class="btn-action btn-reject" onclick="rejectRequest('${req.id}')"><i class="fas fa-times"></i> ปฏิเสธ</button>
+                                <button class="btn-action btn-approve" onclick="approveRequest('${req.id}', '${req.verification_card_url}')"><i class="fas fa-check"></i> อนุมัติ</button>
+                                <button class="btn-action btn-reject" onclick="openRejectModal('${req.id}', '${req.verification_card_url}')"><i class="fas fa-times"></i> ปฏิเสธ</button>
                             </div>
                         </div>
                     `;
                 });
                 container.innerHTML = html;
+                
+                // ดึงประวัติเหตุผลที่เคยปฏิเสธมาใส่ใน Dropdown อัตโนมัติ
+                loadHistoricalRejectReasons();
 
             } catch (err) {
                 console.error(err);
@@ -250,28 +280,90 @@
             document.getElementById('imageModal').style.display = 'none';
         }
 
-        async function approveRequest(tsId) {
+        // --- ฟังก์ชันลบรูปภาพเพื่อประหยัดพื้นที่ Storage ---
+        async function deleteCardFromStorage(fileName) {
+            if (!fileName) return;
+            try {
+                await sysDB.storage.from('teacher-verifications').remove([fileName]);
+                // เคลียร์ชื่อไฟล์ใน DB ด้วยเพื่อความสะอาด
+                await sysDB.from('teacher_schools').update({ verification_card_url: null }).eq('verification_card_url', fileName);
+            } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
+        }
+
+        async function approveRequest(tsId, cardUrl) {
             if(!confirm('ยืนยันให้สิทธิ์ Admin กลุ่มสถานศึกษานี้?')) return;
             try {
                 await sysDB.from('teacher_schools').update({ 
                     verification_status: 'approved', 
+                    reject_reason: null,
                     approved_by: currentUser.id, 
                     approved_at: new Date().toISOString() 
                 }).eq('id', tsId);
+                
+                // ลบรูปภาพทิ้งหลังอนุมัติเสร็จ
+                if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
+                
                 alert('อนุมัติสิทธิ์สำเร็จ!'); 
                 fetchPendingRequests();
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
-        async function rejectRequest(tsId) {
-            if(!confirm('คุณต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')) return;
+        // --- ระบบปฏิเสธแบบใหม่ ---
+        function openRejectModal(tsId, cardUrl) {
+            document.getElementById('rejectTsId').value = tsId;
+            document.getElementById('rejectCardUrl').value = cardUrl;
+            document.getElementById('rejectReasonText').value = '';
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+        }
+
+        async function confirmReject() {
+            const tsId = document.getElementById('rejectTsId').value;
+            const cardUrl = document.getElementById('rejectCardUrl').value;
+            const reason = document.getElementById('rejectReasonText').value.trim();
+
+            if (!reason) {
+                alert("กรุณาระบุเหตุผลที่ปฏิเสธ เพื่อให้ผู้ใช้งานทำการแก้ไขครับ");
+                return;
+            }
+
             try {
                 await sysDB.from('teacher_schools').update({ 
-                    verification_status: 'rejected' 
+                    verification_status: 'rejected',
+                    reject_reason: reason
                 }).eq('id', tsId);
-                alert('ปฏิเสธคำขอเรียบร้อย'); 
+
+                // ลบรูปภาพทิ้งหลังปฏิเสธเสร็จ (เพราะเดี๋ยวต้องให้ผู้ใช้ส่งมาใหม่)
+                if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
+
+                alert('ปฏิเสธคำขอและส่งกลับให้แก้ไขเรียบร้อย'); 
+                closeRejectModal();
                 fetchPendingRequests();
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ดึงเหตุผลเก่าๆ มาเป็นตัวเลือก
+        async function loadHistoricalRejectReasons() {
+            try {
+                const { data } = await sysDB.from('teacher_schools').select('reject_reason').not('reject_reason', 'is', null);
+                if (data && data.length > 0) {
+                    const uniqueReasons = [...new Set(data.map(item => item.reject_reason))];
+                    const select = document.getElementById('commonRejectReasons');
+                    // เก็บ option 3 อันแรกที่เป็น Default ไว้
+                    const defaultOptions = Array.from(select.options).slice(0, 4).map(o => o.value);
+                    
+                    uniqueReasons.forEach(reason => {
+                        if (!defaultOptions.includes(reason) && reason.length < 50) {
+                            const opt = document.createElement('option');
+                            opt.value = reason; opt.text = reason;
+                            select.appendChild(opt);
+                        }
+                    });
+                }
+            } catch (e) { console.error(e); }
         }
 
         async function handleLogout() {
