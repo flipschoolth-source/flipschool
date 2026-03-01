@@ -371,6 +371,9 @@
         
         let alertCallback = null;
         let alertCancelCallback = null;
+        
+        // ตัวแปรเก็บ Subscription สำหรับ Realtime
+        let pendingRequestsSubscription = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
@@ -493,7 +496,9 @@
 
             renderFilterTabs();
             renderSchoolSwitcher();
-            checkPendingTeachers();
+            
+            // เรียกใช้ฟังก์ชันเซ็ตอัป Realtime Subscription หลังจากเรนเดอร์เสร็จ
+            setupRealtimePendingRequests();
         }
 
         function renderFilterTabs() {
@@ -630,47 +635,7 @@
                 
                 resubmitBtn.innerHTML = `
                     <button onclick="openAppealModal()" style="background: white; border: 2px solid #ff4757; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-id-card"></i> ยื่นอุทธรณ์ (บังคับแนบบัตร)</button>
-                    <button onclick="cancelRequest(event, '${activeSchool.school_id}', '${activeSchool.schools.school_name}')" style="background: #fff0f0; border: none; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-times"></i> ยกเลิกคำขอนี้</button>
-                `;
-                fetchClassrooms();
-            } else { // pending
-                badgeContainer.innerHTML = `<span class="status-badge status-pending"><i class="fas fa-spinner fa-spin"></i> รอการอนุมัติกลุ่ม</span>`;
-                classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex';
-                alertSection.style.background = '#fff8e1'; alertSection.style.borderColor = '#ffecb3'; iconBg.style.background = '#ffeaa7'; icon.className = 'fas fa-info-circle'; icon.style.color = '#d35400';
-                document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอการอนุมัติเข้ากลุ่ม';
-                document.getElementById('pendingAlertTitle').style.color = '#d35400';
-                document.getElementById('pendingAlertDesc').innerHTML = activeSchool.role === 'admin' ? "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ <b>โปรดรอส่วนกลางตรวจสอบสิทธิ์</b> ระหว่างนี้คุณสร้างห้องเรียนได้ทันทีครับ" : "<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ";
-                fetchClassrooms();
-            }
-        }
-
-        async function fetchClassrooms() {
-            const grid = document.getElementById('classGrid');
-            grid.style.opacity = '0.4'; 
-            
-            grid.innerHTML = `<div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: #a4b0be;"><i class="fas fa-circle-notch fa-spin" style="font-size: 40px; margin-bottom: 15px;"></i><span style="font-family: 'Kanit'; font-size: 16px;">กำลังโหลดห้องเรียน...</span></div>`;
-
-            try {
-                const { data, error } = await sysDB.from('classrooms').select('*').eq('teacher_id', currentUser.id).order('created_at', { ascending: false });
-                if (error) throw error;
-                let displayData = [];
-
-                if (activeViewMode === 'all') displayData = data;
-                else if (activeViewMode === 'independent') displayData = data.filter(c => !c.school_id);
-                else displayData = data.filter(c => c.school_id === activeViewMode);
-
-                if (!displayData || displayData.length === 0) {
-                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 35px; border: 2px dashed #edf2f7; min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;"><i class="fas fa-chalkboard"></i></div><h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีห้องเรียนในพื้นที่นี้</h3><p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนได้เลยครับ</p></div>`;
-                } else {
-                    grid.innerHTML = displayData.map(c => `
-                        <div class="class-card" onclick="window.location.href='classroom-detail.html?id=${c.classroom_id}'">
-                            <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};"><i class="fas fa-book-reader" style="opacity: 0.8;"></i></div>
-                            <div class="card-body">
-                                <div class="room-badge">${c.room_name || 'ไม่ระบุห้อง'}</div><h3 class="subject-title">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
-                                <div style="color: var(--text-muted); font-size: 14px; margin-top: auto; padding-top: 15px; display: flex; align-items: center; gap: 8px;"><i class="fas fa-calendar-alt" style="color: #a4b0be;"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}</div>
-                            </div>
-                        </div>
-                    `).join('');
+                    grid.innerHTML = html;
                 }
             } catch (err) { grid.innerHTML = `<div style="color: #ff4757; padding: 40px;">ข้อผิดพลาด: ${err.message}</div>`; } finally { grid.style.opacity = '1'; }
         }
@@ -688,7 +653,7 @@
                 
                 // กรองคำขอของตัวเองออก (ไม่ต้องให้ตัวเองอนุมัติให้ตัวเอง)
                 if (!error && localReqs) {
-                    pendingData = localReqs.filter(r => r.teachers.teacher_id !== currentUser.id);
+                    pendingData = localReqs.filter(r => r.teachers && r.teachers.teacher_id !== currentUser.id);
                 }
             }
 
@@ -701,6 +666,46 @@
             } else {
                 notifBtn.style.display = (activeSchool && activeSchool.verification_status === 'approved') ? 'block' : 'none';
                 badge.style.display = 'none'; window.pendingRequests = [];
+            }
+            
+            // อัปเดตรายการใน Modal ทันทีถ้าเปิดอยู่
+            if(document.getElementById('approvalModal').style.display === 'flex') {
+                 renderPendingList();
+            }
+        }
+        
+        // ================= ฟังก์ชัน Setup Realtime Subscription =================
+        function setupRealtimePendingRequests() {
+            // ยกเลิก Subscription เดิมก่อน (ถ้ามี) เพื่อป้องกันการซ้ำซ้อนเวลาเปลี่ยนโหมด
+            if (pendingRequestsSubscription) {
+                sysDB.removeChannel(pendingRequestsSubscription);
+                pendingRequestsSubscription = null;
+            }
+
+            // เช็คว่ามีสิทธิ์ดูกระดิ่งไหม (ต้องอยู่ในโรงเรียนและได้รับอนุมัติแล้ว)
+            if (activeSchool && activeSchool.verification_status === 'approved') {
+                
+                // ดึงข้อมูลครั้งแรกมาก่อน
+                checkPendingTeachers();
+
+                // สร้าง Subscription เพื่อฟังการเปลี่ยนแปลงในตาราง teacher_schools
+                // เฉพาะแถวที่มี school_id ตรงกับที่เราเปิดอยู่
+                pendingRequestsSubscription = sysDB.channel('custom-update-channel')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'teacher_schools', filter: `school_id=eq.${activeSchool.school_id}` },
+                    (payload) => {
+                        console.log('Realtime update received!', payload);
+                        // ไม่ว่าจะเป็นการ Insert, Update (เช่น เปลี่ยนสถานะเป็น approved/rejected) หรือ Delete
+                        // ให้เรียกฟังก์ชันดึงข้อมูลใหม่เพื่อความชัวร์ที่สุด
+                        checkPendingTeachers();
+                    }
+                )
+                .subscribe();
+            } else {
+                 // ถ้าไม่ได้อยู่ในโหมดที่มีสิทธิ์ ก็ซ่อนกระดิ่งไปเลย
+                 document.getElementById('notificationBtn').style.display = 'none';
+                 window.pendingRequests = [];
             }
         }
 
@@ -748,10 +753,9 @@
                     showCustomAlert('ไม่สามารถอนุมัติได้: ' + error.message, 'error');
                     return;
                 }
-                showCustomAlert('เพิ่มเข้ากลุ่มสำเร็จ!', 'success', () => { 
-                    checkPendingTeachers();
-                    if(document.getElementById('approvalModal').style.display === 'flex') { renderPendingList(); }
-                });
+                // ไม่ต้องเรียก checkPendingTeachers() หรือ renderPendingList() เองแล้ว
+                // เพราะ Realtime subscription จะทำงานและอัปเดต UI ให้เราอัตโนมัติ
+                showCustomAlert('เพิ่มเข้ากลุ่มสำเร็จ!', 'success');
             });
         }
 
@@ -768,10 +772,9 @@
                     showCustomAlert('ไม่สามารถปฏิเสธได้: ' + error.message, 'error');
                     return;
                 }
-                showCustomAlert('ปฏิเสธคำขอและส่งเหตุผลกลับไปเรียบร้อย', 'success', () => { 
-                    checkPendingTeachers();
-                    if(document.getElementById('approvalModal').style.display === 'flex') { renderPendingList(); }
-                });
+                // ไม่ต้องเรียก checkPendingTeachers() หรือ renderPendingList() เองแล้ว
+                // เพราะ Realtime subscription จะทำงานและอัปเดต UI ให้เราอัตโนมัติ
+                showCustomAlert('ปฏิเสธคำขอและส่งเหตุผลกลับไปเรียบร้อย', 'success');
             });
         }
 
