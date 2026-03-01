@@ -83,9 +83,35 @@
         .badge-interactive:hover .default-text { display: none; }
         .badge-interactive:hover .hover-text { display: inline; }
 
-        /* --- อนิเมชันสำหรับแจ้งเตือน --- */
+        /* --- Facebook-style Notification Dropdown --- */
+        .notif-container { position: relative; }
+        .notif-btn-wrapper { width: 48px; height: 48px; border-radius: 50%; background: #f0f2f5; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .notif-btn-wrapper:hover { background: #e4e6eb; }
+        .notif-btn-wrapper i { font-size: 22px; color: #050505; transition: 0.3s; }
+        .notif-btn-wrapper.active { background: #e7f3ff; color: var(--primary-light); }
+        .notif-btn-wrapper.active i { color: var(--primary-light); }
+        
+        .notif-dropdown { position: absolute; top: 60px; right: 0; width: 380px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s ease; z-index: 1050; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 100px); }
+        .notif-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .notif-header { padding: 18px 20px 12px; font-family: 'Kanit'; font-size: 24px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; color: #050505; background: #fff; }
+        .notif-body { overflow-y: auto; flex: 1; padding: 0 8px 8px 8px; }
+        .notif-item { padding: 12px; border-radius: 8px; display: flex; gap: 12px; transition: 0.2s; background: white; position: relative; margin-bottom: 2px; }
+        .notif-item:hover { background: #f2f2f2; }
+        .notif-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #eee; }
+        .notif-content { flex: 1; }
+        .notif-text { font-size: 14.5px; color: #050505; margin: 0 0 8px 0; line-height: 1.4; word-break: break-word; }
+        .notif-text b { font-weight: 600; font-family: 'Kanit'; }
+        .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-notif-action { padding: 8px 0; border-radius: 6px; font-family: 'Kanit'; font-size: 14.5px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; flex: 1; text-align: center; }
+        .btn-notif-approve { background: #1877f2; color: white; }
+        .btn-notif-approve:hover { background: #166fe5; }
+        .btn-notif-reject { background: #e4e6eb; color: #050505; }
+        .btn-notif-reject:hover { background: #d8dadf; }
+        .notif-time { font-size: 13px; color: #65676b; margin-top: 4px; display: block; font-weight: 500; }
+        .notif-unread-dot { width: 12px; height: 12px; background: #1877f2; border-radius: 50%; position: absolute; right: 15px; top: 35px; }
+
         @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(15deg); } 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
-        .ringing { animation: ring 2s ease infinite; color: #ff4757 !important; }
+        .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
         .req-card-anim { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         /* --- Modals --- */
@@ -144,6 +170,7 @@
             .class-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; } 
             .fab-add { bottom: 30px; right: 30px; width: 60px; height: 60px; font-size: 24px; } 
             .filter-tab { font-size: 14px; padding: 10px 18px; }
+            .notif-dropdown { position: fixed; top: 75px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 90px); }
         }
     </style>
 </head>
@@ -179,11 +206,22 @@
             <img src="img/favicon.png" alt="Logo" onerror="this.style.display='none'">
             <div class="logo-text-group"><div class="brand-name">FlipSchool</div></div>
         </div>
-        <div style="display: flex; align-items: center; gap: 25px;">
-            <div id="notificationBtn" style="position: relative; cursor: pointer; display: none;" onclick="openApprovalModal()">
-                <i class="fas fa-bell" style="font-size: 26px; color: var(--primary-dark); transition: 0.3s;"></i>
-                <span id="notifBadge" style="position: absolute; top: -5px; right: -8px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; font-family: 'Kanit'; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">0</span>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            
+            <!-- ไอคอนกระดิ่ง Facebook Style -->
+            <div class="notif-container" id="notificationContainer">
+                <div class="notif-btn-wrapper" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
+                    <i class="fas fa-bell"></i>
+                    <span id="notifBadge" style="position: absolute; top: -2px; right: -2px; background: #e41e3f; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; font-family: 'Kanit'; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">0</span>
+                </div>
+                
+                <!-- กล่อง Dropdown แจ้งเตือน -->
+                <div id="notifDropdown" class="notif-dropdown">
+                    <div class="notif-header">การแจ้งเตือน</div>
+                    <div class="notif-body" id="notifList"></div>
+                </div>
             </div>
+
             <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
         </div>
     </nav>
@@ -342,19 +380,6 @@
                 <div class="modal-body" style="padding: 20px; text-align: center; background: #000;">
                     <img id="modalImage" src="" alt="บัตรยืนยันตัวตน" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px;">
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= MODAL อนุมัติครู (หน้าต่างแจ้งเตือนลื่นไหล) ================= -->
-    <div id="approvalModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-clock" style="margin-right: 10px;"></i> คำขอที่รอการอนุมัติ</h3>
-                <i class="fas fa-times" style="cursor: pointer; font-size: 24px; color: #b2bec3;" onclick="closeApprovalModal()"></i>
-            </div>
-            <div id="pendingList" class="modal-body">
-                <div style="text-align: center; color: #888;">กำลังโหลดข้อมูล...</div>
             </div>
         </div>
     </div>
@@ -557,11 +582,12 @@
             container.innerHTML = html;
         }
 
+        // --- แก้ไขบั๊กคลิกแล้วไม่โหลดข้อมูล ---
         function switchSchool(schoolId) { 
-            activeViewMode = schoolId;
             localStorage.setItem('active_school_id', schoolId); 
-            renderDashboard();
             if (document.getElementById('profileSidebar').classList.contains('active')) toggleSidebar();
+            // สั่งให้ดึงข้อมูลใหม่ทั้งหมดทันที
+            refreshDashboardState();
         }
 
         function handleFabClick(e) {
@@ -698,14 +724,54 @@
             } catch (err) { grid.innerHTML = `<div style="color: #ff4757; padding: 40px;">ข้อผิดพลาด: ${err.message}</div>`; } finally { grid.style.opacity = '1'; }
         }
 
-        // ================= กระดิ่งแจ้งเตือนแบบ Realtime ที่ปลอดภัยและแม่นยำ =================
+        // ================= การทำงานแจ้งเตือน Facebook Style =================
+        function toggleNotifDropdown() {
+            const dropdown = document.getElementById('notifDropdown');
+            const btn = document.getElementById('notificationBtn');
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                btn.classList.add('active');
+                renderPendingList();
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        // ปิด Dropdown เมื่อคลิกที่อื่นบนหน้าจอ
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('notificationContainer');
+            const dropdown = document.getElementById('notifDropdown');
+            const btn = document.getElementById('notificationBtn');
+            if (container && dropdown && !container.contains(event.target)) {
+                dropdown.classList.remove('show');
+                btn.classList.remove('active');
+            }
+        });
+
+        // ฟังก์ชันแปลงเวลาแบบ Facebook (10 นาทีที่แล้ว, เมื่อวาน, ฯลฯ)
+        function getTimeAgo(dateString) {
+            if (!dateString) return 'เมื่อสักครู่';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffSec = Math.floor((now - date) / 1000);
+            if (diffSec < 60) return 'เมื่อสักครู่';
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+            const diffHour = Math.floor(diffMin / 60);
+            if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+            const diffDay = Math.floor(diffHour / 24);
+            if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
+            return date.toLocaleDateString('th-TH');
+        }
+
         function setupRealtimePendingRequests() {
             if (pendingRequestsSubscription) {
                 sysDB.removeChannel(pendingRequestsSubscription);
                 pendingRequestsSubscription = null;
             }
 
-            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
+            // คัดกรองเฉพาะโรงเรียนที่ครูคนนี้เป็น "admin" เท่านั้น จึงจะเห็นคำขอ
+            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved' && s.role === 'admin').map(s => s.school_id);
 
             if (approvedSchoolIds.length > 0) {
                 checkPendingTeachers(); 
@@ -729,7 +795,7 @@
         }
 
         async function checkPendingTeachers() {
-            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
+            const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved' && s.role === 'admin').map(s => s.school_id);
             
             if (approvedSchoolIds.length === 0) {
                 document.getElementById('notificationBtn').style.display = 'none';
@@ -738,10 +804,12 @@
             }
 
             try {
+                // แก้บั๊ก Foreign key ซ้ำซ้อนโดยใช้ teachers!teacher_id
                 const { data: reqs, error } = await sysDB.from('teacher_schools')
-                    .select('*, teachers(*)')
+                    .select('*, teachers!teacher_id(teacher_id, first_name, last_name, email, profile_pic), schools(school_name)')
                     .eq('verification_status', 'pending')
-                    .in('school_id', approvedSchoolIds);
+                    .in('school_id', approvedSchoolIds)
+                    .order('created_at', { ascending: false });
                 
                 if (error) throw error;
 
@@ -750,46 +818,35 @@
                     reqs.forEach(r => {
                         const teacherData = Array.isArray(r.teachers) ? r.teachers[0] : r.teachers;
                         if (teacherData && teacherData.teacher_id !== currentUser.id) {
-                            pendingData.push({
-                                id: r.id,
-                                school_id: r.school_id,
-                                role: r.role,
-                                verification_card_url: r.verification_card_url,
-                                teacher: teacherData
-                            });
+                            pendingData.push({ ...r, teacher: teacherData });
                         }
                     });
                 }
 
                 const notifBtn = document.getElementById('notificationBtn');
                 const badge = document.getElementById('notifBadge');
-                const bellIcon = document.querySelector('#notificationBtn i.fa-bell');
+                const btnWrapper = document.getElementById('notificationBtn');
 
                 window.pendingRequests = pendingData;
 
                 if (pendingData.length > 0) {
-                    notifBtn.style.display = 'block'; 
+                    notifBtn.style.display = 'flex'; 
                     badge.style.display = 'inline-block';
                     badge.innerText = pendingData.length; 
-                    bellIcon.classList.add('ringing'); // เล่นอนิเมชันสั่นกระดิ่ง
+                    btnWrapper.classList.add('ringing'); // เล่นอนิเมชันสั่นกระดิ่ง
                 } else {
-                    notifBtn.style.display = 'block'; 
+                    notifBtn.style.display = 'flex'; 
                     badge.style.display = 'none'; 
-                    bellIcon.classList.remove('ringing');
+                    btnWrapper.classList.remove('ringing');
                 }
                 
-                if (document.getElementById('approvalModal').style.display === 'flex') {
+                if (document.getElementById('notifDropdown').classList.contains('show')) {
                      renderPendingList();
                 }
-            } catch (err) {
-                console.error("Error fetching pending requests: ", err);
-            }
+            } catch (err) { console.error("Error fetching pending requests: ", err); }
         }
 
-        function openApprovalModal() { document.getElementById('approvalModal').style.display = 'flex'; renderPendingList(); }
-        function closeApprovalModal() { document.getElementById('approvalModal').style.display = 'none'; }
-
-        // ป๊อปอัปดูรูปภายในแอป (ไม่ต้องเด้งไปแท็บใหม่)
+        // ป๊อปอัปดูรูปภายในแอป
         function viewImage(url) {
             document.getElementById('modalImage').src = url;
             document.getElementById('imageModal').style.display = 'flex';
@@ -798,7 +855,7 @@
             document.getElementById('imageModal').style.display = 'none';
         }
 
-        // ลบข้อมูลออกหน้าจอแบบลื่นไหล (ไม่ต้องโหลดหน้าเว็บใหม่)
+        // ลบข้อมูลออกหน้าจอแบบลื่นไหล
         function removePendingRequestCard(tsId) {
             const card = document.getElementById(`req-card-${tsId}`);
             if (card) {
@@ -814,10 +871,10 @@
                         badge.innerText = count;
                     } else {
                         badge.style.display = 'none';
-                        document.querySelector('#notificationBtn i.fa-bell').classList.remove('ringing');
-                        document.getElementById('pendingList').innerHTML = `<div style="text-align:center; color:#888; padding: 40px 0;"><i class="fas fa-check-circle" style="font-size:40px; color:#2ed573; margin-bottom:15px; display:block;"></i>ไม่มีคำขอใหม่ค้างอยู่</div>`;
+                        document.getElementById('notificationBtn').classList.remove('ringing');
+                        document.getElementById('notifList').innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`;
                     }
-                }, 400); // 0.4s ตรงกับ css transition
+                }, 300);
             }
         }
 
@@ -825,100 +882,109 @@
             if (!fileName || fileName === 'null') return;
             try {
                 await sysDB.storage.from('teacher-verifications').remove([fileName]);
-                // ตั้งค่า URL ใน DB เป็นค่าว่าง เพื่อความสะอาดของระบบ
                 await sysDB.from('teacher_schools').update({ verification_card_url: null }).eq('verification_card_url', fileName);
             } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
         }
 
         async function renderPendingList() {
-            const listContainer = document.getElementById('pendingList');
+            const listContainer = document.getElementById('notifList');
             const requests = window.pendingRequests || [];
-            if(requests.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:#888; padding: 40px 0;"><i class="fas fa-check-circle" style="font-size:40px; color:#2ed573; margin-bottom:15px; display:block;"></i>ไม่มีคำขอใหม่ค้างอยู่</div>`; return; }
+            
+            if(requests.length === 0) { 
+                listContainer.innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; 
+                return; 
+            }
             
             let html = '';
             for (const req of requests) {
                 const t = req.teacher;
+                const schoolName = req.schools?.school_name || 'กลุ่มสถานศึกษา';
                 const avatar = t.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.first_name || 'T'}`;
+                const timeAgo = getTimeAgo(req.created_at);
                 
                 let viewCardBtn = '';
                 if (req.verification_card_url) {
                     const publicUrl = sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
-                    viewCardBtn = `<button type="button" onclick="viewImage('${publicUrl}')" style="background: #e0e8ff; color: var(--primary-light); border: none; padding: 8px 15px; border-radius: 8px; font-family: 'Kanit'; font-size: 13px; cursor: pointer; transition: 0.3s; margin-top: 5px;"><i class="fas fa-id-card"></i> ดูรูปภาพบัตรยืนยันตัวตน</button>`;
+                    viewCardBtn = `<span onclick="viewImage('${publicUrl}')" style="color: var(--primary-light); cursor: pointer; text-decoration: underline; margin-left: 5px; font-weight: normal; font-size: 13px;"><i class="fas fa-id-card"></i> ดูบัตร</span>`;
                 }
                 
                 html += `
-                <div id="req-card-${req.id}" class="req-card-anim" style="border: 1px solid #eee; border-radius: 16px; padding: 20px; margin-bottom: 20px; background: #fafbfc;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                        <img src="${avatar}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
-                        <div>
-                            <h4 style="margin:0 0 3px 0; font-family:'Kanit'; font-size:16px;">ครู${t.first_name} ${t.last_name || ''}</h4>
-                            <div style="color:#666; font-size:13px;"><i class="fas fa-envelope"></i> ${t.email}</div>
+                <div class="notif-item req-card-anim" id="req-card-${req.id}">
+                    <div class="notif-unread-dot"></div>
+                    <img src="${avatar}" class="notif-avatar">
+                    <div class="notif-content">
+                        <p class="notif-text">
+                            <b>ครู${t.first_name} ${t.last_name || ''}</b> ขอเข้าร่วม <b>${schoolName}</b>
+                            ${viewCardBtn}
+                        </p>
+                        
+                        <div class="notif-actions" id="action-box-${req.id}">
+                            <button class="btn-notif-action btn-notif-approve" id="btn-approve-${req.id}" onclick="approveTeacherFB('${req.id}', '${req.role}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
+                            <button class="btn-notif-action btn-notif-reject" onclick="showRejectBoxFB('${req.id}')">ลบคำขอ</button>
                         </div>
-                    </div>
-                    ${viewCardBtn}
-                    <div style="margin: 15px 0;">
-                        <input type="text" id="reject-reason-${req.id}" placeholder="ระบุเหตุผล (บังคับพิมพ์เฉพาะตอนปฏิเสธ)" class="form-input" style="margin-bottom:0; padding:10px 15px; font-size:13px; border-radius:10px;">
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <button id="btn-approve-${req.id}" onclick="approveTeacher('${req.id}', '${req.role}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')" style="flex:1; padding:10px; border:none; border-radius:10px; background:#2ed573; color:white; cursor:pointer; font-family:'Kanit'; transition:0.2s;"><i class="fas fa-check"></i> รับเข้ากลุ่ม</button>
-                        <button id="btn-reject-${req.id}" onclick="rejectTeacher('${req.id}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')" style="flex:1; padding:10px; border:none; border-radius:10px; background:#ff4757; color:white; cursor:pointer; font-family:'Kanit'; transition:0.2s;"><i class="fas fa-times"></i> ปฏิเสธ</button>
+
+                        <!-- กล่องใส่เหตุผลปฏิเสธแบบ Slide Down -->
+                        <div id="reject-box-${req.id}" style="display:none; margin-top: 10px; flex-direction: column; gap: 8px;">
+                            <input type="text" id="reject-reason-${req.id}" class="form-input" style="font-size:13px; padding: 8px 12px; margin-bottom: 0; border-radius: 8px; border: 1px solid #ccd0d5; background: #f0f2f5;" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-notif-action" id="btn-reject-${req.id}" style="background:#e41e3f; color:white;" onclick="rejectTeacherFB('${req.id}', '${t.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
+                                <button class="btn-notif-action btn-notif-reject" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
+                            </div>
+                        </div>
+
+                        <span class="notif-time">${timeAgo}</span>
                     </div>
                 </div>`;
             }
             listContainer.innerHTML = html;
         }
 
-        async function approveTeacher(tsId, requestRole, teacherId, schoolId, cardUrl) {
-            showCustomAlert('รับครูท่านนี้เข้าสู่กลุ่มสถานศึกษา?', 'confirm', async () => {
-                const btn = document.getElementById(`btn-approve-${tsId}`);
-                let origText = '';
-                if (btn) { origText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> อนุมัติ...'; btn.style.opacity = '0.7'; }
-
-                try {
-                    const { error: tsErr } = await sysDB.from('teacher_schools').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
-                    if (tsErr) throw tsErr;
-                    
-                    await sysDB.from('teachers').update({ verification_status: 'approved', role: requestRole, school_id: schoolId, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('teacher_id', teacherId);
-
-                    // อนุมัติเสร็จแล้วสั่งลบรูปภาพทิ้งเพื่อประหยัดพื้นที่
-                    if (cardUrl) await deleteCardFromStorage(cardUrl);
-
-                    showCustomAlert('เพิ่มเข้ากลุ่มสำเร็จ!', 'success', () => { removePendingRequestCard(tsId); });
-                } catch(err) {
-                    showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); 
-                    if(btn) { btn.disabled = false; btn.innerHTML = origText; btn.style.opacity = '1'; }
-                }
-            });
+        // ระบบ อนุมัติ/ปฏิเสธ แบบ Facebook (รวดเร็ว ไม่เด้ง Alert บ่อยๆ)
+        async function approveTeacherFB(tsId, requestRole, teacherId, schoolId, cardUrl) {
+            const btn = document.getElementById(`btn-approve-${tsId}`);
+            let origText = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                await sysDB.from('teacher_schools').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
+                await sysDB.from('teachers').update({ verification_status: 'approved', role: requestRole, school_id: schoolId, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('teacher_id', teacherId);
+                if (cardUrl) await deleteCardFromStorage(cardUrl);
+                removePendingRequestCard(tsId);
+            } catch(err) {
+                showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); 
+                btn.disabled = false; btn.innerHTML = origText;
+            }
         }
 
-        async function rejectTeacher(tsId, teacherId, schoolId, cardUrl) {
+        function showRejectBoxFB(reqId) {
+            document.getElementById(`action-box-${reqId}`).style.display = 'none';
+            document.getElementById(`reject-box-${reqId}`).style.display = 'flex';
+        }
+        function hideRejectBoxFB(reqId) {
+            document.getElementById(`reject-box-${reqId}`).style.display = 'none';
+            document.getElementById(`action-box-${reqId}`).style.display = 'flex';
+        }
+
+        async function rejectTeacherFB(tsId, teacherId, schoolId, cardUrl) {
             const reasonInput = document.getElementById(`reject-reason-${tsId}`);
             const reasonValue = reasonInput ? reasonInput.value.trim() : '';
             if (!reasonValue) {
-                showCustomAlert('กรุณาระบุ "เหตุผล" เพื่อให้ผู้สมัครทราบสาเหตุก่อนปฏิเสธครับ', 'warning');
-                if (reasonInput) reasonInput.focus(); return;
+                reasonInput.style.border = "1px solid #ff4757";
+                reasonInput.focus(); return;
             }
             
-            showCustomAlert('คุณต้องการปฏิเสธคำขอนี้ใช่หรือไม่?', 'confirm', async () => {
-                const btn = document.getElementById(`btn-reject-${tsId}`);
-                let origText = '';
-                if (btn) { origText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ปฏิเสธ...'; btn.style.opacity = '0.7'; }
+            const btn = document.getElementById(`btn-reject-${tsId}`);
+            let origText = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-                try {
-                    const { error: tsErr } = await sysDB.from('teacher_schools').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('id', tsId);
-                    if (tsErr) throw tsErr;
-
-                    await sysDB.from('teachers').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('teacher_id', teacherId).eq('school_id', schoolId);
-
-                    // ปฏิเสธเสร็จแล้วสั่งลบรูปภาพทิ้งเช่นกัน (เพราะผู้ใช้ต้องส่งมาใหม่)
-                    if (cardUrl) await deleteCardFromStorage(cardUrl);
-
-                    showCustomAlert('ปฏิเสธคำขอและส่งเหตุผลกลับไปเรียบร้อย', 'success', () => { removePendingRequestCard(tsId); });
-                } catch(err) {
-                    showCustomAlert('ไม่สามารถปฏิเสธได้: ' + err.message, 'error'); 
-                    if(btn) { btn.disabled = false; btn.innerHTML = origText; btn.style.opacity = '1'; }
-                }
-            });
+            try {
+                await sysDB.from('teacher_schools').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('id', tsId);
+                await sysDB.from('teachers').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('teacher_id', teacherId).eq('school_id', schoolId);
+                if (cardUrl) await deleteCardFromStorage(cardUrl);
+                removePendingRequestCard(tsId);
+            } catch(err) {
+                showCustomAlert('ไม่สามารถปฏิเสธได้: ' + err.message, 'error'); 
+                btn.disabled = false; btn.innerHTML = origText;
+            }
         }
 
         // ================= ยื่นเรื่องอุทธรณ์ =================
