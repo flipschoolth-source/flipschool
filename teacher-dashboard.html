@@ -47,28 +47,10 @@
         .logout-btn { margin-top: 20px; padding: 18px; border-radius: 20px; background: #fff5f5; color: #ff4757; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 600; transition: 0.3s; width: 100%; }
         
         /* --- Main Dashboard --- */
-        /* ปรับ max-width ให้เกือบเต็มจอ 96% */
-        .main-container { flex: 1; padding: 40px 50px; max-width: 96%; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        
-        /* ลด padding และ min-height เพื่อลดความสูงของแบนเนอร์ */
-        .welcome-hero { 
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); 
-            border-radius: 40px; 
-            padding: 40px 50px; /* ลด padding */
-            color: white; 
-            margin-bottom: 30px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            box-shadow: 0 20px 45px rgba(0, 74, 173, 0.25); 
-            position: relative; 
-            overflow: hidden; 
-            min-height: 220px; /* ลด min-height */
-            box-sizing: border-box; 
-        }
+        /* ปรับ max-width ให้แสดงผลเกือบเต็มจอ */
+        .main-container { flex: 1; padding: 40px 50px; max-width: 96%; margin: 0 auto; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease; }
+        .welcome-hero { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); border-radius: 40px; padding: 40px 50px; color: white; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 20px 45px rgba(0, 74, 173, 0.25); position: relative; overflow: hidden; min-height: 220px; box-sizing: border-box; }
         .hero-text-content { position: relative; z-index: 5; flex: 1; }
-        
-        /* ปรับขนาดตัวอักษรลงเล็กน้อยให้สมดุลกับความสูงที่ลดลง */
         .welcome-header { font-family: 'Kanit'; font-size: 36px; font-weight: 700; margin: 0 0 5px 0; }
         .welcome-sub { font-size: 18px; opacity: 0.9; font-weight: 300; margin: 0 0 15px 0; line-height: 1.6; }
 
@@ -149,7 +131,7 @@
         @media (max-width: 768px) { 
             nav { padding: 0 20px; height: 75px; } 
             .main-container { padding: 20px; max-width: 100%; } 
-            .welcome-hero { padding: 30px 25px; flex-direction: column; text-align: left; min-height: auto; } 
+            .welcome-hero { padding: 30px 25px; flex-direction: column; text-align: left; position: relative; overflow: hidden; min-height: auto; } 
             .welcome-header { font-size: 28px; line-height: 1.4; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 5px; } 
             .welcome-sub { font-size: 15px; margin-bottom: 15px; }
             #welcomeSchool { font-size: 16px !important; }
@@ -172,6 +154,8 @@
             <img src="" id="sidebarImg" class="sidebar-profile-img">
         </div>
         <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary-dark); margin:0; font-size: 24px;">...</h3>
+        <!-- เพิ่มอีเมลจางๆ ใต้ชื่อใน Sidebar -->
+        <p id="sideDisplayEmail" style="text-align:center; color:#a4b0be; font-size:14px; margin: 2px 0 15px 0;"></p>
         
         <div class="info-card">
             <div class="info-item"><label>ชื่อ-นามสกุล</label><span id="dispFullName">...</span></div>
@@ -217,8 +201,9 @@
                 
                 <!-- กล่อง Fixed Height รักษาสัดส่วนเวลาสลับโหมด เพื่อไม่ให้แบนเนอร์ยืดหดกะพริบ -->
                 <div style="min-height: 85px; display: flex; flex-direction: column; justify-content: flex-start; margin-top: 10px;">
+                    <!-- ย้ายป้ายสถานะมารวมกับชื่อโรงเรียนตรงนี้ -->
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; min-height: 28px;">
-                        <div id="welcomeSchool" style="font-family: 'Kanit'; font-size: 18px; font-weight: 500; color: #ffeaa7;">
+                        <div id="welcomeSchool" style="font-family: 'Kanit'; font-size: 19px; font-weight: 500; color: #ffeaa7;">
                             <i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...
                         </div>
                         <div id="verificationStatusBadgeContainer"></div>
@@ -265,6 +250,7 @@
         </div>
     </main>
 
+    <!-- เปลี่ยนปุ่ม + ให้มีการตรวจสอบโหมดการทำงานก่อน -->
     <button onclick="handleFabClick(event)" class="fab-add" id="fabAddBtn"><i class="fas fa-plus"></i></button>
 
     <!-- ================= MODAL เข้าร่วม/สร้างโรงเรียน (Popup) ================= -->
@@ -348,7 +334,7 @@
         </div>
     </div>
 
-    <!-- ================= MODAL กล้องเว็บแคม ================= -->
+    <!-- ================= MODAL กล้องเว็บแคมสำหรับ PC ================= -->
     <div id="cameraModal" class="modal-overlay" style="z-index: 4000;">
         <div class="modal-box">
             <div class="modal-header">
@@ -409,8 +395,8 @@
         let currentUserData = null; 
         let userSchools = []; 
         
-        let activeViewMode = 'all'; 
-        let activeSchool = null; 
+        let activeViewMode = 'all'; // โหมดการแสดงผลปัจจุบัน (all, independent, หรือ school_id)
+        let activeSchool = null; // Object อ้างอิงโรงเรียน (ถ้ามี)
         
         let isSuperAdmin = false;
         let reqSchoolHasAdmin = false;
@@ -523,6 +509,9 @@
             document.getElementById('dispFullName').innerText = `${currentUserData.first_name} ${currentUserData.last_name}`;
             document.getElementById('sideDisplayName').innerHTML = `ครู${currentUserData.first_name}`;
             
+            // เพิ่มการแสดงอีเมลใน Sidebar สีจางๆ ใต้ชื่อโปรไฟล์
+            document.getElementById('sideDisplayEmail').innerText = currentUser.email || '';
+            
             setupProfilePicture(currentUserData.profile_pic, currentUserData.first_name);
 
             const loginInfoBox = document.getElementById('loginInfoBox');
@@ -626,6 +615,7 @@
                 const roleBadge = s.role === 'admin' ? '<span style="background:#ffeaa7; color:#d63031; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">Admin</span>' : '';
                 
                 let actionBtn = '';
+                // หากได้รับอนุมัติแล้วให้แสดงปุ่มออก หากยังให้แสดงปุ่มกากบาทยกเลิกคำขอ
                 if (s.verification_status === 'approved') {
                     actionBtn = `
                         <div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" style="background: #fff0f0; color: #ff4757; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s;" class="leave-btn">
@@ -655,6 +645,7 @@
             container.innerHTML = html;
         }
 
+        // --- เปลี่ยนโหมดผ่าน JS (ไม่ Reload) ---
         function switchSchool(schoolId) { 
             activeViewMode = schoolId;
             localStorage.setItem('active_school_id', schoolId); 
@@ -664,6 +655,8 @@
             else activeSchool = userSchools.find(s => s.school_id === schoolId);
 
             renderDashboard();
+
+            // ปิด Sidebar หากเปิดอยู่ (สำหรับมือถือ)
             const sidebar = document.getElementById('profileSidebar');
             if (sidebar.classList.contains('active')) toggleSidebar();
         }
@@ -682,6 +675,7 @@
             });
         }
 
+        // --- ฟังก์ชันยกเลิกคำขอใหม่ ---
         async function cancelRequest(event, schoolId, schoolName) {
             event.stopPropagation();
             showCustomAlert(`คุณต้องการยกเลิกคำขอเข้าร่วมกลุ่มสถานศึกษา "${schoolName}" ใช่หรือไม่?`, 'confirm', async () => {
@@ -708,7 +702,7 @@
             resubmitBtn.style.display = 'none';
 
             if (status === 'all') {
-                badgeContainer.innerHTML = '';
+                badgeContainer.innerHTML = ''; // โหมดทั้งหมดไม่ต้องแสดงป้ายสถานะโรงเรียน
                 classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
                 fetchClassrooms();
             }
@@ -780,6 +774,7 @@
 
                 let displayData = [];
 
+                // ดึงข้อมูลห้องเรียนออกมาตามโหมดหน้าจอที่เลือก (แม่นยำ 100%)
                 if (activeViewMode === 'all') {
                     displayData = data;
                 } else if (activeViewMode === 'independent') {
