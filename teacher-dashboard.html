@@ -407,7 +407,6 @@
 
         async function fetchProfile() {
             try {
-                // ดึงข้อมูลจาก teachers
                 const { data: teacher, error: profileError } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
                 if (profileError) throw profileError;
 
@@ -592,7 +591,6 @@
                     const { error } = await sysDB.from('teacher_schools').delete().eq('teacher_id', currentUser.id).eq('school_id', schoolId);
                     if (error) throw error;
                     
-                    // ปลดข้อมูลจากตารางหลักด้วย
                     await sysDB.from('teachers').update({ school_id: null, verification_status: null, verification_card_url: null, role: 'teacher' }).eq('teacher_id', currentUser.id).eq('school_id', schoolId);
 
                     if (activeViewMode === schoolId) localStorage.setItem('active_school_id', 'all');
@@ -687,28 +685,25 @@
             } catch (err) { grid.innerHTML = `<div style="color: #ff4757; padding: 40px;">ข้อผิดพลาด: ${err.message}</div>`; } finally { grid.style.opacity = '1'; }
         }
 
-        // ================= แจ้งเตือนแบบ Realtime ทุกคนที่อนุมัติแล้วจะเห็นตรงกัน =================
+        // ================= แจ้งเตือนแบบ Realtime โดยดึงจากตาราง teacher_schools =================
         function setupRealtimePendingRequests() {
             if (pendingRequestsSubscription) {
                 sysDB.removeChannel(pendingRequestsSubscription);
                 pendingRequestsSubscription = null;
             }
 
-            // หาว่าครูคนนี้ มีโรงเรียนไหนที่ "อนุมัติแล้ว" บ้าง (มีสิทธิ์เป็นผู้พิจารณา)
+            // หาโรงเรียนที่คนนี้ได้รับอนุมัติแล้ว
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
 
             if (approvedSchoolIds.length > 0) {
-                checkPendingTeachers(approvedSchoolIds); // โหลดข้อมูลครั้งแรก
+                checkPendingTeachers(approvedSchoolIds); // โหลดครั้งแรก
 
-                // Subscription ตัวเดียว ดักจับการเปลี่ยนแปลงของตาราง teacher_schools ทั้งหมด
-                // และเราจะกรองเอาเฉพาะโรงเรียนที่ครูคนนี้มีสิทธิ์ในฟังก์ชัน Callback
                 pendingRequestsSubscription = sysDB.channel('custom-update-channel')
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'teacher_schools' },
                     (payload) => {
                         const record = payload.new || payload.old;
-                        // ถ้าแถวที่มีการเปลี่ยนแปลง เป็นโรงเรียนที่เรามีสิทธิ์อนุมัติ ให้โหลดกระดิ่งใหม่ทันที
                         if (record && approvedSchoolIds.includes(record.school_id)) {
                             checkPendingTeachers(approvedSchoolIds);
                         }
@@ -725,14 +720,14 @@
             if (!approvedSchoolIds || approvedSchoolIds.length === 0) return;
 
             let pendingData = [];
-            // ดึงคำขอทั้งหมดที่เป็นสถานะ pending จากตาราง teacher_schools ของโรงเรียนที่เรามีสิทธิ์
+            // ดึงคำขอทั้งหมดที่ pending อยู่ในโรงเรียนที่เขามีสิทธิ์อนุมัติ
             const { data: reqs, error } = await sysDB.from('teacher_schools')
                 .select('id, school_id, role, verification_card_url, teachers(teacher_id, first_name, last_name, email, profile_pic)')
                 .eq('verification_status', 'pending')
                 .in('school_id', approvedSchoolIds);
             
             if (!error && reqs) {
-                // กรองคำขอของตัวเองทิ้งไป (ไม่ต้องให้เราอนุมัติให้ตัวเอง)
+                // กรองไม่ให้เห็นคำขอของตัวเอง
                 pendingData = reqs.filter(r => r.teachers && r.teachers.teacher_id !== currentUser.id);
             }
 
@@ -746,6 +741,7 @@
                 notifBtn.style.display = 'block'; badge.style.display = 'none'; window.pendingRequests = [];
             }
             
+            // อัปเดต Modal ถ้าเปิดอยู่
             if (document.getElementById('approvalModal').style.display === 'flex') {
                  renderPendingList();
             }
@@ -765,7 +761,7 @@
                 const avatar = t.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.first_name || 'T'}`;
                 const viewCardBtn = req.verification_card_url ? `<div style="margin-top:10px;"><a href="${sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl}" target="_blank" style="color:var(--primary-light); font-size:13px; text-decoration:underline;"><i class="fas fa-id-card"></i> คลิกดูรูปบัตรที่แนบมาพร้อมคำขอ</a></div>` : '';
                 
-                // ใช้ req.id เป็น ID หลักที่อ้างอิงถึง row ใน teacher_schools
+                // ใช้ req.id ซึ่งเป็น id ของ teacher_schools เป็นตัวอ้างอิงหลัก
                 html += `
                 <div style="border: 1px solid #eee; border-radius: 16px; padding: 20px; margin-bottom: 20px; background: #fafbfc;">
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
@@ -911,7 +907,6 @@
                     applyRole = reqSchoolHasAdmin ? 'teacher' : 'admin'; needsCardUpload = !reqSchoolHasAdmin;
                 }
 
-                // ป้องกันขอซ้ำโรงเรียนเดิม (เช็กจาก teacher_schools)
                 const { data: alreadyJoined } = await sysDB.from('teacher_schools')
                     .select('*')
                     .eq('teacher_id', currentUser.id)
