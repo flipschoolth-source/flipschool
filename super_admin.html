@@ -146,7 +146,7 @@
                 <input type="hidden" id="rejectTsId">
                 <input type="hidden" id="rejectCardUrl">
                 
-                <button onclick="confirmReject()" style="width: 100%; padding: 12px; background: #ff4757; color: white; border: none; border-radius: 10px; font-family: 'Kanit'; font-size: 16px; margin-top: 20px; cursor: pointer;">ยืนยันการปฏิเสธ</button>
+                <button id="btnConfirmReject" onclick="confirmReject()" style="width: 100%; padding: 12px; background: #ff4757; color: white; border: none; border-radius: 10px; font-family: 'Kanit'; font-size: 16px; margin-top: 20px; cursor: pointer; transition: 0.3s;">ยืนยันการปฏิเสธ</button>
             </div>
         </div>
     </div>
@@ -327,11 +327,19 @@
             const tsId = document.getElementById('rejectTsId').value;
             const cardUrl = document.getElementById('rejectCardUrl').value;
             const reason = document.getElementById('rejectReasonText').value.trim();
+            const btn = document.getElementById('btnConfirmReject');
 
             if (!reason) {
                 showCustomAlert("กรุณาระบุเหตุผลที่ปฏิเสธ เพื่อให้ผู้ใช้งานทำการแก้ไขครับ", "warning");
                 return;
             }
+
+            // 1. เปลี่ยนสถานะปุ่มเพื่อแจ้งเตือนให้ผู้ใช้รู้ว่าระบบกำลังทำงานเบื้องหลัง
+            const originalBtnText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
 
             try {
                 await sysDB.from('teacher_schools').update({ 
@@ -342,11 +350,22 @@
                 // ลบรูปภาพทิ้งหลังปฏิเสธเสร็จ (เพราะเดี๋ยวต้องให้ผู้ใช้ส่งมาใหม่)
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
 
+                // 2. ปิดป๊อปอัปเหตุผล "ทันที" เพื่อไม่ให้ขวางหน้าจอ
+                closeRejectModal();
+
+                // 3. แสดงแจ้งเตือนความสำเร็จและรีเฟรชรายการ
                 showCustomAlert('ปฏิเสธคำขอและส่งกลับให้แก้ไขเรียบร้อย', 'success', () => {
-                    closeRejectModal();
                     fetchPendingRequests();
                 });
-            } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+            } catch (err) { 
+                showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); 
+            } finally {
+                // คืนค่าปุ่มกลับมาเผื่อกรณีที่เกิด Error แล้วต้องกดใหม่
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
         }
 
         // ดึงเหตุผลเก่าๆ มาเป็นตัวเลือก
