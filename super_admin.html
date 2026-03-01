@@ -167,8 +167,9 @@
         async function verifySuperAdmin() {
             const { data: teacher, error } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
             if (error || !teacher || teacher.role !== 'super_admin') {
-                alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-                window.location.href = 'teacher-dashboard.html';
+                showCustomAlert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "error", () => {
+                    window.location.href = 'teacher-dashboard.html';
+                });
                 return;
             }
 
@@ -291,21 +292,23 @@
         }
 
         async function approveRequest(tsId, cardUrl) {
-            if(!confirm('ยืนยันให้สิทธิ์ Admin กลุ่มสถานศึกษานี้?')) return;
-            try {
-                await sysDB.from('teacher_schools').update({ 
-                    verification_status: 'approved', 
-                    reject_reason: null,
-                    approved_by: currentUser.id, 
-                    approved_at: new Date().toISOString() 
-                }).eq('id', tsId);
-                
-                // ลบรูปภาพทิ้งหลังอนุมัติเสร็จ
-                if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
-                
-                alert('อนุมัติสิทธิ์สำเร็จ!'); 
-                fetchPendingRequests();
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            showCustomAlert('ยืนยันให้สิทธิ์ Admin กลุ่มสถานศึกษานี้?', 'confirm', async () => {
+                try {
+                    await sysDB.from('teacher_schools').update({ 
+                        verification_status: 'approved', 
+                        reject_reason: null,
+                        approved_by: currentUser.id, 
+                        approved_at: new Date().toISOString() 
+                    }).eq('id', tsId);
+                    
+                    // ลบรูปภาพทิ้งหลังอนุมัติเสร็จ
+                    if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
+                    
+                    showCustomAlert('อนุมัติสิทธิ์สำเร็จ!', 'success', () => {
+                        fetchPendingRequests();
+                    });
+                } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+            });
         }
 
         // --- ระบบปฏิเสธแบบใหม่ ---
@@ -326,7 +329,7 @@
             const reason = document.getElementById('rejectReasonText').value.trim();
 
             if (!reason) {
-                alert("กรุณาระบุเหตุผลที่ปฏิเสธ เพื่อให้ผู้ใช้งานทำการแก้ไขครับ");
+                showCustomAlert("กรุณาระบุเหตุผลที่ปฏิเสธ เพื่อให้ผู้ใช้งานทำการแก้ไขครับ", "warning");
                 return;
             }
 
@@ -339,10 +342,11 @@
                 // ลบรูปภาพทิ้งหลังปฏิเสธเสร็จ (เพราะเดี๋ยวต้องให้ผู้ใช้ส่งมาใหม่)
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
 
-                alert('ปฏิเสธคำขอและส่งกลับให้แก้ไขเรียบร้อย'); 
-                closeRejectModal();
-                fetchPendingRequests();
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showCustomAlert('ปฏิเสธคำขอและส่งกลับให้แก้ไขเรียบร้อย', 'success', () => {
+                    closeRejectModal();
+                    fetchPendingRequests();
+                });
+            } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         // ดึงเหตุผลเก่าๆ มาเป็นตัวเลือก
@@ -367,10 +371,10 @@
         }
 
         async function handleLogout() {
-            if(confirm('ต้องการออกจากระบบใช่หรือไม่?')) { 
+            showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'confirm', async () => {
                 await sysDB.auth.signOut(); 
                 location.href='teacher-login.html'; 
-            }
+            });
         }
     </script>
 </body>
