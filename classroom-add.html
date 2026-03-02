@@ -4,47 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
-    <link rel="icon" href="img/favicon.png">
+    
+    <!-- Favicon แบบเดียวกับหน้าอื่นๆ (Emoji 🎓 + พื้นหลังมุมมน) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
+    
     <script src="js/env-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <!-- ฟอนต์ภาษาไทย Kanit & Sarabun -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* ตัวแปรสีสำหรับการใช้งานให้ตรงกับธีมหลัก */
         :root {
             --primary: #00008B;
             --primary-light: #0000cd;
             --accent: #FF8C00;
-            --bg-body: #f4f7fe;
+            --bg-color: #f4f7fe;
+            --text-main: #2d3436;
+            --text-muted: #636e72;
             --white: #ffffff;
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body { height: 100%; margin: 0; padding: 0; }
         body {
             font-family: 'Sarabun', sans-serif;
-            background-color: var(--bg-body);
+            background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
-            color: #2b2d42;
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
 
-        /* --- Navbar (Same as index.html) --- */
-        nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 40px; background-color: var(--white);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        /* --- Navbar (ธีมสีน้ำเงินเข้มเหมือนหน้า Login) --- */
+        nav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 5%; height: 90px; background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
+            position: sticky; top: 0; z-index: 1000; width: 100%; 
         }
-        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; }
-        .logo-container img { height: 40px; }
-        .brand-name { font-size: 22px; font-weight: 600; color: #333; font-family: 'Kanit'; }
-        .brand-name span { color: var(--primary); }
-        .back-link { 
-            text-decoration: none; color: #666; font-size: 15px; 
-            display: flex; align-items: center; gap: 8px; transition: 0.2s;
-            font-family: 'Kanit';
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; transition: 0.3s ease; }
+        .logo-container:hover { transform: translateY(-2px); }
+        .logo-emoji { 
+            font-size: 32px; line-height: 1; background: white; 
+            width: 52px; height: 52px; border-radius: 14px; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            color: var(--text-main);
         }
-        .back-link:hover { color: var(--primary); }
+        .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit', sans-serif; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun', sans-serif; }
+        
+        .btn-back {
+            text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
+            padding: 10px 24px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-weight: 500; font-size: 15px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-back:hover {
+            background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white;
+        }
 
         /* --- Content --- */
         .main-content {
@@ -55,35 +83,42 @@
             padding: 40px 20px;
         }
 
-        .container { width: 100%; max-width: 550px; }
+        .container { width: 100%; max-width: 600px; }
+        
+        /* Card สไตล์เดียวกับ Login */
         .card-form {
-            background: var(--white); border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            padding: 40px; border: 1px solid #eee;
+            background: white; width: 100%; border-radius: 30px; padding: 40px 50px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03);
+            position: relative; overflow: hidden; box-sizing: border-box;
+        }
+        .card-form::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: var(--accent);
         }
 
-        h2 { font-family: 'Kanit', sans-serif; margin-top: 0; color: var(--primary); font-size: 24px; display: flex; align-items: center; gap: 12px; }
-        p.subtitle { color: #888; margin-bottom: 30px; margin-top: -10px; font-size: 14px; }
+        .card-header { margin-bottom: 30px; }
+        .card-header h2 { font-family: 'Kanit', sans-serif; margin: 0 0 5px 0; color: var(--primary); font-size: 26px; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+        .card-header p { color: var(--text-muted); margin: 0; font-size: 15px; }
         
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .full-width { grid-column: span 2; }
 
-        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #444; }
+        .input-group label { display: block; font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
         input[type="text"], input[type="number"], select {
-            width: 100%; padding: 12px 15px; border: 1.5px solid #eee;
-            border-radius: 12px; font-family: 'Sarabun', sans-serif; font-size: 16px;
-            box-sizing: border-box; transition: 0.3s; background: #fafafa;
+            width: 100%; padding: 14px 20px; border: 2px solid #edf2f7;
+            border-radius: 14px; font-family: 'Sarabun', sans-serif; font-size: 16px;
+            box-sizing: border-box; transition: 0.3s; background: #f8faff; color: var(--text-main);
         }
-        input:focus, select:focus { border-color: var(--primary); outline: none; background: white; box-shadow: 0 0 0 4px rgba(0, 0, 139, 0.05); }
+        input:focus, select:focus { border-color: var(--accent); outline: none; background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
 
         /* Color Picker */
-        .color-options { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 5px; }
+        .color-options { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px; }
         .color-option {
-            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            width: 45px; height: 45px; border-radius: 50%; cursor: pointer;
             border: 3px solid white; transition: 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        .color-option.selected { transform: scale(1.15); box-shadow: 0 0 0 2px var(--primary); }
+        .color-option.selected { transform: scale(1.15); box-shadow: 0 0 0 3px var(--accent); border-color: white; }
         
         /* Gradients */
         .g-1 { background: linear-gradient(135deg, #00008B, #4361ee); }
@@ -92,59 +127,91 @@
         .g-4 { background: linear-gradient(135deg, #FF8C00, #ffae42); }
 
         .custom-color-btn {
-            background: #f0f0f0; border: 2px dashed #ccc;
+            background: #f8faff; border: 2px dashed #cbd5e1;
             display: flex; justify-content: center; align-items: center;
-            color: #888; width: 40px; height: 40px; border-radius: 50%;
-            cursor: pointer; position: relative; overflow: hidden;
+            color: #a4b0be; width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; position: relative; overflow: hidden; transition: 0.2s;
         }
-        .custom-color-btn input[type="color"] { position: absolute; opacity: 0; cursor: pointer; }
+        .custom-color-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0f4ff; }
+        .custom-color-btn input[type="color"] { position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
         .btn-submit {
-            width: 100%; padding: 15px; border: none; border-radius: 50px;
+            width: 100%; padding: 16px; border: none; border-radius: 14px;
             background: var(--primary); color: white;
             font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 600;
             cursor: pointer; margin-top: 30px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.2); }
-        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        .footer { width: 100%; padding: 25px; font-size: 0.9rem; color: #888; text-align: center; background: #fff; border-top: 1px solid #eee; box-sizing: border-box; }
+        /* --- Footer --- */
+        .footer { padding: 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; }
 
-        @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
+        /* --- Custom Alert Modal --- */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
+        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
+        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
+        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
+
+        @media (max-width: 768px) {
+            nav { padding: 0 15px; height: 65px; } 
+            .logo-emoji { width: 38px; height: 38px; font-size: 20px; border-radius: 10px; }
+            .brand-name { font-size: 20px; margin-bottom: 0; }
+            .slogan { display: none; }
+            .btn-back { padding: 6px 14px; font-size: 13px; }
+            
+            .main-content { padding: 20px 15px; }
+            .card-form { padding: 30px 25px; border-radius: 20px; }
+            .card-header h2 { font-size: 22px; }
+            .form-grid { grid-template-columns: 1fr; gap: 15px; } 
+            .full-width { grid-column: span 1; }
+            .btn-submit { font-size: 16px; padding: 14px; }
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <a href="teacher-dashboard.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo">
-            <div class="brand-name">Flip<span>School</span></div>
+            <div class="logo-emoji">🎓</div>
+            <div class="logo-text-group">
+                <div class="brand-name" id="displayAppName">Flip<span>School</span></div>
+                <div class="slogan" id="displayAppSlogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+            </div>
         </a>
-        <a href="teacher-dashboard.html" class="back-link">
-            <i class="fas fa-times"></i> ยกเลิก
+        <a href="teacher-dashboard.html" class="btn-back">
+            <i class="fas fa-arrow-left"></i> ยกเลิก
         </a>
     </nav>
 
     <div class="main-content">
         <div class="container">
             <div class="card-form">
-                <h2><i class="fas fa-plus-circle"></i> สร้างห้องเรียนใหม่</h2>
-                <p class="subtitle">ระบุรายละเอียดวิชาเพื่อเริ่มต้นจัดการเรียนรู้แบบ GLORY Model</p>
+                <div class="card-header">
+                    <h2><i class="fas fa-plus-circle" style="color: var(--accent);"></i> สร้างห้องเรียนใหม่</h2>
+                    <p>ระบุรายละเอียดวิชาเพื่อเริ่มต้นจัดการเรียนรู้</p>
+                </div>
                 
                 <form onsubmit="createClassroom(event)">
                     <div class="form-grid">
                         <div class="input-group full-width">
-                            <label>ชื่อวิชา *</label>
+                            <label>ชื่อวิชา <span style="color: #ff4757;">*</span></label>
                             <input type="text" id="subject" placeholder="เช่น ภาษาไทย, เทคโนโลยี" required>
                         </div>
 
                         <div class="input-group">
-                            <label>ระดับชั้น/ห้อง *</label>
+                            <label>ระดับชั้น/ห้อง <span style="color: #ff4757;">*</span></label>
                             <input type="text" id="room" placeholder="เช่น ป.1/1, ม.3/2" required>
                         </div>
 
                         <div class="input-group">
-                            <label>ปีการศึกษา (พ.ศ.) *</label>
+                            <label>ปีการศึกษา (พ.ศ.) <span style="color: #ff4757;">*</span></label>
                             <input type="number" id="year" value="2569" required>
                         </div>
 
@@ -165,7 +232,7 @@
                                 <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(135deg, #11998e, #38ef7d)')"></div>
                                 <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(135deg, #FF8C00, #ffae42)')"></div>
                                 
-                                <div class="custom-color-btn" id="customColorBtn">
+                                <div class="custom-color-btn" id="customColorBtn" title="เลือกสีอื่นๆ">
                                     <i class="fas fa-eye-dropper" id="plusIcon"></i>
                                     <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
                                 </div>
@@ -173,26 +240,99 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-submit" id="btnSave">ยืนยันการสร้างห้องเรียน</button>
+                    <button type="submit" class="btn-submit" id="btnSave">
+                        ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <footer class="footer">
-        &copy; 2026 FlipSchool. วิจัยและพัฒนานวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model
-    </footer>
+    <!-- Footer -->
+    <div class="footer footer-display-text"></div>
 
-    
-
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon">
+                <i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i>
+            </div>
+            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="custom-modal-message"></p>
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let selectedGradient = 'linear-gradient(135deg, #00008B, #4361ee)'; 
+        let alertCallback = null;
+
+        // ================= Custom Alert =================
+        function showCustomAlert(message, type = 'error', callback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const titleEl = document.getElementById('customAlertTitle');
+            const msgEl = document.getElementById('customAlertMessage');
+            const iconEl = document.getElementById('customAlertIcon');
+            const okBtn = document.getElementById('customAlertOkBtn');
+
+            msgEl.innerText = message;
+            alertCallback = callback;
+
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
+            } else {
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
+            }
+
+            modal.classList.add('show');
+            setTimeout(() => { okBtn.focus(); }, 100);
+        }
+
+        function closeCustomAlert() { 
+            document.getElementById('customAlertModal').classList.remove('show'); 
+            if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!sysDB) { alert('ระบบฐานข้อมูลไม่พร้อมใช้งาน'); return; }
+            // โหลดตั้งค่า Logo, Slogan และ Footer จาก config.js
+            if (typeof APP_CONFIG !== 'undefined') {
+                const brandNameEl = document.getElementById('displayAppName');
+                if (brandNameEl && APP_CONFIG.APP_NAME) {
+                    if (APP_CONFIG.APP_NAME === 'FlipSchool') {
+                        brandNameEl.innerHTML = 'Flip<span>School</span>';
+                    } else {
+                        brandNameEl.textContent = APP_CONFIG.APP_NAME;
+                    }
+                }
+                const sloganEl = document.getElementById('displayAppSlogan');
+                if (sloganEl && APP_CONFIG.APP_SLOGAN) {
+                    sloganEl.textContent = APP_CONFIG.APP_SLOGAN;
+                }
+
+                document.querySelectorAll('.footer-display-text').forEach(el => {
+                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
+                    const footerText = APP_CONFIG.FOOTER_TEXT || '';
+                    const ownerName = APP_CONFIG.OWNER?.NAME || '';
+                    const ownerPos = APP_CONFIG.OWNER?.POSITION || '';
+                    const ownerSchool = APP_CONFIG.OWNER?.SCHOOL || '';
+                    const ownerAff = APP_CONFIG.OWNER?.AFFILIATION || '';
+                    const ownerProv = APP_CONFIG.OWNER?.PROVINCE || '';
+                    
+                    el.innerHTML = `&copy; ${year} ${footerText}<br>ข้อมูลผู้พัฒนา / เจ้าของลิขสิทธิ์: ${ownerName} ${ownerPos} ${ownerSchool} สังกัด${ownerAff} จ.${ownerProv}`;
+                });
+            }
+
+            if (typeof sysDB === 'undefined') { 
+                showCustomAlert('ระบบฐานข้อมูลไม่พร้อมใช้งาน', 'error'); 
+                return; 
+            }
             
             const { data: { user } } = await sysDB.auth.getUser();
             if (!user) window.location.href = 'teacher-login.html';
@@ -204,7 +344,7 @@
             selectedGradient = gradient;
             
             const customBtn = document.getElementById('customColorBtn');
-            customBtn.style.background = '#f0f0f0';
+            customBtn.style.background = '#f8faff';
         }
 
         function handleCustomColor(input) {
@@ -215,6 +355,7 @@
             const customBtn = document.getElementById('customColorBtn');
             customBtn.classList.add('selected');
             customBtn.style.background = color;
+            customBtn.style.borderColor = 'white';
         }
 
         async function createClassroom(e) {
@@ -242,9 +383,11 @@
                     .eq('teacher_id', user.id)
                     .single();
 
-                if (tErr || !teacher.school_id) throw new Error("ไม่พบข้อมูลโรงเรียนของคุณ");
+                if (tErr || !teacher.school_id) {
+                    // ไม่พบโรงเรียน ไม่เป็นไร ให้อยู่ในพื้นที่อิสระ (school_id = null)
+                }
 
-                // 3. ตรวจสอบห้องเรียนซ้ำ (Manual Check เพื่อความแม่นยำและการแจ้งเตือน)
+                // 3. ตรวจสอบห้องเรียนซ้ำ (Manual Check)
                 const { data: existing, error: checkErr } = await sysDB
                     .from('classrooms')
                     .select('classroom_id')
@@ -256,16 +399,16 @@
                     .maybeSingle();
 
                 if (existing) {
-                    alert(`⚠️ คุณมีห้องเรียนวิชา "${subject}" สำหรับ "${room}" ในปี/เทอมนี้อยู่แล้วครับ`);
+                    showCustomAlert(`คุณมีห้องเรียนวิชา "${subject}" สำหรับห้อง "${room}" ในปี/เทอมนี้อยู่แล้วครับ`, 'warning');
                     btn.disabled = false;
-                    btn.innerText = 'ยืนยันการสร้างห้องเรียน';
+                    btn.innerHTML = 'ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
                     return;
                 }
 
                 // 4. บันทึกข้อมูล
                 const { error: insErr } = await sysDB.from('classrooms').insert([{
                     teacher_id: user.id,
-                    school_id: teacher.school_id,
+                    school_id: teacher?.school_id || null, // ถ้าไม่มีกลุ่ม ก็ให้สร้างแบบไม่มีกลุ่มได้
                     subject_name: subject,
                     room_name: room,
                     academic_year: year,
@@ -276,13 +419,15 @@
                 if (insErr) throw insErr;
 
                 // 5. สำเร็จ
-                window.location.href = 'teacher-dashboard.html';
+                showCustomAlert('สร้างห้องเรียนสำเร็จ!', 'success', () => {
+                    window.location.href = 'teacher-dashboard.html';
+                });
 
             } catch (err) {
                 console.error(err);
-                alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+                showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 btn.disabled = false;
-                btn.innerText = 'ยืนยันการสร้างห้องเรียน';
+                btn.innerHTML = 'ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
             }
         }
     </script>
