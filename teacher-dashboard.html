@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard - FlipSchool</title>
-    
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='65'>🎓</text></svg>">
     <script src="js/env-config.js"></script>
+    <link rel="icon" type="image/png" href="img/favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
@@ -406,6 +405,7 @@
         let activeViewMode = 'all'; 
         let activeSchool = null; 
         
+        let isSuperAdmin = false;
         let reqSchoolHasAdmin = false;
         let isCreatingNewSchool = false;
         let isAppealing = false; 
@@ -463,15 +463,12 @@
             }
         }
 
-        // ================= ระบบโหลดเฉพาะส่วนที่เปลี่ยนแปลง =================
         async function refreshDashboardState() {
             try {
-                // ดึงข้อมูลครูใหม่
                 const { data: teacher, error: tErr } = await sysDB.from('teachers').select('*').eq('teacher_id', currentUser.id).single();
                 if (tErr) throw tErr;
                 currentUserData = teacher;
 
-                // ดึงข้อมูลกลุ่มสถานศึกษาใหม่
                 const { data: schools, error: sErr } = await sysDB.from('teacher_schools')
                     .select('id, school_id, role, verification_status, reject_reason, verification_card_url, schools(school_name, school_abbr)')
                     .eq('teacher_id', currentUser.id);
@@ -585,10 +582,11 @@
             container.innerHTML = html;
         }
 
-        // โหลดข้อมูลแบบเนียนๆ
+        // --- แก้ไขบั๊กคลิกแล้วไม่โหลดข้อมูล ---
         function switchSchool(schoolId) { 
             localStorage.setItem('active_school_id', schoolId); 
             if (document.getElementById('profileSidebar').classList.contains('active')) toggleSidebar();
+            // สั่งให้ดึงข้อมูลใหม่ทั้งหมดทันที
             refreshDashboardState();
         }
 
@@ -617,6 +615,8 @@
                     const { error } = await sysDB.from('teacher_schools').delete().eq('teacher_id', currentUser.id).eq('school_id', schoolId);
                     if (error) throw error;
                     
+                    await sysDB.from('teachers').update({ school_id: null, verification_status: null, verification_card_url: null, role: 'teacher' }).eq('teacher_id', currentUser.id).eq('school_id', schoolId);
+
                     if (activeViewMode === schoolId) localStorage.setItem('active_school_id', 'all');
                     showCustomAlert('คุณได้ออกจากกลุ่มสถานศึกษาเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
                 } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
@@ -630,6 +630,8 @@
                     const { error } = await sysDB.from('teacher_schools').delete().eq('teacher_id', currentUser.id).eq('school_id', schoolId);
                     if (error) throw error;
                     
+                    await sysDB.from('teachers').update({ school_id: null, verification_status: null, verification_card_url: null, role: 'teacher' }).eq('teacher_id', currentUser.id).eq('school_id', schoolId);
+
                     if (activeViewMode === schoolId) localStorage.setItem('active_school_id', 'all');
                     showCustomAlert('ยกเลิกคำขอเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
                 } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
@@ -760,7 +762,7 @@
             const diffDay = Math.floor(diffHour / 24);
             if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
             return date.toLocaleDateString('th-TH');
-        }
+        } // <--- เพิ่มปีกกาปิดบรรทัดนี้ครับ
 
         // ================= กระดิ่งแจ้งเตือนแบบ Realtime ที่ปลอดภัยและแม่นยำ =================
         function setupRealtimePendingRequests() {
@@ -796,20 +798,16 @@
         async function checkPendingTeachers() {
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
-            const notifBtn = document.getElementById('notificationBtn');
-            const badge = document.getElementById('notifBadge');
-            const btnWrapper = document.getElementById('notificationBtn');
-
             if (approvedSchoolIds.length === 0) {
-                notifBtn.style.display = 'none';
+                document.getElementById('notificationBtn').style.display = 'none';
                 window.pendingRequests = [];
                 return;
             }
 
             try {
-                // 1. วิธีปลอดภัย: ดึงตารางที่ผูกพันกันด้วย Relation
+                // 1. เปลี่ยนมาใช้วิธี Manual Join (ดึงแยกตาราง) เพื่อแก้ปัญหาบั๊ก Foreign Key 100%
                 const { data: reqs, error: reqErr } = await sysDB.from('teacher_schools')
-                    .select('*, teachers(teacher_id, first_name, last_name, email, profile_pic), schools(school_id, school_name, school_abbr)')
+                    .select('*')
                     .eq('verification_status', 'pending')
                     .in('school_id', approvedSchoolIds)
                     .order('created_at', { ascending: false });
@@ -818,16 +816,30 @@
 
                 let pendingData = [];
                 if (reqs && reqs.length > 0) {
+                    const teacherIds = reqs.map(r => r.teacher_id);
+                    const schoolIds = reqs.map(r => r.school_id);
+
+                    // 2. ดึงข้อมูลครูและโรงเรียน
+                    const { data: teachersData } = await sysDB.from('teachers').select('teacher_id, first_name, last_name, email, profile_pic').in('teacher_id', teacherIds);
+                    const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
+
+                    // 3. ประกอบร่างข้อมูลเข้าด้วยกัน
                     reqs.forEach(r => {
-                        if (r.teacher_id !== currentUser.id) { // ซ่อนไม่ให้เห็นคำขอตัวเอง
+                        if (r.teacher_id !== currentUser.id) { // ป้องกันไม่ให้เห็นคำขอของตัวเอง
+                            const tData = teachersData ? teachersData.find(t => t.teacher_id === r.teacher_id) : {};
+                            const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
                             pendingData.push({
                                 ...r,
-                                teacher: r.teachers || {},
-                                schools: r.schools || {}
+                                teacher: tData || {},
+                                schools: sData || {}
                             });
                         }
                     });
                 }
+
+                const notifBtn = document.getElementById('notificationBtn');
+                const badge = document.getElementById('notifBadge');
+                const btnWrapper = document.getElementById('notificationBtn');
 
                 window.pendingRequests = pendingData;
 
@@ -837,7 +849,7 @@
                     badge.innerText = pendingData.length; 
                     btnWrapper.classList.add('ringing'); 
                 } else {
-                    notifBtn.style.display = 'flex'; // แสดงไอคอนกระดิ่งไว้ตลอด
+                    notifBtn.style.display = 'flex'; 
                     badge.style.display = 'none'; 
                     btnWrapper.classList.remove('ringing');
                 }
@@ -948,6 +960,7 @@
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             try {
                 await sysDB.from('teacher_schools').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
+                await sysDB.from('teachers').update({ verification_status: 'approved', role: requestRole, school_id: schoolId, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('teacher_id', teacherId);
                 if (cardUrl) await deleteCardFromStorage(cardUrl);
                 removePendingRequestCard(tsId);
             } catch(err) {
@@ -979,6 +992,7 @@
 
             try {
                 await sysDB.from('teacher_schools').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('id', tsId);
+                await sysDB.from('teachers').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('teacher_id', teacherId).eq('school_id', schoolId);
                 if (cardUrl) await deleteCardFromStorage(cardUrl);
                 removePendingRequestCard(tsId);
             } catch(err) {
@@ -1116,6 +1130,14 @@
                 } else {
                     await sysDB.from('teacher_schools').insert([{ teacher_id: currentUser.id, school_id: targetSchoolId, role: applyRole, verification_card_url: cardUrl, verification_status: 'pending' }]);
                 }
+                
+                await sysDB.from('teachers').update({
+                    school_id: targetSchoolId,
+                    role: applyRole,
+                    verification_status: 'pending',
+                    verification_card_url: cardUrl || currentUserData.verification_card_url,
+                    reject_reason: null
+                }).eq('teacher_id', currentUser.id);
 
                 localStorage.setItem('active_school_id', targetSchoolId);
                 showCustomAlert('ส่งคำขอสำเร็จ! ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว', 'success', () => { 
