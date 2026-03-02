@@ -3,95 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบครู - FlipSchool</title>
+    <title>เข้าสู่ระบบคุณครู - FlipSchool</title>
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="img/favicon.png">
-
+    <!-- Favicon แบบ Emoji 🎓 + พื้นหลังมุมมน -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='65'>🎓</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='65'>🎓</text></svg>">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-
-    <!-- เพิ่มสคริปต์ Google Identity Services -->
+    <script src="js/supabase-db.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        /* --- ธีมหลัก --- */
         :root { 
             --primary: #00008B; 
-            --primary-light: #0052D4;
+            --primary-light: #0000cd;
             --accent: #FF8C00; 
-            --bg-body: #f4f7fe; 
             --text-main: #2d3436; 
             --text-muted: #636e72; 
+            --white: #ffffff;
+            --bg-color: #f4f7fe;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
 
-        html, body { height: 100%; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; }
+        /* --- Navbar (ธีมสีน้ำเงินเข้ม) --- */
+        nav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 5%; height: 90px; background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+        }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; }
+        .logo-emoji { 
+            font-size: 32px; 
+            line-height: 1; 
+            background: white; 
+            width: 52px; 
+            height: 52px; 
+            border-radius: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+        }
+        .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit'; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun'; }
 
-        /* --- Navbar ชิดขอบบน --- */
-        nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 40px; background-color: #ffffff;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box;
+        .btn-back {
+            text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
+            padding: 10px 24px; border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: 15px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-back:hover {
+            background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white;
+        }
+
+        /* --- Main Login Box --- */
+        .main-container {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px 20px; width: 100%; margin: 0 auto;
+        }
+
+        .login-card {
+            background: white; width: 100%; max-width: 450px; border-radius: 30px; padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03);
+            text-align: center; position: relative; overflow: hidden;
         }
         
-        .logo-container { display: flex; align-items: center; gap: 15px; cursor: pointer; text-decoration: none; }
-        .logo-container img { height: 45px; width: auto; }
-        .brand-name { font-size: 22px; font-weight: 700; color: var(--text-main); font-family: 'Kanit', sans-serif; }
-        .brand-name span { color: var(--primary); }
-        .slogan { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #666; }
-        
-        .back-link {
-            color: var(--text-muted); text-decoration: none; font-size: 15px;
-            display: flex; align-items: center; gap: 6px; transition: color 0.2s;
-            font-family: 'Kanit', sans-serif; font-weight: 500;
+        .login-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: var(--accent);
         }
-        .back-link:hover { color: var(--primary); }
 
-        .container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 40px 20px; box-sizing: border-box; }
-        .card-glass { background: white; border-radius: 30px; padding: 40px; width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.04); border: 1px solid #edf2f7; }
-        .card-header { text-align: center; margin-bottom: 30px; }
-        .card-header .icon-circle { width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: var(--primary); font-size: 35px; }
-        .card-header h2 { font-family: 'Kanit', sans-serif; color: var(--text-main); font-weight: 700; margin: 0 0 5px 0; font-size: 28px; }
-        .card-header p { color: var(--text-muted); margin: 0; font-size: 15px; }
+        .login-header { margin-bottom: 30px; }
+        .login-header h1 { font-family: 'Kanit'; font-size: 28px; color: var(--primary); margin-bottom: 5px; font-weight: 700; }
+        .login-header p { font-size: 15px; color: var(--text-muted); margin: 0; }
+
+        .form-group { text-align: left; margin-bottom: 20px; position: relative; }
+        .form-label { display: block; font-family: 'Kanit'; font-size: 15px; font-weight: 500; color: #2d3436; margin-bottom: 8px; }
+        .form-input { 
+            width: 100%; padding: 15px 20px; border: 2px solid #edf2f7; border-radius: 15px; 
+            font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; box-sizing: border-box; background: #f8faff;
+        }
+        .form-input:focus { border-color: var(--accent); outline: none; background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
         
-        /* --- เส้นคั่น --- */
-        .divider { display: flex; align-items: center; text-align: center; margin: 25px 0; color: #a4b0be; font-size: 14px; font-weight: 500; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eef2f7; }
-        .divider::before { margin-right: 15px; } .divider::after { margin-left: 15px; }
+        .password-toggle { position: absolute; right: 20px; top: 43px; color: #a4b0be; cursor: pointer; font-size: 18px; transition: 0.2s; }
+        .password-toggle:hover { color: var(--accent); }
 
-        /* --- ฟอร์ม Input --- */
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 14px; }
-        .input-wrapper { position: relative; }
-        .input-wrapper input { width: 100%; padding: 14px 14px 14px 45px; border: 2px solid #eef2f7; border-radius: 15px; font-family: 'Sarabun', sans-serif; font-size: 15px; box-sizing: border-box; transition: 0.3s; color: #333; background: #fafbfc; }
-        .input-wrapper input:focus { border-color: var(--primary-light); outline: none; background: #fff; box-shadow: 0 0 0 4px rgba(0, 82, 212, 0.1); }
-        .input-wrapper .icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #a4b0be; font-size: 16px; }
-        .toggle-password { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #a4b0be; transition: 0.3s; }
-        .toggle-password:hover { color: var(--primary); }
+        .options-row { display: flex; justify-content: flex-end; margin-bottom: 25px; font-size: 14px; }
+        .forgot-link { color: var(--primary); text-decoration: none; font-weight: 600; font-family: 'Kanit'; transition: 0.2s; }
+        .forgot-link:hover { color: var(--accent); text-decoration: underline; }
 
-        .remember-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 5px; }
-        .remember-text { font-size: 14px; color: var(--text-muted); font-weight: 500; cursor: pointer; }
-        
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #dcdde1; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(20px); }
+        .btn-submit {
+            width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 15px;
+            font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.2); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        .btn-submit { background-color: var(--primary); border-radius: 15px; padding: 16px; font-family: 'Kanit', sans-serif; font-weight: 500; font-size: 18px; color: white; border: none; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
-        .btn-submit:hover:not(:disabled) { background-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.2); }
-        .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .divider { display: flex; align-items: center; text-align: center; margin: 30px 0; color: #a4b0be; font-size: 14px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #edf2f7; }
+        .divider:not(:empty)::before { margin-right: 15px; }
+        .divider:not(:empty)::after { margin-left: 15px; }
 
-        .footer { width: 100%; padding: 25px; font-size: 0.9rem; color: #888; text-align: center; background: #fff; border-top: 1px solid #edf2f7; box-sizing: border-box; margin-top: auto; }
+        /* Google Sign In Container */
+        .google-btn-container { width: 100%; min-height: 44px; display: flex; justify-content: center; align-items: center; margin-bottom: 25px; }
+
+        .register-link { margin-top: 10px; font-size: 15px; color: var(--text-muted); }
+        .register-link a { color: var(--accent); text-decoration: none; font-weight: 600; font-family: 'Kanit'; }
+        .register-link a:hover { text-decoration: underline; }
+
+        .footer { padding: 25px; font-size: 0.85rem; color: #a4b0be; text-align: center; margin-top: auto; }
 
         /* --- Custom Alert Modal --- */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
@@ -99,83 +141,77 @@
         .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
         .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
         .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
-        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 82, 212, 0.2); }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
 
-        @media (max-width: 768px) { nav { padding: 15px 20px; } .card-glass { padding: 30px 20px; border-radius: 20px; border: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); } .container { padding: 20px 10px; } }
+        @media (max-width: 768px) {
+            nav { padding: 0 20px; height: 75px; }
+            .logo-emoji { width: 42px; height: 42px; font-size: 24px; border-radius: 10px; }
+            .brand-name { font-size: 22px; }
+            .slogan { display: none; }
+            .btn-back { padding: 8px 16px; font-size: 14px; }
+            
+            .main-container { padding: 20px; }
+            .login-card { padding: 30px 20px; border-radius: 25px; }
+            .login-header h1 { font-size: 24px; }
+        }
     </style>
 </head>
-<body> 
-    
+<body>
+
     <nav>
         <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo" onerror="this.style.display='none'">
+            <div class="logo-emoji">🎓</div>
             <div class="logo-text-group">
-                <div class="brand-name">Flip<span>School</span></div> 
+                <div class="brand-name">Flip<span>School</span></div>
+                <div class="slogan">นวัตกรรมการศึกษา</div>
             </div>
         </a>
-        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> กลับหน้าหลัก</a>
+        <a href="login.html" class="btn-back"><i class="fas fa-arrow-left"></i> ย้อนกลับ</a>
     </nav>
 
-    <div class="container">
-        <div class="card-glass">
-            <div class="card-header">
-                <div class="icon-circle">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                </div>
-                <h2>เข้าสู่ระบบครู</h2>
-                <p>ยินดีต้อนรับกลับเข้าสู่ระบบ FlipSchool</p>
-            </div>
-            
-            <!-- ปุ่มเข้าสู่ระบบด้วย Google -->
-            <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 10px;">
-                <div id="googleSignInBtn"></div>
+    <main class="main-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>เข้าสู่ระบบสำหรับผู้สอน</h1>
+                <p>ยินดีต้อนรับกลับสู่พื้นที่จัดการเรียนรู้</p>
             </div>
 
-            <div class="divider"><span>หรือ เข้าสู่ระบบด้วยอีเมล</span></div>
+            <!-- กล่องสำหรับปุ่ม Google Sign In -->
+            <div id="googleSignInBtn" class="google-btn-container">
+                <i class="fas fa-spinner fa-spin" style="color: #a4b0be; font-size: 20px;"></i>
+            </div>
 
-            <form onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label class="input-label" style="font-family: 'Kanit';">อีเมล</label>
-                    <div class="input-wrapper">
-                        <input type="email" id="email" placeholder="กรอกอีเมลของคุณ" required>
-                        <i class="fas fa-envelope icon"></i>
-                    </div>
+            <div class="divider">หรือเข้าใช้งานด้วยอีเมล</div>
+
+            <form onsubmit="handleEmailLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">อีเมล</label>
+                    <input type="email" id="email" class="form-input" placeholder="ระบุอีเมลที่ลงทะเบียนไว้" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">รหัสผ่าน</label>
+                    <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่านของคุณ" required>
+                    <i class="fas fa-eye password-toggle" id="togglePassword" onclick="togglePasswordVisibility()"></i>
                 </div>
 
-                <div class="input-group">
-                    <label class="input-label" style="font-family: 'Kanit';">รหัสผ่าน</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="password" placeholder="กรอกรหัสผ่าน" required>
-                        <i class="fas fa-lock icon"></i>
-                        <i class="fas fa-eye toggle-password" onclick="togglePass()"></i>
-                    </div>
+                <div class="options-row">
+                    <a href="forgot-password.html" class="forgot-link">ลืมรหัสผ่าน?</a>
                 </div>
 
-                <div class="remember-wrapper">
-                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin:0;">
-                        <div class="switch">
-                            <input type="checkbox" id="rememberMe">
-                            <span class="slider"></span>
-                        </div>
-                        <span class="remember-text">จดจำอีเมลในเครื่องนี้</span>
-                    </label>
-                </div>
-
-                <button type="submit" class="btn-submit" id="btnLogin">
+                <button type="submit" id="btnLogin" class="btn-submit">
                     เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>
                 </button>
-                
-                <div style="text-align: center; margin-top: 25px; font-size: 14px;">
-                    <span style="color: #636e72;">ยังไม่มีบัญชีครู?</span>
-                    <a href="teacher-register.html" style="color: var(--primary); font-family: 'Kanit', sans-serif; font-weight: 500; text-decoration: none; margin-left: 5px; transition: 0.2s;">ลงทะเบียนใหม่ที่นี่</a>
-                </div>
             </form>
+
+            <div class="register-link">
+                ยังไม่มีบัญชีผู้สอนใช่หรือไม่? <a href="teacher-register.html">สร้างบัญชีใหม่ที่นี่</a>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <div class="footer">© 2026 FlipSchool. All rights reserved.</div> 
+    <div class="footer footer-display-text">...</div>
 
-    <!-- ================= Custom Alert Modal HTML ================= -->
+    <!-- Custom Alert Modal -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
             <div class="custom-modal-icon">
@@ -183,126 +219,114 @@
             </div>
             <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="custom-modal-message"></p>
-            <button class="custom-modal-btn" onclick="closeCustomAlert()">ตกลง</button>
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
+            </div>
         </div>
     </div>
 
-    <script src="js/env-config.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script> 
-    
     <script>
-        // --- ตั้งค่าระบบ Google Login ---
-        const GOOGLE_CLIENT_ID = "450991822360-2t4h354971l21uhk2c5ticjbh8f30jrf.apps.googleusercontent.com";
         let alertCallback = null;
 
-        // ================= ฟังก์ชันป๊อปอัปแจ้งเตือน (Custom Alert) =================
+        // ================= Custom Alert =================
         function showCustomAlert(message, type = 'error', callback = null) {
             const modal = document.getElementById('customAlertModal');
             const titleEl = document.getElementById('customAlertTitle');
             const msgEl = document.getElementById('customAlertMessage');
             const iconEl = document.getElementById('customAlertIcon');
+            const okBtn = document.getElementById('customAlertOkBtn');
 
             msgEl.innerText = message;
             alertCallback = callback;
 
             if (type === 'success') {
-                iconEl.className = 'fas fa-check-circle';
-                iconEl.style.color = '#2ed573';
-                titleEl.innerText = 'สำเร็จ!';
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
             } else if (type === 'warning') {
-                iconEl.className = 'fas fa-exclamation-triangle';
-                iconEl.style.color = '#ffa502';
-                titleEl.innerText = 'แจ้งเตือน';
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
             } else {
-                iconEl.className = 'fas fa-times-circle';
-                iconEl.style.color = '#ff4757';
-                titleEl.innerText = 'เกิดข้อผิดพลาด';
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
             }
 
             modal.classList.add('show');
         }
 
-        function closeCustomAlert() {
-            const modal = document.getElementById('customAlertModal');
-            modal.classList.remove('show');
+        function closeCustomAlert() { 
+            document.getElementById('customAlertModal').classList.remove('show'); 
             if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
         }
 
+        // ================= เริ่มต้นการทำงานหน้าเว็บ =================
         document.addEventListener('DOMContentLoaded', async () => {
+            // โหลด UI ขั้นฐาน (ดึงโลโก้/สโลแกน/Footer จาก config.js อัตโนมัติ)
             if (typeof initAppUI === 'function') initAppUI();
 
-            // 1. ตรวจสอบเซสชัน ถ้ามีให้ไปหน้า Dashboard เลย
-            if (typeof sysDB !== 'undefined' && sysDB) {
+            // ตรวจสอบเซสชันเก่า (ถ้าเคยล็อกอินไว้แล้ว ให้ข้ามหน้านี้ไปเลย)
+            if (typeof sysDB !== 'undefined') {
                 const { data: { session } } = await sysDB.auth.getSession();
-                if (session) {
-                    window.location.href = 'teacher-dashboard.html';
-                    return;
+                if (session && session.user) {
+                    const { data: teacherData } = await sysDB.from('teachers').select('teacher_id').eq('teacher_id', session.user.id).single();
+                    if (teacherData) { window.location.replace('teacher-dashboard.html'); }
                 }
-            }
-
-            // 2. จัดการ Remember Me
-            const emailInput = document.getElementById('email');
-            const rememberMeCheck = document.getElementById('rememberMe');
-            const savedEmail = localStorage.getItem('teacher_remember_email');
-            
-            if (savedEmail && emailInput) {
-                emailInput.value = savedEmail;
-                if (rememberMeCheck) rememberMeCheck.checked = true;
-            }
-
-            // 3. จัดการโหลดปุ่ม Google Sign in
-            if(window.google) {
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleGoogleCredentialResponse,
-                    context: "signin"
-                });
-                google.accounts.id.renderButton(
-                    document.getElementById("googleSignInBtn"),
-                    { theme: "outline", size: "large", width: 420, text: "signin_with", shape: "rectangular", borderRadius: 15 } 
-                );
             }
         });
 
-        // 4. ฟังก์ชันรับ Token และล็อกอินผ่าน Google (เพิ่มการตรวจสอบข้อมูลตารางครู)
+        // ================= การตั้งค่า Google Sign In (GSI) =================
+        window.onload = function () {
+            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GOOGLE_CLIENT_ID) {
+                // สร้างปุ่ม Google อัตโนมัติเมื่อมี Client ID
+                google.accounts.id.initialize({
+                    client_id: APP_CONFIG.GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredentialResponse
+                });
+                
+                const btnContainer = document.getElementById("googleSignInBtn");
+                btnContainer.innerHTML = ''; // ลบไอคอนหมุนโหลดทิ้ง
+                
+                google.accounts.id.renderButton(
+                    btnContainer,
+                    { theme: "outline", size: "large", text: "signin_with", width: "370", shape: "pill" }
+                );
+            } else {
+                document.getElementById("googleSignInBtn").innerHTML = '<div style="color:#ff4757; font-size:13px;"><i class="fas fa-exclamation-triangle"></i> ไม่พบรหัส Google Client ID ในระบบ</div>';
+            }
+        };
+
+        // ================= ฟังก์ชันเมื่อกดล็อกอินด้วย Google =================
         async function handleGoogleCredentialResponse(response) {
             try {
-                const idToken = response.credential;
-                
-                // ล็อกอินเข้า Auth ก่อน
+                // 1. นำ Token จาก Google ไปยืนยันกับ Supabase
                 const { data, error } = await sysDB.auth.signInWithIdToken({
                     provider: 'google',
-                    token: idToken,
+                    token: response.credential,
                 });
-
                 if (error) throw error;
 
-                // ** สำคัญมาก: ตรวจสอบว่ามีข้อมูลครูในระบบจริงๆ แล้วหรือไม่ **
+                // 2. ตรวจสอบว่ามีข้อมูลในตาราง teachers ตาม Schema ที่กำหนดหรือไม่
                 const { data: teacherData, error: teacherError } = await sysDB.from('teachers')
                     .select('teacher_id')
                     .eq('teacher_id', data.user.id)
                     .single();
 
-                // ถ้าค้นหาไม่พบ (ไม่มีข้อมูลในตาราง) แปลว่ายังไม่เคยลงทะเบียน
                 if (!teacherData) {
-                    // ให้ล็อกเอาท์ออกทันที ป้องกันคนใช้สิทธิ์เซสชันเปล่าๆ
+                    // หากไม่พบข้อมูล แปลว่ายังไม่เคยลงทะเบียน หรือเป็นบัญชีนักเรียน
                     await sysDB.auth.signOut();
-                    
-                    showCustomAlert("ไม่พบข้อมูลบัญชีนี้ในระบบ กรุณาลงทะเบียนเป็นผู้สอนใหม่ก่อนเข้าใช้งานครับ", "warning", () => {
+                    showCustomAlert("ไม่พบข้อมูลบัญชีของคุณในระบบ กรุณาลงทะเบียนผู้สอนใหม่ก่อนเข้าใช้งานครับ", "warning", () => {
                         window.location.href = 'teacher-register.html';
                     });
                     return;
                 }
 
-                // ดึงรูปโปรไฟล์อัปเดตจาก Google (เผื่อผู้ใช้เปลี่ยนรูป)
+                // 3. หากมีข้อมูล ให้อัปเดต profile_pic เผื่อผู้ใช้เปลี่ยนรูปใหม่ใน Google
                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
                 if (googlePic) {
                     await sysDB.from('teachers').update({ profile_pic: googlePic }).eq('teacher_id', data.user.id);
                 }
 
-                // ถ้ามีข้อมูลครบถ้วน ไปที่หน้า Dashboard ได้เลย
-                window.location.href = 'teacher-dashboard.html';
+                // 4. เข้าสู่ระบบสำเร็จ พาไปหน้า Dashboard
+                window.location.replace('teacher-dashboard.html');
 
             } catch (err) {
                 console.error("Google Auth Error:", err);
@@ -310,72 +334,58 @@
             }
         }
 
-        // 5. เปิด/ปิด การแสดงรหัสผ่าน
-        function togglePass() {
-            const input = document.getElementById('password');
-            const icon = document.querySelector('.toggle-password');
-            if (input && input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-                icon.style.color = 'var(--primary)';
-            } else if (input) {
-                input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-                icon.style.color = '#a4b0be';
+        // ================= ฟังก์ชันล็อกอินด้วย Email & Password =================
+        async function handleEmailLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('btnLogin');
+            const origText = btn.innerHTML;
+
+            try {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+                btn.disabled = true;
+
+                // 1. ยืนยันรหัสผ่านกับระบบ
+                const { data, error } = await sysDB.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+
+                // 2. ตรวจสอบสถานะครูในตาราง teachers
+                const { data: teacherData } = await sysDB.from('teachers')
+                    .select('teacher_id')
+                    .eq('teacher_id', data.user.id)
+                    .single();
+
+                if (!teacherData) {
+                    await sysDB.auth.signOut();
+                    throw new Error("บัญชีนี้ไม่ได้ลงทะเบียนเป็นคุณครู/ผู้สอนไว้ครับ");
+                }
+
+                // 3. ผ่านทั้งหมด ไปยังหน้า Dashboard
+                window.location.replace('teacher-dashboard.html');
+
+            } catch (err) {
+                let errorMsg = err.message;
+                if (errorMsg === 'Invalid login credentials') errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                
+                showCustomAlert(errorMsg, "error");
+                btn.innerHTML = origText;
+                btn.disabled = false;
             }
         }
 
-        // 6. ฟังก์ชันเข้าสู่ระบบด้วยอีเมล (เพิ่มการดัก Error ให้สวยงาม)
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            if (typeof sysDB === 'undefined' || !sysDB) { 
-                showCustomAlert("ระบบฐานข้อมูลไม่พร้อมใช้งาน กรุณารีเฟรชหน้าจอ", "warning"); 
-                return; 
-            }
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-            const btn = document.getElementById('btnLogin');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
-
-            try {
-                const { data, error } = await sysDB.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                // บันทึก Remember Me
-                if (rememberMe) {
-                    localStorage.setItem('teacher_remember_email', email);
-                } else {
-                    localStorage.removeItem('teacher_remember_email');
-                }
-
-                window.location.href = 'teacher-dashboard.html';
-
-            } catch (err) {
-                console.error(err);
-                
-                // แปลงข้อความ Error ให้เข้าใจง่ายขึ้น พร้อมแนะนำการสมัครใหม่
-                let errorMsg = err.message;
-                if (errorMsg === "Invalid login credentials") {
-                    errorMsg = "ไม่พบข้อมูลบัญชีนี้ หรือรหัสผ่านไม่ถูกต้อง (หากคุณยังไม่มีบัญชี กรุณาคลิกลงทะเบียนใหม่ครับ)";
-                } else if (errorMsg === "Email not confirmed") {
-                    errorMsg = "กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ";
-                } else if (errorMsg === "Email logins are disabled") {
-                    errorMsg = "ระบบเข้าสู่ระบบด้วยอีเมลถูกปิดใช้งานอยู่ครับ";
-                }
-                
-                showCustomAlert(errorMsg, 'warning');
-                
-                btn.disabled = false;
-                btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-sign-in-alt"></i>';
+        // ================= เปิด-ปิด ลูกตารหัสผ่าน =================
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('togglePassword');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
             }
         }
     </script>
