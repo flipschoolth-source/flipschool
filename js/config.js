@@ -30,6 +30,9 @@ const APP_CONFIG = {
         ACCENT: '#FF8C00'
     },
 
+    // รหัสสำหรับเชื่อมต่อระบบล็อกอินด้วย Google
+    GOOGLE_CLIENT_ID: '450991822360-2t4h354971l21uhk2c5ticjbh8f30jrf.apps.googleusercontent.com',
+
     // 5. รายละเอียด GLORY Model (สำหรับ Modal)
     GLORY_DETAILS: {
         HOME: [
@@ -171,3 +174,8 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
         }
     });
 })();
+
+// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = APP_CONFIG;
+}
