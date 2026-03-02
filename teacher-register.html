@@ -1,256 +1,100 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
+<!-- ... existing code ... -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สมัครสมาชิกครู - FlipSchool</title>
-    <link rel="icon" href="img/favicon.png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='65'>🎓</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='65'>🎓</text></svg>">
     <link rel="stylesheet" href="css/style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- เพิ่มสคริปต์ Google Identity Services -->
+<!-- ... existing code ... -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         /* --- ธีมหลักและการตั้งค่าพื้นฐาน --- */
-        :root { --primary: #00008B; --primary-light: #0052D4; --accent: #FF8C00; --bg-body: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
-        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; }
+        :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-body: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
+        html, body { 
+            height: 100%; margin: 0; padding: 0; 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg-body); 
+            display: flex; flex-direction: column; 
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
         
-        /* --- Navbar --- */
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background-color: #ffffff; box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; }
-        .logo-container img { height: 45px; width: auto; }
-        .brand-name { font-family: 'Kanit', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-main); }
-        .brand-name span { color: var(--primary); }
-        .back-link { color: var(--text-muted); text-decoration: none; font-size: 15px; display: flex; align-items: center; gap: 6px; font-family: 'Kanit', sans-serif; font-weight: 500; transition: color 0.2s; }
-        .back-link:hover { color: var(--primary); }
+        /* --- Navbar (ธีมสีน้ำเงินเข้ม) --- */
+        nav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 5%; height: 90px; background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+        }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; }
+        .logo-emoji { 
+            font-size: 32px; 
+            line-height: 1; 
+            background: white; 
+            width: 52px; 
+            height: 52px; 
+            border-radius: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+        }
+        .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit'; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun'; }
+
+        .btn-back {
+            text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
+            padding: 10px 24px; border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: 15px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-back:hover {
+            background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white;
+        }
 
         /* --- โครงสร้างหลัก --- */
         .container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 40px 20px; box-sizing: border-box; overflow-y: auto; }
-        .card-glass { background: white; border-radius: 30px; padding: 40px; width: 100%; max-width: 500px; box-shadow: 0 15px 35px rgba(0,0,0,0.04); border: 1px solid #edf2f7; }
+        .card-glass { 
+            background: white; border-radius: 30px; padding: 40px; width: 100%; max-width: 500px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03); 
+            position: relative; overflow: hidden; box-sizing: border-box;
+        }
+        .card-glass::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: var(--accent);
+        }
         .footer { width: 100%; padding: 25px; font-size: 0.9rem; color: #888; text-align: center; background: #fff; border-top: 1px solid #edf2f7; margin-top: auto; box-sizing: border-box; }
         
         /* --- ปุ่มกด --- */
-        .btn-submit { background-color: var(--primary); border: none; color: white; padding: 16px; border-radius: 15px; font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 500; cursor: pointer; transition: 0.3s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;}
-        .btn-submit:hover:not(:disabled) { background-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.2); }
-        .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        /* --- เส้นคั่น --- */
-        .divider { display: flex; align-items: center; text-align: center; margin: 25px 0; color: #a4b0be; font-size: 14px; font-weight: 500; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eef2f7; }
-        .divider::before { margin-right: 15px; } .divider::after { margin-left: 15px; }
-        
-        /* --- ฟอร์ม Input --- */
-        .input-group { margin-bottom: 20px; }
-        .input-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 14px; }
-        .input-wrapper { position: relative; width: 100%; }
-        .input-wrapper input { width: 100%; padding: 14px 14px 14px 45px; border-radius: 15px; border: 2px solid #eef2f7; font-family: 'Sarabun', sans-serif; font-size: 15px; box-sizing: border-box; transition: 0.3s; color: #333; background: #fafbfc; }
-        .input-wrapper input:focus { border-color: var(--primary-light); outline: none; background: #fff; box-shadow: 0 0 0 4px rgba(0, 82, 212, 0.1); }
-        .input-wrapper i.icon { position: absolute; left: 18px; top: 16px; color: #a4b0be; font-size: 16px; }
-
-        .pdpa-box { background: #f8faff; border: 1px solid #eef2f7; padding: 15px 20px; border-radius: 12px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
-
-        /* --- Custom Alert --- */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
-        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: 0.3s; }
-        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
-        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
-        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
-        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
-        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
-
+<!-- ... existing code ... -->
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 768px) { nav { padding: 15px 20px; } .card-glass { padding: 30px 20px; border-radius: 20px; border: none; box-shadow: none; } .container { padding: 20px 10px; } }
+        @media (max-width: 768px) { 
+            nav { padding: 0 15px; height: 65px; }
+            .logo-emoji { width: 38px; height: 38px; font-size: 20px; border-radius: 10px; }
+            .brand-name { font-size: 20px; }
+            .slogan { display: none; }
+            .btn-back { padding: 6px 14px; font-size: 13px; }
+            
+            .card-glass { padding: 30px 20px; border-radius: 20px; border: none; box-shadow: none; } 
+            .container { padding: 20px 10px; } 
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <a href="index.html" class="logo-container">
-            <img src="img/favicon.png" alt="Logo" onerror="this.style.display='none'">
-            <div class="brand-name">Flip<span>School</span></div>
+            <div class="logo-emoji">🎓</div>
+            <div class="logo-text-group">
+                <div class="brand-name">Flip<span>School</span></div>
+                <div class="slogan">นวัตกรรมการศึกษา</div>
+            </div>
         </a>
-        <a href="teacher-login.html" class="back-link"><i class="fas fa-arrow-left"></i> กลับไปหน้าล็อกอิน</a>
+        <a href="teacher-login.html" class="btn-back"><i class="fas fa-arrow-left"></i> กลับไปหน้าล็อกอิน</a>
     </nav>
 
     <div class="container"> 
         <div class="card-glass">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: var(--primary); font-size: 35px;"><i class="fas fa-user-plus"></i></div>
-                <h2 style="font-family: 'Kanit', sans-serif; color: var(--text-main); font-weight: 700; margin: 0 0 5px 0; font-size: 28px;">สร้างบัญชีผู้สอน</h2>
-                <p style="color: var(--text-muted); margin: 0; font-size: 15px;">กรอกข้อมูลเพื่อเริ่มต้นใช้งานระบบ</p>
-            </div>
-
-            <form id="registerForm" onsubmit="handleRegister(event)">
-                
-                <div class="input-group">
-                    <label class="input-label">ชื่อ-นามสกุลจริง <span style="color:red;">*</span></label>
-                    <div class="input-wrapper">
-                        <input type="text" id="fullname" placeholder="เช่น ครูสมชาย ใจดี" required>
-                        <i class="fas fa-user icon"></i>
-                    </div>
-                </div>
-
-                <div class="pdpa-box">
-                    <label style="display: flex; align-items: start; gap: 12px; cursor: pointer; margin: 0;">
-                        <input type="checkbox" id="pdpaCheck" required style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
-                        <span>ข้าพเจ้ายินยอมให้ FlipSchool เก็บข้อมูลเพื่อสร้างบัญชีผู้ใช้งาน <br><small style="color:#888;">(ท่านสามารถเข้าร่วมหรือสร้างกลุ่มโรงเรียนได้ในขั้นตอนถัดไป)</small></span>
-                    </label>
-                </div>
-
-                <!-- ปุ่ม Google -->
-                <div style="display: flex; justify-content: center; width: 100%; margin-top: 15px;" onclick="checkFormFieldsBeforeGoogle()">
-                    <div id="googleSignInBtn"></div>
-                </div>
-
-                <div class="divider" style="cursor: pointer;" onclick="toggleEmailForm()">
-                    <span id="emailToggleText" style="background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #eef2f7; color: var(--primary); transition: 0.3s;">หรือ สมัครด้วยอีเมล <i class="fas fa-chevron-down" id="emailToggleIcon" style="margin-left: 5px;"></i></span>
-                </div>
-
-                <div id="emailAuthSection" style="display: none; animation: fadeIn 0.3s ease;">
-                    <div class="input-group">
-                        <label class="input-label">อีเมล <span style="color:red;">*</span></label>
-                        <div class="input-wrapper"><input type="email" id="email" placeholder="name@email.com"><i class="fas fa-envelope icon"></i></div>
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">รหัสผ่าน <span style="color:red;">*</span></label>
-                        <div class="input-wrapper"><input type="password" id="password" placeholder="กำหนดรหัสผ่าน (6 ตัวขึ้นไป)" minlength="6"><i class="fas fa-lock icon"></i></div>
-                    </div>
-                    <button type="submit" class="btn-submit" id="btnSubmit">สมัครสมาชิก <i class="fas fa-arrow-right"></i></button>
-                </div>
-
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= Custom Alert ================= -->
-    <div id="customAlertModal" class="custom-modal-overlay">
-        <div class="custom-modal-box">
-            <div class="custom-modal-icon"><i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i></div>
-            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
-            <p id="customAlertMessage" class="custom-modal-message"></p>
-            <button class="custom-modal-btn" onclick="closeCustomAlert()">ตกลง</button>
-        </div>
-    </div>
-
-    <script src="js/env-config.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/supabase-db.js"></script>
-    
-    <script>
-        const GOOGLE_CLIENT_ID = "450991822360-2t4h354971l21uhk2c5ticjbh8f30jrf.apps.googleusercontent.com";
-        let alertCallback = null;
-
-        function showCustomAlert(message, type = 'error', callback = null) {
-            const modal = document.getElementById('customAlertModal');
-            document.getElementById('customAlertMessage').innerText = message;
-            alertCallback = callback;
-            const iconEl = document.getElementById('customAlertIcon');
-            const titleEl = document.getElementById('customAlertTitle');
-            if (type === 'success') { iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573'; titleEl.innerText = 'สำเร็จ!'; } 
-            else if (type === 'warning') { iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502'; titleEl.innerText = 'ข้อควรระวัง'; } 
-            else { iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757'; titleEl.innerText = 'เกิดข้อผิดพลาด'; }
-            modal.classList.add('show');
-        }
-
-        function closeCustomAlert() {
-            document.getElementById('customAlertModal').classList.remove('show');
-            if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
-        }
-
-        window.onload = function () {
-            if(window.google) {
-                google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredentialResponse, context: "signup" });
-                google.accounts.id.renderButton(document.getElementById("googleSignInBtn"), { theme: "outline", size: "large", width: 420, text: "signup_with", shape: "rectangular", borderRadius: 15 });
-            }
-        };
-
-        function checkFormFieldsBeforeGoogle() {
-            const fullname = document.getElementById('fullname').value.trim();
-            const pdpaCheck = document.getElementById('pdpaCheck').checked;
-
-            if (!fullname || !pdpaCheck) {
-                showCustomAlert("กรุณากรอกชื่อ-นามสกุล และยอมรับเงื่อนไขก่อนครับ", "warning");
-            }
-        }
-
-        function toggleEmailForm() {
-            const section = document.getElementById('emailAuthSection');
-            const icon = document.getElementById('emailToggleIcon');
-            const textBadge = document.getElementById('emailToggleText');
-            if (section.style.display === 'none') {
-                section.style.display = 'block'; icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                textBadge.style.background = 'var(--primary)'; textBadge.style.color = 'white';
-                document.getElementById('email').setAttribute('required', 'true'); document.getElementById('password').setAttribute('required', 'true');
-            } else {
-                section.style.display = 'none'; icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                textBadge.style.background = 'white'; textBadge.style.color = 'var(--primary)';
-                document.getElementById('email').removeAttribute('required'); document.getElementById('password').removeAttribute('required');
-            }
-        }
-
-        // ================= สมัครสมาชิกด้วย Google =================
-        async function handleGoogleCredentialResponse(response) {
-            const fullname = document.getElementById('fullname').value.trim().split(' ');
-            const fname = fullname[0] || ''; const lname = fullname.slice(1).join(' ') || '';
-            const pdpaCheck = document.getElementById('pdpaCheck').checked;
-
-            if (!fname || !pdpaCheck) {
-                showCustomAlert("กรุณากรอกชื่อ-นามสกุล และยอมรับเงื่อนไขก่อนครับ", "warning"); return;
-            }
-
-            try {
-                const { data, error } = await sysDB.auth.signInWithIdToken({ provider: 'google', token: response.credential });
-                if (error) throw error;
-                const userId = data.user.id; const userEmail = data.user.email;
-                
-                // ดึงรูปโปรไฟล์จากบัญชี Google
-                const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
-
-                // บันทึกข้อมูลบัญชีพื้นฐานพร้อม "รูปโปรไฟล์" ลงตาราง teachers
-                const { error: dbError } = await sysDB.from('teachers').upsert([{
-                    teacher_id: userId, 
-                    first_name: fname, 
-                    last_name: lname, 
-                    email: userEmail,
-                    profile_pic: googlePic
-                }]);
-                if (dbError) throw dbError;
-
-                showCustomAlert("สร้างบัญชีสำเร็จ! ระบบกำลังพาท่านไปเข้าร่วมกลุ่มโรงเรียน", "success", () => window.location.href = 'teacher-dashboard.html');
-
-            } catch (err) { showCustomAlert("เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message, "error"); }
-        }
-
-        // ================= สมัครสมาชิกด้วย Email =================
-        async function handleRegister(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSubmit'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดำเนินการ...'; btn.disabled = true;
-
-            const fullname = document.getElementById('fullname').value.trim().split(' ');
-            const fname = fullname[0] || ''; const lname = fullname.slice(1).join(' ') || '';
-            const email = document.getElementById('email').value.trim(); const password = document.getElementById('password').value;
-
-            try {
-                const { data: authData, error: authError } = await sysDB.auth.signUp({ email: email, password: password });
-                if (authError) throw authError;
-
-                const userId = authData.user.id;
-
-                // บันทึกเฉพาะข้อมูลบัญชีพื้นฐานลงตาราง teachers
-                const { error: dbError } = await sysDB.from('teachers').upsert([{
-                    teacher_id: userId, first_name: fname, last_name: lname, email: email
-                }]);
-                if (dbError) throw dbError;
-
-                showCustomAlert("สร้างบัญชีสำเร็จ! ระบบกำลังพาท่านไปเข้าร่วมกลุ่มโรงเรียน", 'success', () => window.location.href = 'teacher-dashboard.html');
-
-            } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); btn.disabled = false; btn.innerHTML = 'สมัครสมาชิก <i class="fas fa-arrow-right"></i>'; }
-        }
-    </script>
-</body>
-</html>
