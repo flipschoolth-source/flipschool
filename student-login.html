@@ -150,7 +150,7 @@
         .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
         .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
         .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
-        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 20px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; min-width: 120px; }
         .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
 
         @media (max-width: 768px) {
@@ -217,7 +217,7 @@
 
     <div class="footer footer-display-text">...</div>
 
-    <!-- Custom Alert Modal -->
+    <!-- Custom Alert Modal (รองรับ Confirm) -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
             <div class="custom-modal-icon">
@@ -225,46 +225,59 @@
             </div>
             <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="custom-modal-message"></p>
-            <div style="display: flex; justify-content: center; margin-top: 20px;">
-                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
+            <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
+                <button class="custom-modal-btn" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
 
     <script>
         let alertCallback = null;
+        let alertCancelCallback = null;
 
         // ================= Custom Alert =================
-        function showCustomAlert(message, type = 'error', callback = null) {
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
             const titleEl = document.getElementById('customAlertTitle');
             const msgEl = document.getElementById('customAlertMessage');
             const iconEl = document.getElementById('customAlertIcon');
             const okBtn = document.getElementById('customAlertOkBtn');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
 
-            msgEl.innerText = message;
+            msgEl.innerHTML = message;
             alertCallback = callback;
+            alertCancelCallback = cancelCallback;
 
             if (type === 'success') {
                 iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
-                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
             } else if (type === 'warning') {
                 iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
-                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
             } else if (type === 'info') {
                 iconEl.className = 'fas fa-info-circle'; iconEl.style.color = '#3498db';
-                titleEl.innerText = 'ข้อมูล'; okBtn.style.background = '#3498db';
+                titleEl.innerText = 'ข้อมูล'; okBtn.style.background = '#3498db'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'confirm') {
+                iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#FF8C00';
+                titleEl.innerText = 'ยืนยันการลงทะเบียน'; okBtn.style.background = '#FF8C00'; okBtn.innerText = 'ใช่, ลงทะเบียน';
+                cancelBtn.style.display = 'inline-block'; cancelBtn.innerText = 'ไม่, ยกเลิก';
             } else {
                 iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
-                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
             }
 
             modal.classList.add('show');
         }
 
-        function closeCustomAlert() { 
+        function closeCustomAlert(isCancel = false) { 
             document.getElementById('customAlertModal').classList.remove('show'); 
-            if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
+            if (!isCancel && alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; alertCancelCallback = null; }
+            else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
         // ================= เริ่มต้นการทำงานหน้าเว็บ =================
@@ -287,14 +300,17 @@
             if (typeof sysDB !== 'undefined') {
                 const { data: { session } } = await sysDB.auth.getSession();
                 if (session && session.user) {
-                    const { data: studentData } = await sysDB.from('school_students')
+                    const { data: studentData } = await sysDB.from('students')
                         .select('student_id')
-                        .eq('email', session.user.email)
+                        .eq('gmail', session.user.email)
                         .maybeSingle();
                         
                     if (studentData) { 
                         localStorage.setItem('flip_student_session', studentData.student_id);
                         window.location.replace('student-dashboard.html'); 
+                    } else {
+                        // หากมี session แต่ไม่พบในตาราง students (อาจกดยกเลิกการลงทะเบียนไว้) ให้ล้างค่าออก
+                        await sysDB.auth.signOut();
                     }
                 }
             }
@@ -334,19 +350,67 @@
                 });
                 if (error) throw error;
 
-                // 2. ตรวจสอบว่ามีข้อมูลในตาราง school_students หรือไม่ (อ้างอิงจากอีเมล Google)
-                const { data: studentData, error: studentError } = await sysDB.from('school_students')
+                const userEmail = data.user.email;
+
+                // 2. ตรวจสอบว่ามีข้อมูลในตาราง students ก่อน
+                const { data: studentData, error: studentError } = await sysDB.from('students')
                     .select('student_id')
-                    .eq('email', data.user.email)
+                    .eq('gmail', userEmail)
                     .maybeSingle();
 
                 if (!studentData) {
-                    await sysDB.auth.signOut();
-                    showCustomAlert("ไม่พบข้อมูลบัญชีอีเมลของคุณในระบบนักเรียน กรุณาติดต่อคุณครูเพื่อตรวจสอบข้อมูลครับ", "warning");
+                    // หากไม่พบข้อมูล ให้แสดงหน้าต่างถามว่าต้องการลงทะเบียนหรือไม่
+                    showCustomAlert(
+                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการลงทะเบียนบัญชี<br><b>${userEmail}</b><br>เพื่อเข้าร่วมเป็นนักเรียนหรือไม่?`, 
+                        'confirm', 
+                        async () => {
+                            // กรณีตอบ "ใช่, ลงทะเบียน"
+                            try {
+                                const btnContainer = document.getElementById("googleSignInBtn");
+                                btnContainer.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary); font-size: 20px;"></i>';
+
+                                // แยกชื่อ-นามสกุลจาก Google (ถ้ามี)
+                                const fullName = data.user.user_metadata?.full_name || '';
+                                let fName = fullName;
+                                let lName = '';
+                                if(fullName.includes(' ')) {
+                                    const parts = fullName.split(' ');
+                                    fName = parts[0];
+                                    lName = parts.slice(1).join(' ');
+                                } else if (!fName) {
+                                    fName = userEmail.split('@')[0];
+                                }
+
+                                // บันทึกข้อมูลลงตาราง public.students
+                                const { data: newStudent, error: insertError } = await sysDB.from('students').insert([{
+                                    student_name: fName,
+                                    student_lastname: lName,
+                                    gmail: userEmail,
+                                    register_at: new Date().toISOString()
+                                }]).select().single();
+
+                                if (insertError) throw insertError;
+
+                                // สำเร็จแล้ว บันทึก Local Session
+                                localStorage.setItem('flip_student_session', newStudent.student_id);
+                                showCustomAlert('ลงทะเบียนเสร็จสมบูรณ์!<br>ระบบกำลังพาคุณเข้าสู่หน้าแดชบอร์ด', 'success', () => {
+                                    window.location.replace('student-dashboard.html');
+                                });
+
+                            } catch (err) {
+                                console.error("Registration Error:", err);
+                                showCustomAlert("เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message, "error");
+                            }
+                        },
+                        async () => {
+                            // กรณีตอบ "ไม่, ยกเลิก" ให้ Sign out จาก Supabase ทันที
+                            await sysDB.auth.signOut();
+                        }
+                    );
                     return;
                 }
 
-                // 3. เข้าสู่ระบบสำเร็จ บันทึก Local Session ด้วย
+                // 3. หากพบข้อมูลเข้าสู่ระบบสำเร็จ บันทึก Local Session
                 localStorage.setItem('flip_student_session', studentData.student_id);
                 window.location.replace('student-dashboard.html');
 
