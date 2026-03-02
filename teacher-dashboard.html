@@ -281,13 +281,15 @@
                 <h1 class="welcome-header"><span id="welcomeHeader">กำลังโหลด...</span></h1>
                 <p class="welcome-sub" id="welcomeSub">ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมเพื่อการจัดการเรียนรู้</p>
                 
-                <!-- นำชื่อกลุ่มโรงเรียนและรูปแบบล็อกอินกลับมาจัดในบรรทัดเดียวกัน -->
-                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
-                    <div id="welcomeSchool" style="font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; color: #ffeaa7; display: flex; align-items: center; gap: 6px;"></div>
-                    <div id="loginInfoBox" style="display: none; background: rgba(0, 0, 0, 0.2); padding: 4px 12px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.15); color: white; align-items: center;">
-                        <i class="fas fa-user-graduate" style="color: #ffeaa7; margin-right: 5px;"></i> ล็อกอินนร.: เลขประจำตัว<span id="dispLoginFormat" style="color: #ffeaa7; font-weight: bold; font-family: monospace;">@abbr</span>
+                <!-- จัดชื่อกลุ่มโรงเรียน และ รูปแบบการล็อกอินนักเรียน ให้อยู่คนละบรรทัด (ขึ้นบรรทัดใหม่) -->
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px; align-items: flex-start;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div id="welcomeSchool" style="font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 500; color: #ffeaa7; display: flex; align-items: center; gap: 6px;"></div>
+                        <div id="verificationStatusBadgeContainer" style="display: block;"></div>
                     </div>
-                    <div id="verificationStatusBadgeContainer" style="display: none;"></div>
+                    <div id="loginInfoBox" style="display: none; background: rgba(0, 0, 0, 0.2); padding: 6px 14px; border-radius: 8px; font-size: 14px; border: 1px solid rgba(255,255,255,0.15); color: white; align-items: center;">
+                        <i class="fas fa-user-graduate" style="color: #ffeaa7; margin-right: 6px;"></i> รูปแบบการล็อกอินนักเรียน: เลขประจำตัว<span id="dispLoginFormat" style="color: #ffeaa7; font-weight: bold; font-family: monospace;">@abbr</span>
+                    </div>
                 </div>
             </div>
             <!-- Background Icon -->
@@ -659,14 +661,22 @@
                     ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" class="leave-btn"><i class="fas fa-sign-out-alt"></i></div>`
                     : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" class="leave-btn"><i class="fas fa-times"></i></div>`;
 
+                // รูปแบบล็อกอินแทรกขึ้นบรรทัดใหม่
+                const loginFormatHtml = (s.verification_status === 'approved' && s.schools?.school_abbr) 
+                    ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 10px; padding-top: 8px; border-top: 1px dashed #edf2f7; font-family: 'Sarabun', sans-serif;"><i class="fas fa-user-graduate" style="color:var(--primary-light); margin-right:5px;"></i>รูปแบบการล็อกอินนักเรียน: เลขประจำตัว<strong style="color:var(--accent); font-family:monospace;">@${s.schools.school_abbr}</strong></div>` 
+                    : '';
+
                 html += `
-                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')">
-                        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; display:flex; align-items:center;">
-                            ${statusIcon} <span>${s.schools?.school_name}</span> ${roleBadge}
+                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')" style="display:flex; flex-direction:column; align-items:stretch;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; display:flex; align-items:center;">
+                                ${statusIcon} <span>${s.schools?.school_name}</span> ${roleBadge}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                ${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}
+                            </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            ${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}
-                        </div>
+                        ${loginFormatHtml}
                     </div>`;
             });
             container.innerHTML = html;
