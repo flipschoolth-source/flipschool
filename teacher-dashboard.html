@@ -74,9 +74,9 @@
         .logout-btn { margin-top: 20px; padding: 18px; border-radius: 20px; background: #fff5f5; color: #ff4757; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 600; transition: 0.3s; width: 100%; }
         
         /* --- Main Dashboard --- */
-        .main-container { flex: 1; padding: 40px 50px; max-width: 97%; margin: 0 auto; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease; }
-        .welcome-hero { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); border-radius: 40px; padding: 40px 50px; color: white; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 20px 45px rgba(0, 74, 173, 0.25); position: relative; overflow: hidden; box-sizing: border-box; }
-        .hero-text-content { position: relative; z-index: 5; flex: 1; }
+        .main-container { flex: 1; padding: 30px 0; width: 99%; max-width: 1400px; margin: 0 auto; box-sizing: border-box; transition: opacity 0.3s ease; }
+        
+        .welcome-hero { 
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); 
             border-radius: 20px; padding: 35px 45px; color: white; margin-bottom: 30px; 
             display: flex; justify-content: space-between; align-items: flex-start; 
@@ -145,7 +145,10 @@
         .notif-time { font-size: 13px; color: #65676b; margin-top: 4px; display: block; font-weight: 500; }
         .notif-unread-dot { width: 12px; height: 12px; background: #ff4757; border-radius: 50%; position: absolute; right: 15px; top: 35px; }
 
-        @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(15deg); } 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
+        /* --- Footer --- */
+        .footer { padding: 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; }
+
+        @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
         .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
         .req-card-anim { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
@@ -232,14 +235,6 @@
             <div class="info-item" style="margin-bottom: 0;">
                 <label>กลุ่มสถานศึกษา</label>
                 <div id="schoolSwitcherList" style="margin-top: 10px; display: flex; flex-direction: column;"></div>
-                
-                <!-- รูปแบบล็อกอินนักเรียนแบบกระชับ (ย้ายมาไว้ใน Sidebar) -->
-                <div id="sidebarLoginInfo" style="display: none; background: #f8faff; border: 1px dashed var(--primary-light); padding: 12px; border-radius: 12px; margin-top: 15px; text-align: center;">
-                    <div style="font-size: 11px; color: var(--primary); font-weight: 700; font-family: 'Kanit', sans-serif; margin-bottom: 4px;"><i class="fas fa-sign-in-alt"></i> รูปแบบล็อกอินนักเรียน</div>
-                    <div style="font-size: 14px; color: var(--text-main); font-weight: 600; font-family: monospace;">
-                        เลขประจำตัว<span id="sideLoginFormat" style="color: var(--accent);">@abbr</span>
-                    </div>
-                </div>
 
                 <button onclick="openJoinSchoolModal()" style="background: none; border: none; color: var(--primary-light); font-size: 14px; cursor: pointer; margin-top: 15px; font-family: 'Sarabun'; font-weight: 600; display: flex; align-items: center; gap: 5px; width: 100%; justify-content: center; padding: 12px; border-radius: 12px; background: #e0e8ff; transition: 0.2s;">
                     <i class="fas fa-plus-circle"></i> ค้นหา / สร้างกลุ่มโรงเรียน
@@ -287,7 +282,17 @@
                 <h1 class="welcome-header"><span id="welcomeHeader">กำลังโหลด...</span></h1>
                 <p class="welcome-sub" id="welcomeSub">ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมเพื่อการจัดการเรียนรู้</p>
             </div>
-            <i class="fas fa-gem hero-bg-icon" style="font-size: 90px; color: rgba(255,255,255,0.12); position: absolute; right: 60px;"></i>
+            <!-- Background Icon -->
+            <i class="fas fa-gem hero-bg-icon"></i>
+        </div>
+
+        <!-- ซ่อน Elements เดิมเพื่อกัน JavaScript Error -->
+        <div style="display: none;">
+            <div id="welcomeSchool"></div>
+            <div id="verificationStatusBadgeContainer"></div>
+            <div id="loginInfoBox"></div>
+            <div id="dispLoginFormat"></div>
+            <div id="dispLoginExample"></div>
         </div>
         
         <div class="view-filter-container">
@@ -309,6 +314,9 @@
             <div class="class-grid" id="classGrid"></div>
         </div>
     </main>
+
+    <!-- Footer -->
+    <div class="footer footer-display-text"></div>
 
     <button onclick="handleFabClick(event)" class="fab-add" id="fabAddBtn"><i class="fas fa-plus"></i></button>
 
@@ -472,9 +480,18 @@
                 }
                 const welcomeSubEl = document.getElementById('welcomeSub');
                 if (welcomeSubEl && APP_CONFIG.APP_SLOGAN) {
-                    // กำหนดค่าตายตัวเป็น 2 บรรทัดตามที่คุณครูต้องการ
                     welcomeSubEl.textContent = `ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมเพื่อการจัดการเรียนรู้`;
                 }
+
+                // โหลดข้อความ Footer จาก config.js
+                document.querySelectorAll('.footer-display-text').forEach(el => {
+                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
+                    const footerText = APP_CONFIG.FOOTER_TEXT || '';
+                    const ownerName = APP_CONFIG.OWNER?.NAME || '';
+                    const ownerPos = APP_CONFIG.OWNER?.POSITION || '';
+                    const ownerSchool = APP_CONFIG.OWNER?.SCHOOL || '';
+                    el.innerHTML = `&copy; ${year} ${footerText}<br>พัฒนาโดย: ${ownerName} ${ownerPos} ${ownerSchool}`;
+                });
             }
 
             if (typeof initAppUI === 'function') initAppUI();
@@ -599,29 +616,37 @@
             if (!container) return;
             
             let html = `
-                <div class="school-switcher-item ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchSchool('all')"><div><i class="fas fa-layer-group" style="color:#a4b0be; margin-right:5px;"></i> แสดงห้องเรียนทั้งหมด</div>${activeViewMode === 'all' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}</div>
-                <div class="school-switcher-item ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchSchool('independent')"><div><i class="fas fa-user" style="color:#a4b0be; margin-right:5px;"></i> พื้นที่ส่วนตัว (อิสระ)</div>${activeViewMode === 'independent' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}</div>
+                <div class="school-switcher-item ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchSchool('all')">
+                    <div style="display:flex; align-items:center;"><i class="fas fa-layer-group" style="color:#a4b0be; margin-right:8px; width:16px; text-align:center;"></i> แสดงห้องเรียนทั้งหมด</div>
+                    ${activeViewMode === 'all' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}
+                </div>
+                <div class="school-switcher-item ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchSchool('independent')">
+                    <div style="display:flex; align-items:center;"><i class="fas fa-user" style="color:#a4b0be; margin-right:8px; width:16px; text-align:center;"></i> พื้นที่ส่วนตัว (อิสระ)</div>
+                    ${activeViewMode === 'independent' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}
+                </div>
             `;
 
             userSchools.forEach(s => {
                 const isAct = (activeViewMode === s.school_id);
-                const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle" style="color:#2ed573;"></i>' : (s.verification_status === 'pending' ? '<i class="fas fa-clock" style="color:#ffa502;"></i>' : '<i class="fas fa-times-circle" style="color:#ff4757;"></i>');
-                const roleBadge = s.role === 'admin' ? '<span style="background:#ffeaa7; color:#d63031; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">Admin</span>' : '';
+                const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle" style="color:#2ed573; margin-right:5px;"></i>' : (s.verification_status === 'pending' ? '<i class="fas fa-clock" style="color:#ffa502; margin-right:5px;"></i>' : '<i class="fas fa-times-circle" style="color:#ff4757; margin-right:5px;"></i>');
+                const roleBadge = s.role === 'admin' ? '<span style="background:#ffeaa7; color:#d63031; font-size:10px; padding:2px 6px; border-radius:6px; margin-left:8px; font-weight:700; border:1px solid #fdcb6e;">Admin</span>' : '';
                 
                 let actionBtn = s.verification_status === 'approved' 
-                    ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" style="background: #fff0f0; color: #ff4757; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s;" class="leave-btn"><i class="fas fa-sign-out-alt" style="font-size: 13px;"></i></div>`
-                    : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" style="background: #fff0f0; color: #ff4757; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s;" class="leave-btn"><i class="fas fa-times" style="font-size: 13px;"></i></div>`;
+                    ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" class="leave-btn"><i class="fas fa-sign-out-alt"></i></div>`
+                    : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" class="leave-btn"><i class="fas fa-times"></i></div>`;
 
-                const schoolAbbr = s.schools?.school_abbr;
-                const loginFormatHtml = (s.verification_status === 'approved' && schoolAbbr) 
-                    ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px dashed #edf2f7; width: 100%; font-family: 'Sarabun', sans-serif;"><i class="fas fa-sign-in-alt" style="color: var(--primary-light); margin-right: 3px;"></i> รูปแบบล็อกอิน: <span style="font-family: monospace; font-weight: 600; color: var(--accent);">เลขประจำตัว@${schoolAbbr}</span></div>` 
+                // รูปแบบล็อกอินแทรกในกรอบเดียวกับชื่อ รร. (ขนาดเล็ก กระชับ)
+                const loginFormatHtml = (s.verification_status === 'approved' && s.schools?.school_abbr) 
+                    ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px dashed #edf2f7;"><i class="fas fa-sign-in-alt" style="color:var(--accent);"></i> ล็อกอินนร.: เลขประจำตัว<span style="font-weight:bold; color:var(--primary);">@${s.schools.school_abbr}</span></div>` 
                     : '';
 
                 html += `
-                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')" style="flex-direction: column; align-items: stretch;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${statusIcon} <span class="ml-1">${s.schools?.school_name}</span> ${roleBadge}</div>
-                            <div style="display: flex; align-items: center; gap: 8px;">${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}</div>
+                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')" style="display:flex; flex-direction:column; align-items:stretch;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; display:flex; align-items:center;">
+                                ${statusIcon} <span>${s.schools?.school_name}</span> ${roleBadge}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}</div>
                         </div>
                         ${loginFormatHtml}
                     </div>`;
