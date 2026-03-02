@@ -19,16 +19,17 @@
         html, body { height: 100%; margin: 0; padding: 0; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; overflow-x: hidden; }
 
-        /* --- Navbar --- */
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 0 50px; height: 90px; background: var(--white); box-shadow: 0 2px 20px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: inherit; }
-        .logo-emoji { font-size: 32px; line-height: 1; background: var(--primary); color: white; width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,80,0.15); }
+        /* --- Navbar (ธีมสีน้ำเงินเข้มเหมือนหน้าแรก) --- */
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 0 5%; height: 90px; background: var(--primary); box-shadow: 0 4px 20px rgba(0,0,80,0.15); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; }
+        .logo-emoji { font-size: 32px; line-height: 1; background: white; width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
-        .brand-name { font-size: 26px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; margin-bottom: -2px; }
-        .brand-name span { color: var(--primary); }
-        .slogan { font-size: 13px; color: #636e72; font-family: 'Sarabun'; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit'; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun'; display: block; }
         
-        .nav-profile-trigger { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #eef2f7; cursor: pointer; object-fit: cover; transition: 0.3s ease; }
+        .nav-profile-trigger { width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.8); cursor: pointer; object-fit: cover; transition: 0.3s ease; }
+        .nav-profile-trigger:hover { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
 
         /* --- Sidebar --- */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; z-index: 1999; }
@@ -135,6 +136,7 @@
             .logo-emoji { width: 42px; height: 42px; font-size: 24px; border-radius: 10px; }
             .brand-name { font-size: 22px; }
             .slogan { display: none; }
+            .nav-profile-trigger { width: 42px; height: 42px; }
             .main-container { padding: 20px; } 
             .welcome-hero { padding: 30px 25px; flex-direction: column; text-align: left; position: relative; overflow: hidden; } 
             .welcome-header { font-size: 24px; line-height: 1.4; margin-bottom: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; } 
@@ -183,12 +185,12 @@
             <div class="logo-emoji">🎓</div>
             <div class="logo-text-group">
                 <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan" style="display: none;">นวัตกรรมการศึกษา</div>
+                <div class="slogan">นวัตกรรมการศึกษา</div>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 25px;">
             <div id="notificationBtn" style="position: relative; cursor: pointer; display: none;" onclick="openApprovalModal()">
-                <i class="fas fa-bell" style="font-size: 26px; color: var(--primary-dark); transition: 0.3s;"></i>
+                <i class="fas fa-bell" style="font-size: 26px; color: white; transition: 0.3s;"></i>
                 <span id="notifBadge" style="position: absolute; top: -5px; right: -8px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; font-family: 'Kanit'; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">0</span>
             </div>
             <img src="" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()">
@@ -773,18 +775,18 @@
             }
         }
 
-        // ================= การทำงานของกระดิ่งแจ้งเตือน =================
+        // ================= การทำงานของกระดิ่งแจ้งเตือน (กลับมาเป็นแบบเดิม) =================
         async function checkPendingTeachers() {
             let pendingData = [];
 
+            // ตรวจสอบเฉพาะกลุ่มโรงเรียนที่กำลังเลือกใช้งานอยู่ (Active School) ตามที่คุณครูต้องการ
             if (activeSchool && activeSchool.role === 'admin' && activeSchool.verification_status === 'approved') {
                 const { data: localReqs } = await sysDB.from('teacher_schools')
                     .select('*, teachers!teacher_id(first_name, last_name, email, profile_pic), schools(school_name)')
                     .eq('verification_status', 'pending')
                     .eq('school_id', activeSchool.school_id);
                 
-                // แอดมินสามารถดูคำขอของทั้งคนที่เป็น teacher และคนที่ขอสิทธิ์ admin ร่วม
-                if (localReqs) pendingData = [...pendingData, ...localReqs];
+                if (localReqs) pendingData = [...localReqs];
             }
 
             const notifBtn = document.getElementById('notificationBtn');
@@ -794,10 +796,10 @@
                 notifBtn.style.display = 'block'; badge.style.display = 'inline-block';
                 badge.innerText = pendingData.length; window.pendingRequests = pendingData;
             } else {
-                if (activeSchool && activeSchool.role === 'admin') {
+                if (activeSchool && activeSchool.role === 'admin' && activeSchool.verification_status === 'approved') {
                     notifBtn.style.display = 'block'; badge.style.display = 'none'; window.pendingRequests = [];
                 } else {
-                    notifBtn.style.display = 'none';
+                    notifBtn.style.display = 'none'; window.pendingRequests = [];
                 }
             }
         }
@@ -819,18 +821,20 @@
                     `<span style="background: #ffeaa7; color: #d35400; padding: 3px 8px; border-radius: 8px; font-size: 12px; font-weight: bold;"><i class="fas fa-star"></i> ขอสิทธิ์แอดมินร่วม</span>` : 
                     `<span style="background: #e0e8ff; color: var(--primary); padding: 3px 8px; border-radius: 8px; font-size: 12px; font-weight: bold;"><i class="fas fa-chalkboard-teacher"></i> ผู้สอน</span>`;
 
+                const schoolName = req.schools?.school_name || 'ไม่ทราบชื่อกลุ่ม';
+
                 html += `
                 <div style="border: 1px solid #eee; border-radius: 16px; padding: 20px; margin-bottom: 20px; background: #fafbfc;">
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                         <img src="${avatar}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
-                        <div>
+                        <div style="flex: 1;">
                             <h4 style="margin:0 0 3px 0; font-family:'Kanit'; font-size:16px;">ครู${req.teachers?.first_name} ${req.teachers?.last_name || ''}</h4>
-                            <div style="color:#666; font-size:13px; margin-bottom: 5px;"><i class="fas fa-envelope"></i> ${req.teachers?.email}</div>
+                            <div style="color:#666; font-size:13px; margin-bottom: 5px;"><i class="fas fa-school"></i> ขอเข้า: ${schoolName}</div>
                             ${reqRoleBadge}
                         </div>
                     </div>
                     <div style="display:flex; gap:10px;">
-                        <button onclick="approveTeacher('${req.id}', '${req.role}')" style="flex:1; padding:10px; border:none; border-radius:10px; background:#2ed573; color:white; cursor:pointer; font-family:'Kanit';"><i class="fas fa-check"></i> อนุมัติคำขอ</button>
+                        <button onclick="approveTeacher('${req.id}', '${req.role}')" style="flex:1; padding:10px; border:none; border-radius:10px; background:#2ed573; color:white; cursor:pointer; font-family:'Kanit';"><i class="fas fa-check"></i> อนุมัติ</button>
                         <button onclick="rejectTeacher('${req.id}')" style="flex:1; padding:10px; border:none; border-radius:10px; background:#ff4757; color:white; cursor:pointer; font-family:'Kanit';"><i class="fas fa-times"></i> ปฏิเสธ</button>
                     </div>
                 </div>`;
