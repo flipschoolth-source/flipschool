@@ -74,9 +74,9 @@
         .logout-btn { margin-top: 20px; padding: 18px; border-radius: 20px; background: #fff5f5; color: #ff4757; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 600; transition: 0.3s; width: 100%; }
         
         /* --- Main Dashboard --- */
-        .main-container { flex: 1; padding: 30px 0; width: 97%; max-width: 1400px; margin: 0 auto; box-sizing: border-box; transition: opacity 0.3s ease; }
-        
-        .welcome-hero { 
+        .main-container { flex: 1; padding: 40px 50px; max-width: 97%; margin: 0 auto; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease; }
+        .welcome-hero { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); border-radius: 40px; padding: 40px 50px; color: white; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 20px 45px rgba(0, 74, 173, 0.25); position: relative; overflow: hidden; box-sizing: border-box; }
+        .hero-text-content { position: relative; z-index: 5; flex: 1; }
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); 
             border-radius: 20px; padding: 35px 45px; color: white; margin-bottom: 30px; 
             display: flex; justify-content: space-between; align-items: flex-start; 
@@ -282,21 +282,12 @@
 
     <!-- ================= MAIN DASHBOARD ================= -->
     <main class="main-container" id="mainDashboardContent">
-        
-        <!-- Hero Section (แสดงข้อความ 2 บรรทัด และปรับความสูงอัตโนมัติ) -->
         <div class="welcome-hero">
             <div class="hero-text-content">
                 <h1 class="welcome-header"><span id="welcomeHeader">กำลังโหลด...</span></h1>
                 <p class="welcome-sub" id="welcomeSub">ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมเพื่อการจัดการเรียนรู้</p>
             </div>
-            <!-- Background Icon -->
-            <i class="fas fa-gem hero-bg-icon"></i>
-        </div>
-
-        <!-- ซ่อน Elements ที่ถูกลบออกจากบรรทัดที่ 3 เพื่อไม่ให้ JS แจ้งเตือน Error -->
-        <div style="display: none;">
-            <div id="welcomeSchool"></div>
-            <div id="verificationStatusBadgeContainer"></div>
+            <i class="fas fa-gem hero-bg-icon" style="font-size: 90px; color: rgba(255,255,255,0.12); position: absolute; right: 60px;"></i>
         </div>
         
         <div class="view-filter-container">
@@ -572,30 +563,11 @@
             
             setupProfilePicture(currentUserData.profile_pic, currentUserData.first_name);
 
-            const sidebarLoginInfo = document.getElementById('sidebarLoginInfo');
-            const welcomeSchool = document.getElementById('welcomeSchool');
-
             if (activeViewMode === 'all') {
-                if (welcomeSchool) welcomeSchool.innerHTML = '<i class="fas fa-layer-group"></i> พื้นที่ภาพรวม: แสดงห้องเรียนทั้งหมด';
-                if (sidebarLoginInfo) sidebarLoginInfo.style.display = 'none';
                 handleVerificationStatus('all');
             } else if (activeViewMode === 'independent') {
-                if (welcomeSchool) welcomeSchool.innerHTML = '<i class="fas fa-user"></i> พื้นที่ส่วนตัว (ไม่สังกัดกลุ่ม)';
-                if (sidebarLoginInfo) sidebarLoginInfo.style.display = 'none';
                 handleVerificationStatus('independent');
             } else {
-                const schoolName = activeSchool.schools?.school_name || 'ไม่ระบุชื่อโรงเรียน';
-                const schoolAbbr = activeSchool.schools?.school_abbr || '';
-                
-                if (welcomeSchool) welcomeSchool.innerHTML = `<i class="fas fa-school"></i> สังกัด: ${schoolName}`;
-                
-                if (schoolAbbr) {
-                    const formatEl = document.getElementById('sideLoginFormat');
-                    if (formatEl) formatEl.innerText = `@${schoolAbbr}`;
-                    if (sidebarLoginInfo) sidebarLoginInfo.style.display = 'block';
-                } else {
-                    if (sidebarLoginInfo) sidebarLoginInfo.style.display = 'none';
-                }
                 handleVerificationStatus(activeSchool.verification_status);
             }
 
@@ -640,10 +612,18 @@
                     ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" style="background: #fff0f0; color: #ff4757; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s;" class="leave-btn"><i class="fas fa-sign-out-alt" style="font-size: 13px;"></i></div>`
                     : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" style="background: #fff0f0; color: #ff4757; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s;" class="leave-btn"><i class="fas fa-times" style="font-size: 13px;"></i></div>`;
 
+                const schoolAbbr = s.schools?.school_abbr;
+                const loginFormatHtml = (s.verification_status === 'approved' && schoolAbbr) 
+                    ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px dashed #edf2f7; width: 100%; font-family: 'Sarabun', sans-serif;"><i class="fas fa-sign-in-alt" style="color: var(--primary-light); margin-right: 3px;"></i> รูปแบบล็อกอิน: <span style="font-family: monospace; font-weight: 600; color: var(--accent);">เลขประจำตัว@${schoolAbbr}</span></div>` 
+                    : '';
+
                 html += `
-                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')">
-                        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${statusIcon} <span class="ml-1">${s.schools?.school_name}</span> ${roleBadge}</div>
-                        <div style="display: flex; align-items: center; gap: 8px;">${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}</div>
+                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')" style="flex-direction: column; align-items: stretch;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${statusIcon} <span class="ml-1">${s.schools?.school_name}</span> ${roleBadge}</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">${isAct ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}${actionBtn}</div>
+                        </div>
+                        ${loginFormatHtml}
                     </div>`;
             });
             container.innerHTML = html;
@@ -704,6 +684,7 @@
         }
 
         function handleVerificationStatus(status) {
+            const badgeContainer = document.getElementById('verificationStatusBadgeContainer');
             const classSection = document.getElementById('classroomSection');
             const alertSection = document.getElementById('pendingAlertSection');
             const fabBtn = document.getElementById('fabAddBtn');
@@ -711,13 +692,24 @@
             const iconBg = document.getElementById('alertIconBg');
             const icon = document.getElementById('alertIcon');
 
-            resubmitBtn.style.display = 'none';
+            if (resubmitBtn) resubmitBtn.style.display = 'none';
 
-            if (status === 'all' || status === 'independent' || status === 'approved') {
+            if (status === 'all') {
+                if (badgeContainer) badgeContainer.innerHTML = '';
+                classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
+                fetchClassrooms();
+            } else if (status === 'independent') {
+                if (badgeContainer) badgeContainer.innerHTML = `<span class="status-badge badge-interactive" onclick="openJoinSchoolModal()"><span class="default-text"><i class="fas fa-user-tag"></i> โหมดครูอิสระ</span><span class="hover-text"><i class="fas fa-plus-circle"></i> เข้าร่วมกลุ่มโรงเรียน</span></span>`;
+                classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
+                fetchClassrooms();
+            } else if (status === 'approved') {
+                const roleTxt = activeSchool.role === 'admin' ? '<i class="fas fa-star"></i> Admin' : 'Teacher';
+                if (badgeContainer) badgeContainer.innerHTML = `<span class="status-badge" style="background:#e0e8ff; color:var(--primary);"><i class="fas fa-check-circle"></i> อนุมัติแล้ว (${roleTxt})</span>`;
                 classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
                 fetchClassrooms();
             } else if (status === 'rejected') {
-                classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex'; resubmitBtn.style.display = 'flex'; 
+                if (badgeContainer) badgeContainer.innerHTML = `<span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> ถูกส่งกลับให้แก้ไข</span>`;
+                classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex'; if (resubmitBtn) resubmitBtn.style.display = 'flex'; 
                 alertSection.style.background = '#fff0f0'; alertSection.style.borderColor = '#ffcccc'; iconBg.style.background = '#ffcccc'; icon.className = 'fas fa-exclamation-circle'; icon.style.color = '#ff4757';
                 document.getElementById('pendingAlertTitle').innerText = 'เอกสารไม่ผ่านการอนุมัติ';
                 document.getElementById('pendingAlertTitle').style.color = '#ff4757';
@@ -731,6 +723,7 @@
                 `;
                 fetchClassrooms();
             } else { // pending
+                if (badgeContainer) badgeContainer.innerHTML = `<span class="status-badge status-pending"><i class="fas fa-spinner fa-spin"></i> รอการอนุมัติกลุ่ม</span>`;
                 classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex';
                 alertSection.style.background = '#fff8e1'; alertSection.style.borderColor = '#ffecb3'; iconBg.style.background = '#ffeaa7'; icon.className = 'fas fa-info-circle'; icon.style.color = '#d35400';
                 document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอการอนุมัติเข้ากลุ่ม';
