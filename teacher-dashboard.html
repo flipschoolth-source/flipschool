@@ -779,12 +779,18 @@
         async function checkPendingTeachers() {
             let pendingData = [];
 
-            // ตรวจสอบเฉพาะกลุ่มโรงเรียนที่กำลังเลือกใช้งานอยู่ (Active School) ตามที่คุณครูต้องการ
-            if (activeSchool && activeSchool.role === 'admin' && activeSchool.verification_status === 'approved') {
+            // 1. ค้นหาโรงเรียนทั้งหมดที่ครูคนนี้เป็น Admin และได้รับการอนุมัติแล้ว
+            const adminSchools = userSchools.filter(s => s.role === 'admin' && s.verification_status === 'approved');
+
+            if (adminSchools.length > 0) {
+                // ดึง school_id ทั้งหมดที่เป็นแอดมิน
+                const adminSchoolIds = adminSchools.map(s => s.school_id);
+
+                // 2. ดึงคำขอที่รออนุมัติของโรงเรียนเหล่านี้ทั้งหมดมาแสดง
                 const { data: localReqs } = await sysDB.from('teacher_schools')
                     .select('*, teachers!teacher_id(first_name, last_name, email, profile_pic), schools(school_name)')
                     .eq('verification_status', 'pending')
-                    .eq('school_id', activeSchool.school_id);
+                    .in('school_id', adminSchoolIds);
                 
                 if (localReqs) pendingData = [...localReqs];
             }
@@ -796,7 +802,7 @@
                 notifBtn.style.display = 'block'; badge.style.display = 'inline-block';
                 badge.innerText = pendingData.length; window.pendingRequests = pendingData;
             } else {
-                if (activeSchool && activeSchool.role === 'admin' && activeSchool.verification_status === 'approved') {
+                if (adminSchools.length > 0) {
                     notifBtn.style.display = 'block'; badge.style.display = 'none'; window.pendingRequests = [];
                 } else {
                     notifBtn.style.display = 'none'; window.pendingRequests = [];
