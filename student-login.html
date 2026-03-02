@@ -186,25 +186,26 @@
                 <i class="fas fa-spinner fa-spin" style="color: #a4b0be; font-size: 20px;"></i>
             </div>
 
-            <div class="divider">หรือเข้าใช้งานด้วยอีเมล</div>
+            <div class="divider">หรือเข้าใช้งานด้วยอีเมล / รหัสนักเรียน</div>
 
             <form onsubmit="handleEmailLogin(event)">
                 <div class="form-group">
-                    <label class="form-label">อีเมล</label>
+                    <label class="form-label">อีเมล / รหัสนักเรียน</label>
                     <div class="input-wrapper">
-                        <input type="email" id="email" class="form-input" placeholder="ระบุอีเมลของคุณ" required>
+                        <!-- เปลี่ยนจาก type="email" เป็น "text" เพื่อรองรับการพิมพ์รหัสนักเรียน -->
+                        <input type="text" id="email" class="form-input" placeholder="ระบุอีเมล หรือ รหัสนักเรียน" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">รหัสผ่าน</label>
+                    <label class="form-label">รหัสผ่าน / ว.ด.ป.เกิด</label>
                     <div class="input-wrapper">
-                        <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่านของคุณ" required>
+                        <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่าน หรือ ว.ด.ป.เกิด (เช่น 15/05/2010)" required>
                         <i class="fas fa-eye password-toggle" id="togglePassword" onclick="togglePasswordVisibility()"></i>
                     </div>
                 </div>
 
                 <div class="options-row">
-                    <a href="#" onclick="showCustomAlert('กรุณาติดต่อคุณครูประจำวิชาเพื่อทำการรีเซ็ตรหัสผ่านของคุณครับ', 'info')" class="forgot-link">ลืมรหัสผ่าน?</a>
+                    <a href="#" onclick="showCustomAlert('กรุณาติดต่อคุณครูประจำวิชาเพื่อทำการตรวจสอบรหัสผ่านของคุณครับ', 'info')" class="forgot-link">ลืมรหัสผ่าน?</a>
                 </div>
 
                 <button type="submit" id="btnLogin" class="btn-submit">
@@ -276,12 +277,25 @@
                 document.title = `เข้าสู่ระบบนักเรียน - ${APP_CONFIG.APP_NAME}`;
             }
 
-            // ตรวจสอบเซสชันเก่า (ถ้าเคยล็อกอินไว้แล้ว ให้ข้ามหน้านี้ไปเลย)
+            // ตรวจสอบเซสชันเก่าแบบ LocalStorage ก่อน
+            if (localStorage.getItem('flip_student_session')) {
+                window.location.replace('student-dashboard.html');
+                return;
+            }
+
+            // หากไม่เจอใน LocalStorage ให้ตรวจสอบใน Supabase Auth Session
             if (typeof sysDB !== 'undefined') {
                 const { data: { session } } = await sysDB.auth.getSession();
                 if (session && session.user) {
-                    const { data: studentData } = await sysDB.from('students').select('student_id').eq('student_id', session.user.id).single();
-                    if (studentData) { window.location.replace('student-dashboard.html'); }
+                    const { data: studentData } = await sysDB.from('school_students')
+                        .select('student_id')
+                        .eq('email', session.user.email)
+                        .maybeSingle();
+                        
+                    if (studentData) { 
+                        localStorage.setItem('flip_student_session', studentData.student_id);
+                        window.location.replace('student-dashboard.html'); 
+                    }
                 }
             }
         });
@@ -320,20 +334,20 @@
                 });
                 if (error) throw error;
 
-                // 2. ตรวจสอบว่ามีข้อมูลในตาราง students ตาม Schema ที่กำหนดหรือไม่
-                const { data: studentData, error: studentError } = await sysDB.from('students')
+                // 2. ตรวจสอบว่ามีข้อมูลในตาราง school_students หรือไม่ (อ้างอิงจากอีเมล Google)
+                const { data: studentData, error: studentError } = await sysDB.from('school_students')
                     .select('student_id')
-                    .eq('student_id', data.user.id)
-                    .single();
+                    .eq('email', data.user.email)
+                    .maybeSingle();
 
                 if (!studentData) {
-                    // หากไม่พบข้อมูล แปลว่าบัญชีนี้ไม่ใช่บัญชีนักเรียน หรือยังไม่ได้ลงทะเบียน
                     await sysDB.auth.signOut();
-                    showCustomAlert("ไม่พบข้อมูลบัญชีของคุณในระบบนักเรียน กรุณาติดต่อคุณครูเพื่อตรวจสอบข้อมูลครับ", "warning");
+                    showCustomAlert("ไม่พบข้อมูลบัญชีอีเมลของคุณในระบบนักเรียน กรุณาติดต่อคุณครูเพื่อตรวจสอบข้อมูลครับ", "warning");
                     return;
                 }
 
-                // 3. เข้าสู่ระบบสำเร็จ พาไปหน้า Dashboard
+                // 3. เข้าสู่ระบบสำเร็จ บันทึก Local Session ด้วย
+                localStorage.setItem('flip_student_session', studentData.student_id);
                 window.location.replace('student-dashboard.html');
 
             } catch (err) {
@@ -342,11 +356,11 @@
             }
         }
 
-        // ================= ฟังก์ชันล็อกอินด้วย Email & Password =================
+        // ================= ฟังก์ชันล็อกอินด้วย อีเมล/รหัสนักเรียน & รหัสผ่าน/วดป.เกิด =================
         async function handleEmailLogin(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const loginId = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
             const btn = document.getElementById('btnLogin');
             const origText = btn.innerHTML;
 
@@ -354,27 +368,82 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
                 btn.disabled = true;
 
-                // 1. ยืนยันรหัสผ่านกับระบบ
-                const { data, error } = await sysDB.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+                // ค้นหาข้อมูลนักเรียนในตาราง school_students โดยใช้อีเมลหรือรหัสนักเรียน
+                let query = sysDB.from('school_students').select('*');
+                if (loginId.includes('@')) {
+                    query = query.eq('email', loginId);
+                } else {
+                    query = query.eq('student_code', loginId);
+                }
 
-                // 2. ตรวจสอบสถานะในตาราง students
-                const { data: studentData } = await sysDB.from('students')
-                    .select('student_id')
-                    .eq('student_id', data.user.id)
-                    .single();
+                const { data: students, error: dbErr } = await query;
 
-                if (!studentData) {
+                if (dbErr || !students || students.length === 0) {
+                    throw new Error("ไม่พบข้อมูลอีเมล หรือ รหัสนักเรียนนี้ในระบบ");
+                }
+
+                let matchedStudent = null;
+
+                // 1. ตรวจสอบรหัสผ่านกับ ว.ด.ป.เกิด ของนักเรียนที่ดึงมาได้
+                for (let std of students) {
+                    if (std.birth_date) {
+                        let [y, m, d] = std.birth_date.split('-');
+                        let possibleDates = [
+                            std.birth_date,            // 2010-05-15
+                            `${d}/${m}/${y}`,          // 15/05/2010
+                            `${d}-${m}-${y}`,          // 15-05-2010
+                            `${d}${m}${y}`             // 15052010
+                        ];
+                        if (possibleDates.includes(password)) {
+                            matchedStudent = std;
+                            break; // พบรหัสผ่านตรงกับวันเกิด
+                        }
+                    }
+                }
+
+                // หากรหัสผ่านตรงกับ ว.ด.ป.เกิด จะถือว่าเข้าสู่ระบบได้เลย
+                if (matchedStudent) {
+                    localStorage.setItem('flip_student_session', matchedStudent.student_id);
+                    
+                    // เพื่อความสมบูรณ์ ถ้ามีอีเมลผูกไว้ จะลองจำลองการล็อกอิน Supabase Auth แบบเงียบๆ ไว้ด้วย
+                    if (matchedStudent.email) {
+                        try { await sysDB.auth.signInWithPassword({ email: matchedStudent.email, password: password }); } catch(e) { /* ignore */ }
+                    }
+                    
+                    window.location.replace('student-dashboard.html');
+                    return;
+                }
+
+                // 2. ถ้าไม่ตรงกับ ว.ด.ป.เกิด ให้ลองล็อกอินผ่าน Supabase Auth ตามปกติ (กรณีตั้งรหัสผ่านเอง)
+                let authEmail = loginId;
+                if (!loginId.includes('@')) {
+                    // หากกรอกเป็นรหัสนักเรียน แต่รหัสผ่านไม่ใช่วันเกิด ให้ดึงอีเมลจาก DB ไปล็อกอิน
+                    if (students[0].email) {
+                        authEmail = students[0].email;
+                    } else {
+                        throw new Error("รหัสผ่าน หรือ ว.ด.ป.เกิด ไม่ถูกต้อง");
+                    }
+                }
+
+                const { data: authData, error: authError } = await sysDB.auth.signInWithPassword({ email: authEmail, password: password });
+                
+                if (authError) {
+                    throw new Error("รหัสผ่าน หรือ ว.ด.ป.เกิด ไม่ถูกต้อง");
+                }
+
+                // หากผ่าน Supabase Auth ให้ตรวจสอบยืนยันอีกครั้ง
+                const verifyStudent = students.find(s => s.email === authData.user.email);
+                if (!verifyStudent) {
                     await sysDB.auth.signOut();
                     throw new Error("บัญชีนี้ไม่ได้ลงทะเบียนเป็นนักเรียนในระบบครับ");
                 }
 
-                // 3. ผ่านทั้งหมด ไปยังหน้า Dashboard
+                localStorage.setItem('flip_student_session', verifyStudent.student_id);
                 window.location.replace('student-dashboard.html');
 
             } catch (err) {
                 let errorMsg = err.message;
-                if (errorMsg === 'Invalid login credentials') errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                if (errorMsg === 'Invalid login credentials') errorMsg = 'รหัสผ่าน หรือ ว.ด.ป.เกิด ไม่ถูกต้อง';
                 
                 showCustomAlert(errorMsg, "error");
                 btn.innerHTML = origText;
