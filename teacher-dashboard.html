@@ -405,10 +405,10 @@
         let activeViewMode = 'all'; 
         let activeSchool = null; 
         
-        let isSuperAdmin = false;
         let reqSchoolHasAdmin = false;
         let isCreatingNewSchool = false;
         let isAppealing = false; 
+        let appealMode = 'appeal'; // สถานะโหมด ('appeal', 'central', 'upgrade')
         
         let activeImageFile = null; 
         let cameraStream = null;
@@ -492,9 +492,7 @@
                 }
 
                 renderDashboard();
-            } catch (err) {
-                console.error("Error refreshing state: ", err);
-            }
+            } catch (err) { console.error("Error refreshing state: ", err); }
         }
 
         function renderDashboard() {
@@ -582,11 +580,9 @@
             container.innerHTML = html;
         }
 
-        // --- แก้ไขบั๊กคลิกแล้วไม่โหลดข้อมูล ---
         function switchSchool(schoolId) { 
             localStorage.setItem('active_school_id', schoolId); 
             if (document.getElementById('profileSidebar').classList.contains('active')) toggleSidebar();
-            // สั่งให้ดึงข้อมูลใหม่ทั้งหมดทันที
             refreshDashboardState();
         }
 
@@ -615,8 +611,6 @@
                     const { error } = await sysDB.from('teacher_schools').delete().eq('teacher_id', currentUser.id).eq('school_id', schoolId);
                     if (error) throw error;
                     
-                    await sysDB.from('teachers').update({ school_id: null, verification_status: null, verification_card_url: null, role: 'teacher' }).eq('teacher_id', currentUser.id).eq('school_id', schoolId);
-
                     if (activeViewMode === schoolId) localStorage.setItem('active_school_id', 'all');
                     showCustomAlert('คุณได้ออกจากกลุ่มสถานศึกษาเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
                 } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
@@ -630,8 +624,6 @@
                     const { error } = await sysDB.from('teacher_schools').delete().eq('teacher_id', currentUser.id).eq('school_id', schoolId);
                     if (error) throw error;
                     
-                    await sysDB.from('teachers').update({ school_id: null, verification_status: null, verification_card_url: null, role: 'teacher' }).eq('teacher_id', currentUser.id).eq('school_id', schoolId);
-
                     if (activeViewMode === schoolId) localStorage.setItem('active_school_id', 'all');
                     showCustomAlert('ยกเลิกคำขอเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
                 } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
@@ -659,7 +651,13 @@
                 fetchClassrooms();
             } else if (status === 'approved') {
                 const roleTxt = activeSchool.role === 'admin' ? '<i class="fas fa-star"></i> Admin' : 'Teacher';
-                badgeContainer.innerHTML = `<span class="status-badge" style="background:#e0e8ff; color:var(--primary);"><i class="fas fa-check-circle"></i> อนุมัติแล้ว (${roleTxt})</span>`;
+                let upgradeBtn = '';
+                if (activeSchool.role === 'teacher') {
+                    // ปุ่มขออัปเกรดเป็น Admin สำหรับคนที่เป็นครู
+                    upgradeBtn = `<button onclick="openAppealModal('upgrade')" style="margin-left: 10px; background: white; border: 1px solid var(--primary-light); color: var(--primary-light); padding: 3px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; transition: 0.3s;"><i class="fas fa-level-up-alt"></i> ขอสิทธิ์แอดมินร่วม</button>`;
+                }
+                
+                badgeContainer.innerHTML = `<span class="status-badge" style="background:#e0e8ff; color:var(--primary);"><i class="fas fa-check-circle"></i> อนุมัติแล้ว (${roleTxt})</span>${upgradeBtn}`;
                 classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
                 fetchClassrooms();
             } else if (status === 'rejected') {
@@ -673,7 +671,7 @@
                 document.getElementById('pendingAlertDesc').innerHTML = `<b>เหตุผลจากผู้ตรวจสอบ:</b> ${reason}<br><span style="font-size:14px; color:#2d3436;">หากท่านมั่นใจ โปรดคลิก <b>"ยื่นอุทธรณ์"</b> พร้อมแนบรูปถ่ายคู่บัตรประจำตัว เพื่อให้ส่วนกลางและเพื่อนครูตรวจสอบอีกครั้งครับ</span>`;
                 
                 resubmitBtn.innerHTML = `
-                    <button onclick="openAppealModal()" style="background: white; border: 2px solid #ff4757; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-id-card"></i> ยื่นอุทธรณ์ (บังคับแนบบัตร)</button>
+                    <button onclick="openAppealModal('appeal')" style="background: white; border: 2px solid #ff4757; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-id-card"></i> ยื่นอุทธรณ์ (บังคับแนบบัตร)</button>
                     <button onclick="cancelRequest(event, '${activeSchool.school_id}', '${activeSchool.schools.school_name}')" style="background: #fff0f0; border: none; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-times"></i> ยกเลิกคำขอนี้</button>
                 `;
                 fetchClassrooms();
@@ -683,7 +681,20 @@
                 alertSection.style.background = '#fff8e1'; alertSection.style.borderColor = '#ffecb3'; iconBg.style.background = '#ffeaa7'; icon.className = 'fas fa-info-circle'; icon.style.color = '#d35400';
                 document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอการอนุมัติเข้ากลุ่ม';
                 document.getElementById('pendingAlertTitle').style.color = '#d35400';
-                document.getElementById('pendingAlertDesc').innerHTML = activeSchool.role === 'admin' ? "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ <b>โปรดรอส่วนกลางตรวจสอบสิทธิ์</b> ระหว่างนี้คุณสร้างห้องเรียนได้ทันทีครับ" : "<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ";
+                
+                let centralActionBtn = '';
+                if (activeSchool.role === 'teacher' && !activeSchool.verification_card_url) {
+                    document.getElementById('pendingAlertDesc').innerHTML = `<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ<br><br><span style="font-size: 13px; color: #636e72;"><i class="fas fa-question-circle"></i> แอดมินโรงเรียนไม่ตอบรับ? คุณสามารถแนบเอกสารส่งให้แอดมินส่วนกลางช่วยอนุมัติแทนได้</span>`;
+                    centralActionBtn = `<button onclick="openAppealModal('central')" style="background: white; border: 2px solid var(--primary-light); color: var(--primary-light); padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-paper-plane"></i> ส่งเอกสารให้ส่วนกลาง</button>`;
+                } else {
+                    document.getElementById('pendingAlertDesc').innerHTML = activeSchool.role === 'admin' ? "คุณเป็นผู้ขอสร้างกลุ่มหรือขอสิทธิ์แอดมิน <b>โปรดรอส่วนกลางตรวจสอบเอกสาร</b> ระหว่างนี้คุณสร้างห้องเรียนได้ทันทีครับ" : "<b>เอกสารของคุณถูกส่งไปยังส่วนกลางแล้ว โปรดรอการตรวจสอบ</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ";
+                }
+                
+                resubmitBtn.style.display = 'flex';
+                resubmitBtn.innerHTML = `
+                    ${centralActionBtn}
+                    <button onclick="cancelRequest(event, '${activeSchool.school_id}', '${activeSchool.schools.school_name}')" style="background: #fff0f0; border: none; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-times"></i> ยกเลิกคำขอนี้</button>
+                `;
                 fetchClassrooms();
             }
         }
@@ -691,7 +702,6 @@
         async function fetchClassrooms() {
             const grid = document.getElementById('classGrid');
             grid.style.opacity = '0.4'; 
-            
             grid.innerHTML = `<div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: #a4b0be;"><i class="fas fa-circle-notch fa-spin" style="font-size: 40px; margin-bottom: 15px;"></i><span style="font-family: 'Kanit'; font-size: 16px;">กำลังโหลดห้องเรียน...</span></div>`;
 
             try {
@@ -699,14 +709,11 @@
                 if (error) throw error;
                 let displayData = [];
 
-                if (activeViewMode === 'all') {
-                    displayData = data;
-                } else if (activeViewMode === 'independent') {
+                if (activeViewMode === 'all') { displayData = data; } 
+                else if (activeViewMode === 'independent') {
                     const knownSchoolIds = userSchools.map(s => s.school_id);
                     displayData = data.filter(c => !c.school_id || !knownSchoolIds.includes(c.school_id));
-                } else {
-                    displayData = data.filter(c => c.school_id === activeViewMode);
-                }
+                } else { displayData = data.filter(c => c.school_id === activeViewMode); }
 
                 if (!displayData || displayData.length === 0) {
                     grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 35px; border: 2px dashed #edf2f7; min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;"><i class="fas fa-chalkboard"></i></div><h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีห้องเรียนในพื้นที่นี้</h3><p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างห้องเรียนได้เลยครับ</p></div>`;
@@ -718,8 +725,7 @@
                                 <div class="room-badge">${c.room_name || 'ไม่ระบุห้อง'}</div><h3 class="subject-title">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
                                 <div style="color: var(--text-muted); font-size: 14px; margin-top: auto; padding-top: 15px; display: flex; align-items: center; gap: 8px;"><i class="fas fa-calendar-alt" style="color: #a4b0be;"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}</div>
                             </div>
-                        </div>
-                    `).join('');
+                        </div>`).join('');
                 }
             } catch (err) { grid.innerHTML = `<div style="color: #ff4757; padding: 40px;">ข้อผิดพลาด: ${err.message}</div>`; } finally { grid.style.opacity = '1'; }
         }
@@ -729,193 +735,84 @@
             const dropdown = document.getElementById('notifDropdown');
             const btn = document.getElementById('notificationBtn');
             dropdown.classList.toggle('show');
-            if (dropdown.classList.contains('show')) {
-                btn.classList.add('active');
-                renderPendingList();
-            } else {
-                btn.classList.remove('active');
-            }
+            if (dropdown.classList.contains('show')) { btn.classList.add('active'); renderPendingList(); } 
+            else { btn.classList.remove('active'); }
         }
 
-        // ปิด Dropdown เมื่อคลิกที่อื่นบนหน้าจอ
         document.addEventListener('click', function(event) {
             const container = document.getElementById('notificationContainer');
             const dropdown = document.getElementById('notifDropdown');
             const btn = document.getElementById('notificationBtn');
-            if (container && dropdown && !container.contains(event.target)) {
-                dropdown.classList.remove('show');
-                btn.classList.remove('active');
-            }
+            if (container && dropdown && !container.contains(event.target)) { dropdown.classList.remove('show'); btn.classList.remove('active'); }
         });
 
-        // ฟังก์ชันแปลงเวลาแบบ Facebook (10 นาทีที่แล้ว, เมื่อวาน, ฯลฯ)
         function getTimeAgo(dateString) {
-            if (!dateString) return 'เมื่อสักครู่';
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffSec = Math.floor((now - date) / 1000);
-            if (diffSec < 60) return 'เมื่อสักครู่';
-            const diffMin = Math.floor(diffSec / 60);
-            if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
-            const diffHour = Math.floor(diffMin / 60);
-            if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
-            const diffDay = Math.floor(diffHour / 24);
-            if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
-            return date.toLocaleDateString('th-TH');
-        } // <--- เพิ่มปีกกาปิดบรรทัดนี้ครับ
+            if (!dateString) return 'เมื่อสักครู่'; const date = new Date(dateString); const now = new Date(); const diffSec = Math.floor((now - date) / 1000);
+            if (diffSec < 60) return 'เมื่อสักครู่'; const diffMin = Math.floor(diffSec / 60); if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+            const diffHour = Math.floor(diffMin / 60); if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`; const diffDay = Math.floor(diffHour / 24);
+            if (diffDay < 7) return `${diffDay} วันที่แล้ว`; return date.toLocaleDateString('th-TH');
+        }
 
-        // ================= กระดิ่งแจ้งเตือนแบบ Realtime ที่ปลอดภัยและแม่นยำ =================
         function setupRealtimePendingRequests() {
-            if (pendingRequestsSubscription) {
-                sysDB.removeChannel(pendingRequestsSubscription);
-                pendingRequestsSubscription = null;
-            }
-
-            // คัดกรองเฉพาะโรงเรียนที่ครูคนนี้ได้รับการอนุมัติแล้ว (ทุกคนในกลุ่มช่วยอนุมัติได้ ไม่จำกัดแค่ admin)
+            if (pendingRequestsSubscription) { sysDB.removeChannel(pendingRequestsSubscription); pendingRequestsSubscription = null; }
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
-
             if (approvedSchoolIds.length > 0) {
                 checkPendingTeachers(); 
-
-                pendingRequestsSubscription = sysDB.channel('custom-update-channel')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'teacher_schools' },
-                    (payload) => {
-                        const record = payload.new || payload.old;
-                        if (record && approvedSchoolIds.includes(record.school_id)) {
-                            checkPendingTeachers(); 
-                        }
-                    }
-                )
-                .subscribe();
-            } else {
-                 document.getElementById('notificationBtn').style.display = 'none';
-                 window.pendingRequests = [];
-            }
+                pendingRequestsSubscription = sysDB.channel('custom-update-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'teacher_schools' }, (payload) => {
+                    const record = payload.new || payload.old; if (record && approvedSchoolIds.includes(record.school_id)) checkPendingTeachers(); 
+                }).subscribe();
+            } else { document.getElementById('notificationBtn').style.display = 'none'; window.pendingRequests = []; }
         }
 
         async function checkPendingTeachers() {
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
-            
-            if (approvedSchoolIds.length === 0) {
-                document.getElementById('notificationBtn').style.display = 'none';
-                window.pendingRequests = [];
-                return;
-            }
+            const notifBtn = document.getElementById('notificationBtn');
+            const badge = document.getElementById('notifBadge');
+            const btnWrapper = document.getElementById('notificationBtn');
 
+            if (approvedSchoolIds.length === 0) { notifBtn.style.display = 'none'; window.pendingRequests = []; return; }
             try {
-                // 1. เปลี่ยนมาใช้วิธี Manual Join (ดึงแยกตาราง) เพื่อแก้ปัญหาบั๊ก Foreign Key 100%
-                const { data: reqs, error: reqErr } = await sysDB.from('teacher_schools')
-                    .select('*')
-                    .eq('verification_status', 'pending')
-                    .in('school_id', approvedSchoolIds)
-                    .order('created_at', { ascending: false });
-                
+                const { data: reqs, error: reqErr } = await sysDB.from('teacher_schools').select('*, teachers(teacher_id, first_name, last_name, email, profile_pic), schools(school_id, school_name, school_abbr)').eq('verification_status', 'pending').in('school_id', approvedSchoolIds).order('created_at', { ascending: false });
                 if (reqErr) throw reqErr;
-
                 let pendingData = [];
-                if (reqs && reqs.length > 0) {
-                    const teacherIds = reqs.map(r => r.teacher_id);
-                    const schoolIds = reqs.map(r => r.school_id);
-
-                    // 2. ดึงข้อมูลครูและโรงเรียน
-                    const { data: teachersData } = await sysDB.from('teachers').select('teacher_id, first_name, last_name, email, profile_pic').in('teacher_id', teacherIds);
-                    const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
-
-                    // 3. ประกอบร่างข้อมูลเข้าด้วยกัน
-                    reqs.forEach(r => {
-                        if (r.teacher_id !== currentUser.id) { // ป้องกันไม่ให้เห็นคำขอของตัวเอง
-                            const tData = teachersData ? teachersData.find(t => t.teacher_id === r.teacher_id) : {};
-                            const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
-                            pendingData.push({
-                                ...r,
-                                teacher: tData || {},
-                                schools: sData || {}
-                            });
-                        }
-                    });
-                }
-
-                const notifBtn = document.getElementById('notificationBtn');
-                const badge = document.getElementById('notifBadge');
-                const btnWrapper = document.getElementById('notificationBtn');
-
+                if (reqs && reqs.length > 0) { reqs.forEach(r => { if (r.teacher_id !== currentUser.id) pendingData.push({ ...r, teacher: r.teachers || {}, schools: r.schools || {} }); }); }
                 window.pendingRequests = pendingData;
-
-                if (pendingData.length > 0) {
-                    notifBtn.style.display = 'flex'; 
-                    badge.style.display = 'inline-block';
-                    badge.innerText = pendingData.length; 
-                    btnWrapper.classList.add('ringing'); 
-                } else {
-                    notifBtn.style.display = 'flex'; 
-                    badge.style.display = 'none'; 
-                    btnWrapper.classList.remove('ringing');
-                }
-                
-                if (document.getElementById('notifDropdown').classList.contains('show')) {
-                     renderPendingList();
-                }
+                if (pendingData.length > 0) { notifBtn.style.display = 'flex'; badge.style.display = 'inline-block'; badge.innerText = pendingData.length; btnWrapper.classList.add('ringing'); } 
+                else { notifBtn.style.display = 'flex'; badge.style.display = 'none'; btnWrapper.classList.remove('ringing'); }
+                if (document.getElementById('notifDropdown').classList.contains('show')) renderPendingList();
             } catch (err) { console.error("Error fetching pending requests: ", err); }
         }
 
-        // ป๊อปอัปดูรูปภายในแอป
-        function viewImage(url) {
-            document.getElementById('modalImage').src = url;
-            document.getElementById('imageModal').style.display = 'flex';
-        }
-        function closeImageModal() {
-            document.getElementById('imageModal').style.display = 'none';
-        }
+        function viewImage(url) { document.getElementById('modalImage').src = url; document.getElementById('imageModal').style.display = 'flex'; }
+        function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
 
-        // ลบข้อมูลออกหน้าจอแบบลื่นไหล
         function removePendingRequestCard(tsId) {
             const card = document.getElementById(`req-card-${tsId}`);
             if (card) {
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9) translateX(50px)';
+                card.style.opacity = '0'; card.style.transform = 'scale(0.9) translateX(50px)';
                 setTimeout(() => {
-                    card.remove();
-                    window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
-                    const count = window.pendingRequests.length;
-                    const badge = document.getElementById('notifBadge');
-                    
-                    if (count > 0) {
-                        badge.innerText = count;
-                    } else {
-                        badge.style.display = 'none';
-                        document.getElementById('notificationBtn').classList.remove('ringing');
-                        document.getElementById('notifList').innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`;
-                    }
+                    card.remove(); window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
+                    const count = window.pendingRequests.length; const badge = document.getElementById('notifBadge');
+                    if (count > 0) badge.innerText = count; else { badge.style.display = 'none'; document.getElementById('notificationBtn').classList.remove('ringing'); document.getElementById('notifList').innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; }
                 }, 300);
             }
         }
 
         async function deleteCardFromStorage(fileName) {
             if (!fileName || fileName === 'null') return;
-            try {
-                await sysDB.storage.from('teacher-verifications').remove([fileName]);
-                await sysDB.from('teacher_schools').update({ verification_card_url: null }).eq('verification_card_url', fileName);
-            } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
+            try { await sysDB.storage.from('teacher-verifications').remove([fileName]); await sysDB.from('teacher_schools').update({ verification_card_url: null }).eq('verification_card_url', fileName); } catch (e) {}
         }
 
         async function renderPendingList() {
             const listContainer = document.getElementById('notifList');
             const requests = window.pendingRequests || [];
-            
-            if(requests.length === 0) { 
-                listContainer.innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; 
-                return; 
-            }
+            if(requests.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; return; }
             
             let html = '';
             for (const req of requests) {
-                const t = req.teacher || {};
-                const schoolName = req.schools?.school_name || 'กลุ่มสถานศึกษา';
+                const t = req.teacher || {}; const schoolName = req.schools?.school_name || 'กลุ่มสถานศึกษา';
                 const avatar = t.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.first_name || 'T'}`;
                 const timeAgo = getTimeAgo(req.created_at);
-                
                 let viewCardBtn = '';
                 if (req.verification_card_url) {
                     const publicUrl = sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
@@ -927,17 +824,11 @@
                     <div class="notif-unread-dot"></div>
                     <img src="${avatar}" class="notif-avatar">
                     <div class="notif-content">
-                        <p class="notif-text">
-                            <b>ครู${t.first_name || 'ไม่ระบุชื่อ'} ${t.last_name || ''}</b> ขอเข้าร่วม <b>${schoolName}</b>
-                            ${viewCardBtn}
-                        </p>
-                        
+                        <p class="notif-text"><b>ครู${t.first_name || 'ไม่ระบุชื่อ'} ${t.last_name || ''}</b> ขอเข้าร่วม <b>${schoolName}</b>${viewCardBtn}</p>
                         <div class="notif-actions" id="action-box-${req.id}">
                             <button class="btn-notif-action btn-notif-approve" id="btn-approve-${req.id}" onclick="approveTeacherFB('${req.id}', '${req.role}', '${req.teacher_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
                             <button class="btn-notif-action btn-notif-reject" onclick="showRejectBoxFB('${req.id}')">ลบคำขอ</button>
                         </div>
-
-                        <!-- กล่องใส่เหตุผลปฏิเสธแบบ Slide Down -->
                         <div id="reject-box-${req.id}" style="display:none; margin-top: 10px; flex-direction: column; gap: 8px;">
                             <input type="text" id="reject-reason-${req.id}" class="form-input" style="font-size:13px; padding: 8px 12px; margin-bottom: 0; border-radius: 8px; border: 1px solid #ccd0d5; background: #f0f2f5;" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
                             <div style="display:flex; gap:8px;">
@@ -945,7 +836,6 @@
                                 <button class="btn-notif-action btn-notif-reject" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
                             </div>
                         </div>
-
                         <span class="notif-time">${timeAgo}</span>
                     </div>
                 </div>`;
@@ -953,58 +843,31 @@
             listContainer.innerHTML = html;
         }
 
-        // ระบบ อนุมัติ/ปฏิเสธ แบบ Facebook (รวดเร็ว ไม่เด้ง Alert บ่อยๆ)
         async function approveTeacherFB(tsId, requestRole, teacherId, schoolId, cardUrl) {
-            const btn = document.getElementById(`btn-approve-${tsId}`);
-            let origText = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const btn = document.getElementById(`btn-approve-${tsId}`); let origText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             try {
                 await sysDB.from('teacher_schools').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
-                await sysDB.from('teachers').update({ verification_status: 'approved', role: requestRole, school_id: schoolId, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('teacher_id', teacherId);
-                if (cardUrl) await deleteCardFromStorage(cardUrl);
-                removePendingRequestCard(tsId);
-            } catch(err) {
-                showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); 
-                btn.disabled = false; btn.innerHTML = origText;
-            }
+                if (cardUrl) await deleteCardFromStorage(cardUrl); removePendingRequestCard(tsId);
+            } catch(err) { showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); btn.disabled = false; btn.innerHTML = origText; }
         }
 
-        function showRejectBoxFB(reqId) {
-            document.getElementById(`action-box-${reqId}`).style.display = 'none';
-            document.getElementById(`reject-box-${reqId}`).style.display = 'flex';
-        }
-        function hideRejectBoxFB(reqId) {
-            document.getElementById(`reject-box-${reqId}`).style.display = 'none';
-            document.getElementById(`action-box-${reqId}`).style.display = 'flex';
-        }
+        function showRejectBoxFB(reqId) { document.getElementById(`action-box-${reqId}`).style.display = 'none'; document.getElementById(`reject-box-${reqId}`).style.display = 'flex'; }
+        function hideRejectBoxFB(reqId) { document.getElementById(`reject-box-${reqId}`).style.display = 'none'; document.getElementById(`action-box-${reqId}`).style.display = 'flex'; }
 
         async function rejectTeacherFB(tsId, teacherId, schoolId, cardUrl) {
-            const reasonInput = document.getElementById(`reject-reason-${tsId}`);
-            const reasonValue = reasonInput ? reasonInput.value.trim() : '';
-            if (!reasonValue) {
-                reasonInput.style.border = "1px solid #ff4757";
-                reasonInput.focus(); return;
-            }
-            
-            const btn = document.getElementById(`btn-reject-${tsId}`);
-            let origText = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
+            const reasonInput = document.getElementById(`reject-reason-${tsId}`); const reasonValue = reasonInput ? reasonInput.value.trim() : '';
+            if (!reasonValue) { reasonInput.style.border = "1px solid #ff4757"; reasonInput.focus(); return; }
+            const btn = document.getElementById(`btn-reject-${tsId}`); let origText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             try {
                 await sysDB.from('teacher_schools').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('id', tsId);
-                await sysDB.from('teachers').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('teacher_id', teacherId).eq('school_id', schoolId);
-                if (cardUrl) await deleteCardFromStorage(cardUrl);
-                removePendingRequestCard(tsId);
-            } catch(err) {
-                showCustomAlert('ไม่สามารถปฏิเสธได้: ' + err.message, 'error'); 
-                btn.disabled = false; btn.innerHTML = origText;
-            }
+                if (cardUrl) await deleteCardFromStorage(cardUrl); removePendingRequestCard(tsId);
+            } catch(err) { showCustomAlert('ไม่สามารถปฏิเสธได้: ' + err.message, 'error'); btn.disabled = false; btn.innerHTML = origText; }
         }
 
-        // ================= ยื่นเรื่องอุทธรณ์ =================
-        function openAppealModal() {
+        // ================= ส่งเอกสาร / ยื่นอุทธรณ์ / ขอแอดมิน =================
+        function openAppealModal(mode = 'appeal') {
             if (!activeSchool) return;
-            isCreatingNewSchool = false; isAppealing = true; resetImagePreview();
+            isCreatingNewSchool = false; isAppealing = true; appealMode = mode; resetImagePreview();
             document.getElementById('joinSchoolModal').style.display = 'flex';
             document.getElementById('profileSidebar').classList.remove('active'); document.getElementById('sidebarOverlay').style.display = 'none';
 
@@ -1019,14 +882,24 @@
             document.getElementById('cancelSelectSchoolBtn').style.display = 'none';
 
             document.getElementById('reqIdCardGroup').style.display = 'block';
-            document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-exclamation-circle"></i> <b>ยื่นอุทธรณ์ถึงส่วนกลาง:</b> กรุณาแนบภาพถ่ายคู่กับบัตรข้าราชการ/บัตรประจำตัว เพื่อยืนยันตัวตนใหม่อีกครั้ง';
-            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-id-card" style="margin-right: 8px;"></i> ยื่นอุทธรณ์ยืนยันตัวตน';
+            
+            if (mode === 'upgrade') {
+                document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>ขอสิทธิ์ Admin ร่วม:</b> กรุณาแนบภาพถ่ายคู่กับบัตรข้าราชการ/บัตรพนักงาน เพื่อให้ส่วนกลางพิจารณาการอัปเกรดสิทธิ์ครับ';
+                document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-level-up-alt" style="margin-right: 8px;"></i> ขออัปเกรดสิทธิ์เป็นแอดมิน';
+            } else if (mode === 'central') {
+                document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>ให้ส่วนกลางช่วยอนุมัติ:</b> กรุณาแนบภาพถ่ายคู่กับบัตรข้าราชการ/บัตรพนักงาน เพื่อยืนยันตัวตนให้ส่วนกลางตรวจสอบโดยตรง';
+                document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> ส่งเอกสารถึงส่วนกลาง';
+            } else {
+                document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-exclamation-circle"></i> <b>ยื่นอุทธรณ์ถึงส่วนกลาง:</b> กรุณาแนบภาพถ่ายคู่กับบัตรข้าราชการ/บัตรประจำตัว เพื่อยืนยันตัวตนใหม่อีกครั้ง';
+                document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-id-card" style="margin-right: 8px;"></i> ยื่นอุทธรณ์ยืนยันตัวตน';
+            }
+            
             document.getElementById('joinModalGuideText').style.display = 'none';
             setupUploadButtons();
         }
 
         function openJoinSchoolModal() { 
-            isAppealing = false;
+            isAppealing = false; appealMode = 'appeal';
             document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-school" style="margin-right: 8px;"></i> ค้นหากลุ่มสถานศึกษา';
             document.getElementById('joinModalGuideText').style.display = 'block'; document.getElementById('cancelSelectSchoolBtn').style.display = 'block'; 
             document.getElementById('joinSchoolModal').style.display = 'flex'; document.getElementById('profileSidebar').classList.remove('active'); document.getElementById('sidebarOverlay').style.display = 'none'; setupUploadButtons(); 
@@ -1099,14 +972,31 @@
                 
                 let isResubmitting = false;
                 if (alreadyJoined) {
-                    if (alreadyJoined.verification_status === 'pending' || alreadyJoined.verification_status === 'approved') {
-                        throw new Error('คุณอยู่ในกลุ่มนี้หรือได้ส่งคำขอไปยังโรงเรียนนี้แล้วครับ!');
-                    }
                     if (alreadyJoined.verification_status === 'rejected') {
                         isResubmitting = true;
                         if (isAppealing) {
                             needsCardUpload = true; 
-                            applyRole = 'teacher'; 
+                            applyRole = appealMode === 'upgrade' ? 'admin' : alreadyJoined.role; 
+                        }
+                    } else if (alreadyJoined.verification_status === 'pending') {
+                        if (isAppealing && appealMode === 'central') {
+                            isResubmitting = true;
+                            needsCardUpload = true;
+                            applyRole = alreadyJoined.role; // ให้คงสิทธิ์ teacher ไว้เหมือนเดิม แต่ส่งบัตรให้ส่วนกลาง
+                        } else if (isAppealing && appealMode === 'upgrade') {
+                            isResubmitting = true;
+                            needsCardUpload = true;
+                            applyRole = 'admin'; 
+                        } else {
+                            throw new Error('คุณอยู่ในกลุ่มนี้หรือได้ส่งคำขอไปยังโรงเรียนนี้แล้วครับ!');
+                        }
+                    } else if (alreadyJoined.verification_status === 'approved') {
+                        if (isAppealing && appealMode === 'upgrade') {
+                            isResubmitting = true;
+                            needsCardUpload = true;
+                            applyRole = 'admin'; // ยื่นขออัปเกรดสิทธิ์เป็นแอดมิน
+                        } else {
+                            throw new Error('คุณอยู่ในกลุ่มนี้อยู่แล้วครับ!');
                         }
                     }
                 }
@@ -1130,14 +1020,6 @@
                 } else {
                     await sysDB.from('teacher_schools').insert([{ teacher_id: currentUser.id, school_id: targetSchoolId, role: applyRole, verification_card_url: cardUrl, verification_status: 'pending' }]);
                 }
-                
-                await sysDB.from('teachers').update({
-                    school_id: targetSchoolId,
-                    role: applyRole,
-                    verification_status: 'pending',
-                    verification_card_url: cardUrl || currentUserData.verification_card_url,
-                    reject_reason: null
-                }).eq('teacher_id', currentUser.id);
 
                 localStorage.setItem('active_school_id', targetSchoolId);
                 showCustomAlert('ส่งคำขอสำเร็จ! ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว', 'success', () => { 
