@@ -270,6 +270,13 @@
                 if (error) throw error;
                 const userId = data.user.id; const userEmail = data.user.email;
                 
+                // ตรวจสอบว่ามีบัญชีอยู่แล้วหรือไม่
+                const { data: existingTeacher } = await sysDB.from('teachers').select('teacher_id').eq('teacher_id', userId).maybeSingle();
+                if (existingTeacher) {
+                    showCustomAlert("บัญชีนี้มีอยู่ในระบบแล้ว ระบบจะพาท่านไปยังหน้าเข้าสู่ระบบ", "warning", () => window.location.href = 'teacher-login.html');
+                    return;
+                }
+
                 // ดึงรูปโปรไฟล์จากบัญชี Google
                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
@@ -301,6 +308,12 @@
                 const { data: authData, error: authError } = await sysDB.auth.signUp({ email: email, password: password });
                 if (authError) throw authError;
 
+                // กรณีที่ Supabase ตั้งค่า Confirm Email ไว้ ถ้าอีเมลซ้ำระบบอาจไม่แจ้ง Error แต่จะคืนค่า identities เป็นค่าว่าง
+                if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+                    showCustomAlert("บัญชีนี้มีอยู่ในระบบแล้ว ระบบจะพาท่านไปยังหน้าเข้าสู่ระบบ", "warning", () => window.location.href = 'teacher-login.html');
+                    return;
+                }
+
                 const userId = authData.user.id;
 
                 // บันทึกเฉพาะข้อมูลบัญชีพื้นฐานลงตาราง teachers
@@ -311,7 +324,14 @@
 
                 showCustomAlert("สร้างบัญชีสำเร็จ! ระบบกำลังพาท่านไปเข้าร่วมกลุ่มโรงเรียน", 'success', () => window.location.href = 'teacher-dashboard.html');
 
-            } catch (err) { showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); btn.disabled = false; btn.innerHTML = 'สมัครสมาชิก <i class="fas fa-arrow-right"></i>'; }
+            } catch (err) { 
+                if (err.message.toLowerCase().includes('already registered')) {
+                    showCustomAlert("บัญชีนี้มีอยู่ในระบบแล้ว ระบบจะพาท่านไปยังหน้าเข้าสู่ระบบ", "warning", () => window.location.href = 'teacher-login.html');
+                } else {
+                    showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error'); 
+                }
+                btn.disabled = false; btn.innerHTML = 'สมัครสมาชิก <i class="fas fa-arrow-right"></i>'; 
+            }
         }
     </script>
 </body>
