@@ -67,27 +67,38 @@
             min-height: 100vh;
         }
 
-        /* --- Navbar (อัปเดตธีมเดียวกับ Dashboard) --- */
+        /* --- Navbar (อัปเดตธีมสีน้ำเงินเข้มแบบ Classroom Detail) --- */
         nav { 
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 0 5%; height: 90px; background: var(--white); 
-            box-shadow: 0 2px 20px rgba(0,0,0,0.04); 
+            padding: 0 5%; height: 90px; background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
             position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
         }
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: inherit; }
-        .logo-container img { height: 55px; }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; }
+        .logo-emoji { 
+            font-size: 32px; 
+            line-height: 1; 
+            background: white; 
+            width: 52px; 
+            height: 52px; 
+            border-radius: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+        }
         .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
-        .brand-name { font-size: 26px; font-weight: 700; color: #2d3436; font-family: 'Kanit'; margin-bottom: -2px; }
-        .brand-name span { color: var(--primary); }
-        .slogan { font-size: 13px; color: #636e72; font-family: 'Sarabun'; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit'; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun'; }
 
         .nav-btn-outline {
-            text-decoration: none; color: var(--primary); border: 2px solid var(--primary);
+            text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
             padding: 10px 28px; border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: 16px; transition: 0.3s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .nav-btn-outline:hover {
-            background: var(--primary); color: white; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 139, 0.15);
+            background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white;
         }
 
         /* --- Hero Section --- */
@@ -218,7 +229,7 @@
         /* --- ปรับแต่งสำหรับมือถือของ Navbar --- */
         @media (max-width: 768px) {
             nav { padding: 0 20px; height: 75px; }
-            .logo-container img { height: 45px; }
+            .logo-emoji { width: 42px; height: 42px; font-size: 24px; border-radius: 10px; }
             .brand-name { font-size: 22px; }
             .slogan { display: none; }
             .nav-btn-outline { padding: 8px 20px; font-size: 14px; }
@@ -238,7 +249,7 @@
     <div id="mainContent">
         <nav>
             <a href="index.html" class="logo-container">
-                <img src="img/favicon.png" alt="Logo" onerror="this.style.display='none'">
+                <div class="logo-emoji">🎓</div>
                 <div class="logo-text-group">
                     <div class="brand-name">Flip<span>School</span></div>
                     <div class="slogan">นวัตกรรมการศึกษา</div>
@@ -304,10 +315,36 @@
             // โหลด UI ขั้นพื้นฐาน
             if (typeof initAppUI === 'function') initAppUI();
             
-            // ปรับ Footer ให้แสดงผลถูกต้อง
+            // ดึงข้อมูลชื่อแอปและสโลแกนจาก config.js มาแสดงผลอัตโนมัติ
             if (typeof APP_CONFIG !== 'undefined') {
+                // 1. อัปเดตชื่อแท็บเบราว์เซอร์ (Title)
+                if (APP_CONFIG.APP_NAME) {
+                    document.title = `${APP_CONFIG.APP_NAME} - GLORY Model`;
+                }
+
+                // 2. อัปเดตชื่อแบรนด์ที่แถบ Navbar
+                const brandNameEl = document.querySelector('.brand-name');
+                if (brandNameEl && APP_CONFIG.APP_NAME) {
+                    // เล่นสีลูกเล่นเฉพาะคำว่า FlipSchool
+                    if (APP_CONFIG.APP_NAME === 'FlipSchool') {
+                        brandNameEl.innerHTML = 'Flip<span>School</span>';
+                    } else {
+                        brandNameEl.textContent = APP_CONFIG.APP_NAME;
+                    }
+                }
+
+                // 3. อัปเดตสโลแกน
+                const sloganEl = document.querySelector('.slogan');
+                if (sloganEl && APP_CONFIG.APP_SLOGAN) {
+                    sloganEl.textContent = APP_CONFIG.APP_SLOGAN;
+                }
+
+                // 4. อัปเดตข้อความ Footer
                 document.querySelectorAll('.footer-display-text').forEach(el => {
-                    el.innerHTML = `&copy; ${APP_CONFIG.YEAR || new Date().getFullYear()} FlipSchool - ${APP_CONFIG.APP_SLOGAN}`;
+                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
+                    const appName = APP_CONFIG.APP_NAME || 'FlipSchool';
+                    const slogan = APP_CONFIG.APP_SLOGAN || '';
+                    el.innerHTML = `&copy; ${year} ${appName} - ${slogan}`;
                 });
             }
 
