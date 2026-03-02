@@ -79,9 +79,9 @@
         .welcome-hero { 
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%); 
             border-radius: 20px; padding: 35px 45px; color: white; margin-bottom: 30px; 
-            display: flex; justify-content: space-between; align-items: center; 
+            display: flex; justify-content: space-between; align-items: flex-start; 
             box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); position: relative; overflow: hidden; 
-            box-sizing: border-box;
+            box-sizing: border-box; flex-direction: column;
         }
         .hero-text-content { position: relative; z-index: 5; flex: 1; width: 100%; overflow: hidden; }
         .welcome-header { font-family: 'Kanit', sans-serif; font-size: 34px; font-weight: 700; margin: 0 0 5px 0; white-space: normal; word-wrap: break-word; width: 100%; }
@@ -196,7 +196,7 @@
         .mobile-break { display: none; }
 
         @media (max-width: 768px) { 
-            nav { padding: 0 15px; height: 65px; } 
+            nav { padding: 0 16px; height: 80px; } 
             .nav-left { gap: 10px; }
             .brand-name { font-size: 20px; margin-bottom: 0; }
             .brand-slogan { display: none; } 
@@ -319,7 +319,10 @@
     <!-- Footer -->
     <div class="footer footer-display-text"></div>
 
-    <button onclick="handleFabClick(event)" class="fab-add" id="fabAddBtn"><i class="fas fa-plus"></i></button>
+    <!-- Floating Action Button -->
+    <a href="#" onclick="handleFabClick(event)" id="fabAddBtn" class="fab-add">
+        <i class="fas fa-plus"></i>
+    </a>
 
     <!-- ================= MODAL เข้าร่วม/ยื่นอุทธรณ์ ================= -->
     <div id="joinSchoolModal" class="modal-overlay">
@@ -604,7 +607,6 @@
 
             let html = `
                 <button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchSchool('all')"><i class="fas fa-layer-group"></i> พื้นที่ทั้งหมด</button>
-                <button class="filter-tab ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchSchool('independent')"><i class="fas fa-user"></i> พื้นที่ส่วนตัว</button>
             `;
 
             userSchools.forEach(s => {
@@ -619,16 +621,7 @@
             const container = document.getElementById('schoolSwitcherList');
             if (!container) return;
             
-            let html = `
-                <div class="school-switcher-item ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchSchool('all')">
-                    <div style="display:flex; align-items:center;"><i class="fas fa-layer-group" style="color:#a4b0be; margin-right:8px; width:16px; text-align:center;"></i> แสดงห้องเรียนทั้งหมด</div>
-                    ${activeViewMode === 'all' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}
-                </div>
-                <div class="school-switcher-item ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchSchool('independent')">
-                    <div style="display:flex; align-items:center;"><i class="fas fa-user" style="color:#a4b0be; margin-right:8px; width:16px; text-align:center;"></i> พื้นที่ส่วนตัว (อิสระ)</div>
-                    ${activeViewMode === 'independent' ? '<i class="fas fa-check" style="color:var(--primary);"></i>' : ''}
-                </div>
-            `;
+            let html = '';
 
             userSchools.forEach(s => {
                 const isAct = (activeViewMode === s.school_id);
@@ -639,9 +632,9 @@
                     ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" class="leave-btn"><i class="fas fa-sign-out-alt"></i></div>`
                     : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" class="leave-btn"><i class="fas fa-times"></i></div>`;
 
-                // รูปแบบล็อกอินแทรกขึ้นบรรทัดใหม่
+                // จัดชื่อโรงเรียนและรูปแบบล็อกอินไว้คนละบรรทัด (บรรทัดใหม่)
                 const loginFormatHtml = (s.verification_status === 'approved' && s.schools?.school_abbr) 
-                    ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 10px; padding-top: 8px; border-top: 1px dashed #edf2f7; font-family: 'Sarabun', sans-serif;"><i class="fas fa-user-graduate" style="color:var(--primary-light); margin-right:5px;"></i>รหัสการล็อกอิน นร.: เลขประจำตัว<strong style="color:var(--accent); font-family:monospace;">@${s.schools.school_abbr}</strong></div>` 
+                    ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 6px; font-family: 'Sarabun', sans-serif;"><i class="fas fa-user-graduate" style="color:var(--primary-light); margin-right:5px;"></i>ล็อกอินนร.: เลขประจำตัว<strong style="color:var(--accent); font-family:monospace;">@${s.schools.school_abbr}</strong></div>` 
                     : '';
 
                 html += `
@@ -746,7 +739,7 @@
                 alertSection.style.background = '#fff8e1'; alertSection.style.borderColor = '#ffecb3'; iconBg.style.background = '#ffeaa7'; icon.className = 'fas fa-info-circle'; icon.style.color = '#d35400';
                 document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอการอนุมัติเข้ากลุ่ม';
                 document.getElementById('pendingAlertTitle').style.color = '#d35400';
-                document.getElementById('pendingAlertDesc').innerHTML = activeSchool.role === 'admin' ? "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ <b>โปรดรอส่วนกลางตรวจสอบสิทธิ์</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ" : "<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ";
+                document.getElementById('pendingAlertDesc').innerHTML = activeSchool.role === 'admin' ? "คุณเป็นผู้ขอสร้างกลุ่มโรงเรียนนี้ <b>โปรดรอส่วนกลางตรวจสอบสิทธิ์</b> ระหว่างนี้คุณสร้างห้องเรียนได้ทันทีครับ" : "<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสร้างห้องเรียนล่วงหน้าได้ทันทีครับ";
                 fetchClassrooms();
             }
         }
