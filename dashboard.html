@@ -62,7 +62,7 @@
             background: linear-gradient(to top, rgba(0,0,0,0.15), transparent); 
         }
         
-        .card-body { padding: 20px; display: flex; flex-direction: column; flex: 1; }
+        .card-body { padding: 16px 20px 20px 20px; display: flex; flex-direction: column; flex: 1; }
         .room-badge { 
             display: inline-block; padding: 4px 12px; background: #f0f4ff; color: var(--primary-light); 
             border-radius: 8px; font-size: 13px; font-weight: 700; font-family: 'Kanit';
@@ -392,8 +392,8 @@
     </div>
 
     <!-- Custom Alert Modal -->
-    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px;">
+    <div id="customAlertModal" class="custom-modal-overlay" style="z-index: 5000;">
+        <div class="custom-modal-box text-center" style="max-width: 400px; border-radius: 25px;">
             <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
@@ -723,6 +723,21 @@
                 allClasses = [...mappedTeach, ...mappedLearn];
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+                // 🌟 ดึงชื่อโรงเรียนมาแปะให้แต่ละ Class
+                const uniqueSchoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
+                let schoolDict = {};
+                if (uniqueSchoolIds.length > 0) {
+                    const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', uniqueSchoolIds);
+                    if (sData) {
+                        sData.forEach(s => schoolDict[s.school_id] = s.school_name);
+                    }
+                }
+                
+                allClasses = allClasses.map(c => ({
+                    ...c,
+                    school_name: c.school_id ? (schoolDict[c.school_id] || 'กลุ่มสถานศึกษา') : 'พื้นที่ส่วนตัว'
+                }));
+
                 renderFilteredGrids();
 
             } catch (e) { console.error("Fetch Classes Error:", e); }
@@ -764,6 +779,10 @@
                     ? `<span class="role-badge role-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i> ครูผู้สอน</span>`
                     : `<span class="role-badge role-student"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
 
+                const schoolInfoHtml = c.school_id 
+                    ? `<span class="text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-school mr-1"></i> ${c.school_name}</span>`
+                    : `<span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-user mr-1"></i> พื้นที่ส่วนตัว</span>`;
+
                 return `
                     <div class="class-card group" onclick="window.location.href='${targetUrl}'">
                         <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #00008B, #0000cd)'};">
@@ -775,7 +794,13 @@
                                 ${roleBadgeHtml}
                             </div>
                             <h3 class="subject-title" title="${c.subject_name || ''}">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
-                            <div class="mt-auto pt-4 flex items-center gap-2 text-[12px] text-slate-400 font-medium border-t border-slate-50 mt-3">
+                            
+                            <!-- 🌟 แสดงพื้นที่/สังกัด -->
+                            <div class="mt-1 mb-2">
+                                ${schoolInfoHtml}
+                            </div>
+
+                            <div class="mt-auto pt-3 flex items-center gap-2 text-[12px] text-slate-400 font-medium border-t border-slate-50">
                                 <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}
                             </div>
                         </div>
