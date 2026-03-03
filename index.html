@@ -275,7 +275,7 @@
                 <div class="logo-emoji">🎓</div>
                 <div class="logo-text-group">
                     <div class="brand-name">Flip<span>School</span></div>
-                    <div class="slogan">นวัตกรรมการศึกษา</div>
+                    <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
                 </div>
             </a>
             <a href="login.html" class="nav-btn-outline"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
@@ -400,29 +400,24 @@
                         if (session && session.user) {
                             const userId = session.user.id;
                             
-                            // 1. ตรวจสอบว่าเป็น "ครู" หรือไม่
-                            const { data: teacherData } = await window.sysDB.from('teachers')
-                                .select('teacher_id')
-                                .eq('teacher_id', userId)
+                            // ตรวจสอบข้อมูลจากตาราง profiles แบบรวบยอด (Unified Users)
+                            const { data: profileData, error } = await window.sysDB.from('profiles')
+                                .select('role')
+                                .eq('id', userId)
                                 .maybeSingle();
                                 
-                            if (teacherData) {
-                                window.location.replace('teacher-dashboard.html');
+                            if (profileData) {
+                                // แยกเส้นทางตาม Role
+                                if (profileData.role === 'super_admin') {
+                                    window.location.replace('super_admin.html');
+                                } else {
+                                    // สำหรับ teacher และ student ใช้ Dashboard เดียวกัน
+                                    window.location.replace('dashboard.html');
+                                }
                                 return;
                             }
                             
-                            // 2. หากไม่ใช่ครู ให้ตรวจสอบว่าเป็น "นักเรียน" หรือไม่
-                            const { data: studentData } = await window.sysDB.from('students')
-                                .select('student_id')
-                                .eq('student_id', userId)
-                                .maybeSingle();
-                                
-                            if (studentData) {
-                                window.location.replace('student-dashboard.html');
-                                return;
-                            }
-                            
-                            // หากมี Session แต่ไม่พบข้อมูลในตาราง (ข้อมูลอาจถูกลบ)
+                            // หากมี Session แต่ไม่พบข้อมูลในตาราง profiles (ข้อมูลอาจถูกลบ)
                             showMainContent();
                         } else {
                             // ไม่มีเซสชันล็อกอิน
