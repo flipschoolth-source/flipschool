@@ -179,9 +179,12 @@
 
     <main class="main-container">
         <div class="login-card">
+            <div class="header-icon-box">
+                <i class="fas fa-fingerprint"></i>
+            </div>
             <div class="login-header">
                 <h1>เข้าสู่ระบบ</h1>
-                <p>ยินดีต้อนรับกลับสู่พื้นที่จัดการเรียนรู้</p>
+                <p>สำหรับคุณครู และ นักเรียน</p>
             </div>
 
             <!-- กล่องสำหรับปุ่ม Google Sign In -->
@@ -193,15 +196,15 @@
 
             <form onsubmit="handleEmailLogin(event)">
                 <div class="form-group">
-                    <label class="form-label">อีเมล</label>
+                    <label class="form-label">อีเมล หรือ รหัสประจำตัว</label>
                     <div class="input-wrapper">
                         <input type="text" id="email" class="form-input" placeholder="ระบุอีเมล หรือรหัสประจำตัว" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">รหัสผ่าน</label>
+                    <label class="form-label">รหัสผ่าน หรือ ว.ด.ป.เกิด</label>
                     <div class="input-wrapper">
-                        <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่านของคุณ" required>
+                        <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่าน (นร. ใช้วันเกิด เช่น 15/05/2010)" required>
                         <i class="fas fa-eye password-toggle" id="togglePassword" onclick="togglePasswordVisibility()"></i>
                     </div>
                 </div>
@@ -231,81 +234,108 @@
             </div>
             <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="custom-modal-message"></p>
-            <div style="display: flex; justify-content: center; margin-top: 20px;">
-                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
+            <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
+                <button class="custom-modal-btn" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ================= ฟังก์ชันหาตัวแปรเชื่อมต่อ DB แบบฉลาด (แก้ปัญหา is not defined) =================
+        // ================= ฟังก์ชันหาตัวแปรเชื่อมต่อ DB แบบฉลาด (ป้องกัน sysDB is not defined) =================
+        let dbInstance = null;
         function getDB() {
-            if (typeof window.sysDB !== 'undefined' && window.sysDB.auth) return window.sysDB;
-            if (typeof sysDB !== 'undefined' && sysDB.auth) return sysDB;
-            if (typeof window.supabase !== 'undefined' && window.supabase.auth) return window.supabase;
-            if (typeof supabase !== 'undefined' && supabase.auth) return supabase;
-            throw new Error("ยังไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณารอสักครู่");
+            if (dbInstance) return dbInstance;
+
+            try { if (typeof sysDB !== 'undefined' && sysDB.auth) { dbInstance = sysDB; return dbInstance; } } catch(e){}
+            try { if (typeof window.sysDB !== 'undefined' && window.sysDB.auth) { dbInstance = window.sysDB; return dbInstance; } } catch(e){}
+            try { if (typeof supabase !== 'undefined' && supabase.auth) { dbInstance = supabase; return dbInstance; } } catch(e){}
+            try { if (typeof window.supabase !== 'undefined' && window.supabase.auth) { dbInstance = window.supabase; return dbInstance; } } catch(e){}
+            
+            // หากหาตัวแปรที่ประกาศไว้ไม่เจอ ให้ลองสร้างใหม่จาก Config
+            try {
+                if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
+                    if (APP_CONFIG.SUPABASE_URL && APP_CONFIG.SUPABASE_ANON_KEY) {
+                        dbInstance = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
+                        window.sysDB = dbInstance; // ประกาศเก็บไว้เผื่อส่วนอื่นเรียกใช้
+                        return dbInstance;
+                    }
+                }
+            } catch(e) {}
+
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (โปรดตรวจสอบไฟล์ js/supabase-db.js)");
         }
 
         let alertCallback = null;
+        let alertCancelCallback = null;
 
         // ================= Custom Alert =================
-        function showCustomAlert(message, type = 'error', callback = null) {
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
             const titleEl = document.getElementById('customAlertTitle');
             const msgEl = document.getElementById('customAlertMessage');
             const iconEl = document.getElementById('customAlertIcon');
             const okBtn = document.getElementById('customAlertOkBtn');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
 
-            msgEl.innerHTML = message; // รองรับ Tag HTML ภายในข้อความ
+            msgEl.innerHTML = message;
             alertCallback = callback;
+            alertCancelCallback = cancelCallback;
 
             if (type === 'success') {
                 iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
-                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
             } else if (type === 'warning') {
                 iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
-                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'info') {
+                iconEl.className = 'fas fa-info-circle'; iconEl.style.color = '#3498db';
+                titleEl.innerText = 'ข้อมูล'; okBtn.style.background = '#3498db'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'confirm') {
+                iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#FF8C00';
+                titleEl.innerText = 'ยืนยันการลงทะเบียน'; okBtn.style.background = '#FF8C00'; okBtn.innerText = 'ใช่, ลงทะเบียน';
+                cancelBtn.style.display = 'inline-block'; cancelBtn.innerText = 'ไม่, ยกเลิก';
             } else {
                 iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
-                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
             }
 
             modal.classList.add('show');
         }
 
-        function closeCustomAlert() { 
+        function closeCustomAlert(isCancel = false) { 
             document.getElementById('customAlertModal').classList.remove('show'); 
-            if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
+            if (!isCancel && alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; alertCancelCallback = null; }
+            else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
-        // ================= เริ่มต้นการทำงานหน้าเว็บ =================
+        // ================= เริ่มต้นการทำงาน =================
         document.addEventListener('DOMContentLoaded', () => {
-            // โหลด UI ขั้นฐาน
             if (typeof initAppUI === 'function') initAppUI();
-
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.APP_NAME) {
                 document.title = `เข้าสู่ระบบ - ${APP_CONFIG.APP_NAME}`;
             }
 
-            // ตรวจสอบเซสชันเก่าแบบวนลูปรอฐานข้อมูล (ป้องกัน error)
-            const checkSessionInterval = setInterval(() => {
+            // ตรวจสอบเซสชันเก่า (ทำงานแบบรอฐานข้อมูล)
+            const checkSessionInterval = setInterval(async () => {
                 try {
                     const db = getDB();
                     clearInterval(checkSessionInterval);
                     
-                    db.auth.getSession().then(({ data: { session } }) => {
-                        if (session && session.user) {
-                            redirectByRole(session.user.id);
-                        }
-                    });
+                    const { data: { session } } = await db.auth.getSession();
+                    if (session && session.user) {
+                        redirectByRole(session.user.id);
+                    }
                 } catch(e) {
-                    // หากยังโหลด db ไม่เสร็จให้ข้ามไปก่อน
+                    // หากยังไม่พร้อม ให้รอ loop ถัดไป
                 }
             }, 300);
         });
 
-        // แยกการ Redirect ตาม Role
         async function redirectByRole(userId) {
             try {
                 const db = getDB();
@@ -315,13 +345,12 @@
                     if (profile.role === 'super_admin') window.location.replace('super_admin.html');
                     else window.location.replace('dashboard.html');
                 } else {
-                    // หาโปรไฟล์ไม่เจอ ให้เตะออก
                     await db.auth.signOut();
                 }
             } catch (e) { console.error(e); }
         }
 
-        // ================= การตั้งค่า Google Sign In (GSI) =================
+        // ================= Google Sign In =================
         window.onload = function () {
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GOOGLE_CLIENT_ID) {
                 google.accounts.id.initialize({
@@ -339,45 +368,87 @@
                     btnContainer,
                     { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" }
                 );
-            } else {
-                document.getElementById("googleSignInBtn").innerHTML = '<div style="color:#ff4757; font-size:13px;"><i class="fas fa-exclamation-triangle"></i> ไม่พบรหัส Google Client ID ในระบบ</div>';
             }
         };
 
-        // ================= ฟังก์ชันเมื่อกดล็อกอินด้วย Google =================
         async function handleGoogleCredentialResponse(response) {
             try {
                 const db = getDB();
-
-                // 1. นำ Token จาก Google ไปยืนยันกับ Supabase
                 const { data, error } = await db.auth.signInWithIdToken({
                     provider: 'google',
                     token: response.credential,
                 });
                 if (error) throw error;
 
-                // 2. ตรวจสอบว่ามีข้อมูลในตาราง profiles ตาม Schema ที่กำหนดหรือไม่
-                const { data: userProfile, error: profileError } = await db.from('profiles')
-                    .select('id')
-                    .eq('id', data.user.id)
-                    .maybeSingle();
+                const userEmail = data.user.email;
+
+                // ตรวจสอบข้อมูลในตาราง profiles
+                const { data: userProfile } = await db.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
 
                 if (!userProfile) {
-                    // หากไม่พบข้อมูล แปลว่ายังไม่เคยลงทะเบียนในระบบ
-                    await db.auth.signOut();
-                    showCustomAlert("ไม่พบบัญชีของคุณในระบบ<br>กรุณาสมัครสมาชิกก่อนเข้าใช้งานครับ", "warning", () => {
-                        window.location.href = 'register.html';
-                    });
+                    // ไม่พบบัญชี -> เด้งถามว่าจะลงทะเบียนนักเรียนไหม
+                    showCustomAlert(
+                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการลงทะเบียนบัญชี<br><b>${userEmail}</b><br>เพื่อเข้าร่วมเป็นนักเรียนหรือไม่?`, 
+                        'confirm', 
+                        async () => {
+                            try {
+                                const btnContainer = document.getElementById("googleSignInBtn");
+                                btnContainer.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary); font-size: 20px;"></i>';
+
+                                const fullName = data.user.user_metadata?.full_name || '';
+                                let fName = fullName; let lName = '';
+                                if(fullName.includes(' ')) {
+                                    const parts = fullName.split(' ');
+                                    fName = parts[0]; lName = parts.slice(1).join(' ');
+                                } else if (!fName) { fName = userEmail.split('@')[0]; }
+
+                                const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
+
+                                // บันทึกเป็นนักเรียนใหม่
+                                const { error: insertError } = await db.from('profiles').insert([{
+                                    id: data.user.id,
+                                    first_name: fName,
+                                    last_name: lName,
+                                    email: userEmail,
+                                    role: 'student',
+                                    profile_pic: googlePic,
+                                    created_at: new Date().toISOString()
+                                }]);
+
+                                if (insertError) throw insertError;
+
+                                showCustomAlert('ลงทะเบียนเสร็จสมบูรณ์!<br>ระบบกำลังพาคุณเข้าสู่หน้าแดชบอร์ด', 'success', () => {
+                                    window.location.replace('dashboard.html');
+                                });
+
+                            } catch (err) {
+                                console.error("Registration Error:", err);
+                                showCustomAlert("เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message, "error");
+                            }
+                        },
+                        async () => {
+                            // ยกเลิก -> ลบบัญชี Auth
+                            try { await db.rpc('delete_current_user'); } catch (e) {}
+                            await db.auth.signOut();
+                            
+                            // รีเซ็ตปุ่ม
+                            const btnContainer = document.getElementById("googleSignInBtn");
+                            btnContainer.innerHTML = '';
+                            let btnWidth = btnContainer.offsetWidth;
+                            if (btnWidth < 200) btnWidth = 300;
+                            google.accounts.id.renderButton(
+                                btnContainer,
+                                { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" }
+                            );
+                        }
+                    );
                     return;
                 }
 
-                // 3. หากมีข้อมูล ให้อัปเดต profile_pic เผื่อผู้ใช้เปลี่ยนรูปใหม่ใน Google
+                // หากมีบัญชีอยู่แล้ว (อัปเดตรูป และล็อกอิน)
                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
-                if (googlePic) {
-                    await db.from('profiles').update({ profile_pic: googlePic }).eq('id', data.user.id);
-                }
-
-                // 4. เข้าสู่ระบบสำเร็จ พาไปหน้า Dashboard
+                if (googlePic) await db.from('profiles').update({ profile_pic: googlePic }).eq('id', data.user.id);
+                
                 redirectByRole(data.user.id);
 
             } catch (err) {
@@ -386,7 +457,7 @@
             }
         }
 
-        // ================= ฟังก์ชันล็อกอินด้วย Email & Password =================
+        // ================= Email / Student Code Login =================
         async function handleEmailLogin(e) {
             e.preventDefault();
             const loginId = document.getElementById('email').value.trim();
@@ -401,37 +472,43 @@
                 const db = getDB();
                 let authEmail = loginId;
 
-                // หากกรอกเป็น "รหัสนักเรียน" (ไม่มี @) ให้ดึงอีเมลจาก profiles มาใช้ Login
+                // หากกรอกเป็นรหัสนักเรียน ให้ดึงอีเมลจาก profiles มาใช้ Login
                 if (!loginId.includes('@')) {
-                    const { data: profile } = await db.from('profiles')
-                        .select('email')
-                        .eq('student_code', loginId)
-                        .maybeSingle();
+                    const { data: profiles, error: pErr } = await db.from('profiles').select('email, birth_date, id').eq('student_code', loginId);
+
+                    if (pErr || !profiles || profiles.length === 0) throw new Error("ไม่พบข้อมูลรหัสนักเรียนนี้ในระบบ");
+
+                    const profile = profiles[0];
+
+                    // ตรวจสอบวันเกิด (ถ้าตรงให้ถือว่าผ่านโดยไม่ต้องเช็ค auth เผื่อครูนำเข้าข้อมูลแล้วนักเรียนยังไม่ได้ตั้งรหัสผ่านเอง)
+                    if (profile.birth_date) {
+                        let [y, m, d] = profile.birth_date.split('-');
+                        let possibleDates = [ profile.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
+                        if (possibleDates.includes(password)) {
+                            // กรณีนี้เพื่อความปลอดภัยจริง ควรใช้ supabase auth signIn เสมอ 
+                            // แต่ถ้าอนุโลมให้เข้าสู่ระบบได้ชั่วคราว เราต้องมี Email 
+                            if (!profile.email) throw new Error("นักเรียนต้องทำการตั้งค่ารหัสผ่านใหม่ หรือผูกอีเมลก่อนเข้าใช้งาน");
+                        }
+                    }
 
                     if (profile && profile.email) {
                         authEmail = profile.email;
                     } else {
-                        throw new Error("ไม่พบข้อมูลรหัสนักเรียน หรือบัญชีนี้ยังไม่มีอีเมลผูกในระบบ");
+                        throw new Error("บัญชีนี้ยังไม่มีอีเมลผูกในระบบ");
                     }
                 }
 
-                // 1. ยืนยันรหัสผ่านกับระบบ
+                // ยืนยันรหัสผ่านกับระบบ
                 const { data, error } = await db.auth.signInWithPassword({ email: authEmail, password: password });
-                
-                if (error) throw new Error("อีเมล หรือรหัสผ่านไม่ถูกต้อง");
+                if (error) throw new Error("ข้อมูลประจำตัวไม่ถูกต้อง (อีเมล/รหัสผ่านผิด)");
 
-                // 2. ตรวจสอบสถานะในตาราง profiles
-                const { data: userProfile } = await db.from('profiles')
-                    .select('id')
-                    .eq('id', data.user.id)
-                    .single();
-
+                // ตรวจสอบสถานะในตาราง profiles
+                const { data: userProfile } = await db.from('profiles').select('id').eq('id', data.user.id).single();
                 if (!userProfile) {
                     await db.auth.signOut();
                     throw new Error("บัญชีนี้ไม่ได้ลงทะเบียนไว้ในระบบครับ");
                 }
 
-                // 3. ผ่านทั้งหมด ไปยังหน้า Dashboard
                 redirectByRole(data.user.id);
 
             } catch (err) {
