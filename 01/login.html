@@ -242,31 +242,40 @@
     </div>
 
     <script>
-        // ================= ฟังก์ชันหาตัวแปรเชื่อมต่อ DB ให้แน่ใจ 100% =================
+        // ================= ฟังก์ชันค้นหาฐานข้อมูลแบบครอบคลุม =================
         function getDB() {
-            // 1. ถ้ามี window.sysDB ที่มี .auth อยู่แล้ว ให้ส่งกลับเลย
-            if (window.sysDB && window.sysDB.auth) {
-                return window.sysDB;
-            }
+            // 1. เช็คว่ามีตัวแปร window.sysDB ที่เชื่อมต่อสำเร็จแล้วหรือไม่
+            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
             
-            // 2. ถ้าหาไม่เจอ ให้เรียกฟังก์ชัน initSupabase() ในไฟล์ js/supabase-db.js เพื่อสร้างใหม่
+            // 2. เช็คว่ามีตัวแปร sysDB (แบบไม่ติด window) หรือไม่
+            try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
+
+            // 3. ถ้าหาไม่เจอ ให้ลองเรียกฟังก์ชัน initSupabase() ที่อยู่ใน supabase-db.js
             if (typeof window.initSupabase === 'function') {
                 window.initSupabase();
-                if (window.sysDB && window.sysDB.auth) {
-                    return window.sysDB;
-                }
+                if (window.sysDB && window.sysDB.auth) return window.sysDB;
             }
 
-            // 3. Fallback: สร้างการเชื่อมต่อใหม่ด้วยตัวเองจาก APP_CONFIG
-            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
-                const dbKey = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY;
-                if (APP_CONFIG.SUPABASE_URL && dbKey) {
-                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, dbKey);
-                    return window.sysDB;
-                }
+            // 4. ถ้ายังไม่ได้อีก แสดงว่าปัญหาอยู่ที่ไฟล์หรือค่าคอนฟิก
+            if (typeof supabase === 'undefined') {
+                throw new Error("Supabase SDK ไม่ได้ถูกโหลด (อาจเกิดจากอินเทอร์เน็ตหลุด หรือ CDN ถูกบล็อก)");
+            }
+            if (typeof APP_CONFIG === 'undefined') {
+                throw new Error("APP_CONFIG ไม่ได้ถูกโหลด (ไม่พบไฟล์ config.js)");
+            }
+            if (!APP_CONFIG.SUPABASE_URL) {
+                throw new Error("ไม่มีค่า SUPABASE_URL ในไฟล์ config.js");
+            }
+            
+            // ลองดึง Key ทุกรูปแบบที่เป็นไปได้
+            const key = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY || APP_CONFIG.ANON_KEY;
+            if (!key) {
+                throw new Error("ไม่มีค่า SUPABASE_KEY ในไฟล์ config.js");
             }
 
-            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณารีเฟรชหน้าเว็บอีกครั้ง");
+            // ถ้าทุกอย่างครบ แต่ตัวแปรหายไป ให้บังคับสร้างการเชื่อมต่อใหม่เลย
+            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
+            return window.sysDB;
         }
 
         let alertCallback = null;
@@ -323,10 +332,10 @@
                 document.title = `เข้าสู่ระบบ - ${APP_CONFIG.APP_NAME}`;
             }
 
-            // ตรวจสอบเซสชันเก่า (ทำงานแบบรอฐานข้อมูล)
+            // ตรวจสอบเซสชันเก่า
             const checkSessionInterval = setInterval(async () => {
                 try {
-                    const db = getDB(); // ใช้ฟังก์ชัน getDB เพื่อป้องกัน undefined
+                    const db = getDB();
                     clearInterval(checkSessionInterval);
                     
                     const { data: { session } } = await db.auth.getSession();
@@ -334,7 +343,7 @@
                         redirectByRole(session.user.id);
                     }
                 } catch(e) {
-                    // หากยังไม่พร้อม ให้รอ loop ถัดไป
+                    // รอจนกว่า DB จะพร้อม
                 }
             }, 300);
         });
@@ -456,7 +465,7 @@
 
             } catch (err) {
                 console.error("Google Auth Error:", err);
-                showCustomAlert("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: " + err.message, "error");
+                showCustomAlert("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: <br><br><small>" + err.message + "</small>", "error");
             }
         }
 
@@ -483,7 +492,6 @@
 
                     const profile = profiles[0];
 
-                    // ตรวจสอบวันเกิด (ถ้าตรงให้ถือว่าผ่านโดยไม่ต้องเช็ค auth เผื่อครูนำเข้าข้อมูลแล้วนักเรียนยังไม่ได้ตั้งรหัสผ่านเอง)
                     if (profile.birth_date) {
                         let [y, m, d] = profile.birth_date.split('-');
                         let possibleDates = [ profile.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
