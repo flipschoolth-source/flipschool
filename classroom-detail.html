@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>รายละเอียดห้องเรียน - FlipSchool</title>
+    <title>จัดการภารกิจห้องเรียน | FlipSchool</title>
     
     <script src="js/env-config.js"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
     <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- SortableJS สำหรับระบบ Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
+        /* --- ธีมหลักและการตั้งค่าพื้นฐาน --- */
         :root { 
             --primary: #00008B; 
             --primary-light: #0000cd; 
@@ -25,479 +27,968 @@
             --bg-body: #f4f7fe; 
             --text-main: #2d3436; 
             --text-muted: #636e72; 
+            --white: #ffffff;
         }
 
         body { 
-            font-family: 'Sarabun', sans-serif; 
+            font-family: 'Sarabun', 'Kanit', sans-serif; 
             background-color: var(--bg-body); 
             color: var(--text-main);
             margin: 0; padding: 0; overflow-x: hidden; 
             background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
                               radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
-            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        
+        .nav-gradient { 
+            background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
         }
 
-        /* Navbar Clean Style */
-        .nav-clean { background: white; border-bottom: 1px solid #f1f5f9; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
-
-        .mission-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); border: 1px solid #f1f5f9; transition: 0.3s; display: flex; flex-direction: column; height: 100%; cursor: pointer;}
-        .mission-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 139, 0.08); border-color: #dbeafe; }
+        .header-gradient {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1);
+        }
         
-        .mission-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 15px; background: #f0f4ff; color: var(--primary); }
-        .mission-title { font-family: 'Kanit'; font-size: 18px; font-weight: 600; color: #2d3436; margin: 0 0 5px 0; line-height: 1.3; }
-        .mission-desc { font-size: 13px; color: #636e72; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1;}
+        /* --- รูปแบบการ์ดโฟลเดอร์ (หน้าแรก) ปรับให้ยืดหยุ่น --- */
+        .folder-card {
+            background: white; border-radius: clamp(1rem, 3vw, 1.5rem); 
+            padding: clamp(1rem, 3vw, 1.5rem);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.03); 
+            transition: all 0.3s ease; cursor: pointer; display: flex; align-items: center; gap: clamp(0.75rem, 2vw, 1rem);
+        }
+        .folder-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08); border-color: var(--primary-light); }
+        .folder-icon-box {
+            width: clamp(50px, 12vw, 60px); height: clamp(50px, 12vw, 60px); border-radius: clamp(0.75rem, 2vw, 1rem);
+            display: flex; align-items: center; justify-content: center; font-size: clamp(1.5rem, 5vw, 1.8rem);
+            background: #f0f4ff; color: var(--primary-light); flex-shrink: 0;
+        }
 
-        .action-btn { background: white; border: 1px solid #e2e8f0; color: #475569; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-        .action-btn:hover { background: #f8fafc; color: var(--primary); border-color: #cbd5e1; }
+        /* --- รูปแบบเส้นทางภารกิจ (เมื่อเข้าโฟลเดอร์) --- */
+        .mission-path { position: relative; padding: 20px 0 60px 0; display: flex; flex-direction: column; align-items: center; min-height: 300px; }
+        .mission-path::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8px; background: #e2e8f0; transform: translateX(-50%); border-radius: 4px; z-index: 0; }
         
-        .primary-action-btn { background: var(--primary); border: none; color: white; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,139,0.2); }
-        .primary-action-btn:hover { background: var(--primary-light); transform: translateY(-2px); }
+        .mission-node { position: relative; z-index: 10; margin-bottom: clamp(30px, 6vw, 50px); display: flex; flex-direction: column; align-items: center; width: 100%; transition: all 0.3s ease; }
+        .node-circle { 
+            width: clamp(65px, 15vw, 85px); height: clamp(65px, 15vw, 85px); background: white; border-radius: clamp(20px, 5vw, 28px); 
+            display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 6vw, 32px); 
+            color: var(--primary); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); 
+            border: 4px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: pointer; position: relative;
+        }
+        .mission-node:hover .node-circle { transform: scale(1.1) rotate(5deg); border-color: var(--accent); color: var(--accent); }
+        
+        .node-content { 
+            background: white; padding: clamp(12px, 3vw, 18px) clamp(16px, 4vw, 25px); border-radius: clamp(16px, 4vw, 24px); 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03); margin-top: 15px; 
+            text-align: center; min-width: clamp(220px, 60vw, 260px); max-width: 320px; border: 1px solid rgba(0,0,0,0.02); 
+        }
 
-        /* View Filter Tabs for Folders */
-        .view-filter-container { margin-bottom: 25px; position: relative; }
-        .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
-        .view-filter-scroll::-webkit-scrollbar { display: none; }
-        .filter-tab { padding: 10px 20px; background: white; border: 2px solid transparent; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; font-weight: 500; color: #636e72; cursor: pointer; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .filter-tab:hover { background: #f8faff; color: var(--primary-light); }
-        .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(0, 82, 212, 0.2); }
+        /* --- โหมดจัดการ (โชว์กล่องลากวาง) --- */
+        .admin-folder-box {
+            background: white; border-radius: clamp(1rem, 3vw, 1.5rem); padding: clamp(1rem, 3vw, 1.5rem); margin-bottom: 2rem;
+            border: 1px solid rgba(0,0,0,0.03); box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        }
+        .admin-mission-list {
+            min-height: 100px; padding: clamp(0.5rem, 2vw, 1rem); border-radius: 1rem;
+            background: #f8fafc; border: 2px dashed #cbd5e1;
+            display: flex; flex-direction: column; gap: 0.5rem; transition: background 0.2s;
+        }
+        .admin-mission-list.sortable-drag { background: #e0e8ff; border-color: var(--primary-light); }
+        
+        .admin-mission-item {
+            background: white; border-radius: 0.75rem; padding: clamp(0.75rem, 2vw, 1rem);
+            border: 1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            display: flex; align-items: center; gap: clamp(0.5rem, 2vw, 1rem); cursor: grab;
+        }
+        .admin-mission-item:active { cursor: grabbing; }
+        .drag-handle-icon { color: #94a3b8; font-size: 1.2rem; cursor: grab; }
 
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; transition: opacity 0.3s; }
-        .modal-box { background: white; border-radius: clamp(20px, 5vw, 25px); width: 100%; max-width: 500px; padding: clamp(20px, 5vw, 30px); box-shadow: 0 20px 50px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; display: flex; flex-direction: column; max-height: 90vh; }
-        .modal-overlay.show { display: flex; opacity: 1; }
-        .modal-overlay.show .modal-box { transform: scale(1); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #edf2f7; padding-bottom: 15px; }
-        .modal-header h3 { margin: 0; font-family: 'Kanit'; font-size: 20px; color: var(--primary); }
-        .modal-body { overflow-y: auto; padding-right: 5px; flex: 1; }
-        .form-input { width: 100%; padding: 12px 16px; border: 2px solid #eef2f7; border-radius: 12px; font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; background: #f8faff; outline: none; margin-bottom: 15px; }
-        .form-input:focus { border-color: var(--primary-light); background: white; box-shadow: 0 0 0 4px rgba(0,82,212,0.1); }
+        .hidden-el { display: none !important; }
+        .drawer-overlay { background: rgba(0,0,0, 0.5); backdrop-filter: blur(4px); }
+        .modal-overlay { background: rgba(0,0,0, 0.6); backdrop-filter: blur(4px); }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        /* ปุ่มเพิ่มภารกิจแบบลอย (FAB) */
+        .fab-add { position: fixed; bottom: 50px; right: 50px; width: clamp(60px, 15vw, 70px); height: clamp(60px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; border:none; font-size: clamp(24px, 6vw, 32px); cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); text-decoration: none; transition: 0.3s; }
+        .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
+        
+        /* ปุ่มจัดการ Theme */
+        .btn-theme { background-color: var(--primary); color: white; transition: 0.3s; box-shadow: 0 4px 10px rgba(0, 0, 139, 0.2); }
+        .btn-theme:hover { background-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.3); }
 
-        /* Loader */
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes bounceIn { 0% { transform: translateY(-20px); opacity: 0; } 50% { transform: translateY(5px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
+        .animate-bounce-in { animation: bounceIn 0.4s ease-out forwards; }
+
+        @media (max-width: 768px) {
+            .fab-add { bottom: 30px; right: 30px; }
+            .mission-path::before { left: 50px; } /* ปรับเส้นให้อยู่ชิดซ้ายเวลาจอมือถือเพื่อไม่ให้เบียด */
+            .mission-node { flex-direction: row; gap: 20px; align-items: center; }
+            .mission-node:nth-child(even) { flex-direction: row; }
+            .node-content { margin-top: 0; text-align: left; padding: 15px; flex: 1; }
+        }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-    <div id="loadingOverlay">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center">
         <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูลห้องเรียน...</div>
+        <p class="mt-4 text-[var(--primary)] font-bold animate-pulse text-sm font-sans" id="loadingText">กำลังโหลดข้อมูล...</p>
+    </div>
+
+    <!-- กล่องข้อความแจ้งเตือน Toast -->
+    <div id="msgBox" class="fixed top-20 right-5 z-[210] hidden bg-white border-l-4 shadow-lg rounded-xl p-4 transition-all animate-bounce-in">
+        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
+    </div>
+
+    <!-- 🌟 Modal แบบฟอร์มรับค่า (Custom Prompt) 🌟 -->
+    <div id="customPromptModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-[90vw] md:max-w-sm p-6 md:p-8 shadow-2xl transform transition-all scale-95 opacity-0 text-center" id="customPromptCard">
+            <div id="promptIconBox" class="w-16 h-16 bg-[#f0f4ff] text-[var(--primary-light)] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i id="promptIcon" class="fas fa-folder-plus"></i>
+            </div>
+            <h3 id="promptTitle" class="text-xl font-bold text-slate-800 mb-2 font-sans">สร้างหมวดหมู่</h3>
+            <p id="promptSubtitle" class="text-xs text-slate-500 mb-4 hidden-el"></p>
+            <input type="text" id="promptInputVal" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--primary-light)] text-center mb-6 font-bold text-slate-700 font-sans" placeholder="...">
+            <div class="flex gap-3">
+                <button onclick="closeCustomPrompt()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all font-sans">ยกเลิก</button>
+                <button onclick="executeCustomPrompt()" class="flex-1 btn-theme font-bold py-3 rounded-xl transition-all active:scale-95 font-sans">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 Modal ยืนยันการกระทำ (Custom Confirm) 🌟 -->
+    <div id="customConfirmModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-[90vw] md:max-w-sm p-6 md:p-8 shadow-2xl transform transition-all scale-95 opacity-0 text-center" id="customConfirmCard">
+            <div id="confirmIconBox" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i id="confirmIcon" class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 id="confirmTitle" class="text-xl font-bold text-slate-800 mb-2 font-sans">ยืนยัน</h3>
+            <p id="confirmMessage" class="text-sm text-slate-500 mb-6 font-sans leading-relaxed"></p>
+            <div class="flex gap-3">
+                <button onclick="closeCustomConfirm()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all font-sans">ยกเลิก</button>
+                <button id="confirmActionBtn" onclick="executeCustomConfirm()" class="flex-1 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 font-sans">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer Menu -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1000] hidden drawer-overlay transition-opacity duration-300"></div>
+    <div id="sideDrawer" class="fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white z-[1001] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out rounded-r-3xl">
+        <div class="p-6 border-b border-slate-100 flex items-center gap-4">
+            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg border border-slate-100 shrink-0">
+                <span class="text-2xl text-[var(--primary)]">🎓</span>
+            </div>
+            <div>
+                <h2 class="font-bold text-slate-800 text-lg font-['Kanit']">Flip<span class="text-[var(--accent)]">School</span></h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Navigation</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-4 space-y-2">
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-th-large w-5"></i> แดชบอร์ด</a>
+            <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-users w-5"></i> รายชื่อนักเรียน</a>
+            <hr class="my-4 border-slate-100">
+            <button onclick="handleLogout()" class="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-rose-50 text-rose-500 font-bold transition-all"><i class="fas fa-sign-out-alt w-5"></i> ออกจากระบบ</button>
+        </nav>
     </div>
 
     <!-- Navbar -->
-    <nav class="nav-clean h-[70px] flex items-center justify-center sticky top-0 z-50">
-        <div class="w-full max-w-[1800px] px-4 md:px-8 xl:px-12 flex items-center justify-between">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='dashboard.html'">
-                <div class="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shrink-0">
-                    <span class="text-xl text-white">🎓</span>
+    <nav class="nav-gradient h-[75px] md:h-[90px] sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-3 md:gap-4">
+            <button onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-all text-white">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="location.href='dashboard.html'">
+                <div class="w-[40px] h-[40px] md:w-[52px] md:h-[52px] bg-white rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.2)] shrink-0">
+                    <span class="text-xl md:text-3xl text-[var(--text-main)]">🎓</span>
                 </div>
-                <div class="flex flex-col hidden sm:flex">
-                    <div class="text-xl font-bold tracking-tight leading-none text-slate-800 font-['Kanit']">
-                        <span id="displayAppName">Flip</span><span class="text-[var(--accent)]">School</span>
+                <div class="flex flex-col">
+                    <div id="app-name-display" class="text-xl md:text-[26px] font-bold tracking-tight leading-none text-white font-['Kanit']">
+                        <span>Flip</span><span class="text-[var(--accent)]">School</span>
                     </div>
+                    <span class="app-slogan-label text-[10px] md:text-[13px] text-[#e0e8ff] font-medium mt-0.5 tracking-wide opacity-90 italic font-['Sarabun'] hidden md:block"></span>
                 </div>
             </div>
-            
-            <a href="dashboard.html" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold font-['Kanit'] transition-all">
-                <i class="fas fa-arrow-left"></i> กลับหน้าหลัก
-            </a>
+        </div>
+        
+        <div class="flex items-center">
+            <!-- ซ่อนปุ่มโดยอัตโนมัติ จะแสดงเมื่อเป็นเจ้าของห้องเท่านั้น -->
+            <button onclick="toggleManageMode()" id="manageModeBtn" title="จัดการเนื้อหา" class="hidden items-center justify-center gap-2 bg-white/10 hover:bg-white/20 w-10 h-10 md:w-auto md:h-auto md:px-5 md:py-2 rounded-full md:rounded-xl text-white transition-all border border-white/20 shadow-sm">
+                <i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>
+            </button>
         </div>
     </nav>
 
     <!-- Header Section -->
-    <header class="header-gradient text-white py-6 md:py-10 px-5 md:px-8 xl:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-6">
-        <div class="w-full max-w-[1800px] mx-auto relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-5">
-            <div style="flex: 1;">
-                <h1 id="subjectName" class="text-3xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] leading-snug">กำลังโหลด...</h1>
-                
-                <div class="flex flex-wrap items-center gap-2 mt-3 font-medium">
-                    <span class="bg-white/20 px-3 py-1.5 rounded-xl text-xs md:text-sm inline-flex items-center gap-1.5 font-sans border border-white/20">
-                        <i class="fas fa-door-open"></i> ห้อง <span id="roomName">...</span>
-                    </span>
+    <header class="header-gradient text-white py-6 md:py-10 px-5 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-6">
+        <div class="container mx-auto relative z-10">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-8">
+                <div class="flex-1">
+                    <h1 id="subjectName" class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] leading-snug">กำลังโหลด...</h1>
                     
-                    <span id="schoolContextBadge" class="bg-white/20 px-3 py-1.5 rounded-xl text-xs md:text-sm inline-flex items-center gap-1.5 font-sans border border-white/20 hidden">
-                        <!-- จะถูกเติมด้วย JS -->
-                    </span>
+                    <!-- รายละเอียดห้องเรียน (Tags) -->
+                    <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-4 opacity-90 font-medium">
+                        <span class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap">
+                            <i class="fas fa-door-open"></i> ห้อง <span id="roomName">...</span>
+                        </span>
+                        
+                        <!-- 🌟 เพิ่มป้ายสังกัด (พื้นที่ส่วนตัว / โรงเรียน) -->
+                        <span id="schoolContextBadge" class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap hidden">
+                            <!-- JS จะดึงข้อมูลมาใส่ให้ -->
+                        </span>
 
-                    <span class="bg-white/20 px-3 py-1.5 rounded-xl text-xs md:text-sm inline-flex items-center gap-1.5 font-sans border border-white/20">
-                        <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ <span id="termYear">.../...</span>
-                    </span>
+                        <span class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap" id="semesterBadge">
+                            <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ <span id="termYear">.../...</span>
+                        </span>
+                        <span class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap hidden" id="subjectGroupBadge">
+                            <i class="fas fa-layer-group"></i> <span id="subjectGroup"></span>
+                        </span>
+                    </div>
+                    
+                    <!-- คำอธิบาย (Description) -->
+                    <p id="classDescription" class="text-xs md:text-sm text-blue-100 mt-2.5 md:mt-3 line-clamp-2 hidden font-sans leading-relaxed"></p>
+                </div>
+                
+                <!-- กล่องสถิติ -->
+                <div class="flex gap-3 w-full md:w-auto shrink-0 mt-1 md:mt-0 cursor-pointer" onclick="goToStudents()">
+                    <div class="bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/20 text-center flex-1 md:min-w-[100px] shadow-lg">
+                        <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest opacity-80 mb-0.5 md:mb-1">นักเรียน</p>
+                        <p id="studentCount" class="text-xl md:text-3xl font-black">0</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/20 text-center flex-1 md:min-w-[100px] shadow-lg">
+                        <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest opacity-80 mb-0.5 md:mb-1">ภารกิจ</p>
+                        <p id="missionCount" class="text-xl md:text-3xl font-black">0</p>
+                    </div>
                 </div>
             </div>
-
-            <!-- กล่องแสดงจำนวนนักเรียน -->
-            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-5 border border-white/20 text-center min-w-[140px] shadow-lg self-start md:self-auto cursor-pointer transition-all hover:bg-white/20" onclick="goToStudentList()">
-                <div class="text-[11px] font-bold uppercase tracking-widest opacity-80 mb-1">นักเรียนทั้งหมด</div>
-                <h2 id="studentCount" class="font-['Kanit'] text-3xl md:text-5xl font-black m-0 leading-none">0</h2>
-                <div class="text-xs mt-2 opacity-80"><i class="fas fa-users mr-1"></i> คลิกเพื่อดูรายชื่อ</div>
-            </div>
         </div>
-        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -right-10 -bottom-10 md:-right-20 md:-bottom-20 w-40 h-40 md:w-80 md:h-80 bg-white/10 rounded-full blur-2xl md:blur-3xl pointer-events-none"></div>
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 md:px-8 xl:px-12 pb-12">
+    <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-5xl relative">
         
-        <!-- แถบเครื่องมือสำหรับจัดการ (แสดงเฉพาะเจ้าของห้อง) -->
-        <div id="manageToolbar" class="hidden mb-6 flex flex-wrap gap-3">
-            <button onclick="goToStudentList()" class="action-btn">
-                <i class="fas fa-users-cog text-[var(--primary)]"></i> จัดการรายชื่อนักเรียน
-            </button>
-            <button onclick="window.location.href='mission-create.html?id=' + currentClassId" class="primary-action-btn">
-                <i class="fas fa-plus-circle"></i> สร้างภารกิจใหม่
-            </button>
-        </div>
-
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold font-['Kanit'] text-slate-800"><i class="fas fa-tasks text-[var(--accent)] mr-2"></i> ภารกิจในห้องเรียนนี้</h2>
-            <button id="btnManageFolder" onclick="openFolderModal()" class="hidden text-sm text-blue-600 hover:text-blue-800 font-['Kanit'] bg-blue-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border border-blue-100"><i class="fas fa-folder-cog mr-1"></i> จัดการโฟลเดอร์</button>
-        </div>
-
-        <!-- แถบโฟลเดอร์ -->
-        <div class="view-filter-container">
-            <div class="view-filter-scroll" id="folderTabs">
-                <!-- โฟลเดอร์จะถูกนำมาแสดงที่นี่ -->
+        <!-- โหมด 1: หน้าจอแสดงโฟลเดอร์ทั้งหมด (Folder Grid View) -->
+        <div id="viewFolderGrid">
+            <h2 class="text-lg md:text-xl font-bold text-[var(--primary)] mb-6 font-['Kanit']"><i class="fas fa-folder-open text-[var(--accent)] mr-2"></i> หมวดหมู่บทเรียน</h2>
+            <div id="folderGridContent" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <!-- Data goes here -->
             </div>
         </div>
 
-        <div id="missionsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-            <!-- ภารกิจจะถูกนำมาแสดงที่นี่ -->
+        <!-- โหมด 2: หน้าจอแสดงภารกิจในโฟลเดอร์ที่เลือก (Mission Path View) -->
+        <div id="viewMissionPath" class="hidden-el">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-200 pb-4 gap-4">
+                <button onclick="backToFolders()" class="text-slate-500 hover:text-[var(--primary)] font-bold transition flex items-center gap-2 self-start">
+                    <i class="fas fa-arrow-left"></i> กลับไปหมวดหมู่
+                </button>
+                <div class="flex items-center gap-3">
+                    <h2 id="currentFolderNameDisplay" class="text-lg md:text-xl font-bold text-[var(--primary)] font-['Kanit']">ชื่อโฟลเดอร์</h2>
+                </div>
+            </div>
+            <div id="missionPath" class="mission-path">
+                <div id="missionListContent" class="w-full flex flex-col md:items-center">
+                    <!-- Data goes here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- โหมด 3: โหมดจัดการเนื้อหา (Admin Manage View - Drag & Drop) -->
+        <div id="viewManageMode" class="hidden-el">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 bg-[#f0f4ff] p-4 md:p-5 rounded-2xl border border-blue-100 gap-4">
+                <div>
+                    <h2 class="text-lg md:text-xl font-bold text-[var(--primary)] font-['Kanit']"><i class="fas fa-cogs text-[var(--primary-light)] mr-2"></i> จัดการโครงสร้างห้องเรียน</h2>
+                    <p class="text-xs md:text-sm text-slate-500 mt-1">ลากย้ายสลับที่ได้อิสระ หรือกดถังขยะเพื่อนำภารกิจออกจากห้องเรียน</p>
+                </div>
+                <div class="flex gap-2 self-start md:self-center w-full md:w-auto">
+                    <!-- ปุ่มยกเลิกการแก้ไข -->
+                    <button onclick="cancelManageMode()" title="ยกเลิกการแก้ไข" class="flex-1 md:flex-none justify-center bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-undo text-lg md:text-base"></i> <span class="hidden md:inline">ยกเลิก</span>
+                    </button>
+                    <!-- ปุ่มเพิ่มหมวดหมู่ -->
+                    <button onclick="handleAddFolderPrompt()" title="เพิ่มหมวดหมู่" class="flex-1 md:flex-none justify-center bg-white border border-blue-200 text-[var(--primary-light)] hover:bg-[var(--primary-light)] hover:text-white px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-folder-plus text-lg md:text-base"></i> <span class="hidden md:inline">เพิ่มหมวดหมู่</span>
+                    </button>
+                    <!-- ปุ่มลบห้องเรียน -->
+                    <button onclick="handleDeleteClassroom()" title="ลบห้องเรียน" class="flex-1 md:flex-none justify-center bg-white border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-trash-alt text-lg md:text-base"></i> <span class="hidden md:inline">ลบห้องเรียน</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="manageContent" class="space-y-6">
+                <!-- Manage Data goes here -->
+            </div>
         </div>
 
     </main>
 
-    <!-- ================= MODAL จัดการโฟลเดอร์ ================= -->
-    <div id="folderModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-folder-open mr-2 text-[var(--primary)]"></i> จัดการโฟลเดอร์</h3>
-                <button onclick="closeFolderModal()" class="text-slate-400 hover:text-rose-500 transition-colors bg-transparent border-none text-xl cursor-pointer"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="newFolderInput" class="form-input !mb-0" placeholder="ชื่อโฟลเดอร์ใหม่...">
-                    <button onclick="addFolder()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-5 rounded-xl transition-colors whitespace-nowrap font-['Kanit'] font-medium cursor-pointer"><i class="fas fa-plus mr-1"></i> เพิ่ม</button>
-                </div>
-                <div id="folderListContainer" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
-                    <!-- รายการโฟลเดอร์เพื่อแก้ไข/ลบ -->
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ปุ่มเพิ่มภารกิจแบบลอย (FAB) มุมขวาล่าง -->
+    <button id="fabAddBtn" onclick="handleFabAddMission()" class="fab-add hidden-el" title="เพิ่ม/สร้างภารกิจใหม่">
+        <i class="fas fa-plus"></i>
+    </button>
 
-    <!-- ================= Custom Alert Modal ================= -->
-    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px; padding: 35px 30px; display: block; transform: translateY(-20px);">
-            <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
-            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
-            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
-            <div style="display: flex; justify-content: center; gap: 10px;">
-                <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all">ตกลง</button>
-                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert()" class="bg-slate-200 text-slate-700 hover:bg-slate-300 px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-8 md:py-10 text-center mt-auto">
+        <p class="text-[var(--primary)] font-bold mb-1 italic font-sans text-xs md:text-sm">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
+        <p id="footerOwnerText" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest"></p>
+    </footer>
 
     <script>
-        function getDB() {
-            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
-            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
-                const key = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY || APP_CONFIG.ANON_KEY;
-                if (APP_CONFIG.SUPABASE_URL && key) {
-                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
-                    return window.sysDB;
-                }
+        let currentUserId = null;
+        let currentClassId = null;
+        let isClassOwner = false; // ตัวแปรเก็บสิทธิ์ความเป็นเจ้าของห้อง
+        let missions = [];
+        let folders = []; 
+        let isManageMode = false;
+        let sortableInstances = [];
+        let deletedAssignments = []; 
+        
+        let currentOpenedFolder = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            currentClassId = params.get('id') || params.get('cid');
+            if (!currentClassId) return location.href = 'dashboard.html'; // เปลี่ยนจาก teacher-dashboard
+
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN);
+                document.getElementById('footerOwnerText').innerText = `${APP_CONFIG.OWNER.NAME} | ${APP_CONFIG.OWNER.SCHOOL}`;
+                
+                if (typeof initAppUI === 'function') initAppUI();
             }
-            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+
+            document.getElementById('promptInputVal').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') executeCustomPrompt();
+            });
+
+            const checkDB = setInterval(() => { if (window.sysDB) { clearInterval(checkDB); initApp(); } }, 500);
+        });
+
+        async function initApp() {
+            try {
+                const { data: { user } } = await window.sysDB.auth.getUser();
+                if (!user) return location.href = 'login.html'; // เปลี่ยนจาก teacher-login
+                currentUserId = user.id;
+                await Promise.all([fetchClassroomData(), fetchMissions()]);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (err) { console.error("Init Error:", err); }
         }
 
-        let currentUserId = null;
-        let currentClassId = new URLSearchParams(window.location.search).get('id');
-        let isClassOwner = false;
-        
-        let classFolders = ["ทั่วไป"];
-        let activeFolder = "ทั่วไป";
-        let allMissions = [];
+        async function fetchClassroomData() {
+            // Join ดึงชื่อโรงเรียนมาด้วย
+            const { data } = await window.sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
+            if (data) {
+                document.getElementById('subjectName').innerText = data.subject_name;
+                document.getElementById('roomName').innerText = data.room_name;
+                
+                const term = data.semester || '-';
+                const year = data.academic_year || '-';
+                document.getElementById('termYear').innerText = `${term}/${year}`;
+                
+                const subjectGroupBadge = document.getElementById('subjectGroupBadge');
+                if (data.subject_group) {
+                    document.getElementById('subjectGroup').innerText = data.subject_group;
+                    subjectGroupBadge.classList.remove('hidden');
+                } else {
+                    subjectGroupBadge.classList.add('hidden');
+                }
+                
+                const classDesc = document.getElementById('classDescription');
+                if (data.description) {
+                    classDesc.innerText = data.description;
+                    classDesc.classList.remove('hidden');
+                } else {
+                    classDesc.classList.add('hidden');
+                }
 
-        // --- Alert System ---
-        let alertCallback = null;
-        let alertCancelCallback = null;
-        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
-            const modal = document.getElementById('customAlertModal');
-            const icon = document.getElementById('customAlertIcon');
-            const title = document.getElementById('customAlertTitle');
-            const btn = document.getElementById('customAlertOkBtn');
-            const btnCancel = document.getElementById('customAlertCancelBtn');
-            
-            document.getElementById('customAlertMessage').innerHTML = message;
-            alertCallback = callback;
-            alertCancelCallback = cancelCallback;
+                // 🌟 จัดการแสดงป้ายสังกัด (พื้นที่ส่วนตัว / โรงเรียน)
+                const schoolBadge = document.getElementById('schoolContextBadge');
+                if (data.school_id && data.schools) {
+                    schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${data.schools.school_name}`;
+                } else {
+                    schoolBadge.innerHTML = `<i class="fas fa-user text-sky-300"></i> พื้นที่ส่วนตัว`;
+                }
+                schoolBadge.classList.remove('hidden');
+                
+                // 🌟 ตรวจสอบสิทธิ์เจ้าของห้องเรียน เพื่อซ่อน/แสดงปุ่มตั้งค่า
+                let targetCol = data.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
+                if (data[targetCol] === currentUserId) {
+                    isClassOwner = true;
+                    document.getElementById('manageModeBtn').classList.remove('hidden');
+                    document.getElementById('manageModeBtn').classList.add('flex'); // ใช้ flex แทน block
+                } else {
+                    isClassOwner = false;
+                    document.getElementById('manageModeBtn').classList.add('hidden');
+                    document.getElementById('manageModeBtn').classList.remove('flex');
+                }
 
-            btnCancel.style.display = 'none';
+                const appName = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.APP_NAME : 'FlipSchool';
+                document.title = `${data.subject_name} | ${appName}`;
+                
+                if (data.folders && Array.isArray(data.folders)) {
+                    folders = data.folders;
+                }
 
-            if (type === 'success') {
-                icon.innerHTML = '<i class="fas fa-check-circle"></i>'; icon.className = 'text-5xl mb-4 text-emerald-500';
-                title.innerText = 'สำเร็จ!'; btn.style.background = '#10b981';
-            } else if (type === 'warning') {
-                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; icon.className = 'text-5xl mb-4 text-amber-500';
-                title.innerText = 'แจ้งเตือน'; btn.style.background = '#f59e0b';
-            } else if (type === 'confirm') {
-                icon.innerHTML = '<i class="fas fa-question-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
-                title.innerText = 'ยืนยัน'; btn.style.background = '#ff4757';
-                btnCancel.style.display = 'block';
-            } else {
-                icon.innerHTML = '<i class="fas fa-times-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
-                title.innerText = 'ข้อผิดพลาด'; btn.style.background = '#ef4444';
+                // 🌟 นับจำนวนนักเรียนจากตาราง classroom_users ตามโครงสร้าง Unified ล่าสุด
+                const { count } = await window.sysDB.from('classroom_users').select('*', { count: 'exact', head: true }).eq('classroom_id', currentClassId);
+                document.getElementById('studentCount').innerText = count || 0;
             }
+        }
+
+        async function fetchMissions() {
+            try {
+                const { data, error } = await window.sysDB
+                    .from('classroom_missions')
+                    .select('assignment_id, mission_id, order_index, folder_name, custom_title, missions(*)') 
+                    .eq('classroom_id', currentClassId);
+
+                if (error) { console.error("Fetch Error:", error); return; }
+
+                if (data) {
+                    missions = data.filter(m => m.missions !== null);
+                    missions.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+                    if (folders.length === 0) {
+                        const uniqueFolders = [...new Set(missions.map(m => m.folder_name).filter(Boolean))];
+                        folders = uniqueFolders.length > 0 ? uniqueFolders : ['ทั่วไป'];
+                    }
+
+                    document.getElementById('missionCount').innerText = missions.length;
+                    
+                    if (!isManageMode) showFolderGrid(); 
+                }
+            } catch (err) { console.error("Query Exception:", err); }
+        }
+
+        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
+
+        // ==========================================
+        // 🎯 เครื่องมือ UI (Toast & Modals)
+        // ==========================================
+        function showMessage(text, isError = false) {
+            const box = document.getElementById('msgBox');
+            document.getElementById('msgText').innerText = text;
+            box.className = `fixed top-20 right-5 z-[210] bg-white border-l-4 ${isError ? 'border-rose-500' : 'border-emerald-500'} shadow-lg rounded-xl p-4 transition-all animate-bounce-in`;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 3500);
+        }
+
+        let promptCallback = null;
+        function openCustomPrompt(title, placeholder, callback, defaultValue = '', iconClass = 'fas fa-folder-plus', subtitle = '') {
+            document.getElementById('promptTitle').innerText = title;
+            const subtitleEl = document.getElementById('promptSubtitle');
+            if (subtitle) {
+                subtitleEl.innerText = subtitle;
+                subtitleEl.classList.remove('hidden-el');
+            } else {
+                subtitleEl.classList.add('hidden-el');
+            }
+
+            const input = document.getElementById('promptInputVal');
+            input.placeholder = placeholder; 
+            input.value = defaultValue;
+            promptCallback = callback;
             
-            modal.style.display = 'flex';
-            setTimeout(() => { 
-                modal.classList.add('show'); 
-                modal.querySelector('.modal-box').style.transform = 'translateY(0)'; 
+            document.getElementById('promptIcon').className = iconClass;
+            
+            const modal = document.getElementById('customPromptModal');
+            const card = document.getElementById('customPromptCard');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+                input.focus();
+                input.select(); 
             }, 10);
         }
         
-        function closeCustomAlert() {
-            const modal = document.getElementById('customAlertModal');
-            modal.classList.remove('show');
-            modal.querySelector('.modal-box').style.transform = 'translateY(-20px)';
-            setTimeout(() => { modal.style.display = 'none'; }, 300);
-            
-            if (event && event.target.id === 'customAlertCancelBtn' && alertCancelCallback) {
-                setTimeout(alertCancelCallback, 300);
-            } else if (alertCallback) { 
-                setTimeout(alertCallback, 300); 
-            }
-            alertCallback = null; alertCancelCallback = null;
+        function closeCustomPrompt() {
+            const modal = document.getElementById('customPromptModal');
+            const card = document.getElementById('customPromptCard');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+        
+        function executeCustomPrompt() {
+            if(promptCallback) promptCallback(document.getElementById('promptInputVal').value);
+            closeCustomPrompt();
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if(!currentClassId) return window.location.replace('dashboard.html');
+        let confirmCallback = null;
+        function openCustomConfirm(title, message, isDanger, callback) {
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerHTML = message;
             
-            try {
-                const db = getDB();
-                const { data: { session } } = await db.auth.getSession();
-                if (!session) return window.location.replace('login.html');
-                
-                currentUserId = session.user.id;
-                
-                await fetchClassroomData(db);
-                await fetchStudentCount(db);
-                await fetchMissions(db);
-
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
-
-            } catch (err) {
-                console.error("Initialization Error:", err);
-                window.location.replace('dashboard.html');
-            }
-        });
-
-        async function fetchClassroomData(db) {
-            const { data: cls, error } = await db.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
-            if (error || !cls) throw new Error("Classroom not found");
-
-            // จัดการโฟลเดอร์
-            if (cls.folders && Array.isArray(cls.folders)) {
-                classFolders = cls.folders;
+            const iconBox = document.getElementById('confirmIconBox');
+            const icon = document.getElementById('confirmIcon');
+            const btn = document.getElementById('confirmActionBtn');
+            
+            if(isDanger) {
+                iconBox.className = "w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl";
+                icon.className = "fas fa-exclamation-triangle";
+                btn.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 font-sans";
             } else {
-                classFolders = ["ทั่วไป"];
+                iconBox.className = "w-16 h-16 bg-[#f0f4ff] text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl";
+                icon.className = "fas fa-question-circle";
+                btn.className = "flex-1 btn-theme font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 font-sans";
             }
-            if (!classFolders.includes(activeFolder)) activeFolder = classFolders[0];
-            renderFolderTabs();
-
-            // ตรวจสอบสิทธิ์ความเป็นเจ้าของห้อง
-            let targetCol = cls.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
-            if (cls[targetCol] === currentUserId) {
-                isClassOwner = true;
-                document.getElementById('manageToolbar').classList.remove('hidden');
-                document.getElementById('btnManageFolder').classList.remove('hidden');
-            }
-
-            document.getElementById('subjectName').innerText = cls.subject_name || 'ไม่มีชื่อวิชา';
-            document.getElementById('roomName').innerText = cls.room_name || '-';
-            document.getElementById('termYear').innerText = `${cls.semester || '-'}/${cls.academic_year || '-'}`;
-
-            // แสดงป้ายสังกัด
-            const schoolBadge = document.getElementById('schoolContextBadge');
-            if (cls.school_id && cls.schools) {
-                schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${cls.schools.school_name}`;
-            } else {
-                schoolBadge.innerHTML = `<i class="fas fa-user text-sky-300"></i> พื้นที่ส่วนตัว`;
-            }
-            schoolBadge.classList.remove('hidden');
-        }
-
-        // ================= ระบบโฟลเดอร์ =================
-        function renderFolderTabs() {
-            const container = document.getElementById('folderTabs');
-            if (!container) return;
+            confirmCallback = callback;
             
-            container.innerHTML = classFolders.map(f => `
-                <button class="filter-tab ${activeFolder === f ? 'active' : ''}" onclick="switchFolder('${f}')">
-                    <i class="fas ${activeFolder === f ? 'fa-folder-open' : 'fa-folder'}"></i> ${f}
-                </button>
-            `).join('');
+            const modal = document.getElementById('customConfirmModal');
+            const card = document.getElementById('customConfirmCard');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+        
+        function closeCustomConfirm() {
+            const modal = document.getElementById('customConfirmModal');
+            const card = document.getElementById('customConfirmCard');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+        
+        function executeCustomConfirm() {
+            if(confirmCallback) confirmCallback();
+            closeCustomConfirm();
         }
 
-        function switchFolder(folderName) {
-            activeFolder = folderName;
-            renderFolderTabs();
-            renderMissions();
+        // ==========================================
+        // สร้าง/นำเข้า ภารกิจใหม่ (FAB Action)
+        // ==========================================
+        function handleFabAddMission() {
+            navigateToAddMission(currentOpenedFolder);
         }
 
-        function openFolderModal() {
-            renderFolderManageList();
-            document.getElementById('folderModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('folderModal').classList.add('show'), 10);
+        function navigateToAddMission(folderName) {
+            const targetFolder = folderName || 'ทั่วไป';
+            localStorage.setItem('flip_target_folder', targetFolder);
+            // ส่ง details ที่จำเป็น (รหัสห้องเรียน และโฟลเดอร์) ไปยังหน้า mission-create.html
+            window.location.href = `mission-create.html?cid=${currentClassId}&folder=${encodeURIComponent(targetFolder)}`;
         }
 
-        function closeFolderModal() {
-            document.getElementById('folderModal').classList.remove('show');
-            setTimeout(() => document.getElementById('folderModal').style.display = 'none', 300);
-        }
+        // ==========================================
+        // ส่วนที่ 1: โหมดแสดงผลปกติ (Folder Grid & Mission Path)
+        // ==========================================
+        function showFolderGrid() {
+            currentOpenedFolder = null; 
+            document.getElementById('viewFolderGrid').classList.remove('hidden-el');
+            document.getElementById('viewMissionPath').classList.add('hidden-el');
+            document.getElementById('viewManageMode').classList.add('hidden-el');
+            
+            // แสดงปุ่ม FAB เพิ่มภารกิจ เฉพาะเจ้าของห้องเรียนเท่านั้น
+            if (isClassOwner) {
+                document.getElementById('fabAddBtn').classList.remove('hidden-el');
+            } else {
+                document.getElementById('fabAddBtn').classList.add('hidden-el');
+            }
+            
+            const grid = document.getElementById('folderGridContent');
+            
+            const hasOrphans = missions.some(m => !folders.includes(m.folder_name || 'ทั่วไป'));
+            if (hasOrphans && !folders.includes('ทั่วไป')) folders.push('ทั่วไป');
 
-        function renderFolderManageList() {
-            const container = document.getElementById('folderListContainer');
-            container.innerHTML = classFolders.map((f, index) => `
-                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <span class="font-medium text-slate-700 flex items-center gap-2"><i class="fas fa-folder text-[var(--primary-light)]"></i> ${f}</span>
-                    ${f !== 'ทั่วไป' ? `
-                        <button onclick="deleteFolder(${index})" class="text-rose-500 hover:bg-rose-100 p-2 rounded-lg transition-colors cursor-pointer" title="ลบโฟลเดอร์"><i class="fas fa-trash-alt"></i></button>
-                    ` : '<span class="text-xs text-slate-400 bg-slate-200 px-2 py-1 rounded font-medium">ค่าเริ่มต้น</span>'}
-                </div>
-            `).join('');
-        }
-
-        async function addFolder() {
-            const input = document.getElementById('newFolderInput');
-            const newFolder = input.value.trim();
-            if (!newFolder) return;
-            if (classFolders.includes(newFolder)) {
-                showCustomAlert('ชื่อโฟลเดอร์นี้มีอยู่แล้ว', 'warning');
+            if (folders.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10">ยังไม่มีหมวดหมู่</div>`;
                 return;
             }
 
-            classFolders.push(newFolder);
-            await updateFoldersInDB();
-            input.value = '';
-            renderFolderManageList();
-            renderFolderTabs();
-        }
-
-        async function deleteFolder(index) {
-            const folderToDelete = classFolders[index];
-            if (folderToDelete === 'ทั่วไป') return;
-
-            const hasMissions = allMissions.some(m => (m.folder_name || 'ทั่วไป') === folderToDelete);
-            if (hasMissions) {
-                showCustomAlert('ไม่สามารถลบโฟลเดอร์ที่มีภารกิจอยู่ได้ กรุณาย้ายภารกิจออกก่อน', 'warning');
-                return;
-            }
-
-            showCustomAlert(`ยืนยันการลบโฟลเดอร์ "${folderToDelete}" ใช่หรือไม่?`, 'confirm', async () => {
-                classFolders.splice(index, 1);
-                if (activeFolder === folderToDelete) {
-                    activeFolder = 'ทั่วไป';
-                }
-                await updateFoldersInDB();
-                renderFolderManageList();
-                renderFolderTabs();
-                renderMissions();
-            });
-        }
-
-        async function updateFoldersInDB() {
-            try {
-                const db = getDB();
-                const { error } = await db.from('classrooms')
-                    .update({ folders: classFolders })
-                    .eq('classroom_id', currentClassId);
-                
-                if (error) throw error;
-            } catch (err) {
-                console.error("Error updating folders:", err);
-                showCustomAlert('เกิดข้อผิดพลาดในการบันทึกโฟลเดอร์', 'error');
-            }
-        }
-
-        // ================= ดึงข้อมูลจำนวนนักเรียน =================
-        async function fetchStudentCount(db) {
-            try {
-                const { count, error } = await db
-                    .from('classroom_users')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('classroom_id', currentClassId);
-                
-                if (error) throw error;
-                
-                document.getElementById('studentCount').innerText = count || 0;
-            } catch(e) {
-                console.error("Error fetching student count:", e);
-                document.getElementById('studentCount').innerText = 0;
-            }
-        }
-
-        // ================= ดึงข้อมูลและแสดงภารกิจ =================
-        async function fetchMissions(db) {
-            try {
-                const { data, error } = await db.from('classroom_missions')
-                    .select('assignment_id, folder_name, missions(mission_id, title, description, mission_type, reward_points)')
-                    .eq('classroom_id', currentClassId)
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-                allMissions = data || [];
-                renderMissions();
-            } catch (err) {
-                console.error("Error fetching missions:", err);
-                document.getElementById('missionsGrid').innerHTML = `<div class="col-span-full text-rose-500 text-center py-10">เกิดข้อผิดพลาดในการโหลดภารกิจ</div>`;
-            }
-        }
-
-        function renderMissions() {
-            const container = document.getElementById('missionsGrid');
-            const filteredMissions = allMissions.filter(m => (m.folder_name || 'ทั่วไป') === activeFolder);
-
-            if (filteredMissions.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
-                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-gamepad"></i></div>
-                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-lg mb-1">ยังไม่มีภารกิจในโฟลเดอร์นี้</h3>
-                        <p class="text-xs text-slate-400">รอคุณครูเพิ่มภารกิจการเรียนรู้</p>
-                    </div>`;
-                return;
-            }
-
-            container.innerHTML = filteredMissions.map(item => {
-                const m = item.missions;
-                if(!m) return '';
-                
-                let icon = 'fa-gamepad';
-                let iconColor = 'text-blue-500';
-                let bgColor = 'bg-blue-50';
-                
-                if(m.mission_type === 'quiz') { icon = 'fa-question-circle'; iconColor = 'text-orange-500'; bgColor = 'bg-orange-50'; }
-                else if(m.mission_type === 'video') { icon = 'fa-play-circle'; iconColor = 'text-rose-500'; bgColor = 'bg-rose-50'; }
-
+            grid.innerHTML = folders.map(folderName => {
+                const count = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName).length;
                 return `
-                    <div class="mission-card" onclick="window.location.href='play-mission.html?assign_id=${item.assignment_id}'">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="mission-icon ${bgColor} ${iconColor}"><i class="fas ${icon}"></i></div>
-                            <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-md"><i class="fas fa-star mr-1"></i> ${m.reward_points || 10} XP</span>
+                    <div class="folder-card group" onclick="openFolder('${folderName}')">
+                        <div class="folder-icon-box group-hover:scale-110 transition-transform">
+                            <i class="fas fa-folder"></i>
                         </div>
-                        <h3 class="mission-title">${m.title}</h3>
-                        <p class="mission-desc">${m.description || 'ไม่มีคำอธิบาย'}</p>
+                        <div>
+                            <h3 class="text-lg md:text-xl font-bold text-slate-800 font-['Kanit']">${folderName}</h3>
+                            <p class="text-xs md:text-sm text-slate-500">${count} ภารกิจ</p>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function goToStudentList() {
-            window.location.href = `student-list.html?id=${currentClassId}`;
+        function openFolder(folderName) {
+            currentOpenedFolder = folderName; 
+            document.getElementById('viewFolderGrid').classList.add('hidden-el');
+            document.getElementById('viewMissionPath').classList.remove('hidden-el');
+            document.getElementById('currentFolderNameDisplay').innerText = folderName;
+            
+            // แสดงปุ่ม FAB เพิ่มภารกิจ เฉพาะเจ้าของห้องเรียนเท่านั้น
+            if (isClassOwner) {
+                document.getElementById('fabAddBtn').classList.remove('hidden-el');
+            } else {
+                document.getElementById('fabAddBtn').classList.add('hidden-el');
+            }
+
+            const container = document.getElementById('missionListContent');
+            const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
+
+            if (folderMissions.length === 0) {
+                container.innerHTML = `
+                    <div class="py-20 opacity-30 text-center">
+                        <i class="fas fa-box-open text-5xl md:text-6xl mb-4 text-slate-300"></i>
+                        <h3 class="text-lg md:text-xl font-bold font-sans text-slate-500">หมวดหมู่นี้ยังว่างเปล่า</h3>
+                        ${isClassOwner ? `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">กดปุ่ม + (เพิ่มภารกิจ) มุมขวาล่างเพื่อสร้างภารกิจได้เลยครับ</p>` : `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">รอคุณครูเพิ่มภารกิจ</p>`}
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = folderMissions.map((m, idx) => {
+                const displayTitle = m.custom_title || m.missions.title;
+                return `
+                <div class="mission-node group">
+                    <div class="node-circle shadow-lg" onclick="location.href='play-mission.html?mid=${m.mission_id}'">
+                        <i class="${getIcon(m.missions.mission_type)}"></i>
+                    </div>
+                    <div class="node-content">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest">ลำดับที่ ${idx + 1}</span>
+                            <span class="text-[10px] bg-[#f0f4ff] text-[var(--primary-light)] px-2.5 py-0.5 rounded-lg font-bold">
+                                <i class="fas fa-star mr-1"></i>${m.missions.reward_points || 10}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm md:text-base leading-tight truncate font-sans">${displayTitle}</h3>
+                        <p class="text-[10px] text-slate-400 mt-1 italic font-sans">${m.missions.subject_group || 'ทั่วไป'}</p>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function backToFolders() {
+            showFolderGrid();
+        }
+
+        // ==========================================
+        // ส่วนที่ 2: โหมดจัดการเนื้อหา (Admin Manage Mode)
+        // ==========================================
+        function toggleManageMode() {
+            const btn = document.getElementById('manageModeBtn');
+
+            if (!isManageMode) {
+                // เปิดโหมดจัดการ
+                isManageMode = true;
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-save text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">บันทึกข้อมูล</span>';
+                    btn.classList.replace('bg-white/10', 'bg-emerald-500');
+                    btn.classList.replace('hover:bg-white/20', 'hover:bg-emerald-600');
+                }
+                renderAdminManageView();
+            } else {
+                // หากกดปุ่มที่ Navbar หรือปุ่มมือถือ ขณะอยู่ในโหมดจัดการ ให้ทำการบันทึก
+                saveNewOrderAndFolders(); 
+            }
+        }
+
+        // 🌟 ฟังก์ชันยกเลิกการเปลี่ยนแปลง
+        function cancelManageMode() {
+            openCustomConfirm('ยกเลิกการแก้ไข', 'คุณต้องการยกเลิกการเปลี่ยนแปลงทั้งหมด และคืนค่าเดิมใช่หรือไม่?', false, async () => {
+                isManageMode = false;
+                deletedAssignments = []; // ล้างคิวการลบ
+                
+                // รีเซ็ตปุ่มที่ Navbar
+                const btn = document.getElementById('manageModeBtn');
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
+                    btn.classList.replace('bg-emerald-500', 'bg-white/10');
+                    btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
+                }
+
+                document.getElementById('loadingText').innerText = "กำลังคืนค่าเดิม...";
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // รีโหลดข้อมูลจากฐานข้อมูลใหม่ทับข้อมูลที่แก้ไขในหน้าจอ
+                folders = [];
+                await fetchClassroomData();
+                await fetchMissions(); 
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+            });
+        }
+
+        function renderAdminManageView() {
+            document.getElementById('viewFolderGrid').classList.add('hidden-el');
+            document.getElementById('viewMissionPath').classList.add('hidden-el');
+            document.getElementById('viewManageMode').classList.remove('hidden-el');
+            
+            // ซ่อนปุ่ม FAB ในโหมดจัดการเนื้อหา
+            document.getElementById('fabAddBtn').classList.add('hidden-el');
+
+            const container = document.getElementById('manageContent');
+            let html = '';
+
+            folders.forEach(folderName => {
+                const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
+                
+                const isGeneral = folderName === 'ทั่วไป';
+                
+                const editBtnHtml = `<button onclick="handleRenameFolder('${folderName}')" class="text-amber-500 hover:text-white hover:bg-amber-500 bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="แก้ไขชื่อหมวดหมู่"><i class="fas fa-edit"></i></button>`;
+                
+                const deleteBtnHtml = !isGeneral 
+                    ? `<button onclick="handleDeleteFolder('${folderName}')" class="text-rose-500 hover:text-white hover:bg-rose-500 bg-rose-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="ลบหมวดหมู่"><i class="fas fa-trash-alt"></i></button>`
+                    : '';
+
+                html += `
+                    <div class="admin-folder-box" data-folder="${folderName}">
+                        <div class="flex flex-wrap gap-2 justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="font-bold text-lg md:text-xl text-slate-800 font-['Kanit']"><i class="fas fa-folder-open text-[var(--accent)] mr-2"></i> ${folderName}</h3>
+                            <div class="flex items-center gap-2">
+                                <button onclick="navigateToAddMission('${folderName}')" class="text-[var(--primary-light)] hover:text-[var(--primary)] bg-[#f0f4ff] hover:bg-[#e0e8ff] px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-lg transition text-xs font-bold flex items-center justify-center gap-1 shadow-sm" title="สร้างภารกิจลงหมวดหมู่นี้">
+                                    <i class="fas fa-plus"></i> <span class="hidden md:inline">เพิ่ม</span>
+                                </button>
+                                ${editBtnHtml}
+                                ${deleteBtnHtml}
+                            </div>
+                        </div>
+                        
+                        <div class="admin-mission-list sortable-list" data-folder="${folderName}">
+                `;
+
+                folderMissions.forEach(m => {
+                    const displayTitle = m.custom_title || m.missions.title;
+                    const originalTitle = m.missions.title;
+                    const safeDisplayTitle = displayTitle.replace(/'/g, "\\'");
+                    const safeOriginalTitle = originalTitle.replace(/'/g, "\\'");
+
+                    html += `
+                        <div class="admin-mission-item" data-assignment-id="${m.assignment_id}">
+                            <i class="fas fa-grip-vertical drag-handle-icon"></i>
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#f0f4ff] text-[var(--primary-light)] flex items-center justify-center shrink-0">
+                                <i class="${getIcon(m.missions.mission_type)} text-sm md:text-base"></i>
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                <p class="font-bold text-sm md:text-base text-slate-700 truncate">${displayTitle}</p>
+                                <p class="text-[10px] text-slate-400">ID: ${m.assignment_id.substring(0,6)}...</p>
+                            </div>
+                            <button onclick="handleRenameMission('${m.assignment_id}', '${safeDisplayTitle}', '${safeOriginalTitle}')" class="text-amber-500 hover:text-amber-600 hover:bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 mr-1" title="เปลี่ยนชื่อภารกิจนี้">
+                                <i class="fas fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="handleRemoveMission('${m.assignment_id}', '${safeDisplayTitle}')" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0" title="นำออกจากห้องเรียน">
+                                <i class="fas fa-minus-circle"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            initSortable();
+        }
+
+        function initSortable() {
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
+
+            const containers = document.querySelectorAll('.sortable-list');
+            containers.forEach(container => {
+                sortableInstances.push(new Sortable(container, {
+                    group: 'shared-folders', 
+                    animation: 150,
+                    handle: '.drag-handle-icon',
+                    ghostClass: 'sortable-ghost',
+                }));
+            });
+        }
+
+        function handleAddFolderPrompt() {
+            openCustomPrompt('สร้างหมวดหมู่ใหม่', 'ชื่อหมวดหมู่ (เช่น บทที่ 1)', (folderName) => {
+                const cleanName = (folderName || '').trim();
+                if (cleanName === "") return;
+                
+                if (folders.includes(cleanName)) {
+                    showMessage("⚠️ ชื่อหมวดหมู่นี้มีอยู่แล้วครับ", true);
+                    return;
+                }
+                folders.push(cleanName);
+                renderAdminManageView(); 
+            }, 'โฟลเดอร์ใหม่');
+        }
+
+        function handleRenameFolder(oldName) {
+            openCustomPrompt('แก้ไขชื่อหมวดหมู่', 'ชื่อหมวดหมู่ใหม่', (newName) => {
+                const cleanName = (newName || '').trim();
+                if (cleanName === "" || cleanName === oldName) return; 
+                
+                if (folders.includes(cleanName)) {
+                    showMessage("⚠️ ชื่อหมวดหมู่นี้มีอยู่แล้วครับ", true);
+                    return;
+                }
+                
+                const folderIndex = folders.indexOf(oldName);
+                if(folderIndex !== -1) folders[folderIndex] = cleanName;
+                
+                missions.forEach(m => {
+                    if ((m.folder_name || 'ทั่วไป') === oldName) {
+                        m.folder_name = cleanName;
+                    }
+                });
+                
+                renderAdminManageView();
+            }, oldName, 'fas fa-edit'); 
+        }
+
+        function handleDeleteFolder(folderName) {
+            const message = `ต้องการลบหมวดหมู่ <b>"${folderName}"</b> ใช่หรือไม่?<br><span class="text-xs text-rose-500 mt-2 block">*ภารกิจข้างในจะไม่หาย แต่จะถูกย้ายไปที่หมวด "ทั่วไป" อัตโนมัติ</span>`;
+            openCustomConfirm('ลบหมวดหมู่', message, true, () => {
+                missions.forEach(m => {
+                    if ((m.folder_name || 'ทั่วไป') === folderName) m.folder_name = 'ทั่วไป';
+                });
+                folders = folders.filter(f => f !== folderName);
+                if(!folders.includes('ทั่วไป')) folders.push('ทั่วไป');
+                renderAdminManageView();
+            });
+        }
+
+        function handleRenameMission(assignmentId, currentTitle, originalTitle) {
+            const defaultText = currentTitle !== originalTitle ? currentTitle : '';
+            openCustomPrompt('เปลี่ยนชื่อภารกิจ (เฉพาะห้องนี้)', 'ชื่อภารกิจใหม่ (ปล่อยว่างเพื่อใช้ชื่อเดิม)', async (newName) => {
+                const cleanName = (newName || '').trim();
+                const newCustomTitle = cleanName === "" ? null : cleanName;
+
+                document.getElementById('loadingText').innerText = "กำลังอัปเดตชื่อ...";
+                document.getElementById('loadingOverlay').style.display = 'flex';
+
+                try {
+                    await window.sysDB.from('classroom_missions')
+                        .update({ custom_title: newCustomTitle })
+                        .eq('assignment_id', assignmentId);
+                    
+                    await fetchMissions();
+                    showMessage("✅ อัปเดตชื่อภารกิจเรียบร้อย!");
+                    renderAdminManageView(); 
+                } catch (e) {
+                    console.error(e);
+                    showMessage("❌ เกิดข้อผิดพลาด", true);
+                } finally {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            }, defaultText, 'fas fa-pen', `ชื่อต้นฉบับ: ${originalTitle}`);
+        }
+
+        function handleDeleteClassroom() {
+            const message = `คุณแน่ใจหรือไม่ว่าต้องการ <b>"ลบห้องเรียนนี้"</b>?<br><span class="text-xs text-rose-500 mt-2 block">*ข้อมูลนักเรียน ภารกิจ และคะแนนในห้องเรียนนี้จะถูกลบทิ้งถาวรและไม่สามารถกู้คืนได้!</span>`;
+            
+            openCustomConfirm('ลบห้องเรียนถาวร', message, true, async () => {
+                document.getElementById('loadingText').innerText = "กำลังลบข้อมูลห้องเรียน...";
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                try {
+                    await window.sysDB.from('classroom_users').delete().eq('classroom_id', currentClassId);
+                    await window.sysDB.from('classroom_missions').delete().eq('classroom_id', currentClassId);
+                    const { error } = await window.sysDB.from('classrooms').delete().eq('classroom_id', currentClassId);
+                    
+                    if (error) throw error;
+                    
+                    showMessage("✅ ลบห้องเรียนสำเร็จ!");
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html'; // เด้งกลับหน้าแดชบอร์ดหลัก
+                    }, 1500);
+
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    showMessage("❌ เกิดข้อผิดพลาด ไม่สามารถลบได้", true);
+                }
+            });
+        }
+
+        function handleRemoveMission(assignmentId, title) {
+            const message = `ต้องการนำภารกิจ <b>"${title}"</b><br>ออกจากห้องเรียนนี้ใช่หรือไม่?<br><span class="text-xs text-slate-400 mt-2 block">(ตัวภารกิจยังคงอยู่ในคลังสื่อของคุณ)</span>`;
+            openCustomConfirm('ลบภารกิจ', message, true, () => {
+                deletedAssignments.push(assignmentId);
+                const el = document.querySelector(`[data-assignment-id="${assignmentId}"]`);
+                if(el) el.remove();
+                
+                missions = missions.filter(m => String(m.assignment_id) !== String(assignmentId));
+                document.getElementById('missionCount').innerText = missions.length;
+            });
+        }
+
+        async function saveNewOrderAndFolders() {
+            document.getElementById('loadingText').innerText = "กำลังบันทึกข้อมูล...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            try {
+                if (deletedAssignments.length > 0) {
+                    const deletePromises = deletedAssignments.map(id => 
+                        window.sysDB.from('classroom_missions').delete().eq('assignment_id', id)
+                    );
+                    await Promise.all(deletePromises);
+                    deletedAssignments = []; 
+                }
+
+                const updates = [];
+                const folderSections = document.querySelectorAll('.admin-folder-box');
+                
+                folderSections.forEach(section => {
+                    const folderName = section.getAttribute('data-folder');
+                    const missionItems = section.querySelectorAll('.admin-mission-item');
+                    
+                    missionItems.forEach((node, index) => {
+                        const assignmentId = node.getAttribute('data-assignment-id');
+                        updates.push(
+                            window.sysDB.from('classroom_missions').update({ 
+                                order_index: index, 
+                                folder_name: folderName 
+                            }).eq('assignment_id', assignmentId)
+                        );
+                    });
+                });
+
+                await Promise.all(updates);
+
+                try {
+                    await window.sysDB.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
+                } catch(e) {}
+
+                // รีเซ็ตการแสดงปุ่ม Navbar ให้กลับมาเป็นโหมดปกติเมื่อเซฟสำเร็จ
+                isManageMode = false;
+                const btn = document.getElementById('manageModeBtn');
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
+                    btn.classList.replace('bg-emerald-500', 'bg-white/10');
+                    btn.classList.replace('hover:bg-emerald-600', 'hover:bg-white/20');
+                }
+
+                await fetchMissions();
+                showFolderGrid();
+                showMessage("✅ บันทึกโครงสร้างห้องเรียนสำเร็จ!");
+                
+            } catch (err) { 
+                console.error(err);
+                showMessage('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล', true); 
+            }
+            
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // --- Utils ---
+        function toggleDrawer() {
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('-translate-x-full');
+            ov.classList.toggle('hidden');
+        }
+
+        function goToStudents() { location.href = `student-list.html?id=${currentClassId}`; }
+        async function handleLogout() { 
+            openCustomConfirm('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', false, async () => {
+                await window.sysDB.auth.signOut(); 
+                location.href = 'login.html'; 
+            });
         }
     </script>
 </body>
