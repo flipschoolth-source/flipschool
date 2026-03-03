@@ -328,8 +328,30 @@
         // ================= เริ่มต้นการทำงาน =================
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof initAppUI === 'function') initAppUI();
-            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.APP_NAME) {
-                document.title = `เข้าสู่ระบบ - ${APP_CONFIG.APP_NAME}`;
+            
+            // อัปเดตข้อมูล Text ต่างๆ จาก config
+            if (typeof APP_CONFIG !== 'undefined') {
+                if (APP_CONFIG.APP_NAME) {
+                    document.title = `เข้าสู่ระบบ - ${APP_CONFIG.APP_NAME}`;
+                }
+                const brandNameEl = document.querySelector('.brand-name');
+                if (brandNameEl && APP_CONFIG.APP_NAME) {
+                    if (APP_CONFIG.APP_NAME === 'FlipSchool') {
+                        brandNameEl.innerHTML = 'Flip<span>School</span>';
+                    } else {
+                        brandNameEl.textContent = APP_CONFIG.APP_NAME;
+                    }
+                }
+                const sloganEl = document.querySelector('.slogan');
+                if (sloganEl && APP_CONFIG.APP_SLOGAN) {
+                    sloganEl.textContent = APP_CONFIG.APP_SLOGAN;
+                }
+                document.querySelectorAll('.footer-display-text').forEach(el => {
+                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
+                    const appName = APP_CONFIG.APP_NAME || 'FlipSchool';
+                    const slogan = APP_CONFIG.APP_SLOGAN || '';
+                    el.innerHTML = `&copy; ${year} ${appName} - ${slogan}`;
+                });
             }
 
             // ตรวจสอบเซสชันเก่า
@@ -351,10 +373,11 @@
         async function redirectByRole(userId) {
             try {
                 const db = getDB();
-                const { data: profile } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
+                // ใช้อ้างอิงตาราง users ใหม่ และฟิลด์ user_id
+                const { data: userRecord } = await db.from('users').select('role').eq('user_id', userId).maybeSingle();
                 
-                if (profile) {
-                    if (profile.role === 'super_admin') window.location.replace('super_admin.html');
+                if (userRecord) {
+                    if (userRecord.role === 'super_admin') window.location.replace('super_admin.html');
                     else window.location.replace('dashboard.html');
                 } else {
                     await db.auth.signOut();
@@ -394,13 +417,13 @@
 
                 const userEmail = data.user.email;
 
-                // ตรวจสอบข้อมูลในตาราง profiles
-                const { data: userProfile } = await db.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+                // ตรวจสอบข้อมูลในตาราง users ตามโครงสร้างใหม่
+                const { data: userRecord } = await db.from('users').select('user_id').eq('user_id', data.user.id).maybeSingle();
 
-                if (!userProfile) {
-                    // ไม่พบบัญชี -> เด้งถามว่าจะลงทะเบียนนักเรียนไหม
+                if (!userRecord) {
+                    // ไม่พบบัญชี -> เด้งถามว่าจะลงทะเบียนเข้าสู่ระบบเป็นนักเรียนหรือไม่
                     showCustomAlert(
-                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการลงทะเบียนบัญชี<br><b>${userEmail}</b><br>เพื่อเข้าร่วมเป็นนักเรียนหรือไม่?`, 
+                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการลงทะเบียนบัญชี<br><b>${userEmail}</b><br>เพื่อเข้าร่วมเป็น <b>นักเรียน</b> หรือไม่?<br><small>(หากเป็นคุณครู กรุณากดยกเลิกและไปที่เมนูสร้างบัญชีใหม่)</small>`, 
                         'confirm', 
                         async () => {
                             try {
@@ -416,9 +439,9 @@
 
                                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
-                                // บันทึกเป็นนักเรียนใหม่
-                                const { error: insertError } = await db.from('profiles').insert([{
-                                    id: data.user.id,
+                                // บันทึกเป็นนักเรียนใหม่ลงตาราง users
+                                const { error: insertError } = await db.from('users').insert([{
+                                    user_id: data.user.id,
                                     first_name: fName,
                                     last_name: lName,
                                     email: userEmail,
@@ -459,7 +482,7 @@
 
                 // หากมีบัญชีอยู่แล้ว (อัปเดตรูป และล็อกอิน)
                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
-                if (googlePic) await db.from('profiles').update({ profile_pic: googlePic }).eq('id', data.user.id);
+                if (googlePic) await db.from('users').update({ profile_pic: googlePic }).eq('user_id', data.user.id);
                 
                 redirectByRole(data.user.id);
 
@@ -484,24 +507,24 @@
                 const db = getDB();
                 let authEmail = loginId;
 
-                // หากกรอกเป็นรหัสนักเรียน ให้ดึงอีเมลจาก profiles มาใช้ Login
+                // หากกรอกเป็นรหัสนักเรียน (ไม่มี @) ให้ดึงอีเมลจากตาราง users มาใช้ Login
                 if (!loginId.includes('@')) {
-                    const { data: profiles, error: pErr } = await db.from('profiles').select('email, birth_date, id').eq('student_code', loginId);
+                    const { data: usersData, error: pErr } = await db.from('users').select('email, birth_date, user_id').eq('student_code', loginId);
 
-                    if (pErr || !profiles || profiles.length === 0) throw new Error("ไม่พบข้อมูลรหัสนักเรียนนี้ในระบบ");
+                    if (pErr || !usersData || usersData.length === 0) throw new Error("ไม่พบข้อมูลรหัสนักเรียนนี้ในระบบ");
 
-                    const profile = profiles[0];
+                    const userRecord = usersData[0];
 
-                    if (profile.birth_date) {
-                        let [y, m, d] = profile.birth_date.split('-');
-                        let possibleDates = [ profile.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
+                    if (userRecord.birth_date) {
+                        let [y, m, d] = userRecord.birth_date.split('-');
+                        let possibleDates = [ userRecord.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
                         if (possibleDates.includes(password)) {
-                            if (!profile.email) throw new Error("นักเรียนต้องทำการตั้งค่ารหัสผ่านใหม่ หรือผูกอีเมลก่อนเข้าใช้งาน");
+                            if (!userRecord.email) throw new Error("นักเรียนต้องทำการตั้งค่ารหัสผ่านใหม่ หรือผูกอีเมลก่อนเข้าใช้งาน");
                         }
                     }
 
-                    if (profile && profile.email) {
-                        authEmail = profile.email;
+                    if (userRecord && userRecord.email) {
+                        authEmail = userRecord.email;
                     } else {
                         throw new Error("บัญชีนี้ยังไม่มีอีเมลผูกในระบบ");
                     }
@@ -511,9 +534,9 @@
                 const { data, error } = await db.auth.signInWithPassword({ email: authEmail, password: password });
                 if (error) throw new Error("ข้อมูลประจำตัวไม่ถูกต้อง (อีเมล/รหัสผ่านผิด)");
 
-                // ตรวจสอบสถานะในตาราง profiles
-                const { data: userProfile } = await db.from('profiles').select('id').eq('id', data.user.id).single();
-                if (!userProfile) {
+                // ตรวจสอบสถานะในตาราง users ตามโครงสร้างใหม่
+                const { data: userRow } = await db.from('users').select('user_id').eq('user_id', data.user.id).single();
+                if (!userRow) {
                     await db.auth.signOut();
                     throw new Error("บัญชีนี้ไม่ได้ลงทะเบียนไว้ในระบบครับ");
                 }
