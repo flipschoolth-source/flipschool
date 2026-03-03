@@ -415,7 +415,8 @@
         let allSheetRows = [], finalImportList = [];
         let copyCandidates = [];
 
-        // แมปข้อมูลนำเข้าสำหรับ user_school
+        // แมปข้อมูลนำเข้า โดยใช้ฟิลด์ของตาราง user_school 
+        // สังเกตว่าใน user_school ที่ให้มาไม่มีคอลัมน์ title ดังนั้นเราจะรวมคำนำหน้าเข้ากับ first_name 
         const MAPPING_CONFIG = [
             { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
             { key: 'title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
@@ -482,7 +483,7 @@
 
                         await fetchProfile();
                         
-                        const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+                        const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
                         if (clsErr || !cls) throw new Error("ไม่พบข้อมูลห้องเรียน หรือเกิดข้อผิดพลาดในการเชื่อมต่อ");
                         
                         let targetCol = cls.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
@@ -536,10 +537,12 @@
 
         async function fetchStudents() {
             try {
-                // 1. ดึง enrollment ในห้องเรียน
+                // ดึงรายชื่อนักเรียนจาก classroom_users แล้วไปรวมกับข้อมูลจริงที่ user_school แบบทำเอง
+                // เพราะไม่ได้ทำ Foreign Key จาก classroom_users.user_id ไปที่ user_school.user_id
+                
                 const { data: enrollments, error: err1 } = await window.sysDB
                     .from('classroom_users')
-                    .select('*')
+                    .select('student_number, user_id, enrollment_id')
                     .eq('classroom_id', currentClassId)
                     .order('student_number');
                 
@@ -551,14 +554,13 @@
                 if(enrollments && enrollments.length > 0) {
                     document.getElementById('totalCount').innerText = enrollments.length;
                     
-                    // 2. ดึงข้อมูลนักเรียนจากตาราง user_school มาประกอบ (Manual Join)
                     const userIds = enrollments.map(e => e.user_id);
-                    const { data: localStudents, error: err2 } = await window.sysDB
-                        .from('user_school')
-                        .select('user_id, first_name, last_name, student_code')
-                        .in('user_id', userIds)
-                        .eq('school_id', currentSchoolId);
-                        
+                    
+                    // ดึงข้อมูลชื่อ-นามสกุลจาก user_school (โดยใช้ currentSchoolId เป็นหลัก หรือถ้าไม่มีก็หาแบบไม่สน รร.)
+                    let query = window.sysDB.from('user_school').select('user_id, first_name, last_name, student_code').in('user_id', userIds);
+                    if (currentSchoolId) query = query.eq('school_id', currentSchoolId);
+                    
+                    const { data: localStudents, error: err2 } = await query;
                     if(err2) throw err2;
 
                     enrollments.forEach(item => {
@@ -722,7 +724,7 @@
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-[var(--primary)]"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>กำลังโหลดรายชื่อ...</td></tr>';
 
             try {
-                // ดึงรายชื่อจากห้องเรียนต้นทางแบบ Manual Join กับ user_school
+                // ดึงรายชื่อจากห้องเรียนต้นทาง
                 const { data: enrollments, error: e1 } = await sysDB.from('classroom_users')
                     .select('*')
                     .eq('classroom_id', srcId)
@@ -736,21 +738,21 @@
                     return;
                 }
 
+                // ดึงข้อมูลชื่อจาก user_school (ด้วย user_id จาก enrollments)
                 const userIds = enrollments.map(e => e.user_id);
-                const { data: localStudents, error: e2 } = await sysDB.from('user_school')
-                    .select('user_id, first_name, last_name, student_code')
-                    .in('user_id', userIds)
-                    .eq('school_id', currentSchoolId);
+                let query = sysDB.from('user_school').select('user_id, first_name, last_name, student_code').in('user_id', userIds);
+                if (currentSchoolId) query = query.eq('school_id', currentSchoolId);
+                const { data: localStudents, error: e2 } = await query;
                     
                 if(e2) throw e2;
 
                 copyCandidates = enrollments.map(e => {
                     const s = (localStudents || []).find(stu => stu.user_id === e.user_id);
                     return { ...e, users: s }; 
-                }).filter(d => d.users != null);
+                }).filter(d => d.users != null); // เอาเฉพาะที่ดึงชื่อมาได้สำเร็จ
 
                 if (copyCandidates.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-500">ห้องเรียนนี้ไม่มีรายชื่อในสังกัดนี้</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-500">ห้องเรียนนี้ไม่มีรายชื่อที่อยู่ในสังกัดนี้</td></tr>';
                     btnConfirm.disabled = true;
                     return;
                 }
@@ -793,17 +795,26 @@
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังคัดลอก...';
 
             try {
-                const payloads = Array.from(checkboxes).map(cb => {
+                // 1. เช็คก่อนว่าในห้องเรามีนักเรียนคนไหนอยู่แล้วบ้าง จะได้ไม่บั๊ก 
+                const {data: existingEnroll} = await sysDB.from('classroom_users').select('user_id').eq('classroom_id', currentClassId);
+                const existingIds = existingEnroll ? existingEnroll.map(e => e.user_id) : [];
+
+                const payloads = [];
+                Array.from(checkboxes).forEach(cb => {
                     const item = copyCandidates[cb.value];
-                    return {
-                        classroom_id: currentClassId,
-                        user_id: item.user_id,
-                        student_number: item.student_number
-                    };
+                    if (!existingIds.includes(item.user_id)) {
+                        payloads.push({
+                            classroom_id: currentClassId,
+                            user_id: item.user_id,
+                            student_number: item.student_number
+                        });
+                    }
                 });
 
-                const { error } = await sysDB.from('classroom_users').upsert(payloads, { onConflict: 'classroom_id, user_id' });
-                if(error) throw error;
+                if (payloads.length > 0) {
+                    const { error } = await sysDB.from('classroom_users').insert(payloads);
+                    if(error) throw error;
+                }
 
                 closeImportModal();
                 showCustomAlert(`คัดลอกรายชื่อสำเร็จ ${payloads.length} คน!`, 'success', () => fetchStudents());
@@ -920,6 +931,16 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
             document.getElementById('progressSection').style.display = 'block';
+
+            // ดึงข้อมูลใน user_school ของโรงเรียนนี้ที่มีอยู่แล้วมาเช็ค
+            const { data: existingLocal } = await sysDB.from('user_school')
+                .select('id, user_id, student_code')
+                .eq('school_id', currentSchoolId);
+
+            // ดึงข้อมูล classroom_users ปัจจุบันมาเช็ค
+            const { data: existingEnroll } = await sysDB.from('classroom_users')
+                .select('enrollment_id, user_id')
+                .eq('classroom_id', currentClassId);
             
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
@@ -928,30 +949,26 @@
                 
                 try {
                     let studentUserId;
+                    const existingUser = existingLocal ? existingLocal.find(u => u.student_code === item.code) : null;
+                    const fNameMerged = (item.title ? item.title : '') + item.fname;
 
-                    // ค้นหานักเรียนในโรงเรียนนี้จาก user_school ก่อนว่าเคยมีข้อมูลหรือยัง
-                    const { data: existingLocal } = await window.sysDB.from('user_school')
-                        .select('user_id')
-                        .eq('school_id', currentSchoolId)
-                        .eq('student_code', item.code)
-                        .maybeSingle();
-
-                    if (existingLocal) {
-                        studentUserId = existingLocal.user_id;
+                    // --- ส่วนที่ 1: จัดการข้อมูลใน user_school ---
+                    if (existingUser) {
+                        studentUserId = existingUser.user_id;
                         // อัปเดตข้อมูลนักเรียนเก่า
-                        await window.sysDB.from('user_school').update({
-                            first_name: (item.title ? item.title : '') + item.fname,
+                        await sysDB.from('user_school').update({
+                            first_name: fNameMerged,
                             last_name: item.lname,
                             birth_date: item.birth
-                        }).eq('user_id', studentUserId).eq('school_id', currentSchoolId);
+                        }).eq('id', existingUser.id);
                     } else {
-                        // สร้าง ID ใหม่สำหรับนักเรียน
+                        // สร้างนักเรียนใหม่ด้วย user_id จำลองขึ้นมา (ไม่เชื่อมต่อ auth.users)
                         studentUserId = crypto.randomUUID(); 
-                        await window.sysDB.from('user_school').insert({
+                        await sysDB.from('user_school').insert({
                             user_id: studentUserId,
                             school_id: currentSchoolId,
                             student_code: item.code,
-                            first_name: (item.title ? item.title : '') + item.fname,
+                            first_name: fNameMerged,
                             last_name: item.lname,
                             birth_date: item.birth,
                             role: 'student',
@@ -959,12 +976,21 @@
                         });
                     }
 
-                    // ผูกเข้าห้องเรียนในตาราง classroom_users
-                    await window.sysDB.from('classroom_users').upsert({ 
-                        classroom_id: currentClassId, 
-                        user_id: studentUserId,
-                        student_number: item.num 
-                    }, { onConflict: 'classroom_id, user_id' });
+                    // --- ส่วนที่ 2: นำมาผูกใน classroom_users ---
+                    const enroll = existingEnroll ? existingEnroll.find(e => e.user_id === studentUserId) : null;
+                    if (enroll) {
+                        // ถ้าเคยอยู่แล้ว แค่อัปเดตเลขที่ให้
+                        await sysDB.from('classroom_users').update({
+                            student_number: item.num
+                        }).eq('enrollment_id', enroll.enrollment_id);
+                    } else {
+                        // แทรกรายชื่อลงในห้อง
+                        await sysDB.from('classroom_users').insert({ 
+                            classroom_id: currentClassId, 
+                            user_id: studentUserId,
+                            student_number: item.num 
+                        });
+                    }
                     
                     if(dot) dot.className = "status-dot done";
                     const statusCell = document.getElementById(`st_${i}`);
