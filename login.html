@@ -184,7 +184,7 @@
             </div>
             <div class="login-header">
                 <h1>เข้าสู่ระบบ</h1>
-                <p>สำหรับคุณครู และ นักเรียน</p>
+                <p>ยินดีต้อนรับกลับสู่พื้นที่จัดการเรียนรู้</p>
             </div>
 
             <!-- กล่องสำหรับปุ่ม Google Sign In -->
@@ -373,11 +373,11 @@
         async function redirectByRole(userId) {
             try {
                 const db = getDB();
-                // ใช้อ้างอิงตาราง users ใหม่ และฟิลด์ is_super_admin (แทน role เดิม)
-                const { data: userRecord } = await db.from('users').select('is_super_admin').eq('user_id', userId).maybeSingle();
+                // ใช้อ้างอิงตาราง users ใหม่ และฟิลด์ role สำหรับเช็คสิทธิ์แอดมิน
+                const { data: userRecord } = await db.from('users').select('role').eq('user_id', userId).maybeSingle();
                 
                 if (userRecord) {
-                    if (userRecord.is_super_admin === true) window.location.replace('super_admin.html');
+                    if (userRecord.role === 'super_admin') window.location.replace('super_admin.html');
                     else window.location.replace('dashboard.html');
                 } else {
                     await db.auth.signOut();
@@ -439,12 +439,13 @@
 
                                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
-                                // บันทึกเป็นผู้ใช้ใหม่ลงตาราง users (เอาคอลัมน์ role ออกแล้ว)
+                                // บันทึกเป็นผู้ใช้ใหม่ลงตาราง users (กำหนด role เป็น 'user' ทั่วไปตามค่าเริ่มต้น)
                                 const { error: insertError } = await db.from('users').insert([{
                                     user_id: data.user.id,
                                     first_name: fName,
                                     last_name: lName,
                                     email: userEmail,
+                                    role: 'user', 
                                     profile_pic: googlePic,
                                     created_at: new Date().toISOString()
                                 }]);
