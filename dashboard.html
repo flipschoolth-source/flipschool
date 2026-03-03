@@ -111,10 +111,6 @@
         .btn-upload-camera { background: var(--primary-light); color: white; box-shadow: 0 4px 10px rgba(0,82,212,0.2); }
         .btn-upload-camera:hover { background: var(--primary); transform: translateY(-1px); }
 
-        /* --- FAB Button --- */
-        .fab-add { position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px); width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; font-size: clamp(24px, 6vw, 30px); cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: 0.3s; border: none; }
-        .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
-
         /* View Filter Tabs */
         .view-filter-container { margin-bottom: 20px; position: relative; }
         .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
@@ -128,32 +124,62 @@
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* --- Floating Action Button & Menu (Speed Dial) --- */
+        /* =========================================================
+           ✨ Floating Action Button & Menu (Speed Dial ล่าสุด) ✨
+           ========================================================= */
         .fab-container {
-            position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px);
-            z-index: 998; display: flex; flex-direction: column; align-items: flex-end; gap: 15px;
+            position: fixed; 
+            bottom: clamp(20px, 5vw, 40px); 
+            right: clamp(20px, 5vw, 40px);
+            z-index: 998; 
+            /* กำหนด container ไม่ต้องมี flex-col เพื่อไม่ให้ทับซ้อนพื้นที่ */
         }
+        
         .fab-menu {
-            display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
-            opacity: 0; visibility: hidden; transform: translateY(20px);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none; /* ป้องกันการคลิกตอนซ่อน */
+            position: absolute; 
+            bottom: calc(100% + 15px); /* ลอยอยู่เหนือปุ่มหลัก */
+            right: 0;
+            display: flex; 
+            flex-direction: column-reverse; /* เรียงจากล่างขึ้นบน */
+            align-items: flex-end; 
+            gap: 15px;
+            pointer-events: none; /* ห้ามคลิกโดนตอนซ่อน */
         }
-        .fab-menu.show {
-            opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
-        }
+        
         .fab-item {
-            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer;
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(20px) scale(0.8); /* เริ่มต้นซ่อนตัวลงมา */
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: right bottom;
         }
+
+        .fab-menu.show .fab-item {
+            opacity: 1; 
+            visibility: visible; 
+            transform: translateY(0) scale(1); /* เด้งขึ้นตำแหน่งเดิม */
+            pointer-events: auto; /* อนุญาตให้คลิกได้ */
+        }
+        
+        /* เรียงลำดับการเด้งขึ้นทีละปุ่ม */
+        .fab-menu.show .fab-item:nth-child(1) { transition-delay: 0.05s; }
+        .fab-menu.show .fab-item:nth-child(2) { transition-delay: 0.1s; }
+
         .fab-label {
             background: white; padding: 6px 14px; border-radius: 8px; font-family: 'Kanit';
             font-size: 14px; font-weight: 500; color: #1e293b; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            white-space: nowrap; /* ห้ามตัดบรรทัดข้อความ */
+            border: 1px solid #f1f5f9;
         }
         .fab-action {
             width: clamp(45px, 12vw, 50px); height: clamp(45px, 12vw, 50px); 
             border-radius: 50%; border: none; cursor: pointer;
             display: flex; justify-content: center; align-items: center; font-size: 18px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.2s;
         }
         .fab-item:hover .fab-action { transform: scale(1.1); }
         .fab-item:hover .fab-label { color: var(--primary); }
@@ -162,11 +188,12 @@
             width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); 
             background: var(--accent); color: white; border-radius: 50%; border: none; 
             font-size: clamp(24px, 6vw, 30px); cursor: pointer; display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s; 
         }
         .fab-add:hover:not(.active) { transform: scale(1.08); }
         .fab-add.active {
-            transform: rotate(45deg); /* หมุนปุ่ม + ให้กลายเป็น X */
+            transform: rotate(45deg); /* หมุนปุ่ม + ให้กลายเป็นตัว X */
             background: #ff4757;
             box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
         }
@@ -286,13 +313,16 @@
 
     </main>
 
-    <!-- Floating Action Button & Menu -->
+    <!-- ✨ Floating Action Button & Menu ✨ -->
     <div class="fab-container">
+        <!-- เมนูย่อยจะลอยอยู่เหนือปุ่ม ไม่ดันเนื้อหาหน้าเว็บ -->
         <div class="fab-menu" id="fabMenu">
+            <!-- ลำดับที่ 1 (อยู่ล่างสุด ใกล้ปุ่มหลัก) -->
             <div class="fab-item" onclick="openJoinModal()">
                 <span class="fab-label">เข้าร่วมห้องเรียน</span>
                 <button class="fab-action" style="background: #10b981; color: white;"><i class="fas fa-sign-in-alt"></i></button>
             </div>
+            <!-- ลำดับที่ 2 (อยู่บนสุด) -->
             <div class="fab-item" onclick="handleCreateNewClass()">
                 <span class="fab-label">สร้างห้องเรียนใหม่</span>
                 <button class="fab-action" style="background: var(--primary-light); color: white;"><i class="fas fa-chalkboard-teacher"></i></button>
@@ -602,7 +632,6 @@
                     
                     const roleText = s.role === 'admin' ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200 shadow-sm">Admin</span>' : '';
                     
-                    // 🌟 เพิ่มป้าย @อักษรย่อ รร. 🌟
                     const abbrText = s.schools?.school_abbr 
                         ? `<div class="mt-1.5"><span class="text-[10px] text-blue-600 bg-white/60 border border-blue-200/60 px-1.5 py-0.5 rounded-md font-mono font-medium shadow-sm">@${s.schools.school_abbr}</span></div>` 
                         : '';
@@ -732,7 +761,6 @@
             try {
                 let teachData = [];
                 const resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
-                // Fallback support if owner_id doesn't exist (returns 42703 error code from postgres)
                 if (resTeach.error && String(resTeach.error.code) === '42703') {
                     const fallback = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
                     teachData = fallback.data || [];
@@ -743,7 +771,6 @@
 
                 let learnData = [];
                 const resLearn = await db.from('classroom_students').select('classrooms(*)').eq('user_id', currentUser.id);
-                // Fallback support if user_id doesn't exist on classroom_students
                 if (resLearn.error && String(resLearn.error.code) === '42703') {
                     const fallback = await db.from('classroom_students').select('classrooms(*)').eq('student_id', currentUser.id);
                     learnData = fallback.data || [];
@@ -755,7 +782,6 @@
                 allClasses = [...mappedTeach, ...mappedLearn];
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                // 🌟 ดึงชื่อโรงเรียนมาแปะให้แต่ละ Class
                 const uniqueSchoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
                 let schoolDict = {};
                 if (uniqueSchoolIds.length > 0) {
@@ -792,6 +818,52 @@
             document.getElementById('countLearn').innerText = learnCount;
 
             renderClassGrid(filteredClasses, 'gridAllClasses');
+        }
+
+        function renderClassGrid(classes, containerId) {
+            const container = document.getElementById(containerId);
+            if (classes.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-20 bg-white border border-dashed border-slate-200 rounded-3xl">
+                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-box-open"></i></div>
+                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-lg mb-1">ยังไม่มีห้องเรียน</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">กดปุ่ม + มุมล่างขวาเพื่อสร้างหรือเข้าร่วมห้องเรียนได้เลยครับ</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = classes.map(c => {
+                const targetUrl = `classroom-detail.html?id=${c.classroom_id}`;
+                const roleBadgeHtml = c.userRole === 'teacher' 
+                    ? `<span class="role-badge role-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i> ครูผู้สอน</span>`
+                    : `<span class="role-badge role-student"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
+
+                const schoolInfoHtml = c.school_id 
+                    ? `<span class="text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-school mr-1"></i> ${c.school_name}</span>`
+                    : `<span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-user mr-1"></i> พื้นที่ส่วนตัว</span>`;
+
+                return `
+                    <div class="class-card group" onclick="window.location.href='${targetUrl}'">
+                        <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #00008B, #0000cd)'};">
+                            <i class="fas fa-book-reader opacity-80 group-hover:scale-110 transition-transform"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="room-badge">${c.room_name || 'ไม่ระบุ'}</div>
+                                ${roleBadgeHtml}
+                            </div>
+                            <h3 class="subject-title" title="${c.subject_name || ''}">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
+                            
+                            <div class="mt-1 mb-2">
+                                ${schoolInfoHtml}
+                            </div>
+
+                            <div class="mt-auto pt-3 flex items-center gap-2 text-[12px] text-slate-400 font-medium border-t border-slate-50">
+                                <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // ================= FAB Menu (Speed Dial) =================
