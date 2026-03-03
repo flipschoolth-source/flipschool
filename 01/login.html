@@ -266,9 +266,9 @@
                 document.title = `เข้าสู่ระบบ - ${APP_CONFIG.APP_NAME}`;
             }
 
-            // ตรวจสอบเซสชัน ถ้าเคยล็อกอินแล้ว ให้พาไป Dashboard ทันที
-            if (typeof sysDB !== 'undefined') {
-                const { data: { session } } = await sysDB.auth.getSession();
+            // ตรวจสอบเซสชัน ถ้าเคยล็อกอินแล้ว ให้พาไป Dashboard ทันที (แก้บั๊ก sysDB is not defined)
+            if (typeof window.sysDB !== 'undefined') {
+                const { data: { session } } = await window.sysDB.auth.getSession();
                 if (session && session.user) {
                     redirectByRole(session.user.id);
                 }
@@ -278,13 +278,14 @@
         // แยกการ Redirect ตาม Role
         async function redirectByRole(userId) {
             try {
-                const { data: profile } = await sysDB.from('profiles').select('role').eq('id', userId).maybeSingle();
+                // เช็ค Role จากตาราง Profiles (Unified Users)
+                const { data: profile } = await window.sysDB.from('profiles').select('role').eq('id', userId).maybeSingle();
                 if (profile) {
                     if (profile.role === 'super_admin') window.location.replace('super_admin.html');
                     else window.location.replace('dashboard.html');
                 } else {
-                    // หากไม่มี Role หรือหาตารางไม่เจอ
-                    await sysDB.auth.signOut();
+                    // หากไม่มี Role หรือหาข้อมูลไม่เจอ
+                    await window.sysDB.auth.signOut();
                 }
             } catch (e) { console.error(e); }
         }
@@ -312,18 +313,18 @@
 
         async function handleGoogleCredentialResponse(response) {
             try {
-                const { data, error } = await sysDB.auth.signInWithIdToken({
+                const { data, error } = await window.sysDB.auth.signInWithIdToken({
                     provider: 'google',
                     token: response.credential,
                 });
                 if (error) throw error;
 
                 // เช็คว่ามีในตาราง profiles หรือยัง
-                const { data: profile } = await sysDB.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+                const { data: profile } = await window.sysDB.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
 
                 if (!profile) {
                     // หากไม่พบบัญชี ให้ Sign Out ออกก่อน แล้วแจ้งเตือนให้ไปหน้า Register
-                    await sysDB.auth.signOut();
+                    await window.sysDB.auth.signOut();
                     showCustomAlert("ไม่พบบัญชีของคุณในระบบ<br>กรุณาสมัครสมาชิกก่อนเข้าใช้งานครับ", "warning", () => {
                         window.location.href = 'register.html';
                     });
@@ -353,9 +354,9 @@
 
                 let authEmail = loginId;
 
-                // หากกรอกเป็น "รหัสนักเรียน" (ไม่มี @) ให้ดึงอีเมลจาก Profiles มาใช้ Login
+                // หากกรอกเป็น "รหัสนักเรียน" (ไม่มี @) ให้ดึงอีเมลจาก profiles มาใช้
                 if (!loginId.includes('@')) {
-                    const { data: profile } = await sysDB.from('profiles')
+                    const { data: profile } = await window.sysDB.from('profiles')
                         .select('email')
                         .eq('student_code', loginId)
                         .maybeSingle();
@@ -363,12 +364,12 @@
                     if (profile && profile.email) {
                         authEmail = profile.email;
                     } else {
-                        throw new Error("ไม่พบข้อมูลรหัสนักเรียน หรือนักเรียนยังไม่มีอีเมลผูกในระบบ");
+                        throw new Error("ไม่พบข้อมูลรหัสนักเรียน หรือบัญชีนี้ยังไม่มีอีเมลผูกในระบบ");
                     }
                 }
 
-                // Login เข้าสู่ Supabase Auth
-                const { data, error } = await sysDB.auth.signInWithPassword({ email: authEmail, password: password });
+                // Login เข้าสู่ Supabase Auth (Unified Auth)
+                const { data, error } = await window.sysDB.auth.signInWithPassword({ email: authEmail, password: password });
                 
                 if (error) throw new Error("ข้อมูลประจำตัวไม่ถูกต้อง (อีเมล/รหัสผ่านผิด)");
 
