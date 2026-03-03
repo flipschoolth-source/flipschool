@@ -403,8 +403,23 @@
                             }
                         },
                         async () => {
-                            // กรณีตอบ "ไม่, ยกเลิก" ให้ Sign out จาก Supabase ทันที
+                            // กรณีตอบ "ไม่, ยกเลิก" ให้ลบบัญชีออกจาก auth.users และ Sign out
+                            try {
+                                await sysDB.rpc('delete_current_user'); // เรียกฟังก์ชัน RPC ที่สร้างไว้ใน SQL
+                            } catch (e) {
+                                console.error("RPC Delete Error:", e);
+                            }
                             await sysDB.auth.signOut();
+                            
+                            // รีเซ็ตปุ่ม Google กลับมาให้กดใหม่ได้อีกครั้ง
+                            const btnContainer = document.getElementById("googleSignInBtn");
+                            btnContainer.innerHTML = '';
+                            let btnWidth = btnContainer.offsetWidth;
+                            if (btnWidth < 200) btnWidth = 300;
+                            google.accounts.id.renderButton(
+                                btnContainer,
+                                { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" }
+                            );
                         }
                     );
                     return;
