@@ -54,6 +54,25 @@
         .primary-action-btn { background: var(--primary); border: none; color: white; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,139,0.2); }
         .primary-action-btn:hover { background: var(--primary-light); transform: translateY(-2px); }
 
+        /* View Filter Tabs for Folders */
+        .view-filter-container { margin-bottom: 25px; position: relative; }
+        .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
+        .view-filter-scroll::-webkit-scrollbar { display: none; }
+        .filter-tab { padding: 10px 20px; background: white; border: 2px solid transparent; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; font-weight: 500; color: #636e72; cursor: pointer; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .filter-tab:hover { background: #f8faff; color: var(--primary-light); }
+        .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(0, 82, 212, 0.2); }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; transition: opacity 0.3s; }
+        .modal-box { background: white; border-radius: clamp(20px, 5vw, 25px); width: 100%; max-width: 500px; padding: clamp(20px, 5vw, 30px); box-shadow: 0 20px 50px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #edf2f7; padding-bottom: 15px; }
+        .modal-header h3 { margin: 0; font-family: 'Kanit'; font-size: 20px; color: var(--primary); }
+        .modal-body { overflow-y: auto; padding-right: 5px; flex: 1; }
+        .form-input { width: 100%; padding: 12px 16px; border: 2px solid #eef2f7; border-radius: 12px; font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; background: #f8faff; outline: none; margin-bottom: 15px; }
+        .form-input:focus { border-color: var(--primary-light); background: white; box-shadow: 0 0 0 4px rgba(0,82,212,0.1); }
+
         /* Loader */
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
@@ -131,8 +150,16 @@
             </button>
         </div>
 
-        <div class="mb-4">
+        <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold font-['Kanit'] text-slate-800"><i class="fas fa-tasks text-[var(--accent)] mr-2"></i> ภารกิจในห้องเรียนนี้</h2>
+            <button id="btnManageFolder" onclick="openFolderModal()" class="hidden text-sm text-blue-600 hover:text-blue-800 font-['Kanit'] bg-blue-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border border-blue-100"><i class="fas fa-folder-cog mr-1"></i> จัดการโฟลเดอร์</button>
+        </div>
+
+        <!-- แถบโฟลเดอร์ -->
+        <div class="view-filter-container">
+            <div class="view-filter-scroll" id="folderTabs">
+                <!-- โฟลเดอร์จะถูกนำมาแสดงที่นี่ -->
+            </div>
         </div>
 
         <div id="missionsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -140,6 +167,38 @@
         </div>
 
     </main>
+
+    <!-- ================= MODAL จัดการโฟลเดอร์ ================= -->
+    <div id="folderModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-folder-open mr-2 text-[var(--primary)]"></i> จัดการโฟลเดอร์</h3>
+                <button onclick="closeFolderModal()" class="text-slate-400 hover:text-rose-500 transition-colors bg-transparent border-none text-xl cursor-pointer"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newFolderInput" class="form-input !mb-0" placeholder="ชื่อโฟลเดอร์ใหม่...">
+                    <button onclick="addFolder()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-5 rounded-xl transition-colors whitespace-nowrap font-['Kanit'] font-medium cursor-pointer"><i class="fas fa-plus mr-1"></i> เพิ่ม</button>
+                </div>
+                <div id="folderListContainer" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
+                    <!-- รายการโฟลเดอร์เพื่อแก้ไข/ลบ -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= Custom Alert Modal ================= -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
+        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px; padding: 35px 30px; display: block; transform: translateY(-20px);">
+            <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all">ตกลง</button>
+                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert()" class="bg-slate-200 text-slate-700 hover:bg-slate-300 px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         function getDB() {
@@ -157,6 +216,62 @@
         let currentUserId = null;
         let currentClassId = new URLSearchParams(window.location.search).get('id');
         let isClassOwner = false;
+        
+        let classFolders = ["ทั่วไป"];
+        let activeFolder = "ทั่วไป";
+        let allMissions = [];
+
+        // --- Alert System ---
+        let alertCallback = null;
+        let alertCancelCallback = null;
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const icon = document.getElementById('customAlertIcon');
+            const title = document.getElementById('customAlertTitle');
+            const btn = document.getElementById('customAlertOkBtn');
+            const btnCancel = document.getElementById('customAlertCancelBtn');
+            
+            document.getElementById('customAlertMessage').innerHTML = message;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            btnCancel.style.display = 'none';
+
+            if (type === 'success') {
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>'; icon.className = 'text-5xl mb-4 text-emerald-500';
+                title.innerText = 'สำเร็จ!'; btn.style.background = '#10b981';
+            } else if (type === 'warning') {
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; icon.className = 'text-5xl mb-4 text-amber-500';
+                title.innerText = 'แจ้งเตือน'; btn.style.background = '#f59e0b';
+            } else if (type === 'confirm') {
+                icon.innerHTML = '<i class="fas fa-question-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
+                title.innerText = 'ยืนยัน'; btn.style.background = '#ff4757';
+                btnCancel.style.display = 'block';
+            } else {
+                icon.innerHTML = '<i class="fas fa-times-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
+                title.innerText = 'ข้อผิดพลาด'; btn.style.background = '#ef4444';
+            }
+            
+            modal.style.display = 'flex';
+            setTimeout(() => { 
+                modal.classList.add('show'); 
+                modal.querySelector('.modal-box').style.transform = 'translateY(0)'; 
+            }, 10);
+        }
+        
+        function closeCustomAlert() {
+            const modal = document.getElementById('customAlertModal');
+            modal.classList.remove('show');
+            modal.querySelector('.modal-box').style.transform = 'translateY(-20px)';
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+            
+            if (event && event.target.id === 'customAlertCancelBtn' && alertCancelCallback) {
+                setTimeout(alertCancelCallback, 300);
+            } else if (alertCallback) { 
+                setTimeout(alertCallback, 300); 
+            }
+            alertCallback = null; alertCancelCallback = null;
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentClassId) return window.location.replace('dashboard.html');
@@ -185,11 +300,21 @@
             const { data: cls, error } = await db.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
             if (error || !cls) throw new Error("Classroom not found");
 
+            // จัดการโฟลเดอร์
+            if (cls.folders && Array.isArray(cls.folders)) {
+                classFolders = cls.folders;
+            } else {
+                classFolders = ["ทั่วไป"];
+            }
+            if (!classFolders.includes(activeFolder)) activeFolder = classFolders[0];
+            renderFolderTabs();
+
             // ตรวจสอบสิทธิ์ความเป็นเจ้าของห้อง
             let targetCol = cls.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
             if (cls[targetCol] === currentUserId) {
                 isClassOwner = true;
                 document.getElementById('manageToolbar').classList.remove('hidden');
+                document.getElementById('btnManageFolder').classList.remove('hidden');
             }
 
             document.getElementById('subjectName').innerText = cls.subject_name || 'ไม่มีชื่อวิชา';
@@ -204,6 +329,99 @@
                 schoolBadge.innerHTML = `<i class="fas fa-user text-sky-300"></i> พื้นที่ส่วนตัว`;
             }
             schoolBadge.classList.remove('hidden');
+        }
+
+        // ================= ระบบโฟลเดอร์ =================
+        function renderFolderTabs() {
+            const container = document.getElementById('folderTabs');
+            if (!container) return;
+            
+            container.innerHTML = classFolders.map(f => `
+                <button class="filter-tab ${activeFolder === f ? 'active' : ''}" onclick="switchFolder('${f}')">
+                    <i class="fas ${activeFolder === f ? 'fa-folder-open' : 'fa-folder'}"></i> ${f}
+                </button>
+            `).join('');
+        }
+
+        function switchFolder(folderName) {
+            activeFolder = folderName;
+            renderFolderTabs();
+            renderMissions();
+        }
+
+        function openFolderModal() {
+            renderFolderManageList();
+            document.getElementById('folderModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('folderModal').classList.add('show'), 10);
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folderModal').classList.remove('show');
+            setTimeout(() => document.getElementById('folderModal').style.display = 'none', 300);
+        }
+
+        function renderFolderManageList() {
+            const container = document.getElementById('folderListContainer');
+            container.innerHTML = classFolders.map((f, index) => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span class="font-medium text-slate-700 flex items-center gap-2"><i class="fas fa-folder text-[var(--primary-light)]"></i> ${f}</span>
+                    ${f !== 'ทั่วไป' ? `
+                        <button onclick="deleteFolder(${index})" class="text-rose-500 hover:bg-rose-100 p-2 rounded-lg transition-colors cursor-pointer" title="ลบโฟลเดอร์"><i class="fas fa-trash-alt"></i></button>
+                    ` : '<span class="text-xs text-slate-400 bg-slate-200 px-2 py-1 rounded font-medium">ค่าเริ่มต้น</span>'}
+                </div>
+            `).join('');
+        }
+
+        async function addFolder() {
+            const input = document.getElementById('newFolderInput');
+            const newFolder = input.value.trim();
+            if (!newFolder) return;
+            if (classFolders.includes(newFolder)) {
+                showCustomAlert('ชื่อโฟลเดอร์นี้มีอยู่แล้ว', 'warning');
+                return;
+            }
+
+            classFolders.push(newFolder);
+            await updateFoldersInDB();
+            input.value = '';
+            renderFolderManageList();
+            renderFolderTabs();
+        }
+
+        async function deleteFolder(index) {
+            const folderToDelete = classFolders[index];
+            if (folderToDelete === 'ทั่วไป') return;
+
+            const hasMissions = allMissions.some(m => (m.folder_name || 'ทั่วไป') === folderToDelete);
+            if (hasMissions) {
+                showCustomAlert('ไม่สามารถลบโฟลเดอร์ที่มีภารกิจอยู่ได้ กรุณาย้ายภารกิจออกก่อน', 'warning');
+                return;
+            }
+
+            showCustomAlert(`ยืนยันการลบโฟลเดอร์ "${folderToDelete}" ใช่หรือไม่?`, 'confirm', async () => {
+                classFolders.splice(index, 1);
+                if (activeFolder === folderToDelete) {
+                    activeFolder = 'ทั่วไป';
+                }
+                await updateFoldersInDB();
+                renderFolderManageList();
+                renderFolderTabs();
+                renderMissions();
+            });
+        }
+
+        async function updateFoldersInDB() {
+            try {
+                const db = getDB();
+                const { error } = await db.from('classrooms')
+                    .update({ folders: classFolders })
+                    .eq('classroom_id', currentClassId);
+                
+                if (error) throw error;
+            } catch (err) {
+                console.error("Error updating folders:", err);
+                showCustomAlert('เกิดข้อผิดพลาดในการบันทึกโฟลเดอร์', 'error');
+            }
         }
 
         // ================= ดึงข้อมูลจำนวนนักเรียน =================
@@ -223,54 +441,59 @@
             }
         }
 
+        // ================= ดึงข้อมูลและแสดงภารกิจ =================
         async function fetchMissions(db) {
-            const container = document.getElementById('missionsGrid');
             try {
-                // ดึงรายการภารกิจที่ได้รับมอบหมายในห้องนี้ (ตาราง classroom_missions)
                 const { data, error } = await db.from('classroom_missions')
-                    .select('assignment_id, missions(mission_id, title, description, mission_type, reward_points)')
+                    .select('assignment_id, folder_name, missions(mission_id, title, description, mission_type, reward_points)')
                     .eq('classroom_id', currentClassId)
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    container.innerHTML = `
-                        <div class="col-span-full text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
-                            <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-gamepad"></i></div>
-                            <h3 class="font-bold font-['Kanit'] text-slate-600 text-lg mb-1">ยังไม่มีภารกิจ</h3>
-                            <p class="text-xs text-slate-400">รอคุณครูเพิ่มภารกิจการเรียนรู้</p>
-                        </div>`;
-                    return;
-                }
-
-                container.innerHTML = data.map(item => {
-                    const m = item.missions;
-                    if(!m) return '';
-                    
-                    let icon = 'fa-gamepad';
-                    let iconColor = 'text-blue-500';
-                    let bgColor = 'bg-blue-50';
-                    
-                    if(m.mission_type === 'quiz') { icon = 'fa-question-circle'; iconColor = 'text-orange-500'; bgColor = 'bg-orange-50'; }
-                    else if(m.mission_type === 'video') { icon = 'fa-play-circle'; iconColor = 'text-rose-500'; bgColor = 'bg-rose-50'; }
-
-                    return `
-                        <div class="mission-card" onclick="window.location.href='play-mission.html?assign_id=${item.assignment_id}'">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="mission-icon ${bgColor} ${iconColor}"><i class="fas ${icon}"></i></div>
-                                <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-md"><i class="fas fa-star mr-1"></i> ${m.reward_points || 10} XP</span>
-                            </div>
-                            <h3 class="mission-title">${m.title}</h3>
-                            <p class="mission-desc">${m.description || 'ไม่มีคำอธิบาย'}</p>
-                        </div>
-                    `;
-                }).join('');
-
+                allMissions = data || [];
+                renderMissions();
             } catch (err) {
                 console.error("Error fetching missions:", err);
-                container.innerHTML = `<div class="col-span-full text-rose-500 text-center py-10">เกิดข้อผิดพลาดในการโหลดภารกิจ</div>`;
+                document.getElementById('missionsGrid').innerHTML = `<div class="col-span-full text-rose-500 text-center py-10">เกิดข้อผิดพลาดในการโหลดภารกิจ</div>`;
             }
+        }
+
+        function renderMissions() {
+            const container = document.getElementById('missionsGrid');
+            const filteredMissions = allMissions.filter(m => (m.folder_name || 'ทั่วไป') === activeFolder);
+
+            if (filteredMissions.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
+                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-gamepad"></i></div>
+                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-lg mb-1">ยังไม่มีภารกิจในโฟลเดอร์นี้</h3>
+                        <p class="text-xs text-slate-400">รอคุณครูเพิ่มภารกิจการเรียนรู้</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filteredMissions.map(item => {
+                const m = item.missions;
+                if(!m) return '';
+                
+                let icon = 'fa-gamepad';
+                let iconColor = 'text-blue-500';
+                let bgColor = 'bg-blue-50';
+                
+                if(m.mission_type === 'quiz') { icon = 'fa-question-circle'; iconColor = 'text-orange-500'; bgColor = 'bg-orange-50'; }
+                else if(m.mission_type === 'video') { icon = 'fa-play-circle'; iconColor = 'text-rose-500'; bgColor = 'bg-rose-50'; }
+
+                return `
+                    <div class="mission-card" onclick="window.location.href='play-mission.html?assign_id=${item.assignment_id}'">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="mission-icon ${bgColor} ${iconColor}"><i class="fas ${icon}"></i></div>
+                            <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-md"><i class="fas fa-star mr-1"></i> ${m.reward_points || 10} XP</span>
+                        </div>
+                        <h3 class="mission-title">${m.title}</h3>
+                        <p class="mission-desc">${m.description || 'ไม่มีคำอธิบาย'}</p>
+                    </div>
+                `;
+            }).join('');
         }
 
         function goToStudentList() {
