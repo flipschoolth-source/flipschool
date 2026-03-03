@@ -324,18 +324,26 @@
                 if (window.sysDB) { 
                     clearInterval(checkDB); 
                     try {
-                        const { data: { user } } = await window.sysDB.auth.getSession();
-                        if (!user) return location.href = 'login.html';
+                        // 🌟 แก้ไข: เปลี่ยนจาก getSession() เป็น getUser() เพื่อให้ดึงตัวแปร user ได้ถูกต้อง
+                        const { data: { user }, error: authErr } = await window.sysDB.auth.getUser();
+                        if (authErr || !user) {
+                            window.location.replace('login.html');
+                            return;
+                        }
                         currentUserId = user.id;
 
                         await fetchProfile();
                         
-                        const { data: cls } = await window.sysDB.from('classrooms').select('*, schools(*)').eq('classroom_id', currentClassId).single();
-                        if(cls) {
-                            currentSchoolId = cls.school_id;
-                            document.getElementById('txtSubjectFull').innerText = `${cls.subject_name} (${cls.room_name})`;
-                            document.getElementById('txtClassDetails').innerHTML = `<i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${cls.semester || '-'} | ปีการศึกษา ${cls.academic_year || '-'}`;
+                        // 🌟 แก้ไข: ดักจับ Error กรณีดึงข้อมูลห้องเรียนไม่ได้
+                        const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*, schools(*)').eq('classroom_id', currentClassId).single();
+                        
+                        if (clsErr || !cls) {
+                            throw new Error("ไม่พบข้อมูลห้องเรียน หรือคุณไม่มีสิทธิ์เข้าถึงหน้านี้");
                         }
+                        
+                        currentSchoolId = cls.school_id;
+                        document.getElementById('txtSubjectFull').innerText = `${cls.subject_name} (${cls.room_name})`;
+                        document.getElementById('txtClassDetails').innerHTML = `<i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${cls.semester || '-'} | ปีการศึกษา ${cls.academic_year || '-'}`;
                         
                         await fetchStudents();
                         
@@ -343,8 +351,11 @@
                         document.getElementById('loadingOverlay').style.opacity = '0';
                         setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
                     } catch (err) {
-                        console.error(err);
-                        window.location.replace('login.html');
+                        console.error("Initialization Error:", err);
+                        // ถ้าติดปัญหา ให้แจ้งเตือนและพากลับหน้า Dashboard แทนที่จะเด้งไปหน้า Login
+                        showCustomAlert(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error', () => {
+                            window.location.replace('dashboard.html');
+                        });
                     }
                 } 
             }, 300);
