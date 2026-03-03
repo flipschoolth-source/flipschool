@@ -85,13 +85,13 @@
         
         .fab-menu {
             position: absolute; 
-            bottom: calc(100% + 15px); /* ลอยอยู่เหนือปุ่มหลัก */
+            bottom: calc(100% + 15px);
             right: 0;
             display: flex; 
-            flex-direction: column-reverse; /* เรียงจากล่างขึ้นบน */
+            flex-direction: column-reverse;
             align-items: flex-end; 
             gap: 15px;
-            pointer-events: none; /* ห้ามคลิกโดนตอนซ่อน */
+            pointer-events: none;
         }
         
         .fab-item {
@@ -136,7 +136,7 @@
         }
         .fab-add:hover:not(.active) { transform: scale(1.08); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
         .fab-add.active {
-            transform: rotate(45deg); /* หมุนปุ่ม + ให้กลายเป็นตัว X */
+            transform: rotate(45deg);
             background: #ff4757;
             box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
         }
@@ -179,7 +179,7 @@
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Custom Alert Modal (ดัน z-index ให้สูงกว่า Loader) */
+        /* Custom Alert Modal */
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -283,12 +283,10 @@
     <!-- ✨ Floating Action Button & Menu (Speed Dial) ✨ -->
     <div class="fab-container hidden" id="fabContainer">
         <div class="fab-menu" id="fabMenu">
-            <!-- ลำดับที่ 1 (ล่างสุด) -->
             <div class="fab-item" onclick="openExcelImport()">
                 <span class="fab-label">นำเข้าจากไฟล์ Excel</span>
                 <button class="fab-action" style="background: #10b981; color: white;"><i class="fas fa-file-excel"></i></button>
             </div>
-            <!-- ลำดับที่ 2 (บนสุด) -->
             <div class="fab-item" onclick="startCopyFromClass()">
                 <span class="fab-label">คัดลอกจากห้องเรียนอื่น</span>
                 <button class="fab-action" style="background: var(--primary-light); color: white;"><i class="fas fa-users-class"></i></button>
@@ -417,10 +415,10 @@
         let allSheetRows = [], finalImportList = [];
         let copyCandidates = [];
 
-        // ลบ title ออกจาก MAPPING_CONFIG เพื่อป้องกัน Error หากไม่มีในตารางผู้ใช้
+        // กลับมาใช้ตาราง Local (school_students) จึงใส่คำนำหน้าคืนกลับไป
         const MAPPING_CONFIG = [
             { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
-            { key: 'title', label: 'คำนำหน้า (ใส่รวมไปในชื่อ)', keywords: ['คำนำหน้า', 'title', 'prefix'] },
+            { key: 'student_title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
             { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'name', 'first', 'fname'] },
             { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'surname', 'last', 'lname', 'สกุล'] },
             { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'วดป', 'วันเกิด'] }
@@ -484,7 +482,6 @@
 
                         await fetchProfile();
                         
-                        // แยก Query เพื่อป้องกันปัญหา Foreign Key error กรณีไม่มีตาราง schools
                         const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
                         if (clsErr || !cls) throw new Error("ไม่พบข้อมูลห้องเรียน หรือเกิดข้อผิดพลาดในการเชื่อมต่อ");
                         
@@ -502,7 +499,6 @@
                         
                         const schoolBadge = document.getElementById('schoolContextBadge');
                         if (cls.school_id) {
-                            // ดึงชื่อโรงเรียนมาโชว์
                             const { data: sData } = await window.sysDB.from('schools').select('school_name').eq('school_id', cls.school_id).maybeSingle();
                             schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${sData ? sData.school_name : 'ไม่ทราบชื่อโรงเรียน'}`;
                         } else {
@@ -517,7 +513,6 @@
                         setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
                     } catch (err) {
                         console.error("Error:", err);
-                        // ซ่อน loader เสมอก่อนโชว์แจ้งเตือน
                         document.getElementById('loadingOverlay').style.display = 'none';
                         showCustomAlert(err.message, 'error', () => window.location.replace('dashboard.html'));
                     }
@@ -541,10 +536,10 @@
 
         async function fetchStudents() {
             try {
-                // เอา title ออกจาก Query เพื่อป้องกัน error เพราะ database_users_schema.sql ล่าสุดไม่มี
+                // ดึงข้อมูล Local จากตาราง school_students (ผ่านการเชื่อมของ classroom_users ด้วย student_id)
                 const { data, error } = await window.sysDB
                     .from('classroom_users')
-                    .select('student_number, user_id, users(first_name, last_name, student_code)')
+                    .select('student_number, student_id, school_students(first_name, last_name, student_title, student_code)')
                     .eq('classroom_id', currentClassId)
                     .order('student_number');
                 
@@ -554,13 +549,13 @@
                 container.innerHTML = '';
                 
                 if(data && data.length > 0) {
-                    const validData = data.filter(item => item.users !== null);
+                    const validData = data.filter(item => item.school_students !== null);
                     document.getElementById('totalCount').innerText = validData.length;
                     
                     validData.forEach(item => {
-                        const s = item.users;
+                        const s = item.school_students;
                         const delBtn = isClassOwner ? `
-                            <button onclick="removeStudent('${item.user_id}', '${s.first_name} ${s.last_name}')" class="btn-delete-st" title="นำนักเรียนออกจากห้อง">
+                            <button onclick="removeStudent('${item.student_id}', '${s.first_name} ${s.last_name}')" class="btn-delete-st" title="นำนักเรียนออกจากห้อง">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         ` : '';
@@ -569,7 +564,7 @@
                             <div class="student-card group">
                                 <div class="st-num">${item.student_number}</div>
                                 <div class="st-info">
-                                    <h3>${s.first_name} ${s.last_name}</h3>
+                                    <h3>${s.student_title || ''}${s.first_name} ${s.last_name}</h3>
                                     <p><i class="fas fa-id-card"></i> รหัส: ${s.student_code || 'ไม่ระบุ'}</p>
                                 </div>
                                 ${delBtn}
@@ -590,14 +585,14 @@
         }
 
         // ================= ลบนักเรียนออกจากห้อง =================
-        function removeStudent(userId, name) {
+        function removeStudent(studentId, name) {
             showCustomAlert(`ต้องการลบรายชื่อ <b>"${name}"</b><br>ออกจากห้องเรียนนี้ใช่หรือไม่?`, 'confirm', async () => {
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 try {
                     const { error } = await sysDB.from('classroom_users')
                         .delete()
                         .eq('classroom_id', currentClassId)
-                        .eq('user_id', userId);
+                        .eq('student_id', studentId);
                     
                     if (error) throw error;
                     
@@ -718,14 +713,15 @@
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-[var(--primary)]"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>กำลังโหลดรายชื่อ...</td></tr>';
 
             try {
+                // ดึงข้อมูลผ่าน student_id ให้ตรงกับ schema ที่เปลี่ยนมา
                 const { data, error } = await sysDB.from('classroom_users')
-                    .select('student_number, user_id, users(first_name, last_name, student_code)')
+                    .select('student_number, student_id, school_students(first_name, last_name, student_title, student_code)')
                     .eq('classroom_id', srcId)
                     .order('student_number');
 
                 if (error) throw error;
                 
-                copyCandidates = data ? data.filter(d => d.users !== null) : [];
+                copyCandidates = data ? data.filter(d => d.school_students !== null) : [];
 
                 if (copyCandidates.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-rose-500">ห้องเรียนนี้ยังไม่มีรายชื่อนักเรียน</td></tr>';
@@ -737,8 +733,8 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="text-center py-3"><input type="checkbox" class="copy-cb w-4 h-4 accent-[var(--primary)] cursor-pointer" value="${i}" checked onchange="checkConfirmBtn()"></td>
                         <td class="py-3 font-bold">${item.student_number}</td>
-                        <td class="py-3">${item.users.student_code || '-'}</td>
-                        <td class="py-3">${item.users.first_name} ${item.users.last_name}</td>
+                        <td class="py-3">${item.school_students.student_code || '-'}</td>
+                        <td class="py-3">${item.school_students.student_title || ''}${item.school_students.first_name} ${item.school_students.last_name}</td>
                     </tr>
                 `).join('');
                 
@@ -775,12 +771,12 @@
                     const item = copyCandidates[cb.value];
                     return {
                         classroom_id: currentClassId,
-                        user_id: item.user_id,
+                        student_id: item.student_id, // ใช้ student_id ตามโครงสร้างเดิม
                         student_number: item.student_number
                     };
                 });
 
-                const { error } = await sysDB.from('classroom_users').upsert(payloads, { onConflict: 'classroom_id, user_id' });
+                const { error } = await sysDB.from('classroom_users').upsert(payloads, { onConflict: 'classroom_id, student_id' });
                 if(error) throw error;
 
                 closeImportModal();
@@ -844,7 +840,7 @@
             const sortType = document.querySelector('input[name="sortType"]:checked').value;
             const map = {
                 code: document.getElementById('map_student_code').value,
-                title: document.getElementById('map_title').value,
+                title: document.getElementById('map_student_title').value,
                 fname: document.getElementById('map_first_name').value,
                 lname: document.getElementById('map_last_name').value,
                 birth: document.getElementById('map_birth_date').value
@@ -905,46 +901,24 @@
                 if(dot) dot.className = "status-dot waiting";
                 
                 try {
-                    let studentUserId;
-
-                    const { data: existingUser } = await window.sysDB.from('users')
-                        .select('user_id')
-                        .eq('student_code', item.code)
-                        .maybeSingle();
-
-                    if (existingUser) {
-                        studentUserId = existingUser.user_id;
-                        await window.sysDB.from('users').update({
-                            // นำคำนำหน้าไปรวมกับชื่อจริง เพราะไม่มีคอลัมน์ title
-                            first_name: (item.title ? item.title : '') + item.fname,
-                            last_name: item.lname,
-                            birth_date: item.birth
-                        }).eq('user_id', studentUserId);
-                    } else {
-                        studentUserId = crypto.randomUUID(); 
-                        const { error: insertUserErr } = await window.sysDB.from('users').insert({
-                            user_id: studentUserId,
-                            first_name: (item.title ? item.title : '') + item.fname,
-                            last_name: item.lname,
-                            student_code: item.code,
-                            birth_date: item.birth,
-                            role: 'student'
-                        });
-                        if (insertUserErr) throw insertUserErr;
-                    }
-
-                    await window.sysDB.from('user_school').upsert({
-                        user_id: studentUserId,
+                    // ลงตาราง school_students (Local School Users) แทน users
+                    const { data: std, error: e1 } = await window.sysDB.from('school_students').upsert({
                         school_id: currentSchoolId,
-                        role: 'student',
-                        verification_status: 'approved' 
-                    }, { onConflict: 'user_id, school_id' });
-                    
+                        student_code: item.code,
+                        student_title: item.title,
+                        first_name: item.fname,
+                        last_name: item.lname,
+                        birth_date: item.birth
+                    }, { onConflict: 'school_id, student_code' }).select('student_id').single();
+
+                    if (e1) throw e1;
+
+                    // ผูกเข้า classroom_users ด้วย student_id
                     await window.sysDB.from('classroom_users').upsert({ 
                         classroom_id: currentClassId, 
-                        user_id: studentUserId,
+                        student_id: std.student_id,
                         student_number: item.num 
-                    }, { onConflict: 'classroom_id, user_id' });
+                    }, { onConflict: 'classroom_id, student_id' });
                     
                     if(dot) dot.className = "status-dot done";
                     const statusCell = document.getElementById(`st_${i}`);
