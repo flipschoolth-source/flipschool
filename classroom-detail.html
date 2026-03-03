@@ -180,6 +180,10 @@
         <nav class="flex-1 mt-2 px-4 space-y-2 overflow-y-auto">
             <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-th-large w-5"></i> แดชบอร์ด</a>
             <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-users w-5"></i> รายชื่อนักเรียน</a>
+            
+            <!-- แสดงรายการโรงเรียน -->
+            <div id="sidebarSchoolsList" class="flex flex-col gap-2 mt-4 px-2"></div>
+            
         </nav>
         <div class="p-4 border-t border-slate-100">
             <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all"><i class="fas fa-sign-out-alt w-5"></i> ออกจากระบบ</button>
@@ -226,6 +230,12 @@
                         <span class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap">
                             <i class="fas fa-door-open"></i> ห้อง <span id="roomName">...</span>
                         </span>
+                        
+                        <!-- 🌟 เพิ่มป้ายแสดงสถานศึกษาตรงนี้ 🌟 -->
+                        <span id="schoolContextBadge" class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap hidden">
+                            <!-- จะถูกเติมด้วย JS -->
+                        </span>
+
                         <span class="bg-white/20 px-3 py-1 md:px-4 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-sm flex items-center gap-1.5 font-sans whitespace-nowrap" id="semesterBadge">
                             <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ <span id="termYear">.../...</span>
                         </span>
@@ -333,6 +343,7 @@
         let deletedAssignments = []; 
         
         let currentOpenedFolder = null;
+        let userSchools = []; // เอาไว้เก็บข้อมูลโรงเรียนเผื่อใช้ใน Sidebar
 
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
@@ -379,13 +390,54 @@
                     document.getElementById('sidebarEmail').innerText = data.email || '';
                     document.getElementById('sidebarProfileImg').src = picUrl;
                 }
+
+                // ดึงข้อมูลกลุ่มโรงเรียนมาใส่ใน Sidebar
+                const { data: schoolsData } = await window.sysDB.from('user_school')
+                    .select('id, school_id, role, verification_status, schools(school_name, school_abbr)')
+                    .eq('user_id', currentUserId);
+                
+                userSchools = schoolsData || [];
+                renderProfileUI();
+
             } catch (err) {
                 console.error("Profile Fetch Error:", err);
             }
         }
 
+        function renderProfileUI() {
+            const sbContainer = document.getElementById('sidebarSchoolsList');
+            if (userSchools.length === 0) {
+                sbContainer.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">ยังไม่มีสังกัดโรงเรียน</div>`;
+            } else {
+                sbContainer.innerHTML = userSchools.map(s => {
+                    const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle text-emerald-500"></i>' : 
+                                      (s.verification_status === 'pending' ? '<i class="fas fa-clock text-amber-500"></i>' : '<i class="fas fa-times-circle text-rose-500"></i>');
+                    
+                    const roleText = s.role === 'admin' ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200 shadow-sm">Admin</span>' : '';
+                    
+                    // 🌟 เพิ่มป้าย @อักษรย่อ รร. 🌟
+                    const abbrText = s.schools?.school_abbr 
+                        ? `<div class="mt-1.5"><span class="text-[10px] text-blue-600 bg-white/60 border border-blue-200/60 px-1.5 py-0.5 rounded-md font-mono font-medium shadow-sm">@${s.schools.school_abbr}</span></div>` 
+                        : '';
+
+                    return `
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex flex-col cursor-pointer hover:bg-blue-100/50 transition mb-2" onclick="location.href='dashboard.html'">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">สถานศึกษา</p>
+                            ${roleText}
+                        </div>
+                        <div class="flex items-center gap-1.5 w-full">
+                            ${statusIcon}
+                            <span class="font-bold text-blue-900 text-sm truncate" title="${s.schools?.school_name || ''}">${s.schools?.school_name || 'ไม่ระบุ'}</span>
+                        </div>
+                        ${abbrText}
+                    </div>
+                `}).join('');
+            }
+        }
+
         async function fetchClassroomData() {
-            const { data } = await window.sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+            const { data } = await window.sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
             if (data) {
                 // เช็คสิทธิ์ว่าเป็นเจ้าของห้องหรือไม่
                 if (data.owner_id === currentUserId || data.teacher_id === currentUserId) {
@@ -410,6 +462,15 @@
                 const year = data.academic_year || '-';
                 document.getElementById('termYear').innerText = `${term}/${year}`;
                 
+                // 🌟 แสดงป้ายสถานศึกษา (School Context) 🌟
+                const schoolBadge = document.getElementById('schoolContextBadge');
+                if (data.school_id && data.schools) {
+                    schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${data.schools.school_name}`;
+                } else {
+                    schoolBadge.innerHTML = `<i class="fas fa-user text-sky-300"></i> พื้นที่ส่วนตัว`;
+                }
+                schoolBadge.classList.remove('hidden');
+
                 // แสดงกลุ่มสาระ (ถ้ามี)
                 const subjectGroupBadge = document.getElementById('subjectGroupBadge');
                 if (data.subject_group) {
