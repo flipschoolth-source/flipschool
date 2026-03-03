@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
     
+    <!-- Favicon แบบเดียวกับหน้าอื่นๆ (Emoji 🎓 + พื้นหลังมุมมน) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     
@@ -13,49 +14,113 @@
     <script src="js/config.js"></script>
     <script src="js/supabase-db.js"></script>
 
-    <!-- Tailwind & Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ฟอนต์ภาษาไทย Kanit & Sarabun -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* ตัวแปรสีสำหรับการใช้งานให้ตรงกับธีมหลัก */
         :root {
             --primary: #00008B;
             --primary-light: #0000cd;
             --accent: #FF8C00;
-            --bg-body: #f4f7fe;
+            --bg-color: #f4f7fe;
             --text-main: #2d3436;
             --text-muted: #636e72;
+            --white: #ffffff;
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body { height: 100%; margin: 0; padding: 0; }
         body {
             font-family: 'Sarabun', sans-serif;
-            background-color: var(--bg-body);
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
             color: var(--text-main);
             min-height: 100vh;
-            display: flex; flex-direction: column;
             background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
                               radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
 
-        /* Navbar Clean Style */
-        .nav-clean { background: white; border-bottom: 1px solid #f1f5f9; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-
-        .form-input { 
-            width: 100%; padding: 14px 20px; border: 2px solid #edf2f7; 
-            border-radius: 14px; font-family: 'Sarabun'; font-size: 15px; 
-            transition: 0.3s; background: #f8faff; color: var(--text-main); outline: none;
+        /* --- Navbar (ธีมสีน้ำเงินเข้มเหมือนหน้า Login) --- */
+        nav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 5%; height: 90px; background: var(--primary); 
+            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
+            position: sticky; top: 0; z-index: 1000; width: 100%; 
         }
-        .form-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
+        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; cursor: pointer; color: white; transition: 0.3s ease; }
+        .logo-container:hover { transform: translateY(-2px); }
+        .logo-emoji { 
+            font-size: 32px; line-height: 1; background: white; 
+            width: 52px; height: 52px; border-radius: 14px; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            color: var(--text-main);
+        }
+        .logo-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit', sans-serif; margin-bottom: -2px; }
+        .brand-name span { color: var(--accent); }
+        .slogan { font-size: 13px; color: #e0e8ff; font-family: 'Sarabun', sans-serif; }
+        
+        .btn-back {
+            text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
+            padding: 10px 24px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-weight: 500; font-size: 15px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-back:hover {
+            background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white;
+        }
+
+        /* --- Content --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container { width: 100%; max-width: 600px; }
+        
+        /* Card สไตล์เดียวกับ Login */
+        .card-form {
+            background: white; width: 100%; border-radius: 30px; padding: 40px 50px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03);
+            position: relative; overflow: hidden; box-sizing: border-box;
+        }
+        .card-form::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: var(--accent);
+        }
+
+        .card-header { margin-bottom: 30px; }
+        .card-header h2 { font-family: 'Kanit', sans-serif; margin: 0 0 5px 0; color: var(--primary); font-size: 26px; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+        .card-header p { color: var(--text-muted); margin: 0; font-size: 15px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: span 2; }
+
+        .input-group label { display: block; font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+        input[type="text"], input[type="number"], select {
+            width: 100%; padding: 14px 20px; border: 2px solid #edf2f7;
+            border-radius: 14px; font-family: 'Sarabun', sans-serif; font-size: 16px;
+            box-sizing: border-box; transition: 0.3s; background: #f8faff; color: var(--text-main);
+        }
+        input:focus, select:focus { border-color: var(--accent); outline: none; background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
 
         /* Color Picker */
-        .color-options { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+        .color-options { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px; }
         .color-option {
             width: 45px; height: 45px; border-radius: 50%; cursor: pointer;
-            border: 3px solid white; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 3px solid white; transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         .color-option.selected { transform: scale(1.15); box-shadow: 0 0 0 3px var(--accent); border-color: white; }
         
+        /* Gradients */
         .g-1 { background: linear-gradient(135deg, #00008B, #4361ee); }
         .g-2 { background: linear-gradient(135deg, #6a11cb, #2575fc); }
         .g-3 { background: linear-gradient(135deg, #11998e, #38ef7d); }
@@ -70,159 +135,139 @@
         .custom-color-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0f4ff; }
         .custom-color-btn input[type="color"] { position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
-        /* Custom Alert Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; z-index: 5000; }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
-        .modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: 0.3s; }
-        .modal-overlay.show .modal-box { transform: translateY(0); }
-        
-        /* Loader */
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-submit {
+            width: 100%; padding: 16px; border: none; border-radius: 14px;
+            background: var(--primary); color: white;
+            font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 600;
+            cursor: pointer; margin-top: 30px; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 139, 0.2); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* --- Footer --- */
+        .footer { padding: 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; }
+
+        /* --- Custom Alert Modal --- */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
+        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
+        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
+        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
+
+        @media (max-width: 768px) {
+            nav { padding: 0 15px; height: 65px; } 
+            .logo-emoji { width: 38px; height: 38px; font-size: 20px; border-radius: 10px; }
+            .brand-name { font-size: 20px; margin-bottom: 0; }
+            .slogan { display: none; }
+            .btn-back { padding: 6px 14px; font-size: 13px; }
+            
+            .main-content { padding: 20px 15px; }
+            .card-form { padding: 30px 25px; border-radius: 20px; }
+            .card-header h2 { font-size: 22px; }
+            .form-grid { grid-template-columns: 1fr; gap: 15px; } 
+            .full-width { grid-column: span 1; }
+            .btn-submit { font-size: 16px; padding: 14px; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังตรวจสอบข้อมูล...</div>
-    </div>
-
-    <!-- Navbar -->
-    <nav class="nav-clean h-[70px] flex items-center justify-center sticky top-0 z-50">
-        <!-- ขยายความกว้าง Navbar เป็นเกือบ 100% -->
-        <div class="w-full px-4 md:px-8 xl:px-12 flex items-center justify-between">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='dashboard.html'">
-                <div class="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shrink-0">
-                    <span class="text-xl text-white">🎓</span>
-                </div>
-                <div class="flex flex-col hidden sm:flex">
-                    <div class="text-xl font-bold tracking-tight leading-none text-slate-800 font-['Kanit']">
-                        <span id="displayAppName">Flip</span><span class="text-[var(--accent)]">School</span>
-                    </div>
-                </div>
+    <nav>
+        <a href="teacher-dashboard.html" class="logo-container">
+            <div class="logo-emoji">🎓</div>
+            <div class="logo-text-group">
+                <div class="brand-name" id="displayAppName">Flip<span>School</span></div>
+                <div class="slogan" id="displayAppSlogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
             </div>
-            
-            <a href="dashboard.html" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold font-['Kanit'] transition-all">
-                <i class="fas fa-arrow-left"></i> ยกเลิก
-            </a>
-        </div>
+        </a>
+        <a href="teacher-dashboard.html" class="btn-back">
+            <i class="fas fa-arrow-left"></i> ยกเลิก
+        </a>
     </nav>
 
-    <!-- Main Content Area -->
-    <!-- ขยายความกว้างของ Main Content ให้เต็มพื้นที่ -->
-    <main class="flex-grow w-full mx-auto px-4 md:px-8 xl:px-12 py-8 md:py-10">
-        
-        <div class="bg-white rounded-3xl p-6 md:p-10 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden">
-            <!-- Accent Top Bar -->
-            <div class="absolute top-0 left-0 w-full h-1.5 bg-[var(--accent)]"></div>
-
-            <div class="mb-8">
-                <div class="flex items-center gap-3 mb-2">
-                    <div class="w-12 h-12 bg-orange-50 text-[var(--accent)] rounded-xl flex items-center justify-center text-2xl">
-                        <i class="fas fa-plus-circle"></i>
-                    </div>
-                    <h2 class="text-2xl md:text-3xl font-bold text-[var(--primary)] font-['Kanit']">สร้างห้องเรียนใหม่</h2>
+    <div class="main-content">
+        <div class="container">
+            <div class="card-form">
+                <div class="card-header">
+                    <h2><i class="fas fa-plus-circle" style="color: var(--accent);"></i> สร้างห้องเรียนใหม่</h2>
+                    <p>ระบุรายละเอียดวิชาเพื่อเริ่มต้นจัดการเรียนรู้</p>
                 </div>
-                <p class="text-slate-500 flex items-center flex-wrap gap-2">
-                    ระบุรายละเอียดวิชาเพื่อเริ่มต้นการสอนใน 
-                    <span id="contextBadge" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold font-['Kanit']">
-                        <i id="contextIcon" class="fas fa-user mr-1"></i> <span id="contextDisplay">กำลังโหลด...</span>
-                    </span>
-                </p>
-            </div>
-            
-            <form onsubmit="createClassroom(event)">
-                <!-- จัดโครงสร้าง Grid ใหม่ให้รองรับหน้าจอแนวกว้าง -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-                    
-                    <div class="md:col-span-2 lg:col-span-4">
-                        <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">ชื่อวิชา <span class="text-rose-500">*</span></label>
-                        <input type="text" id="subject" class="form-input" placeholder="เช่น ภาษาไทย, คณิตศาสตร์, เทคโนโลยี" required>
-                    </div>
+                
+                <form onsubmit="createClassroom(event)">
+                    <div class="form-grid">
+                        <div class="input-group full-width">
+                            <label>ชื่อวิชา <span style="color: #ff4757;">*</span></label>
+                            <input type="text" id="subject" placeholder="เช่น ภาษาไทย, เทคโนโลยี" required>
+                        </div>
 
-                    <div class="md:col-span-2 lg:col-span-2">
-                        <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">ระดับชั้น / ห้อง <span class="text-rose-500">*</span></label>
-                        <input type="text" id="room" class="form-input" placeholder="เช่น ป.1/1, ม.3/2" required>
-                    </div>
+                        <div class="input-group">
+                            <label>ระดับชั้น/ห้อง <span style="color: #ff4757;">*</span></label>
+                            <input type="text" id="room" placeholder="เช่น ป.1/1, ม.3/2" required>
+                        </div>
 
-                    <div>
-                        <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">ปีการศึกษา (พ.ศ.) <span class="text-rose-500">*</span></label>
-                        <input type="number" id="year" class="form-input" required>
-                    </div>
+                        <div class="input-group">
+                            <label>ปีการศึกษา (พ.ศ.) <span style="color: #ff4757;">*</span></label>
+                            <input type="number" id="year" value="2569" required>
+                        </div>
 
-                    <div>
-                        <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">ภาคเรียน</label>
-                        <select id="semester" class="form-input cursor-pointer">
-                            <option value="1">ภาคเรียนที่ 1</option>
-                            <option value="2">ภาคเรียนที่ 2</option>
-                            <option value="ฤดูร้อน">ภาคฤดูร้อน</option>
-                        </select>
-                    </div>
+                        <div class="input-group full-width">
+                            <label>ภาคเรียน</label>
+                            <select id="semester">
+                                <option value="1">ภาคเรียนที่ 1</option>
+                                <option value="2">ภาคเรียนที่ 2</option>
+                                <option value="ฤดูร้อน">ภาคฤดูร้อน</option>
+                            </select>
+                        </div>
 
-                    <div class="md:col-span-2 lg:col-span-4 mt-2">
-                        <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">เลือกธีมสีประจำวิชา</label>
-                        <div class="color-options">
-                            <div class="color-option g-1 selected" onclick="selectPreset(this, 'linear-gradient(135deg, #00008B, #4361ee)')"></div>
-                            <div class="color-option g-2" onclick="selectPreset(this, 'linear-gradient(135deg, #6a11cb, #2575fc)')"></div>
-                            <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(135deg, #11998e, #38ef7d)')"></div>
-                            <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(135deg, #FF8C00, #ffae42)')"></div>
-                            
-                            <div class="custom-color-btn" id="customColorBtn" title="เลือกสีอื่นๆ">
-                                <i class="fas fa-eye-dropper text-slate-400"></i>
-                                <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
+                        <div class="input-group full-width">
+                            <label>เลือกธีมสีห้องเรียน</label>
+                            <div class="color-options">
+                                <div class="color-option g-1 selected" onclick="selectPreset(this, 'linear-gradient(135deg, #00008B, #4361ee)')"></div>
+                                <div class="color-option g-2" onclick="selectPreset(this, 'linear-gradient(135deg, #6a11cb, #2575fc)')"></div>
+                                <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(135deg, #11998e, #38ef7d)')"></div>
+                                <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(135deg, #FF8C00, #ffae42)')"></div>
+                                
+                                <div class="custom-color-btn" id="customColorBtn" title="เลือกสีอื่นๆ">
+                                    <i class="fas fa-eye-dropper" id="plusIcon"></i>
+                                    <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="mt-10 flex justify-end">
-                    <button type="submit" id="btnSave" class="w-full md:w-auto px-10 py-4 bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white rounded-xl font-['Kanit'] font-bold text-lg flex items-center justify-center gap-2 transition-all hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,139,0.2)] disabled:opacity-70 disabled:cursor-not-allowed">
-                        ยืนยันสร้างห้องเรียน <i class="fas fa-check-circle"></i>
+                    <button type="submit" class="btn-submit" id="btnSave">
+                        ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </main>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer footer-display-text"></div>
 
     <!-- Custom Alert Modal -->
-    <div id="customAlertModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="text-[60px] mb-4">
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon">
                 <i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i>
             </div>
-            <h3 class="font-['Kanit'] text-2xl font-bold text-slate-800 mb-2" id="customAlertTitle">แจ้งเตือน</h3>
-            <p id="customAlertMessage" class="text-slate-600 text-sm mb-6"></p>
-            <div class="flex justify-center">
-                <button class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
+            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="custom-modal-message"></p>
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ================= ฟังก์ชันค้นหาฐานข้อมูลแบบครอบคลุม =================
-        function getDB() {
-            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
-            try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
-            if (typeof window.initSupabase === 'function') {
-                window.initSupabase();
-                if (window.sysDB && window.sysDB.auth) return window.sysDB;
-            }
-            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
-                const key = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY || APP_CONFIG.ANON_KEY;
-                if (APP_CONFIG.SUPABASE_URL && key) {
-                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
-                    return window.sysDB;
-                }
-            }
-            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
-        }
-
         let selectedGradient = 'linear-gradient(135deg, #00008B, #4361ee)'; 
         let alertCallback = null;
-        let currentUser = null;
-        let targetSchoolId = null;
 
         // ================= Custom Alert =================
         function showCustomAlert(message, type = 'error', callback = null) {
@@ -232,18 +277,18 @@
             const iconEl = document.getElementById('customAlertIcon');
             const okBtn = document.getElementById('customAlertOkBtn');
 
-            msgEl.innerHTML = message;
+            msgEl.innerText = message;
             alertCallback = callback;
 
             if (type === 'success') {
-                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#10b981';
-                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#10b981';
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
             } else if (type === 'warning') {
-                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#f59e0b';
-                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#f59e0b';
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
             } else {
-                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ef4444';
-                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ef4444';
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
             }
 
             modal.classList.add('show');
@@ -255,58 +300,44 @@
             if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
         }
 
-        // ================= เริ่มต้นการทำงาน =================
         document.addEventListener('DOMContentLoaded', async () => {
-            
+            // โหลดตั้งค่า Logo, Slogan และ Footer จาก config.js
             if (typeof APP_CONFIG !== 'undefined') {
-                document.title = `สร้างห้องเรียนใหม่ - ${APP_CONFIG.APP_NAME || 'FlipSchool'}`;
-                document.getElementById('displayAppName').innerText = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip' : APP_CONFIG.APP_NAME;
-            }
-
-            // เซ็ตปีการศึกษาปัจจุบัน (เผื่อไว้ 1 ปีสำหรับโรงเรียนไทยที่เปิดเทอมคร่อมปี)
-            const currentYear = new Date().getFullYear() + 543;
-            document.getElementById('year').value = currentYear;
-
-            try {
-                const db = getDB();
-                const { data: { session } } = await db.auth.getSession();
-                
-                if (!session) {
-                    window.location.replace('login.html');
-                    return;
-                }
-                currentUser = session.user;
-
-                // ตรวจสอบพื้นที่ (Context) ที่ครูเลือกไว้ก่อนกดปุ่มเข้ามา
-                const activeView = localStorage.getItem('flip_active_view') || 'independent';
-                
-                if (activeView !== 'all' && activeView !== 'independent') {
-                    targetSchoolId = activeView;
-                    // ดึงชื่อโรงเรียนมาแสดง
-                    const { data: sData } = await db.from('schools').select('school_name').eq('school_id', targetSchoolId).maybeSingle();
-                    if (sData) {
-                        document.getElementById('contextDisplay').innerText = sData.school_name;
-                        document.getElementById('contextBadge').className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold font-["Kanit"] ml-2 border border-blue-200 shadow-sm';
-                        document.getElementById('contextIcon').className = 'fas fa-school mr-1';
+                const brandNameEl = document.getElementById('displayAppName');
+                if (brandNameEl && APP_CONFIG.APP_NAME) {
+                    if (APP_CONFIG.APP_NAME === 'FlipSchool') {
+                        brandNameEl.innerHTML = 'Flip<span>School</span>';
+                    } else {
+                        brandNameEl.textContent = APP_CONFIG.APP_NAME;
                     }
-                } else {
-                    targetSchoolId = null;
-                    document.getElementById('contextDisplay').innerText = "พื้นที่ส่วนตัว (Independent)";
+                }
+                const sloganEl = document.getElementById('displayAppSlogan');
+                if (sloganEl && APP_CONFIG.APP_SLOGAN) {
+                    sloganEl.textContent = APP_CONFIG.APP_SLOGAN;
                 }
 
-                // ซ่อน Loader เมื่อโหลดเสร็จ
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
-
-            } catch (err) {
-                console.error("Initialization Error:", err);
-                showCustomAlert("ไม่สามารถเชื่อมต่อระบบได้ กรุณาล็อกอินใหม่", "error", () => {
-                    window.location.replace('login.html');
+                document.querySelectorAll('.footer-display-text').forEach(el => {
+                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
+                    const footerText = APP_CONFIG.FOOTER_TEXT || '';
+                    const ownerName = APP_CONFIG.OWNER?.NAME || '';
+                    const ownerPos = APP_CONFIG.OWNER?.POSITION || '';
+                    const ownerSchool = APP_CONFIG.OWNER?.SCHOOL || '';
+                    const ownerAff = APP_CONFIG.OWNER?.AFFILIATION || '';
+                    const ownerProv = APP_CONFIG.OWNER?.PROVINCE || '';
+                    
+                    el.innerHTML = `&copy; ${year} ${footerText}<br>ข้อมูลผู้พัฒนา / เจ้าของลิขสิทธิ์: ${ownerName} ${ownerPos} ${ownerSchool} สังกัด${ownerAff} จ.${ownerProv}`;
                 });
             }
+
+            if (typeof sysDB === 'undefined') { 
+                showCustomAlert('ระบบฐานข้อมูลไม่พร้อมใช้งาน', 'error'); 
+                return; 
+            }
+            
+            const { data: { user } } = await sysDB.auth.getUser();
+            if (!user) window.location.href = 'teacher-login.html';
         });
 
-        // ================= Color Picker =================
         function selectPreset(element, gradient) {
             document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
@@ -327,11 +358,11 @@
             customBtn.style.borderColor = 'white';
         }
 
-        // ================= สร้างห้องเรียน =================
         async function createClassroom(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSave');
             
+            // 1. ดึงข้อมูลและทำความสะอาด
             const subject = document.getElementById('subject').value.trim();
             const room = document.getElementById('room').value.trim();
             const year = document.getElementById('year').value;
@@ -340,22 +371,27 @@
             if (!subject || !room) return;
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบข้อมูล...';
 
             try {
-                const db = getDB();
+                const { data: { user } } = await sysDB.auth.getUser();
+                
+                // 2. ดึงข้อมูลครูเพื่อเอา school_id
+                const { data: teacher, error: tErr } = await sysDB
+                    .from('teachers')
+                    .select('school_id')
+                    .eq('teacher_id', user.id)
+                    .single();
 
-                // 1. เช็คชื่อคอลัมน์ของฐานข้อมูล เพื่อให้รองรับทั้ง DB โครงสร้างเก่าและใหม่ (teacher_id vs owner_id)
-                let targetCol = 'owner_id';
-                const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
-                if (testErr && testErr.code === '42703') { // 42703 = column does not exist
-                    targetCol = 'teacher_id';
+                if (tErr || !teacher.school_id) {
+                    // ไม่พบโรงเรียน ไม่เป็นไร ให้อยู่ในพื้นที่อิสระ (school_id = null)
                 }
 
-                // 2. ตรวจสอบห้องเรียนซ้ำ
-                const { data: existing, error: checkErr } = await db.from('classrooms')
+                // 3. ตรวจสอบห้องเรียนซ้ำ (Manual Check)
+                const { data: existing, error: checkErr } = await sysDB
+                    .from('classrooms')
                     .select('classroom_id')
-                    .eq(targetCol, currentUser.id)
+                    .eq('teacher_id', user.id)
                     .eq('subject_name', subject)
                     .eq('room_name', room)
                     .eq('academic_year', year)
@@ -365,34 +401,33 @@
                 if (existing) {
                     showCustomAlert(`คุณมีห้องเรียนวิชา "${subject}" สำหรับห้อง "${room}" ในปี/เทอมนี้อยู่แล้วครับ`, 'warning');
                     btn.disabled = false;
-                    btn.innerHTML = 'ยืนยันสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
+                    btn.innerHTML = 'ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
                     return;
                 }
 
-                // 3. เตรียมข้อมูลและบันทึก
-                const payload = {
-                    school_id: targetSchoolId, 
+                // 4. บันทึกข้อมูล
+                const { error: insErr } = await sysDB.from('classrooms').insert([{
+                    teacher_id: user.id,
+                    school_id: teacher?.school_id || null, // ถ้าไม่มีกลุ่ม ก็ให้สร้างแบบไม่มีกลุ่มได้
                     subject_name: subject,
                     room_name: room,
                     academic_year: year,
                     semester: semester,
                     color_code: selectedGradient
-                };
-                payload[targetCol] = currentUser.id;
-
-                const { error: insErr } = await db.from('classrooms').insert([payload]);
+                }]);
 
                 if (insErr) throw insErr;
 
+                // 5. สำเร็จ
                 showCustomAlert('สร้างห้องเรียนสำเร็จ!', 'success', () => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'teacher-dashboard.html';
                 });
 
             } catch (err) {
                 console.error(err);
                 showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 btn.disabled = false;
-                btn.innerHTML = 'ยืนยันสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
+                btn.innerHTML = 'ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
             }
         }
     </script>
