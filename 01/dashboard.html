@@ -233,7 +233,7 @@
     <script>
         let currentUser = null;
         let userProfile = null;
-        let activeTab = 'teach'; // 'teach' หรือ 'learn'
+        let activeTab = 'teach'; 
         
         let teachingClasses = [];
         let learningClasses = [];
@@ -275,7 +275,6 @@
 
         // ================= เริ่มต้นการทำงาน =================
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลด UI ตั้งค่า
             if (typeof APP_CONFIG !== 'undefined') {
                 document.title = `แดชบอร์ด - ${APP_CONFIG.APP_NAME || 'FlipSchool'}`;
                 document.getElementById('displayAppName').innerText = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip' : APP_CONFIG.APP_NAME;
@@ -284,6 +283,7 @@
             }
 
             const checkDB = setInterval(async () => {
+                // อัปเดตใช้ window.sysDB ตลอดเพื่อป้องกัน ReferenceError
                 if (window.sysDB) {
                     clearInterval(checkDB);
                     await initDashboard();
@@ -293,29 +293,23 @@
 
         async function initDashboard() {
             try {
-                // 1. เช็ค Session
-                const { data: { session }, error: sessionError } = await sysDB.auth.getSession();
+                const { data: { session }, error: sessionError } = await window.sysDB.auth.getSession();
                 if (sessionError || !session) throw new Error("No session");
 
-                // 2. ดึงข้อมูลโปรไฟล์แบบ Unified
-                const { data: profile, error: profileError } = await sysDB.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).single();
+                const { data: profile, error: profileError } = await window.sysDB.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).single();
                 if (profileError || !profile) throw new Error("Profile not found");
 
                 currentUser = session.user;
                 userProfile = profile;
 
-                // 3. จัดการแสดงผล UI ส่วนตัว
                 renderProfileUI();
 
-                // 4. โหลดข้อมูลห้องเรียนทั้ง 2 ส่วน
                 await Promise.all([fetchTeachingClasses(), fetchLearningClasses()]);
 
-                // 5. ตัดสินใจเลือก Tab เริ่มต้นตาม Role
                 if (profile.role === 'teacher') {
                     switchTab('teach');
                 } else if (profile.role === 'student') {
                     switchTab('learn');
-                    // ถ้านักเรียน 100% อาจจะซ่อนปุ่ม Tab สอนไปเลยก็ได้เพื่อไม่ให้สับสน
                     document.getElementById('tabTeach').style.display = 'none';
                 } else {
                     switchTab('learn');
@@ -340,7 +334,6 @@
             document.getElementById('navProfileImg').src = picUrl;
             document.getElementById('sidebarProfileImg').src = picUrl;
 
-            // Role Badge
             const badge = document.getElementById('sidebarRoleBadge');
             if (userProfile.role === 'teacher') {
                 badge.innerText = 'คุณครู / ผู้สอน';
@@ -350,14 +343,13 @@
                 badge.className = 'inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-700';
             }
 
-            // School Info
             if (userProfile.schools && userProfile.schools.school_name) {
                 document.getElementById('schoolInfoBox').classList.remove('hidden');
                 document.getElementById('sidebarSchoolName').innerText = userProfile.schools.school_name;
             }
         }
 
-        // ================= สลับ Tabs และแสดงข้อมูล =================
+        // ================= สลับ Tabs =================
         function switchTab(tabName) {
             activeTab = tabName;
             const btnTeach = document.getElementById('tabTeach');
@@ -369,11 +361,11 @@
             if (tabName === 'teach') {
                 btnTeach.className = 'tab-btn tab-active'; btnLearn.className = 'tab-btn tab-inactive';
                 secTeach.classList.remove('hidden'); secLearn.classList.add('hidden');
-                fabIcon.className = 'fas fa-plus'; // Icon สร้างห้อง
+                fabIcon.className = 'fas fa-plus'; 
             } else {
                 btnLearn.className = 'tab-btn tab-active'; btnTeach.className = 'tab-btn tab-inactive';
                 secLearn.classList.remove('hidden'); secTeach.classList.add('hidden');
-                fabIcon.className = 'fas fa-sign-in-alt'; // Icon เข้าร่วมห้อง
+                fabIcon.className = 'fas fa-sign-in-alt'; 
             }
         }
 
@@ -381,7 +373,6 @@
             if (activeTab === 'teach') {
                 window.location.href = 'classroom-add.html';
             } else {
-                // เปิด Modal กรอกรหัสเพื่อเข้าร่วมห้องเรียน
                 document.getElementById('classCodeInput').value = '';
                 document.getElementById('joinClassModal').classList.add('show');
             }
@@ -392,8 +383,7 @@
         // ================= ดึงข้อมูลห้องเรียน (Teacher) =================
         async function fetchTeachingClasses() {
             try {
-                // อิงจาก DB Schema ใหม่: classrooms.owner_id
-                const { data, error } = await sysDB.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
+                const { data, error } = await window.sysDB.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
                 if (error) throw error;
                 teachingClasses = data || [];
                 document.getElementById('countTeach').innerText = teachingClasses.length;
@@ -404,8 +394,7 @@
         // ================= ดึงข้อมูลห้องเรียน (Student) =================
         async function fetchLearningClasses() {
             try {
-                // อิงจาก DB Schema ใหม่: classroom_students.user_id
-                const { data, error } = await sysDB.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
+                const { data, error } = await window.sysDB.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
                 if (error) throw error;
                 
                 learningClasses = (data || []).map(item => item.classrooms).filter(c => c !== null);
@@ -463,27 +452,22 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'; btn.disabled = true;
 
             try {
-                // หมายเหตุ: โครงสร้างปัจจุบันของ classrooms ยังไม่มี column `class_code`
-                // หากยังไม่มี แนะนำให้ Alter table เพิ่ม `class_code text UNIQUE` ใน Supabase
-                // สมมติว่าเพิ่มแล้ว เราจะค้นหาห้องเรียนจากรหัสที่กรอก
-                const { data: targetClass, error: findError } = await sysDB.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
+                const { data: targetClass, error: findError } = await window.sysDB.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
                 
                 if (!targetClass) {
                     throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบรหัสให้ถูกต้องครับ');
                 }
 
-                // เช็คว่าเคยเข้าแล้วหรือยัง
-                const { data: existEnroll } = await sysDB.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', userProfile.id).maybeSingle();
+                const { data: existEnroll } = await window.sysDB.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', userProfile.id).maybeSingle();
                 
                 if (existEnroll) {
                     throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
                 }
 
-                // บันทึกลงตาราง classroom_students
-                const { error: enrollError } = await sysDB.from('classroom_students').insert([{
+                const { error: enrollError } = await window.sysDB.from('classroom_students').insert([{
                     classroom_id: targetClass.classroom_id,
                     user_id: userProfile.id,
-                    student_number: 0 // อาจให้กรอกเลขที่ภายหลัง
+                    student_number: 0 
                 }]);
 
                 if (enrollError) throw enrollError;
@@ -502,7 +486,7 @@
 
         async function handleLogout() {
             showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'warning', async () => {
-                await sysDB.auth.signOut();
+                await window.sysDB.auth.signOut();
                 localStorage.removeItem('flip_student_session');
                 window.location.replace('login.html');
             });
