@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>แดชบอร์ด - FlipSchool</title>
     
-    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     
@@ -41,7 +40,6 @@
 
         .nav-gradient { background: var(--primary); box-shadow: 0 4px 20px rgba(0,0,80,0.15); }
         .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
-        .hero-student-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); box-shadow: 0 15px 30px rgba(30, 58, 138, 0.1); }
 
         /* --- Tabs --- */
         .tab-btn {
@@ -82,6 +80,14 @@
         .fab-add { position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px); width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; font-size: clamp(24px, 6vw, 30px); cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: 0.3s; border: none; }
         .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
 
+        /* View Filter Tabs (รร. ทั้งหมด/ส่วนตัว) */
+        .view-filter-container { margin-bottom: 20px; position: relative; }
+        .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
+        .view-filter-scroll::-webkit-scrollbar { display: none; }
+        .filter-tab { padding: 10px 20px; background: white; border: 2px solid transparent; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; font-weight: 500; color: #636e72; cursor: pointer; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .filter-tab:hover { background: #f8faff; color: var(--primary-light); }
+        .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(0, 82, 212, 0.2); }
+
         /* Loader */
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
@@ -105,14 +111,14 @@
             </div>
             <h3 id="sidebarName" class="font-bold text-xl text-slate-800 font-['Kanit']">...</h3>
             <p id="sidebarEmail" class="text-sm text-slate-500 mt-1">...</p>
-            <div id="sidebarRoleBadge" class="inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase">...</div>
         </div>
         <div class="p-4 flex-1 overflow-y-auto">
-            <div id="schoolInfoBox" class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4 hidden">
-                <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">สถานศึกษา</p>
-                <p id="sidebarSchoolName" class="font-bold text-blue-900 text-sm">...</p>
-            </div>
-            <!-- หากเป็นครู จะมีเมนูสำหรับโรงเรียนเพิ่มที่นี่ -->
+            <!-- เมนูสถานศึกษาจะแสดงที่นี่ -->
+            <div id="sidebarSchoolsList" class="flex flex-col gap-2"></div>
+            
+            <button onclick="alert('ฟังก์ชันกำลังพัฒนา')" class="mt-4 w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold transition-all text-sm">
+                <i class="fas fa-plus-circle"></i> เข้าร่วม/สร้างกลุ่มโรงเรียน
+            </button>
         </div>
         <div class="p-4 border-t border-slate-100">
             <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
@@ -138,25 +144,31 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <!-- ปุ่มซ่อน/แสดง โหมดหน้าจอ (สำหรับครู) -->
-            <button id="navJoinBtn" onclick="openJoinModal()" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all border border-white/20">
-                <i class="fas fa-plus"></i> เข้าร่วมห้อง
+            <button onclick="openJoinModal()" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all border border-white/20">
+                <i class="fas fa-sign-in-alt"></i> เข้าร่วมห้อง
             </button>
             <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white/30 shadow-sm cursor-pointer hover:scale-105 transition-transform object-cover" onclick="toggleDrawer()">
         </div>
     </nav>
 
-    <!-- Header Section (Dynamic based on Role) -->
+    <!-- Header Section -->
     <header id="mainHeader" class="header-gradient text-white py-8 md:py-12 px-6 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2.5rem] shadow-sm mb-6">
         <div class="container mx-auto relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
                 <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] mb-2"><span id="welcomeText">สวัสดี...</span></h1>
-                <p class="text-sm md:text-base text-blue-100 opacity-90 font-medium">ยินดีต้อนรับสู่พื้นที่การเรียนรู้ของคุณ</p>
+                <p class="text-sm md:text-base text-blue-100 opacity-90 font-medium">ยินดีต้อนรับสู่พื้นที่จัดการเรียนรู้แบบครบวงจร</p>
             </div>
             
-            <!-- สถิติ (จะเปลี่ยนตาม Role อัตโนมัติ) -->
+            <!-- สถิติ -->
             <div id="statsContainer" class="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                <!-- Data filled by JS -->
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px] flex-1 md:flex-none shadow-lg">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่สร้าง</p>
+                    <p id="countTeach" class="text-2xl font-black">0</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px] flex-1 md:flex-none shadow-lg">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่เข้าร่วม</p>
+                    <p id="countLearn" class="text-2xl font-black">0</p>
+                </div>
             </div>
         </div>
         <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -165,13 +177,20 @@
     <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-6xl relative">
         
-        <!-- Tabs ควบคุมการแสดงผล (จะซ่อนถ้านักเรียน) -->
-        <div class="flex space-x-3 mb-8 overflow-x-auto pb-2 scrollbar-hide" id="tabsContainer">
+        <!-- ตัวกรองตามกลุ่มสถานศึกษา (แสดงผลกระทบกับทั้ง 2 Tabs) -->
+        <div class="view-filter-container">
+            <div class="view-filter-scroll" id="viewFilterTabs">
+                <!-- โหลดตัวกรองมาใส่ตรงนี้ -->
+            </div>
+        </div>
+
+        <!-- Tabs ควบคุมการแสดงผล -->
+        <div class="flex space-x-3 mb-6 overflow-x-auto pb-2 scrollbar-hide" id="tabsContainer">
             <button id="tabTeach" class="tab-btn tab-active" onclick="switchTab('teach')">
-                <i class="fas fa-chalkboard-teacher"></i> พื้นที่การสอน (ครู)
+                <i class="fas fa-chalkboard-teacher"></i> ห้องเรียนที่สร้าง (สอน)
             </button>
             <button id="tabLearn" class="tab-btn tab-inactive" onclick="switchTab('learn')">
-                <i class="fas fa-user-graduate"></i> พื้นที่การเรียนรู้ (นักเรียน)
+                <i class="fas fa-user-graduate"></i> ห้องเรียนที่เข้าร่วม (เรียน)
             </button>
         </div>
 
@@ -205,7 +224,7 @@
                     <i class="fas fa-sign-in-alt"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-[var(--primary)] font-['Kanit']">เข้าร่วมห้องเรียน</h2>
-                <p class="text-sm text-slate-500 mt-1">กรอกรหัสห้องเรียน หรือ Join Code จากคุณครู</p>
+                <p class="text-sm text-slate-500 mt-1">กรอกรหัสห้องเรียน หรือ Join Code</p>
             </div>
             <div class="mb-6">
                 <input type="text" id="classCodeInput" class="form-input text-center text-lg font-bold tracking-widest uppercase" placeholder="รหัสห้องเรียน (ถ้ามี)">
@@ -251,8 +270,11 @@
         }
 
         let currentUser = null;
-        let userProfile = null;
-        let activeTab = 'teach'; 
+        let userData = null; // เปลี่ยนจาก userProfile
+        let userSchools = []; // เก็บกลุ่มโรงเรียนที่ผู้ใช้สังกัด (จาก user_school)
+        
+        let activeViewMode = 'all'; // 'all', 'independent', หรือ 'school_id_xxx'
+        let activeTab = 'teach'; // 'teach' หรือ 'learn'
         
         let teachingClasses = [];
         let learningClasses = [];
@@ -316,101 +338,138 @@
                 const { data: { session }, error: sessionError } = await db.auth.getSession();
                 if (sessionError || !session) throw new Error("No session");
 
-                // ดึงข้อมูลจากตาราง profiles (Unified Users)
-                const { data: profile, error: profileError } = await db.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).maybeSingle();
+                // ดึงข้อมูลผู้ใช้จากตาราง users 
+                const { data: userRecord, error: uErr } = await db.from('users').select('*').eq('user_id', session.user.id).maybeSingle();
                 
-                if (profileError || !profile) {
+                if (uErr || !userRecord) {
                     await db.auth.signOut();
                     window.location.replace('login.html');
                     return;
                 }
 
                 currentUser = session.user;
-                userProfile = profile;
+                userData = userRecord;
+
+                // ดึงสังกัดโรงเรียนจากตาราง user_school
+                const { data: schoolsData, error: sErr } = await db.from('user_school')
+                    .select('id, school_id, role, verification_status, reject_reason, schools(school_name, school_abbr)')
+                    .eq('user_id', currentUser.id);
+                
+                if (!sErr && schoolsData) {
+                    userSchools = schoolsData;
+                }
+
+                // โหลดการตั้งค่ามุมมองล่าสุด
+                const savedMode = localStorage.getItem('flip_active_view') || 'all';
+                activeViewMode = savedMode;
 
                 renderProfileUI();
+                renderFilterTabs(); // สร้างปุ่มเลือกโรงเรียนด้านบน
 
-                // ตัดสินใจเลือก Tab เริ่มต้นตาม Role
-                if (profile.role === 'teacher' || profile.role === 'super_admin') {
-                    await Promise.all([fetchTeachingClasses(db), fetchLearningClasses(db)]);
-                    switchTab('teach');
-                } else {
-                    // ถ้านักเรียน ซ่อน Tab ครูไปเลย
-                    await fetchLearningClasses(db);
-                    document.getElementById('tabsContainer').style.display = 'none';
-                    switchTab('learn');
-                }
+                // โหลดข้อมูลห้องเรียนทั้งสองส่วนพร้อมกัน
+                await Promise.all([fetchTeachingClasses(db), fetchLearningClasses(db)]);
+                
+                // สลับไปหน้าจอตาม Tab
+                switchTab('teach');
 
                 document.getElementById('loadingOverlay').style.opacity = '0';
                 setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
 
             } catch (err) {
-                console.error("Auth Error:", err);
+                console.error("Dashboard Init Error:", err);
                 window.location.replace('login.html');
             }
         }
 
         function renderProfileUI() {
-            const fName = userProfile.first_name || '';
-            const lName = userProfile.last_name || '';
-            const fullName = `${userProfile.title || ''}${fName} ${lName}`.trim();
+            const fName = userData.first_name || '';
+            const lName = userData.last_name || '';
+            const fullName = `${fName} ${lName}`.trim();
             
             document.getElementById('welcomeText').innerText = `สวัสดี, ${fName}`;
             document.getElementById('sidebarName').innerText = fullName;
-            document.getElementById('sidebarEmail').innerText = userProfile.email || userProfile.student_code || '';
+            document.getElementById('sidebarEmail').innerText = userData.email || '';
             
-            const picUrl = userProfile.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fName}`;
+            const picUrl = userData.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fName}`;
             document.getElementById('navProfileImg').src = picUrl;
             document.getElementById('sidebarProfileImg').src = picUrl;
 
-            const badge = document.getElementById('sidebarRoleBadge');
-            const header = document.getElementById('mainHeader');
-            const statsContainer = document.getElementById('statsContainer');
-
-            if (userProfile.role === 'teacher' || userProfile.role === 'super_admin') {
-                badge.innerText = 'คุณครู / ผู้สอน';
-                badge.className = 'inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-blue-100 text-blue-700';
-                
-                statsContainer.innerHTML = `
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px] flex-1 md:flex-none shadow-lg">
-                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่สอน</p>
-                        <p id="countTeach" class="text-2xl font-black">0</p>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[100px] flex-1 md:flex-none shadow-lg">
-                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่เข้าร่วม</p>
-                        <p id="countLearn" class="text-2xl font-black">0</p>
-                    </div>
-                `;
+            // Render รายชื่อโรงเรียนใน Sidebar
+            const sbContainer = document.getElementById('sidebarSchoolsList');
+            if (userSchools.length === 0) {
+                sbContainer.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">ยังไม่มีสังกัดโรงเรียน</div>`;
             } else {
-                badge.innerText = 'นักเรียน';
-                badge.className = 'inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-700';
-                
-                // เปลี่ยนสี Header ให้นักเรียน
-                header.className = "hero-student-gradient text-white py-8 md:py-12 px-6 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2.5rem] shadow-sm mb-6";
-                document.getElementById('navJoinBtn').classList.add('hidden'); // ซ่อนปุ่มใน Nav
-                
-                statsContainer.innerHTML = `
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex items-center gap-6 shadow-lg">
-                        <div class="text-center min-w-[70px]">
-                            <p class="text-[10px] uppercase tracking-widest opacity-80 font-bold mb-1">EXP</p>
-                            <p class="text-2xl font-black text-white">${userProfile.total_score || 0}</p>
-                        </div>
-                        <div class="h-10 w-px bg-white/20"></div>
-                        <div class="text-center min-w-[70px]">
-                            <p class="text-[10px] uppercase tracking-widest opacity-80 font-bold mb-1">ห้องเรียน</p>
-                            <p id="countLearn" class="text-2xl font-black text-white">0</p>
-                        </div>
+                sbContainer.innerHTML = userSchools.map(s => `
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-50">
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">สถานศึกษา</p>
+                        <p class="font-bold text-blue-900 text-sm truncate">${s.schools?.school_name || 'ไม่ระบุ'}</p>
                     </div>
-                `;
-            }
-
-            if (userProfile.schools && userProfile.schools.school_name) {
-                document.getElementById('schoolInfoBox').classList.remove('hidden');
-                document.getElementById('sidebarSchoolName').innerText = userProfile.schools.school_name;
+                `).join('');
             }
         }
 
-        // ================= สลับ Tabs =================
+        // ================= สลับตัวกรองพื้นที่ (Filters) =================
+        function renderFilterTabs() {
+            const container = document.getElementById('viewFilterTabs');
+            let html = `
+                <button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchViewMode('all')">
+                    <i class="fas fa-layer-group"></i> ทั้งหมด
+                </button>
+                <button class="filter-tab ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchViewMode('independent')">
+                    <i class="fas fa-user"></i> พื้นที่ส่วนตัว
+                </button>
+            `;
+
+            userSchools.forEach(s => {
+                // ข้ามถ้ายังไม่ verify
+                if (s.verification_status !== 'approved') return;
+                
+                const isActive = activeViewMode === s.school_id;
+                html += `
+                <button class="filter-tab ${isActive ? 'active' : ''}" onclick="switchViewMode('${s.school_id}')">
+                    <i class="fas fa-school"></i> ${s.schools?.school_name}
+                </button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function switchViewMode(mode) {
+            activeViewMode = mode;
+            localStorage.setItem('flip_active_view', mode);
+            renderFilterTabs();
+            
+            // Re-render UI ทันทีตามข้อมูลที่มีอยู่
+            renderFilteredGrids();
+        }
+
+        function renderFilteredGrids() {
+            // กรองห้องที่สอน
+            const filteredTeach = filterClasses(teachingClasses);
+            renderClassGrid(filteredTeach, 'gridTeach', true);
+            document.getElementById('countTeach').innerText = filteredTeach.length;
+
+            // กรองห้องที่เรียน
+            const filteredLearn = filterClasses(learningClasses);
+            renderClassGrid(filteredLearn, 'gridLearn', false);
+            document.getElementById('countLearn').innerText = filteredLearn.length;
+        }
+
+        // ฟังก์ชันช่วยกรองข้อมูลให้ตรงกับ Tab
+        function filterClasses(classesArray) {
+            if (activeViewMode === 'all') return classesArray;
+            
+            if (activeViewMode === 'independent') {
+                // โรงเรียนที่อนุมัติแล้ว
+                const approvedIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
+                // แสดงเฉพาะที่ไม่มีโรงเรียน หรือไม่ได้อยู่ในรายชื่อโรงเรียนที่สังกัด
+                return classesArray.filter(c => !c.school_id || !approvedIds.includes(c.school_id));
+            }
+            
+            // โหมดเลือกโรงเรียนเจาะจง
+            return classesArray.filter(c => c.school_id === activeViewMode);
+        }
+
+        // ================= สลับ Tabs หลัก (Teach/Learn) =================
         function switchTab(tabName) {
             activeTab = tabName;
             const btnTeach = document.getElementById('tabTeach');
@@ -432,6 +491,10 @@
 
         function handleFabClick() {
             if (activeTab === 'teach') {
+                if (activeViewMode === 'all') {
+                    showCustomAlert("กรุณาเลือกพื้นที่ (ส่วนตัว หรือ สถานศึกษา) จากแถบด้านบน ก่อนสร้างห้องเรียนครับ", "warning");
+                    return;
+                }
                 window.location.href = 'classroom-add.html';
             } else {
                 document.getElementById('classCodeInput').value = '';
@@ -452,13 +515,13 @@
         // ================= ดึงข้อมูลห้องเรียน (Teacher Mode) =================
         async function fetchTeachingClasses(db) {
             try {
-                // พยายามใช้ owner_id ก่อน (ถ้า migration สำเร็จ) หรือ teacher_id (ถ้ายังเป็น Schema เดิม)
+                // ดึงโดยใช้ owner_id (หรือ teacher_id หากยังไม่เปลี่ยน)
                 let data, error;
-                const res = await db.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
+                const res = await db.from('classrooms').select('*').eq('owner_id', currentUser.id).order('created_at', { ascending: false });
                 
                 if (res.error && res.error.code === 'PGRST200') {
-                    // Fallback to teacher_id
-                    const fallback = await db.from('classrooms').select('*').eq('teacher_id', userProfile.id).order('created_at', { ascending: false });
+                    // Fallback
+                    const fallback = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id).order('created_at', { ascending: false });
                     data = fallback.data; error = fallback.error;
                 } else {
                     data = res.data; error = res.error;
@@ -466,24 +529,20 @@
 
                 if (error) throw error;
                 teachingClasses = data || [];
-                
-                const countEl = document.getElementById('countTeach');
-                if(countEl) countEl.innerText = teachingClasses.length;
-                
-                renderClassGrid(teachingClasses, 'gridTeach', true);
+                renderFilteredGrids();
             } catch (e) { console.error("Fetch Teach Error:", e); }
         }
 
         // ================= ดึงข้อมูลห้องเรียน (Student Mode) =================
         async function fetchLearningClasses(db) {
             try {
-                // พยายามใช้ user_id ก่อน หรือ student_id 
+                // ดึงข้อมูลห้องเรียนที่ผู้ใช้คนนี้ลงทะเบียนไว้ (รองรับ user_id)
                 let data, error;
-                const res = await db.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
+                const res = await db.from('classroom_students').select('classrooms(*)').eq('user_id', currentUser.id);
                 
                 if (res.error && res.error.code === 'PGRST200') {
                     // Fallback to student_id
-                    const fallback = await db.from('classroom_students').select('classrooms(*)').eq('student_id', userProfile.id);
+                    const fallback = await db.from('classroom_students').select('classrooms(*)').eq('student_id', currentUser.id);
                     data = fallback.data; error = fallback.error;
                 } else {
                     data = res.data; error = res.error;
@@ -492,11 +551,7 @@
                 if (error) throw error;
                 
                 learningClasses = (data || []).map(item => item.classrooms).filter(c => c !== null);
-                
-                const countEl = document.getElementById('countLearn');
-                if(countEl) countEl.innerText = learningClasses.length;
-                
-                renderClassGrid(learningClasses, 'gridLearn', false);
+                renderFilteredGrids();
             } catch (e) { console.error("Fetch Learn Error:", e); }
         }
 
@@ -506,23 +561,22 @@
             
             if (classes.length === 0) {
                 const emptyMsg = isTeacherMode 
-                    ? 'คุณยังไม่มีห้องเรียนที่สร้างไว้<br>กดปุ่ม + มุมขวาล่างเพื่อสร้างเลย'
-                    : 'คุณยังไม่ได้เข้าร่วมห้องเรียนใดเลย<br>กดปุ่ม เข้าร่วม มุมขวาล่างเพื่อใส่รหัสห้องเรียน';
+                    ? 'คุณยังไม่มีห้องเรียนที่สร้างไว้ในพื้นที่นี้<br>กดปุ่ม + มุมขวาล่างเพื่อสร้างเลย'
+                    : 'คุณยังไม่ได้เข้าร่วมห้องเรียนในพื้นที่นี้<br>กดปุ่ม เข้าร่วม มุมขวาล่างเพื่อกรอกรหัส';
                 const emptyIcon = isTeacherMode ? 'fa-chalkboard' : 'fa-door-open';
 
                 container.innerHTML = `
                     <div class="col-span-full text-center py-16 bg-white border-2 border-dashed border-slate-200 rounded-3xl">
                         <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl"><i class="fas ${emptyIcon}"></i></div>
-                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-xl mb-2">ยังไม่มีข้อมูลห้องเรียน</h3>
+                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-xl mb-2">ยังไม่มีข้อมูล</h3>
                         <p class="text-sm text-slate-400 leading-relaxed">${emptyMsg}</p>
                     </div>`;
                 return;
             }
 
             container.innerHTML = classes.map(c => {
-                // หากเป็นโหมดเรียน ให้นักเรียนกดเข้าดูได้ในรูปแบบ student-classroom.html 
-                // หากยังไม่มีหน้านั้นก็ให้ลิงก์ไปหน้า detail ที่จัดการสิทธิ์เอา
-                const targetUrl = isTeacherMode ? `classroom-detail.html?id=${c.classroom_id}` : `classroom-detail.html?id=${c.classroom_id}`;
+                // สำหรับความสะดวก ทุกห้องใช้ classroom-detail ได้ แล้วให้หน้านั้นเช็คสิทธิ์เอาว่าจะเป็น View หรือ Manage
+                const targetUrl = `classroom-detail.html?id=${c.classroom_id}`;
                 return `
                     <div class="class-card group" onclick="window.location.href='${targetUrl}'">
                         <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #00008B, #0000cd)'};">
@@ -553,8 +607,7 @@
             try {
                 const db = getDB();
                 
-                // ค้นหาห้องเรียนจากรหัสที่กรอก (สมมติว่าตาราง classrooms มี class_code หรือ join_code)
-                // ตรวจสอบทั้ง 2 ชื่อคอลัมน์เผื่อไว้
+                // ค้นหาห้องเรียนจากรหัสที่กรอก (class_code หรือ join_code)
                 let targetClass = null;
                 const { data: c1 } = await db.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
                 if (c1) { targetClass = c1; }
@@ -564,17 +617,18 @@
                 }
                 
                 if (!targetClass) {
-                    throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบรหัสให้ถูกต้องครับ');
+                    throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
                 }
 
-                // เช็คว่าเคยเข้าแล้วหรือยัง (รองรับทั้ง user_id และ student_id)
-                let existQuery = db.from('classroom_students').select('*').eq('classroom_id', targetClass.classroom_id);
+                // เช็คว่าเคยเข้าแล้วหรือยัง (รองรับ user_id และ student_id)
                 const { data: testCol } = await db.from('classroom_students').select('user_id').limit(1);
-                
-                // ถ้า Query error แปลว่าไม่มีคอลัมน์ user_id ให้ใช้ student_id แทน
                 const userIdCol = testCol === null ? 'student_id' : 'user_id';
                 
-                const { data: existEnroll } = await db.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq(userIdCol, userProfile.id).maybeSingle();
+                const { data: existEnroll } = await db.from('classroom_students')
+                    .select('enrollment_id')
+                    .eq('classroom_id', targetClass.classroom_id)
+                    .eq(userIdCol, currentUser.id)
+                    .maybeSingle();
                 
                 if (existEnroll) {
                     throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
@@ -583,9 +637,9 @@
                 // บันทึกลงตาราง classroom_students
                 const payload = {
                     classroom_id: targetClass.classroom_id,
-                    student_number: 0 
+                    student_number: 0 // อนาคตอาจทำระบบแก้ไขเลขที่ได้
                 };
-                payload[userIdCol] = userProfile.id; // ไดนามิกคอลัมน์
+                payload[userIdCol] = currentUser.id;
 
                 const { error: enrollError } = await db.from('classroom_students').insert([payload]);
 
@@ -607,7 +661,7 @@
             showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'warning', async () => {
                 const db = getDB();
                 await db.auth.signOut();
-                localStorage.removeItem('flip_student_session');
+                localStorage.removeItem('flip_active_view');
                 window.location.replace('login.html');
             });
         }
