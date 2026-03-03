@@ -73,9 +73,73 @@
         .student-card:hover .btn-delete-st { right: 15px; opacity: 1; }
         .btn-delete-st:hover { background: #ff4757; color: white; }
 
-        /* --- FAB Button --- */
-        .fab-add { position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px); width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; border: none; font-size: clamp(24px, 6vw, 30px); cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: 0.3s; }
-        .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
+        /* =========================================================
+           ✨ Floating Action Button & Menu (Speed Dial) ✨
+           ========================================================= */
+        .fab-container {
+            position: fixed; 
+            bottom: clamp(20px, 5vw, 40px); 
+            right: clamp(20px, 5vw, 40px);
+            z-index: 998; 
+        }
+        
+        .fab-menu {
+            position: absolute; 
+            bottom: calc(100% + 15px); /* ลอยอยู่เหนือปุ่มหลัก */
+            right: 0;
+            display: flex; 
+            flex-direction: column-reverse; /* เรียงจากล่างขึ้นบน */
+            align-items: flex-end; 
+            gap: 15px;
+            pointer-events: none; /* ห้ามคลิกโดนตอนซ่อน */
+        }
+        
+        .fab-item {
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer;
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(20px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: right bottom;
+        }
+
+        .fab-menu.show .fab-item {
+            opacity: 1; 
+            visibility: visible; 
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        
+        .fab-menu.show .fab-item:nth-child(1) { transition-delay: 0.05s; }
+        .fab-menu.show .fab-item:nth-child(2) { transition-delay: 0.1s; }
+
+        .fab-label {
+            background: white; padding: 6px 14px; border-radius: 8px; font-family: 'Kanit';
+            font-size: 14px; font-weight: 500; color: #1e293b; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            white-space: nowrap; border: 1px solid #f1f5f9;
+        }
+        
+        .fab-action {
+            width: clamp(45px, 12vw, 50px); height: clamp(45px, 12vw, 50px); 
+            border-radius: 50%; border: none; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.2s;
+        }
+        .fab-item:hover .fab-action { transform: scale(1.1); }
+        .fab-item:hover .fab-label { color: var(--primary); }
+
+        .fab-add { 
+            width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; border: none; font-size: clamp(24px, 6vw, 30px); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s; 
+        }
+        .fab-add:hover:not(.active) { transform: scale(1.08); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
+        .fab-add.active {
+            transform: rotate(45deg); /* หมุนปุ่ม + ให้กลายเป็นตัว X */
+            background: #ff4757;
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
+        }
 
         /* --- Modals --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; transition: opacity 0.3s; }
@@ -213,32 +277,31 @@
         <div id="studentGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5"></div>
     </main>
 
-    <!-- FAB Button (สำหรับผู้สอนเท่านั้น) -->
-    <button class="fab-add hidden" id="fabAddBtn" onclick="openImportModal()"><i class="fas fa-user-plus"></i></button>
+    <!-- ✨ Floating Action Button & Menu (Speed Dial) ✨ -->
+    <div class="fab-container hidden" id="fabContainer">
+        <div class="fab-menu" id="fabMenu">
+            <!-- ลำดับที่ 1 (ล่างสุด) -->
+            <div class="fab-item" onclick="openExcelImport()">
+                <span class="fab-label">นำเข้าจากไฟล์ Excel</span>
+                <button class="fab-action" style="background: #10b981; color: white;"><i class="fas fa-file-excel"></i></button>
+            </div>
+            <!-- ลำดับที่ 2 (บนสุด) -->
+            <div class="fab-item" onclick="startCopyFromClass()">
+                <span class="fab-label">คัดลอกจากห้องเรียนอื่น</span>
+                <button class="fab-action" style="background: var(--primary-light); color: white;"><i class="fas fa-users-class"></i></button>
+            </div>
+        </div>
+        <button class="fab-add" id="fabMainBtn" onclick="toggleFabMenu()" title="เพิ่มนักเรียน">
+            <i class="fas fa-user-plus"></i>
+        </button>
+    </div>
 
-    <!-- ================= Import Modal (รวมหน้าต่างเลือกแบบนำเข้า) ================= -->
+    <!-- ================= Import Modal ================= -->
     <div id="importModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">
                 <span><i class="fas fa-users-cog mr-2"></i> จัดการรายชื่อนักเรียน</span>
                 <i class="fas fa-times" onclick="closeImportModal()" style="cursor:pointer; color: #a4b0be; transition: 0.2s;" onmouseover="this.style.color='#ff4757'" onmouseout="this.style.color='#a4b0be'"></i>
-            </div>
-            
-            <!-- Step 0: เลือกวิธีนำเข้า -->
-            <div id="step0" class="step-container">
-                <p class="text-slate-500 mb-4 text-center font-sans">เลือกวิธีการเพิ่มรายชื่อนักเรียนเข้าสู่ห้องเรียนนี้</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="p-6 border-2 border-slate-200 rounded-2xl hover:border-[var(--primary)] hover:bg-blue-50 cursor-pointer transition text-center flex flex-col items-center justify-center min-h-[160px]" onclick="goToStep(1)">
-                        <i class="fas fa-file-excel text-5xl text-emerald-500 mb-3"></i>
-                        <h3 class="font-bold font-['Kanit'] text-lg text-slate-700">นำเข้าจากไฟล์ Excel</h3>
-                        <p class="text-xs text-slate-500 mt-2">อัปโหลดรายชื่อใหม่จากไฟล์ .xlsx</p>
-                    </div>
-                    <div class="p-6 border-2 border-slate-200 rounded-2xl hover:border-[var(--accent)] hover:bg-orange-50 cursor-pointer transition text-center flex flex-col items-center justify-center min-h-[160px]" onclick="loadClassesForCopy()">
-                        <i class="fas fa-users-class text-5xl text-[var(--accent)] mb-3"></i>
-                        <h3 class="font-bold font-['Kanit'] text-lg text-slate-700">คัดลอกจากห้องเรียนอื่น</h3>
-                        <p class="text-xs text-slate-500 mt-2">ดึงรายชื่อจากวิชาอื่นในสังกัดเดียวกัน</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Step 1: อัปโหลดไฟล์ Excel -->
@@ -249,7 +312,7 @@
                     <p style="font-size: 13px; color: var(--text-muted); margin: 0;">รองรับไฟล์ .xlsx, .xls, .csv</p>
                     <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none" onchange="processFile()">
                 </div>
-                <button class="btn-back-step mt-4" onclick="goToStep(0)"><i class="fas fa-arrow-left"></i> ย้อนกลับไปเลือกวิธีใหม่</button>
+                <button class="btn-back-step mt-4" onclick="closeImportModal()"><i class="fas fa-times"></i> ยกเลิก</button>
             </div>
 
             <!-- Step 2: ตั้งค่าคอลัมน์ -->
@@ -268,6 +331,7 @@
                 </div>
                 <div id="mappingArea" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top: 15px;"></div>
                 <button class="btn-save" style="margin-top:25px;" onclick="prepareImport()">ตรวจสอบรายการทั้งหมด <i class="fas fa-arrow-right"></i></button>
+                <button class="btn-back-step mt-2" onclick="goToStep('step1')"><i class="fas fa-arrow-left"></i> ย้อนกลับไปเลือกไฟล์ใหม่</button>
             </div>
 
             <!-- Step 3: ยืนยันข้อมูล Excel -->
@@ -283,7 +347,7 @@
                     <div style="background:#e2e8f0; height:12px; border-radius:6px; overflow:hidden;"><div id="progressBar" style="background:var(--accent); width:0%; height: 100%; transition: 0.3s;"></div></div>
                 </div>
                 <button id="confirmBtn" class="btn-save" onclick="executeImport()"><i class="fas fa-check-circle"></i> ยืนยันและบันทึกข้อมูลนักเรียน</button>
-                <button class="btn-back-step" onclick="goToStep(2)"><i class="fas fa-undo"></i> ย้อนกลับไปตั้งค่าคอลัมน์</button>
+                <button class="btn-back-step" onclick="goToStep('step2')"><i class="fas fa-undo"></i> ย้อนกลับไปตั้งค่าคอลัมน์</button>
             </div>
 
             <!-- Step 4: คัดลอกรายชื่อจากห้องอื่น -->
@@ -312,7 +376,7 @@
                 </div>
                 
                 <button id="btnConfirmCopy" class="btn-save mt-4" disabled onclick="executeCopyImport()"><i class="fas fa-copy"></i> นำเข้ารายชื่อที่เลือก</button>
-                <button class="btn-back-step mt-2" onclick="goToStep(0)"><i class="fas fa-arrow-left"></i> ย้อนกลับ</button>
+                <button class="btn-back-step mt-2" onclick="closeImportModal()"><i class="fas fa-times"></i> ยกเลิก</button>
             </div>
 
         </div>
@@ -424,7 +488,8 @@
                         let targetCol = cls.owner_id ? 'owner_id' : 'teacher_id';
                         if (cls[targetCol] === currentUserId) {
                             isClassOwner = true;
-                            document.getElementById('fabAddBtn').classList.remove('hidden');
+                            // 🌟 แสดงคอนเทนเนอร์ปุ่มบวก หากมีสิทธิ์ 🌟
+                            document.getElementById('fabContainer').classList.remove('hidden');
                         } else {
                             // ซ่อนเมนูนำเข้าใน sidebar ถ้าไม่ใช่อาจารย์
                             document.querySelectorAll('.fa-file-excel').forEach(el => el.closest('.drawer-item').style.display = 'none');
@@ -500,54 +565,51 @@
                                 <div class="st-info">
                                     <h3>${s.title || ''}${s.first_name} ${s.last_name}</h3>
                                     <p><i class="fas fa-id-card"></i> รหัส: ${s.student_code || 'ไม่ระบุ'}</p>
-                                </div>
-                                ${delBtn}
-                            </div>
-                        `;
-                    });
-                } else {
-                    document.getElementById('totalCount').innerText = 0;
-                    container.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px; background: white; border-radius: 30px; border: 2px dashed #edf2f7; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;"><i class="fas fa-user-graduate"></i></div>
-                            <h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีรายชื่อนักเรียน</h3>
-                            ${isClassOwner ? `<p style="color: #636e72; margin: 0;">กดปุ่ม <i class="fas fa-user-plus mx-1"></i> มุมขวาล่างเพื่อเพิ่มรายชื่อนักเรียน</p>` : `<p style="color: #636e72; margin: 0;">รอคุณครูเพิ่มรายชื่อ</p>`}
-                        </div>
-                    `;
-                }
-            } catch(e) { console.error(e); }
+        // ================= ควบคุม Modal นำเข้า และ FAB Menu =================
+        function toggleFabMenu() {
+            const menu = document.getElementById('fabMenu');
+            const mainBtn = document.getElementById('fabMainBtn');
+            menu.classList.toggle('show');
+            mainBtn.classList.toggle('active');
         }
 
-        // ================= ลบนักเรียนออกจากห้อง =================
-        function removeStudent(userId, name) {
-            showCustomAlert(`ต้องการลบรายชื่อ <b>"${name}"</b><br>ออกจากห้องเรียนนี้ใช่หรือไม่?`, 'confirm', async () => {
-                document.getElementById('loadingOverlay').style.display = 'flex';
-                try {
-                    const { error } = await sysDB.from('classroom_users')
-                        .delete()
-                        .eq('classroom_id', currentClassId)
-                        .eq('user_id', userId);
-                    
-                    if (error) throw error;
-                    
-                    showCustomAlert('ลบรายชื่อออกจากห้องเรียนสำเร็จ', 'success', () => fetchStudents());
-                } catch(e) {
-                    showCustomAlert('เกิดข้อผิดพลาด: ' + e.message, 'error');
-                } finally {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                }
-            });
+        function closeFabMenu() {
+            const menu = document.getElementById('fabMenu');
+            const mainBtn = document.getElementById('fabMainBtn');
+            if (menu && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                mainBtn.classList.remove('active');
+            }
         }
 
-        // ================= ควบคุม Modal นำเข้า =================
-        function openImportModal() { 
+        // ปิดเมนูเมื่อคลิกพื้นที่อื่นบนหน้าจอ
+        document.addEventListener('click', function(event) {
+            const fabContainer = document.getElementById('fabContainer');
+            if (fabContainer && !fabContainer.contains(event.target)) {
+                closeFabMenu();
+            }
+        });
+
+        function openExcelImport() {
+            closeFabMenu();
             const d = document.getElementById('sideDrawer');
             if (d.classList.contains('translate-x-0')) toggleDrawer();
             
             const modal = document.getElementById('importModal');
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('show'), 10);
-            goToStep(0); // เริ่มที่ให้เลือกวิธี
+            goToStep('step1'); 
+        }
+
+        function startCopyFromClass() {
+            closeFabMenu();
+            const d = document.getElementById('sideDrawer');
+            if (d.classList.contains('translate-x-0')) toggleDrawer();
+            
+            const modal = document.getElementById('importModal');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+            loadClassesForCopy();
         }
         
         function closeImportModal() { 
@@ -556,12 +618,15 @@
             setTimeout(() => modal.style.display = 'none', 300);
         }
         
-        function goToStep(s) { document.querySelectorAll('.step-container').forEach((el, i) => el.style.display = (i === s) ? 'block' : 'none'); }
+        function goToStep(stepId) { 
+            document.querySelectorAll('.step-container').forEach(el => el.style.display = 'none');
+            document.getElementById(stepId).style.display = 'block';
+        }
         function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
         // ================= โหมดคัดลอกจากห้องเรียนอื่น =================
         async function loadClassesForCopy() {
-            goToStep(4);
+            goToStep('step4');
             const selectEl = document.getElementById('sourceClassSelect');
             const btnConfirm = document.getElementById('btnConfirmCopy');
             const tbody = document.getElementById('copyPreviewBody');
@@ -692,7 +757,7 @@
                 allSheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header:1, defval:""});
                 document.getElementById('eRow').value = allSheetRows.length;
                 updatePreview();
-                goToStep(2);
+                goToStep('step2');
             };
             reader.readAsArrayBuffer(file);
         }
@@ -757,7 +822,7 @@
 
             finalImportList = raw.map((x, i) => ({ ...x, num: i + 1 }));
             document.getElementById('finalPreviewBody').innerHTML = finalImportList.map((x, i) => `<tr id="row_${i}"><td style="font-weight:bold;">${x.num}</td><td>${x.code}</td><td>${x.title}${x.fname} ${x.lname}</td><td>${x.birth || '-'}</td><td id="st_${i}"><div class="status-dot waiting"></div> รอคิว</td></tr>`).join('');
-            goToStep(3);
+            goToStep('step3');
         }
 
         async function executeImport() {
