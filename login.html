@@ -421,9 +421,9 @@
                 const { data: userRecord } = await db.from('users').select('user_id').eq('user_id', data.user.id).maybeSingle();
 
                 if (!userRecord) {
-                    // ไม่พบบัญชี -> เด้งถามว่าจะลงทะเบียนเข้าสู่ระบบเป็นนักเรียนหรือไม่
+                    // ไม่พบบัญชี -> เด้งถามว่าจะลงทะเบียนใหม่หรือไม่ (ใช้ข้อความรวม ไม่แยกครู/นักเรียน)
                     showCustomAlert(
-                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการลงทะเบียนบัญชี<br><b>${userEmail}</b><br>เพื่อเข้าร่วมเป็น <b>นักเรียน</b> หรือไม่?<br><small>(หากเป็นคุณครู กรุณากดยกเลิกและไปที่เมนูสร้างบัญชีใหม่)</small>`, 
+                        `ไม่พบข้อมูลของคุณในระบบ<br><br>คุณต้องการสร้างบัญชีผู้ใช้งานใหม่ด้วยอีเมล<br><b>${userEmail}</b><br>ใช่หรือไม่?`, 
                         'confirm', 
                         async () => {
                             try {
@@ -439,13 +439,13 @@
 
                                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
-                                // บันทึกเป็นนักเรียนใหม่ลงตาราง users
+                                // บันทึกเป็นผู้ใช้ใหม่ลงตาราง users (ให้สิทธิ์เริ่มต้นเป็น student ตาม Default ของระบบ)
                                 const { error: insertError } = await db.from('users').insert([{
                                     user_id: data.user.id,
                                     first_name: fName,
                                     last_name: lName,
                                     email: userEmail,
-                                    role: 'student',
+                                    role: 'student', 
                                     profile_pic: googlePic,
                                     created_at: new Date().toISOString()
                                 }]);
