@@ -179,11 +179,14 @@
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Custom Alert Modal */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        /* Custom Alert Modal (ดัน z-index ให้สูงกว่า Loader) */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
+        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
+        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
         .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
         .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 139, 0.2); }
 
@@ -218,8 +221,8 @@
             <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-th-large w-5"></i> แดชบอร์ด</a>
             <a href="#" id="btnBackToSubject" class="flex items-center gap-3 p-4 rounded-2xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all"><i class="fas fa-book-reader w-5"></i> หน้าห้องเรียน</a>
             <hr class="my-4 border-slate-100">
-            <div class="flex items-center gap-3 p-4 rounded-2xl hover:bg-emerald-50 text-emerald-600 font-bold transition-all cursor-pointer" onclick="openImportModal()"><i class="fas fa-file-excel w-5"></i> นำเข้ารายชื่อนักเรียน</div>
-            <a href="template_student.xlsx" download class="flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 text-[var(--accent)] font-bold transition-all cursor-pointer"><i class="fas fa-download w-5"></i> ดาวน์โหลดฟอร์ม Excel</a>
+            <div class="drawer-item flex items-center gap-3 p-4 rounded-2xl hover:bg-emerald-50 text-emerald-600 font-bold transition-all cursor-pointer" onclick="openExcelImport()"><i class="fas fa-file-excel w-5"></i> นำเข้ารายชื่อนักเรียน</div>
+            <a href="template_student.xlsx" download class="drawer-item flex items-center gap-3 p-4 rounded-2xl hover:bg-orange-50 text-[var(--accent)] font-bold transition-all cursor-pointer"><i class="fas fa-download w-5"></i> ดาวน์โหลดฟอร์ม Excel</a>
         </nav>
         <div class="p-4 border-t border-slate-100">
             <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all border-none"><i class="fas fa-sign-out-alt w-5"></i> ออกจากระบบ</button>
@@ -353,7 +356,7 @@
             <!-- Step 4: คัดลอกรายชื่อจากห้องอื่น -->
             <div id="step4" class="step-container" style="display:none;">
                 <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">เลือกห้องเรียนต้นทาง</label>
-                <select id="sourceClassSelect" class="w-full padding-3 border-2 border-slate-200 rounded-xl font-sans mb-4 p-3 outline-none focus:border-[var(--primary-light)]" onchange="previewStudentsToCopy()">
+                <select id="sourceClassSelect" class="w-full border-2 border-slate-200 rounded-xl font-sans mb-4 p-3 outline-none focus:border-[var(--primary-light)]" onchange="previewStudentsToCopy()">
                     <option value="">กำลังโหลดห้องเรียน...</option>
                 </select>
                 
@@ -383,8 +386,8 @@
     </div>
 
     <!-- Custom Alert Modal -->
-    <div id="customAlertModal" class="custom-modal-overlay" style="z-index: 5000;">
-        <div class="custom-modal-box text-center" style="max-width: 400px; border-radius: 25px;">
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box text-center">
             <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
@@ -408,16 +411,16 @@
         }
 
         let currentUserId = null;
-        let currentUserData = null;
         let currentClassId = new URLSearchParams(window.location.search).get('id') || new URLSearchParams(window.location.search).get('cid');
         let currentSchoolId = null;
         let isClassOwner = false;
         let allSheetRows = [], finalImportList = [];
         let copyCandidates = [];
 
+        // ลบ title ออกจาก MAPPING_CONFIG เพื่อป้องกัน Error หากไม่มีในตารางผู้ใช้
         const MAPPING_CONFIG = [
             { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
-            { key: 'title', label: 'คำนำหน้า', keywords: ['คำนำหน้า', 'title', 'prefix'] },
+            { key: 'title', label: 'คำนำหน้า (ใส่รวมไปในชื่อ)', keywords: ['คำนำหน้า', 'title', 'prefix'] },
             { key: 'first_name', label: 'ชื่อ*', keywords: ['ชื่อ', 'name', 'first', 'fname'] },
             { key: 'last_name', label: 'นามสกุล*', keywords: ['นามสกุล', 'surname', 'last', 'lname', 'สกุล'] },
             { key: 'birth_date', label: 'วดป.เกิด', keywords: ['เกิด', 'birth', 'วดป', 'วันเกิด'] }
@@ -481,17 +484,15 @@
 
                         await fetchProfile();
                         
-                        const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*, schools(school_name)').eq('classroom_id', currentClassId).single();
-                        if (clsErr || !cls) throw new Error("ไม่พบข้อมูลห้องเรียน");
+                        // แยก Query เพื่อป้องกันปัญหา Foreign Key error กรณีไม่มีตาราง schools
+                        const { data: cls, error: clsErr } = await window.sysDB.from('classrooms').select('*').eq('classroom_id', currentClassId).single();
+                        if (clsErr || !cls) throw new Error("ไม่พบข้อมูลห้องเรียน หรือเกิดข้อผิดพลาดในการเชื่อมต่อ");
                         
-                        // เช็คสิทธิ์ว่าเป็นเจ้าของห้องหรือไม่
-                        let targetCol = cls.owner_id ? 'owner_id' : 'teacher_id';
+                        let targetCol = cls.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
                         if (cls[targetCol] === currentUserId) {
                             isClassOwner = true;
-                            // 🌟 แสดงคอนเทนเนอร์ปุ่มบวก หากมีสิทธิ์ 🌟
                             document.getElementById('fabContainer').classList.remove('hidden');
                         } else {
-                            // ซ่อนเมนูนำเข้าใน sidebar ถ้าไม่ใช่อาจารย์
                             document.querySelectorAll('.fa-file-excel').forEach(el => el.closest('.drawer-item').style.display = 'none');
                         }
                         
@@ -499,10 +500,11 @@
                         document.getElementById('txtSubjectFull').innerText = `${cls.subject_name} (${cls.room_name})`;
                         document.getElementById('txtClassDetails').innerHTML = `<i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${cls.semester || '-'} | ปีการศึกษา ${cls.academic_year || '-'}`;
                         
-                        // 🌟 แสดงป้ายสถานศึกษา (School Context) 🌟
                         const schoolBadge = document.getElementById('schoolContextBadge');
-                        if (cls.school_id && cls.schools) {
-                            schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${cls.schools.school_name}`;
+                        if (cls.school_id) {
+                            // ดึงชื่อโรงเรียนมาโชว์
+                            const { data: sData } = await window.sysDB.from('schools').select('school_name').eq('school_id', cls.school_id).maybeSingle();
+                            schoolBadge.innerHTML = `<i class="fas fa-school text-yellow-300"></i> ${sData ? sData.school_name : 'ไม่ทราบชื่อโรงเรียน'}`;
                         } else {
                             schoolBadge.innerHTML = `<i class="fas fa-user text-sky-300"></i> พื้นที่ส่วนตัว`;
                         }
@@ -515,6 +517,8 @@
                         setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
                     } catch (err) {
                         console.error("Error:", err);
+                        // ซ่อน loader เสมอก่อนโชว์แจ้งเตือน
+                        document.getElementById('loadingOverlay').style.display = 'none';
                         showCustomAlert(err.message, 'error', () => window.location.replace('dashboard.html'));
                     }
                 } 
@@ -537,17 +541,19 @@
 
         async function fetchStudents() {
             try {
-                const { data } = await window.sysDB
+                // เอา title ออกจาก Query เพื่อป้องกัน error เพราะ database_users_schema.sql ล่าสุดไม่มี
+                const { data, error } = await window.sysDB
                     .from('classroom_users')
-                    .select('student_number, user_id, users(first_name, last_name, title, student_code)')
+                    .select('student_number, user_id, users(first_name, last_name, student_code)')
                     .eq('classroom_id', currentClassId)
                     .order('student_number');
                 
+                if (error) throw error;
+
                 const container = document.getElementById('studentGrid'); 
                 container.innerHTML = '';
                 
                 if(data && data.length > 0) {
-                    // กรองเอาเฉพาะที่ users ไม่เป็น null (เผื่อ error)
                     const validData = data.filter(item => item.users !== null);
                     document.getElementById('totalCount').innerText = validData.length;
                     
@@ -563,8 +569,47 @@
                             <div class="student-card group">
                                 <div class="st-num">${item.student_number}</div>
                                 <div class="st-info">
-                                    <h3>${s.title || ''}${s.first_name} ${s.last_name}</h3>
+                                    <h3>${s.first_name} ${s.last_name}</h3>
                                     <p><i class="fas fa-id-card"></i> รหัส: ${s.student_code || 'ไม่ระบุ'}</p>
+                                </div>
+                                ${delBtn}
+                            </div>
+                        `;
+                    });
+                } else {
+                    document.getElementById('totalCount').innerText = 0;
+                    container.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px; background: white; border-radius: 30px; border: 2px dashed #edf2f7; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;"><i class="fas fa-user-graduate"></i></div>
+                            <h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีรายชื่อนักเรียน</h3>
+                            ${isClassOwner ? `<p style="color: #636e72; margin: 0;">กดปุ่ม <i class="fas fa-user-plus mx-1"></i> มุมขวาล่างเพื่อเพิ่มรายชื่อนักเรียน</p>` : `<p style="color: #636e72; margin: 0;">รอคุณครูเพิ่มรายชื่อ</p>`}
+                        </div>
+                    `;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // ================= ลบนักเรียนออกจากห้อง =================
+        function removeStudent(userId, name) {
+            showCustomAlert(`ต้องการลบรายชื่อ <b>"${name}"</b><br>ออกจากห้องเรียนนี้ใช่หรือไม่?`, 'confirm', async () => {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                try {
+                    const { error } = await sysDB.from('classroom_users')
+                        .delete()
+                        .eq('classroom_id', currentClassId)
+                        .eq('user_id', userId);
+                    
+                    if (error) throw error;
+                    
+                    showCustomAlert('ลบรายชื่อออกจากห้องเรียนสำเร็จ', 'success', () => fetchStudents());
+                } catch(e) {
+                    showCustomAlert('เกิดข้อผิดพลาด: ' + e.message, 'error');
+                } finally {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            });
+        }
+
         // ================= ควบคุม Modal นำเข้า และ FAB Menu =================
         function toggleFabMenu() {
             const menu = document.getElementById('fabMenu');
@@ -582,7 +627,6 @@
             }
         }
 
-        // ปิดเมนูเมื่อคลิกพื้นที่อื่นบนหน้าจอ
         document.addEventListener('click', function(event) {
             const fabContainer = document.getElementById('fabContainer');
             if (fabContainer && !fabContainer.contains(event.target)) {
@@ -675,7 +719,7 @@
 
             try {
                 const { data, error } = await sysDB.from('classroom_users')
-                    .select('student_number, user_id, users(first_name, last_name, title, student_code)')
+                    .select('student_number, user_id, users(first_name, last_name, student_code)')
                     .eq('classroom_id', srcId)
                     .order('student_number');
 
@@ -694,7 +738,7 @@
                         <td class="text-center py-3"><input type="checkbox" class="copy-cb w-4 h-4 accent-[var(--primary)] cursor-pointer" value="${i}" checked onchange="checkConfirmBtn()"></td>
                         <td class="py-3 font-bold">${item.student_number}</td>
                         <td class="py-3">${item.users.student_code || '-'}</td>
-                        <td class="py-3">${item.users.title || ''}${item.users.first_name} ${item.users.last_name}</td>
+                        <td class="py-3">${item.users.first_name} ${item.users.last_name}</td>
                     </tr>
                 `).join('');
                 
@@ -800,7 +844,7 @@
             const sortType = document.querySelector('input[name="sortType"]:checked').value;
             const map = {
                 code: document.getElementById('map_student_code').value,
-                title: document.getElementById('map_student_title').value,
+                title: document.getElementById('map_title').value,
                 fname: document.getElementById('map_first_name').value,
                 lname: document.getElementById('map_last_name').value,
                 birth: document.getElementById('map_birth_date').value
@@ -809,7 +853,8 @@
             let raw = allSheetRows.slice(s, e).map(row => {
                 const title = String(row[map.title] || "").trim();
                 return {
-                    code: String(row[map.code] || "").trim(), title: title,
+                    code: String(row[map.code] || "").trim(), 
+                    title: title,
                     fname: formatVal(row[map.fname]),
                     lname: formatVal(row[map.lname]),
                     birth: parseBirthDate(row[map.birth]),
@@ -823,6 +868,24 @@
             finalImportList = raw.map((x, i) => ({ ...x, num: i + 1 }));
             document.getElementById('finalPreviewBody').innerHTML = finalImportList.map((x, i) => `<tr id="row_${i}"><td style="font-weight:bold;">${x.num}</td><td>${x.code}</td><td>${x.title}${x.fname} ${x.lname}</td><td>${x.birth || '-'}</td><td id="st_${i}"><div class="status-dot waiting"></div> รอคิว</td></tr>`).join('');
             goToStep('step3');
+        }
+
+        function parseBirthDate(val) {
+            if(!val) return null;
+            if(val instanceof Date) {
+                let y = val.getFullYear();
+                if(y > 2400) y -= 543;
+                return `${y}-${String(val.getMonth()+1).padStart(2,'0')}-${String(val.getDate()).padStart(2,'0')}`;
+            }
+            let str = String(val).trim();
+            let p = str.split(/[-/.]/);
+            if(p.length === 3) {
+                let y = parseInt(p[2].length === 4 ? p[2] : p[0]);
+                if(y > 2400) y -= 543;
+                let m = String(p[1]).padStart(2,'0'), d = String(p[2].length === 4 ? p[0] : p[2]).padStart(2,'0');
+                return `${y}-${m}-${d}`;
+            }
+            return null;
         }
 
         async function executeImport() {
@@ -852,8 +915,8 @@
                     if (existingUser) {
                         studentUserId = existingUser.user_id;
                         await window.sysDB.from('users').update({
-                            title: item.title,
-                            first_name: item.fname,
+                            // นำคำนำหน้าไปรวมกับชื่อจริง เพราะไม่มีคอลัมน์ title
+                            first_name: (item.title ? item.title : '') + item.fname,
                             last_name: item.lname,
                             birth_date: item.birth
                         }).eq('user_id', studentUserId);
@@ -861,8 +924,7 @@
                         studentUserId = crypto.randomUUID(); 
                         const { error: insertUserErr } = await window.sysDB.from('users').insert({
                             user_id: studentUserId,
-                            title: item.title,
-                            first_name: item.fname,
+                            first_name: (item.title ? item.title : '') + item.fname,
                             last_name: item.lname,
                             student_code: item.code,
                             birth_date: item.birth,
