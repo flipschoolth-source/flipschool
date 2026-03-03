@@ -932,73 +932,86 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
             document.getElementById('progressSection').style.display = 'block';
 
-            // ดึงข้อมูลใน user_school ของโรงเรียนนี้ที่มีอยู่แล้วมาเช็ค
-            const { data: existingLocal } = await sysDB.from('user_school')
-                .select('id, user_id, student_code')
-                .eq('school_id', currentSchoolId);
-
-            // ดึงข้อมูล classroom_users ปัจจุบันมาเช็ค
-            const { data: existingEnroll } = await sysDB.from('classroom_users')
-                .select('enrollment_id, user_id')
-                .eq('classroom_id', currentClassId);
-            
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
                 const dot = document.querySelector(`#row_${i} .status-dot`);
+                const statusCell = document.getElementById(`st_${i}`);
                 if(dot) dot.className = "status-dot waiting";
                 
                 try {
                     let studentUserId;
-                    const existingUser = existingLocal ? existingLocal.find(u => u.student_code === item.code) : null;
                     const fNameMerged = (item.title ? item.title : '') + item.fname;
+
+                    // 1. ค้นหาข้อมูลแบบ Real-time ทีละรายการ ป้องกันบั๊กกรณีเข้าไปลบข้อมูลใน DB แล้วไม่ได้รีเฟรชหน้าเว็บ
+                    const { data: existingUser, error: errChk1 } = await sysDB.from('user_school')
+                        .select('id, user_id')
+                        .eq('school_id', currentSchoolId)
+                        .eq('student_code', String(item.code))
+                        .maybeSingle();
+
+                    if (errChk1) throw errChk1;
 
                     // --- ส่วนที่ 1: จัดการข้อมูลใน user_school ---
                     if (existingUser) {
                         studentUserId = existingUser.user_id;
-                        // อัปเดตข้อมูลนักเรียนเก่า
-                        await sysDB.from('user_school').update({
+                        // อัปเดตข้อมูลนักเรียนเก่า พร้อมจับ Error
+                        const { error: errUpd1 } = await sysDB.from('user_school').update({
                             first_name: fNameMerged,
                             last_name: item.lname,
                             birth_date: item.birth
                         }).eq('id', existingUser.id);
+                        
+                        if (errUpd1) throw errUpd1;
                     } else {
-                        // สร้างนักเรียนใหม่ด้วย user_id จำลองขึ้นมา (ไม่เชื่อมต่อ auth.users)
+                        // สร้างนักเรียนใหม่
                         studentUserId = crypto.randomUUID(); 
-                        await sysDB.from('user_school').insert({
+                        const { error: errIns1 } = await sysDB.from('user_school').insert({
                             user_id: studentUserId,
                             school_id: currentSchoolId,
-                            student_code: item.code,
+                            student_code: String(item.code),
                             first_name: fNameMerged,
                             last_name: item.lname,
                             birth_date: item.birth,
                             role: 'student',
                             verification_status: 'approved' 
                         });
+                        
+                        if (errIns1) throw errIns1;
                     }
 
                     // --- ส่วนที่ 2: นำมาผูกใน classroom_users ---
-                    const enroll = existingEnroll ? existingEnroll.find(e => e.user_id === studentUserId) : null;
-                    if (enroll) {
-                        // ถ้าเคยอยู่แล้ว แค่อัปเดตเลขที่ให้
-                        await sysDB.from('classroom_users').update({
+                    const { data: existingEnroll, error: errChk2 } = await sysDB.from('classroom_users')
+                        .select('enrollment_id')
+                        .eq('classroom_id', currentClassId)
+                        .eq('user_id', studentUserId)
+                        .maybeSingle();
+
+                    if (errChk2) throw errChk2;
+
+                    if (existingEnroll) {
+                        // อัปเดตเลขที่ให้ พร้อมจับ Error
+                        const { error: errUpd2 } = await sysDB.from('classroom_users').update({
                             student_number: item.num
-                        }).eq('enrollment_id', enroll.enrollment_id);
+                        }).eq('enrollment_id', existingEnroll.enrollment_id);
+                        
+                        if (errUpd2) throw errUpd2;
                     } else {
-                        // แทรกรายชื่อลงในห้อง
-                        await sysDB.from('classroom_users').insert({ 
+                        // แทรกรายชื่อลงในห้อง พร้อมจับ Error
+                        const { error: errIns2 } = await sysDB.from('classroom_users').insert({ 
                             classroom_id: currentClassId, 
                             user_id: studentUserId,
                             student_number: item.num 
                         });
+                        
+                        if (errIns2) throw errIns2;
                     }
                     
                     if(dot) dot.className = "status-dot done";
-                    const statusCell = document.getElementById(`st_${i}`);
                     if(statusCell) statusCell.innerHTML = `<div class="status-dot done"></div> <span style="color:#10b981; font-weight:600;">สำเร็จ</span>`;
                 } catch (err) {
                     if(dot) dot.className = "status-dot error";
-                    const statusCell = document.getElementById(`st_${i}`);
-                    if(statusCell) statusCell.innerHTML = `<div class="status-dot error"></div> <span style="color:#ef4444; font-weight:600;">ล้มเหลว</span>`;
+                    // แสดงข้อความ Error จากฐานข้อมูลบนหน้าจอ เพื่อให้ทราบสาเหตุที่แท้จริง
+                    if(statusCell) statusCell.innerHTML = `<div class="status-dot error"></div> <span style="color:#ef4444; font-weight:600;">ล้มเหลว</span><div style="font-size:11px; color:#ff4757; line-height:1.2; margin-top:4px;">${err.message || 'ข้อผิดพลาดฐานข้อมูล'}</div>`;
                     console.error("Row Error:", err);
                 }
                 
@@ -1007,7 +1020,7 @@
                 document.getElementById('progressPercent').innerText = p+'%';
             }
             
-            showCustomAlert("นำเข้าข้อมูลเสร็จสมบูรณ์!", "success", () => {
+            showCustomAlert("นำเข้าข้อมูลเสร็จสมบูรณ์! (ระบบจะแสดงรายการที่สำเร็จและล้มเหลวให้ท่านตรวจสอบ)", "success", () => {
                 location.reload();
             });
         }
