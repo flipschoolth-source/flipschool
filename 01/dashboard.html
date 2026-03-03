@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>แดชบอร์ด - FlipSchool</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <!-- Tailwind & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
+            margin: 0; padding: 0; overflow-x: hidden; 
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        .nav-gradient { background: var(--primary); box-shadow: 0 4px 20px rgba(0,0,80,0.15); }
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+
+        /* --- Tabs --- */
+        .tab-btn {
+            padding: clamp(10px, 3vw, 14px) clamp(20px, 5vw, 30px);
+            border-radius: 50px; font-family: 'Kanit'; font-weight: 600; font-size: clamp(14px, 4vw, 16px);
+            transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; white-space: nowrap;
+        }
+        .tab-inactive { background: white; color: var(--text-muted); box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-color: #e2e8f0; }
+        .tab-inactive:hover { background: #f8faff; color: var(--primary-light); border-color: #cbd5e1; }
+        .tab-active { background: var(--primary); color: white; box-shadow: 0 8px 20px rgba(0, 82, 212, 0.2); }
+
+        /* --- Class Card --- */
+        .class-card { 
+            background: white; border-radius: clamp(20px, 4vw, 30px); overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: 0.4s; cursor: pointer; 
+            border: 1px solid rgba(0,0,0,0.02); display: flex; flex-direction: column; height: 100%; 
+        }
+        .class-card:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(0,0,0,0.08); border-color: #dbeafe; }
+        .card-banner { height: clamp(100px, 20vw, 120px); display: flex; align-items: center; justify-content: center; font-size: 45px; color: rgba(255,255,255,0.3); }
+        .card-body { padding: clamp(15px, 4vw, 25px); display: flex; flex-direction: column; flex: 1; }
+        .room-badge { display: inline-block; padding: 6px 16px; background: #f0f4ff; color: var(--primary-light); border-radius: 50px; font-size: 13px; font-weight: 700; margin-bottom: 12px; align-self: flex-start; }
+        .subject-title { font-family: 'Kanit'; font-size: clamp(18px, 5vw, 22px); font-weight: 600; color: #2d3436; margin: 0; line-height: 1.3; }
+
+        /* --- Modals --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; transition: opacity 0.3s; }
+        .modal-box { background: white; border-radius: clamp(20px, 5vw, 30px); width: 100%; max-width: 450px; padding: clamp(25px, 6vw, 35px); box-shadow: 0 20px 50px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
+
+        .form-input { width: 100%; padding: 14px 18px; border: 2px solid #eef2f7; border-radius: 15px; font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; background: #f8faff; outline: none; }
+        .form-input:focus { border-color: var(--primary-light); background: white; box-shadow: 0 0 0 4px rgba(0,82,212,0.1); }
+        
+        .btn-theme { background: var(--primary); color: white; padding: 14px; border-radius: 15px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.3s; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-theme:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,82,212,0.2); }
+
+        /* --- FAB Button --- */
+        .fab-add { position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px); width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; font-size: clamp(24px, 6vw, 30px); cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: 0.3s; }
+        .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
+
+        /* Loader */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <!-- Drawer Overlay & Sidebar -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1990] bg-black/50 backdrop-blur-sm hidden transition-opacity"></div>
+    <div id="sideDrawer" class="fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white z-[2000] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out rounded-r-3xl flex flex-col">
+        <div class="p-6 md:p-8 border-b border-slate-100 text-center relative">
+            <button onclick="toggleDrawer()" class="absolute top-4 right-4 w-8 h-8 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-colors"><i class="fas fa-times"></i></button>
+            <div class="w-24 h-24 mx-auto bg-slate-100 rounded-full p-1 shadow-inner mb-4 relative">
+                <img id="sidebarProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-full h-full rounded-full object-cover border-4 border-white shadow-md">
+            </div>
+            <h3 id="sidebarName" class="font-bold text-xl text-slate-800 font-['Kanit']">...</h3>
+            <p id="sidebarEmail" class="text-sm text-slate-500 mt-1">...</p>
+            <div id="sidebarRoleBadge" class="inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase">...</div>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto">
+            <div id="schoolInfoBox" class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4 hidden">
+                <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">สถานศึกษา</p>
+                <p id="sidebarSchoolName" class="font-bold text-blue-900 text-sm">...</p>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-100">
+            <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="nav-gradient px-4 md:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-3 md:gap-4">
+            <button onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-all text-white">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                    <span class="text-xl md:text-2xl text-[var(--primary)]">🎓</span>
+                </div>
+                <div class="flex flex-col">
+                    <div class="text-xl md:text-[26px] font-bold tracking-tight leading-none text-white font-['Kanit']">
+                        <span id="displayAppName">Flip</span><span class="text-[var(--accent)]">School</span>
+                    </div>
+                    <span id="displayAppSlogan" class="text-[10px] md:text-[12px] text-[#e0e8ff] font-medium mt-0.5 tracking-wide italic hidden md:block"></span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white/30 shadow-sm cursor-pointer hover:scale-105 transition-transform object-cover" onclick="toggleDrawer()">
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header class="header-gradient text-white py-8 md:py-12 px-6 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2.5rem] shadow-sm mb-6">
+        <div class="container mx-auto relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] mb-2"><span id="welcomeText">สวัสดี...</span></h1>
+                <p class="text-sm md:text-base text-blue-100 opacity-90 font-medium">ยินดีต้อนรับสู่พื้นที่การเรียนรู้ของคุณ</p>
+            </div>
+            <!-- สถิติเบื้องต้น -->
+            <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[110px] flex-1 md:flex-none shadow-lg">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่สอน</p>
+                    <p id="countTeach" class="text-2xl font-black">0</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[110px] flex-1 md:flex-none shadow-lg">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">ห้องที่เรียน</p>
+                    <p id="countLearn" class="text-2xl font-black">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-6xl relative">
+        
+        <!-- Tabs ควบคุมการแสดงผล -->
+        <div class="flex space-x-3 mb-8 overflow-x-auto pb-2 scrollbar-hide" id="tabsContainer">
+            <button id="tabTeach" class="tab-btn tab-active" onclick="switchTab('teach')">
+                <i class="fas fa-chalkboard-teacher"></i> พื้นที่การสอน (ครู)
+            </button>
+            <button id="tabLearn" class="tab-btn tab-inactive" onclick="switchTab('learn')">
+                <i class="fas fa-user-graduate"></i> พื้นที่การเรียนรู้ (นักเรียน)
+            </button>
+        </div>
+
+        <!-- Section: ห้องเรียนที่ฉันสอน (Teacher) -->
+        <div id="sectionTeach" class="block animate-fade-in">
+            <div id="gridTeach" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                <!-- Data goes here -->
+            </div>
+        </div>
+
+        <!-- Section: ห้องเรียนที่ฉันเข้าร่วม (Student) -->
+        <div id="sectionLearn" class="hidden animate-fade-in">
+            <div id="gridLearn" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                <!-- Data goes here -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Floating Action Button (สลับตาม Tab) -->
+    <button id="fabAction" class="fab-add" onclick="handleFabClick()">
+        <i id="fabIcon" class="fas fa-plus"></i>
+    </button>
+
+    <!-- Modal: เข้าร่วมห้องเรียนด้วยรหัส -->
+    <div id="joinClassModal" class="modal-overlay">
+        <div class="modal-box relative">
+            <button onclick="closeJoinModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-[#f0f4ff] text-[var(--primary-light)] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                    <i class="fas fa-sign-in-alt"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-[var(--primary)] font-['Kanit']">เข้าร่วมห้องเรียน</h2>
+                <p class="text-sm text-slate-500 mt-1">กรอกรหัสห้องเรียนที่ได้รับจากคุณครู</p>
+            </div>
+            <div class="mb-6">
+                <input type="text" id="classCodeInput" class="form-input text-center text-lg font-bold tracking-widest uppercase" placeholder="รหัส 6 หลัก (เช่น A1B2C3)">
+            </div>
+            <button onclick="submitJoinClass()" id="btnSubmitJoin" class="btn-theme">
+                ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
+        <div class="modal-box text-center">
+            <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
+            <h3 id="customAlertTitle" class="text-2xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans"></p>
+            <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="btn-theme max-w-[150px] mx-auto">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-6 text-center mt-auto">
+        <p class="text-[var(--primary)] font-bold mb-1 italic font-sans text-xs md:text-sm">© <span id="currentYear"></span> FlipSchool.</p>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let userProfile = null;
+        let activeTab = 'teach'; // 'teach' หรือ 'learn'
+        
+        let teachingClasses = [];
+        let learningClasses = [];
+
+        // UI & Utilities
+        function toggleDrawer() {
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('-translate-x-full');
+            ov.classList.toggle('hidden');
+        }
+
+        let alertCallback = null;
+        function showCustomAlert(message, type = 'error', callback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const icon = document.getElementById('customAlertIcon');
+            const title = document.getElementById('customAlertTitle');
+            const btn = document.getElementById('customAlertOkBtn');
+            
+            document.getElementById('customAlertMessage').innerHTML = message;
+            alertCallback = callback;
+
+            if (type === 'success') {
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>'; icon.className = 'text-5xl mb-4 text-emerald-500';
+                title.innerText = 'สำเร็จ!'; btn.style.background = '#10b981';
+            } else if (type === 'warning') {
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; icon.className = 'text-5xl mb-4 text-amber-500';
+                title.innerText = 'แจ้งเตือน'; btn.style.background = '#f59e0b';
+            } else {
+                icon.innerHTML = '<i class="fas fa-times-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
+                title.innerText = 'ข้อผิดพลาด'; btn.style.background = '#ef4444';
+            }
+            modal.classList.add('show');
+        }
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').classList.remove('show');
+            if (alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; }
+        }
+
+        // ================= เริ่มต้นการทำงาน =================
+        document.addEventListener('DOMContentLoaded', async () => {
+            // โหลด UI ตั้งค่า
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.title = `แดชบอร์ด - ${APP_CONFIG.APP_NAME || 'FlipSchool'}`;
+                document.getElementById('displayAppName').innerText = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip' : APP_CONFIG.APP_NAME;
+                document.getElementById('displayAppSlogan').innerText = APP_CONFIG.APP_SLOGAN || '';
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+            }
+
+            const checkDB = setInterval(async () => {
+                if (window.sysDB) {
+                    clearInterval(checkDB);
+                    await initDashboard();
+                }
+            }, 500);
+        });
+
+        async function initDashboard() {
+            try {
+                // 1. เช็ค Session
+                const { data: { session }, error: sessionError } = await sysDB.auth.getSession();
+                if (sessionError || !session) throw new Error("No session");
+
+                // 2. ดึงข้อมูลโปรไฟล์แบบ Unified
+                const { data: profile, error: profileError } = await sysDB.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).single();
+                if (profileError || !profile) throw new Error("Profile not found");
+
+                currentUser = session.user;
+                userProfile = profile;
+
+                // 3. จัดการแสดงผล UI ส่วนตัว
+                renderProfileUI();
+
+                // 4. โหลดข้อมูลห้องเรียนทั้ง 2 ส่วน
+                await Promise.all([fetchTeachingClasses(), fetchLearningClasses()]);
+
+                // 5. ตัดสินใจเลือก Tab เริ่มต้นตาม Role
+                if (profile.role === 'teacher') {
+                    switchTab('teach');
+                } else if (profile.role === 'student') {
+                    switchTab('learn');
+                    // ถ้านักเรียน 100% อาจจะซ่อนปุ่ม Tab สอนไปเลยก็ได้เพื่อไม่ให้สับสน
+                    document.getElementById('tabTeach').style.display = 'none';
+                } else {
+                    switchTab('learn');
+                }
+
+                document.getElementById('loadingOverlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+
+            } catch (err) {
+                console.error("Auth Error:", err);
+                window.location.replace('login.html');
+            }
+        }
+
+        function renderProfileUI() {
+            const fullName = `${userProfile.title || ''}${userProfile.first_name} ${userProfile.last_name}`.trim();
+            document.getElementById('welcomeText').innerText = `สวัสดี, ${userProfile.first_name}`;
+            document.getElementById('sidebarName').innerText = fullName;
+            document.getElementById('sidebarEmail').innerText = userProfile.email || userProfile.student_code || '';
+            
+            const picUrl = userProfile.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.first_name}`;
+            document.getElementById('navProfileImg').src = picUrl;
+            document.getElementById('sidebarProfileImg').src = picUrl;
+
+            // Role Badge
+            const badge = document.getElementById('sidebarRoleBadge');
+            if (userProfile.role === 'teacher') {
+                badge.innerText = 'คุณครู / ผู้สอน';
+                badge.className = 'inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-blue-100 text-blue-700';
+            } else {
+                badge.innerText = 'นักเรียน';
+                badge.className = 'inline-block mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-700';
+            }
+
+            // School Info
+            if (userProfile.schools && userProfile.schools.school_name) {
+                document.getElementById('schoolInfoBox').classList.remove('hidden');
+                document.getElementById('sidebarSchoolName').innerText = userProfile.schools.school_name;
+            }
+        }
+
+        // ================= สลับ Tabs และแสดงข้อมูล =================
+        function switchTab(tabName) {
+            activeTab = tabName;
+            const btnTeach = document.getElementById('tabTeach');
+            const btnLearn = document.getElementById('tabLearn');
+            const secTeach = document.getElementById('sectionTeach');
+            const secLearn = document.getElementById('sectionLearn');
+            const fabIcon = document.getElementById('fabIcon');
+
+            if (tabName === 'teach') {
+                btnTeach.className = 'tab-btn tab-active'; btnLearn.className = 'tab-btn tab-inactive';
+                secTeach.classList.remove('hidden'); secLearn.classList.add('hidden');
+                fabIcon.className = 'fas fa-plus'; // Icon สร้างห้อง
+            } else {
+                btnLearn.className = 'tab-btn tab-active'; btnTeach.className = 'tab-btn tab-inactive';
+                secLearn.classList.remove('hidden'); secTeach.classList.add('hidden');
+                fabIcon.className = 'fas fa-sign-in-alt'; // Icon เข้าร่วมห้อง
+            }
+        }
+
+        function handleFabClick() {
+            if (activeTab === 'teach') {
+                window.location.href = 'classroom-add.html';
+            } else {
+                // เปิด Modal กรอกรหัสเพื่อเข้าร่วมห้องเรียน
+                document.getElementById('classCodeInput').value = '';
+                document.getElementById('joinClassModal').classList.add('show');
+            }
+        }
+
+        function closeJoinModal() { document.getElementById('joinClassModal').classList.remove('show'); }
+
+        // ================= ดึงข้อมูลห้องเรียน (Teacher) =================
+        async function fetchTeachingClasses() {
+            try {
+                // อิงจาก DB Schema ใหม่: classrooms.owner_id
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
+                if (error) throw error;
+                teachingClasses = data || [];
+                document.getElementById('countTeach').innerText = teachingClasses.length;
+                renderClassGrid(teachingClasses, 'gridTeach', true);
+            } catch (e) { console.error("Fetch Teach Error:", e); }
+        }
+
+        // ================= ดึงข้อมูลห้องเรียน (Student) =================
+        async function fetchLearningClasses() {
+            try {
+                // อิงจาก DB Schema ใหม่: classroom_students.user_id
+                const { data, error } = await sysDB.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
+                if (error) throw error;
+                
+                learningClasses = (data || []).map(item => item.classrooms).filter(c => c !== null);
+                document.getElementById('countLearn').innerText = learningClasses.length;
+                renderClassGrid(learningClasses, 'gridLearn', false);
+            } catch (e) { console.error("Fetch Learn Error:", e); }
+        }
+
+        // ================= แสดงการ์ดห้องเรียน =================
+        function renderClassGrid(classes, containerId, isTeacherMode) {
+            const container = document.getElementById(containerId);
+            
+            if (classes.length === 0) {
+                const emptyMsg = isTeacherMode 
+                    ? 'คุณยังไม่มีห้องเรียนที่สร้างไว้<br>กดปุ่ม + มุมขวาล่างเพื่อสร้างเลย'
+                    : 'คุณยังไม่ได้เข้าร่วมห้องเรียนใดเลย<br>กดปุ่ม เข้าร่วม มุมขวาล่างเพื่อใส่รหัสห้องเรียน';
+                const emptyIcon = isTeacherMode ? 'fa-chalkboard' : 'fa-door-open';
+
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white border-2 border-dashed border-slate-200 rounded-3xl">
+                        <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl"><i class="fas ${emptyIcon}"></i></div>
+                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-xl mb-2">ยังไม่มีข้อมูลห้องเรียน</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">${emptyMsg}</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = classes.map(c => {
+                const targetUrl = isTeacherMode ? `classroom-detail.html?id=${c.classroom_id}` : `student-classroom.html?id=${c.classroom_id}`;
+                return `
+                    <div class="class-card" onclick="window.location.href='${targetUrl}'">
+                        <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #00008B, #0000cd)'};">
+                            <i class="fas fa-book-reader opacity-80"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="room-badge">${c.room_name || 'ไม่ระบุห้อง'}</div>
+                            <h3 class="subject-title">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
+                            <div class="mt-auto pt-4 flex items-center gap-2 text-sm text-slate-400 font-medium">
+                                <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ================= เข้าร่วมห้องเรียน (Join Class) =================
+        async function submitJoinClass() {
+            const inputCode = document.getElementById('classCodeInput').value.trim();
+            if (!inputCode) {
+                showCustomAlert('กรุณากรอกรหัสห้องเรียนก่อนครับ', 'warning'); return;
+            }
+
+            const btn = document.getElementById('btnSubmitJoin');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'; btn.disabled = true;
+
+            try {
+                // หมายเหตุ: โครงสร้างปัจจุบันของ classrooms ยังไม่มี column `class_code`
+                // หากยังไม่มี แนะนำให้ Alter table เพิ่ม `class_code text UNIQUE` ใน Supabase
+                // สมมติว่าเพิ่มแล้ว เราจะค้นหาห้องเรียนจากรหัสที่กรอก
+                const { data: targetClass, error: findError } = await sysDB.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
+                
+                if (!targetClass) {
+                    throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบรหัสให้ถูกต้องครับ');
+                }
+
+                // เช็คว่าเคยเข้าแล้วหรือยัง
+                const { data: existEnroll } = await sysDB.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', userProfile.id).maybeSingle();
+                
+                if (existEnroll) {
+                    throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
+                }
+
+                // บันทึกลงตาราง classroom_students
+                const { error: enrollError } = await sysDB.from('classroom_students').insert([{
+                    classroom_id: targetClass.classroom_id,
+                    user_id: userProfile.id,
+                    student_number: 0 // อาจให้กรอกเลขที่ภายหลัง
+                }]);
+
+                if (enrollError) throw enrollError;
+
+                closeJoinModal();
+                showCustomAlert(`เข้าร่วมวิชา ${targetClass.subject_name} สำเร็จ!`, 'success', async () => {
+                    await fetchLearningClasses();
+                });
+
+            } catch (err) {
+                showCustomAlert(err.message, 'error');
+            } finally {
+                btn.innerHTML = 'ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i>'; btn.disabled = false;
+            }
+        }
+
+        async function handleLogout() {
+            showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'warning', async () => {
+                await sysDB.auth.signOut();
+                localStorage.removeItem('flip_student_session');
+                window.location.replace('login.html');
+            });
+        }
+    </script>
+</body>
+</html>
