@@ -283,8 +283,7 @@
             }
 
             const checkDB = setInterval(async () => {
-                // อัปเดตใช้ window.sysDB ตลอดเพื่อป้องกัน ReferenceError
-                if (window.sysDB) {
+                if (typeof sysDB !== 'undefined') {
                     clearInterval(checkDB);
                     await initDashboard();
                 }
@@ -293,10 +292,10 @@
 
         async function initDashboard() {
             try {
-                const { data: { session }, error: sessionError } = await window.sysDB.auth.getSession();
+                const { data: { session }, error: sessionError } = await sysDB.auth.getSession();
                 if (sessionError || !session) throw new Error("No session");
 
-                const { data: profile, error: profileError } = await window.sysDB.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).single();
+                const { data: profile, error: profileError } = await sysDB.from('profiles').select('*, schools(school_name)').eq('id', session.user.id).single();
                 if (profileError || !profile) throw new Error("Profile not found");
 
                 currentUser = session.user;
@@ -383,7 +382,7 @@
         // ================= ดึงข้อมูลห้องเรียน (Teacher) =================
         async function fetchTeachingClasses() {
             try {
-                const { data, error } = await window.sysDB.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
+                const { data, error } = await sysDB.from('classrooms').select('*').eq('owner_id', userProfile.id).order('created_at', { ascending: false });
                 if (error) throw error;
                 teachingClasses = data || [];
                 document.getElementById('countTeach').innerText = teachingClasses.length;
@@ -394,7 +393,7 @@
         // ================= ดึงข้อมูลห้องเรียน (Student) =================
         async function fetchLearningClasses() {
             try {
-                const { data, error } = await window.sysDB.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
+                const { data, error } = await sysDB.from('classroom_students').select('classrooms(*)').eq('user_id', userProfile.id);
                 if (error) throw error;
                 
                 learningClasses = (data || []).map(item => item.classrooms).filter(c => c !== null);
@@ -452,19 +451,19 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'; btn.disabled = true;
 
             try {
-                const { data: targetClass, error: findError } = await window.sysDB.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
+                const { data: targetClass, error: findError } = await sysDB.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
                 
                 if (!targetClass) {
                     throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบรหัสให้ถูกต้องครับ');
                 }
 
-                const { data: existEnroll } = await window.sysDB.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', userProfile.id).maybeSingle();
+                const { data: existEnroll } = await sysDB.from('classroom_students').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', userProfile.id).maybeSingle();
                 
                 if (existEnroll) {
                     throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
                 }
 
-                const { error: enrollError } = await window.sysDB.from('classroom_students').insert([{
+                const { error: enrollError } = await sysDB.from('classroom_students').insert([{
                     classroom_id: targetClass.classroom_id,
                     user_id: userProfile.id,
                     student_number: 0 
@@ -486,7 +485,7 @@
 
         async function handleLogout() {
             showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'warning', async () => {
-                await window.sysDB.auth.signOut();
+                await sysDB.auth.signOut();
                 localStorage.removeItem('flip_student_session');
                 window.location.replace('login.html');
             });
