@@ -242,28 +242,31 @@
     </div>
 
     <script>
-        // ================= ฟังก์ชันหาตัวแปรเชื่อมต่อ DB แบบฉลาด (ป้องกัน sysDB is not defined) =================
-        let dbInstance = null;
+        // ================= ฟังก์ชันหาตัวแปรเชื่อมต่อ DB ให้แน่ใจ 100% =================
         function getDB() {
-            if (dbInstance) return dbInstance;
-
-            try { if (typeof sysDB !== 'undefined' && sysDB.auth) { dbInstance = sysDB; return dbInstance; } } catch(e){}
-            try { if (typeof window.sysDB !== 'undefined' && window.sysDB.auth) { dbInstance = window.sysDB; return dbInstance; } } catch(e){}
-            try { if (typeof supabase !== 'undefined' && supabase.auth) { dbInstance = supabase; return dbInstance; } } catch(e){}
-            try { if (typeof window.supabase !== 'undefined' && window.supabase.auth) { dbInstance = window.supabase; return dbInstance; } } catch(e){}
+            // 1. ถ้ามี window.sysDB ที่มี .auth อยู่แล้ว ให้ส่งกลับเลย
+            if (window.sysDB && window.sysDB.auth) {
+                return window.sysDB;
+            }
             
-            // หากหาตัวแปรที่ประกาศไว้ไม่เจอ ให้ลองสร้างใหม่จาก Config
-            try {
-                if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
-                    if (APP_CONFIG.SUPABASE_URL && APP_CONFIG.SUPABASE_ANON_KEY) {
-                        dbInstance = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
-                        window.sysDB = dbInstance; // ประกาศเก็บไว้เผื่อส่วนอื่นเรียกใช้
-                        return dbInstance;
-                    }
+            // 2. ถ้าหาไม่เจอ ให้เรียกฟังก์ชัน initSupabase() ในไฟล์ js/supabase-db.js เพื่อสร้างใหม่
+            if (typeof window.initSupabase === 'function') {
+                window.initSupabase();
+                if (window.sysDB && window.sysDB.auth) {
+                    return window.sysDB;
                 }
-            } catch(e) {}
+            }
 
-            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (โปรดตรวจสอบไฟล์ js/supabase-db.js)");
+            // 3. Fallback: สร้างการเชื่อมต่อใหม่ด้วยตัวเองจาก APP_CONFIG
+            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
+                const dbKey = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY;
+                if (APP_CONFIG.SUPABASE_URL && dbKey) {
+                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, dbKey);
+                    return window.sysDB;
+                }
+            }
+
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณารีเฟรชหน้าเว็บอีกครั้ง");
         }
 
         let alertCallback = null;
@@ -323,7 +326,7 @@
             // ตรวจสอบเซสชันเก่า (ทำงานแบบรอฐานข้อมูล)
             const checkSessionInterval = setInterval(async () => {
                 try {
-                    const db = getDB();
+                    const db = getDB(); // ใช้ฟังก์ชัน getDB เพื่อป้องกัน undefined
                     clearInterval(checkSessionInterval);
                     
                     const { data: { session } } = await db.auth.getSession();
@@ -485,8 +488,6 @@
                         let [y, m, d] = profile.birth_date.split('-');
                         let possibleDates = [ profile.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
                         if (possibleDates.includes(password)) {
-                            // กรณีนี้เพื่อความปลอดภัยจริง ควรใช้ supabase auth signIn เสมอ 
-                            // แต่ถ้าอนุโลมให้เข้าสู่ระบบได้ชั่วคราว เราต้องมี Email 
                             if (!profile.email) throw new Error("นักเรียนต้องทำการตั้งค่ารหัสผ่านใหม่ หรือผูกอีเมลก่อนเข้าใช้งาน");
                         }
                     }
