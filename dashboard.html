@@ -196,9 +196,41 @@
             box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
         }
 
-        /* --- Notification Animations --- */
+        /* --- Facebook-style Notification Dropdown --- */
+        .notif-container { position: relative; }
+        .notif-btn-wrapper { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .notif-btn-wrapper:hover { background: rgba(255,255,255,0.2); }
+        .notif-btn-wrapper i { font-size: 18px; color: white; transition: 0.3s; }
+        .notif-btn-wrapper.active { background: white; color: var(--primary); }
+        .notif-btn-wrapper.active i { color: var(--primary); }
+        
         @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
         .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
+
+        @media (max-width: 768px) { 
+            nav { padding: 0 16px; height: 80px; } 
+            .nav-left { gap: 10px; }
+            .brand-name { font-size: 20px; margin-bottom: 0; }
+            .logo-icon-box { width: 24px; height: 24px; border-radius: 6px; font-size: 14px; }
+            .nav-right { gap: 10px; }
+            .nav-profile-trigger { width: 36px; height: 36px; }
+            .notif-btn-wrapper { width: 36px; height: 36px; }
+            .notif-btn-wrapper i { font-size: 16px; }
+            .notif-dropdown { position: fixed; top: 75px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 90px); }
+            
+            .main-container { padding: 20px 2%; width: 98%; max-width: none; } 
+            .welcome-hero { padding: 25px 25px; flex-direction: column; text-align: left; border-radius: 16px; justify-content: center; } 
+            .welcome-header { font-size: 24px; margin-bottom: 5px; } 
+            .welcome-sub { font-size: 14px; margin-bottom: 0; }
+            .class-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; } 
+            .fab-add { bottom: 30px; right: 30px; width: 60px; height: 60px; font-size: 24px; } 
+            .filter-tab { font-size: 14px; padding: 10px 18px; }
+
+            /* ปรับแต่ง Sidebar ให้พอดีจอมือถือ */
+            .sidebar { width: 85vw; right: -100vw; padding: 30px 20px; border-radius: 30px 0 0 30px; }
+            .sidebar.active { right: 0; }
+            .sidebar-close-btn { top: 15px; left: 15px; width: 32px; height: 32px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -247,7 +279,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <!-- กระดิ่งแจ้งเตือน -->
+                <!-- กระดิ่งแจ้งเตือน (ซ่อน/แสดง อัตโนมัติด้วย JS) -->
                 <div class="relative cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
                     <i class="fas fa-bell text-xl text-slate-600"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
@@ -464,8 +496,8 @@
     </div>
 
     <!-- Custom Alert Modal -->
-    <div id="customAlertModal" class="custom-modal-overlay">
-        <div class="custom-modal-box text-center" style="max-width: 400px; border-radius: 25px;">
+    <div id="customAlertModal" class="custom-modal-overlay" style="z-index: 5000;">
+        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px;">
             <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
@@ -804,22 +836,20 @@
 
         async function fetchAllClasses(db) {
             try {
-                // 🌟 แก้ไข: ใช้ตารางใหม่ classrooms ไม่ต้อง testColumn แล้ว
                 let teachData = [];
-                let testTargetCol = 'owner_id';
-                const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
-                if (testErr && String(testErr.code) === '42703') {
-                    testTargetCol = 'teacher_id';
-                }
                 
-                const resTeach = await db.from('classrooms').select('*').eq(testTargetCol, currentUser.id);
+                const resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
                 if (!resTeach.error) {
                     teachData = resTeach.data || [];
+                } else if (resTeach.error.code === '42703') {
+                    // Fallback สำหรับ Database เก่า
+                    const resTeachOld = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
+                    if (!resTeachOld.error) teachData = resTeachOld.data || [];
                 }
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
                 let learnData = [];
-                // 🌟 แก้ไข: ดึงจากตาราง classroom_users ตาม Unified Schema
+                // 🌟 แก้ไข: ใช้ classroom_users แทน classroom_students
                 const resLearn = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.id);
                 if (!resLearn.error) {
                     learnData = resLearn.data || [];
@@ -1356,7 +1386,7 @@
             }
         }
 
-        // ================= 🌟 กระดิ่งแจ้งเตือน 🌟 =================
+        // ================= 🌟 กระดิ่งแจ้งเตือน Realtime 🌟 =================
         async function toggleNotifDropdown() {
             const dropdown = document.getElementById('notifDropdown');
             const btn = document.getElementById('notificationBtn');
@@ -1368,20 +1398,13 @@
                 btn.classList.add('bg-slate-100');
                 renderPendingList();
                 
-                // Method 2: Mark as read (ลบจุดแดง อัปเดตตาราง users)
+                // ถือว่าเปิดอ่านแล้ว ซ่อน Badge จุดแดง แต่ไม่ลบรายการ
                 if (badge.style.display !== 'none') {
-                    const nowIso = new Date().toISOString();
                     badge.style.display = 'none';
                     btn.classList.remove('ringing');
                     
-                    if (currentUserData) currentUserData.last_notif_read = nowIso;
-                    
-                    try {
-                        const db = getDB();
-                        await db.from('users').update({ last_notif_read: nowIso }).eq('user_id', currentUser.id);
-                    } catch(e) {
-                        console.error('ไม่สามารถอัปเดตเวลาที่อ่านล่าสุดได้', e);
-                    }
+                    // ตัวเลือกล้างขยะ 1: เก็บลง LocalStorage เป็นหลัก แทนฐานข้อมูล เพื่อความสะดวก
+                    // (เราไม่ต้องจัดการคอลัมน์ last_notif_read แล้ว)
                 }
             } else {
                 btn.classList.remove('bg-slate-100');
@@ -1425,34 +1448,39 @@
                 if (reqErr) throw reqErr;
 
                 let pendingData = [];
+                let hiddenReqs = JSON.parse(localStorage.getItem('flip_hidden_notifs') || '[]');
+
                 if (reqs && reqs.length > 0) {
                     const userIds = reqs.map(r => r.user_id); const schoolIds = reqs.map(r => r.school_id);
                     const { data: usersData } = await sysDB.from('users').select('user_id, first_name, last_name, email, profile_pic').in('user_id', userIds);
                     const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
 
+                    // 🌟 ฟังก์ชันกำจัดขยะ LocalStorage ให้อัตโนมัติ (Garbage Collection)
+                    const currentPendingIds = reqs.map(r => r.id);
+                    const cleanedHiddenReqs = hiddenReqs.filter(id => currentPendingIds.includes(id));
+                    
+                    if (hiddenReqs.length !== cleanedHiddenReqs.length) {
+                        hiddenReqs = cleanedHiddenReqs;
+                        localStorage.setItem('flip_hidden_notifs', JSON.stringify(hiddenReqs));
+                    }
+
                     reqs.forEach(r => {
-                        if (r.user_id !== currentUser.id) {
+                        if (r.user_id !== currentUser.id && !hiddenReqs.includes(r.id)) {
                             const uData = usersData ? usersData.find(u => u.user_id === r.user_id) : {};
                             const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
                             pendingData.push({ ...r, users: uData || {}, schools: sData || {} });
                         }
                     });
+                } else if (hiddenReqs.length > 0) {
+                    localStorage.setItem('flip_hidden_notifs', JSON.stringify([]));
                 }
 
                 window.pendingRequests = pendingData;
-
-                const lastRead = currentUserData?.last_notif_read ? new Date(currentUserData.last_notif_read) : new Date(0);
-                const unreadCount = pendingData.filter(r => new Date(r.created_at) > lastRead).length;
-
+                
                 const notifBtn = document.getElementById('notificationBtn'); const badge = document.getElementById('notifBadge');
-
+                
                 if (pendingData.length > 0) {
-                    notifBtn.style.display = 'flex'; 
-                    if (unreadCount > 0) {
-                        badge.style.display = 'flex'; badge.innerText = unreadCount; notifBtn.classList.add('ringing'); 
-                    } else {
-                        badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
-                    }
+                    notifBtn.style.display = 'flex'; badge.style.display = 'flex'; badge.innerText = pendingData.length; notifBtn.classList.add('ringing'); 
                 } else {
                     notifBtn.style.display = 'flex'; badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
                 }
@@ -1483,10 +1511,14 @@
                 
                 const reqTitle = req.role === 'admin' ? 'ขอสิทธิ์แอดมินกลุ่ม' : 'ขอเข้าร่วมกลุ่ม';
 
-                // 🌟 โค้ดใหม่ จัดระเบียบการแสดงผล Flexbox (min-w-0 ป้องกันข้อความล้น) 🌟
+                // 🌟 โค้ดใหม่ จัดระเบียบการแสดงผล Flexbox ให้มีปุ่ม X ไว้ด้านบนขวา
                 html += `
-                <div class="p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors mb-2 border border-slate-100" id="req-card-${req.id}">
-                    <div class="flex gap-3 items-start">
+                <div class="p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors mb-2 border border-slate-100 relative group" id="req-card-${req.id}">
+                    <button onclick="dismissNotification('${req.id}')" class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-transparent hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all border-none cursor-pointer md:opacity-0 md:group-hover:opacity-100" title="ซ่อนการแจ้งเตือนนี้">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    
+                    <div class="flex gap-3 pr-6 items-start">
                         <img src="${avatar}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-slate-200 mt-1">
                         <div class="flex-1 min-w-0">
                             <p class="text-[13px] text-slate-700 leading-snug mb-2 break-words">
@@ -1510,19 +1542,37 @@
                 await sysDB.from('user_school').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
                 
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
-                
-                const card = document.getElementById(`req-card-${tsId}`);
-                if (card) {
-                    card.style.opacity = '0'; card.style.transform = 'scale(0.9) translateX(50px)';
-                    setTimeout(() => {
-                        card.remove(); 
-                        window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
-                        if (window.pendingRequests.length === 0) { 
-                            document.getElementById('notifList').innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit'] mt-2">ไม่มีการแจ้งเตือนใหม่</span></div>`; 
-                        }
-                    }, 300);
-                }
+                removePendingRequestCard(tsId);
             } catch(err) { showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); }
+        }
+
+        // 🌟 ซ่อนการแจ้งเตือนด้วย LocalStorage ขยะเป็น 0
+        function dismissNotification(tsId) {
+            let hidden = JSON.parse(localStorage.getItem('flip_hidden_notifs') || '[]');
+            if (!hidden.includes(tsId)) { 
+                hidden.push(tsId); 
+                localStorage.setItem('flip_hidden_notifs', JSON.stringify(hidden)); 
+            }
+            removePendingRequestCard(tsId);
+        }
+
+        function removePendingRequestCard(tsId) {
+            const card = document.getElementById(`req-card-${tsId}`);
+            if (card) {
+                card.style.opacity = '0'; card.style.transform = 'scale(0.9) translateX(50px)';
+                setTimeout(() => {
+                    card.remove(); 
+                    window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
+                    
+                    const notifBadge = document.getElementById('notifBadge');
+                    notifBadge.innerText = window.pendingRequests.length;
+                    
+                    if (window.pendingRequests.length === 0) { 
+                        notifBadge.style.display = 'none';
+                        document.getElementById('notifList').innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit'] mt-2">ไม่มีการแจ้งเตือนใหม่</span></div>`; 
+                    }
+                }, 300);
+            }
         }
 
         async function deleteCardFromStorage(fileName) {
