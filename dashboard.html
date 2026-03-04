@@ -277,8 +277,8 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <!-- กระดิ่งแจ้งเตือน (ซ่อน/แสดง อัตโนมัติด้วย JS) -->
-                <div class="relative cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
+                <!-- กระดิ่งแจ้งเตือน (แสดงเสมอ แต่ซ่อนแค่จุดแดง) -->
+                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" onclick="toggleNotifDropdown()">
                     <i class="fas fa-bell text-xl text-slate-600"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
                 </div>
@@ -1472,13 +1472,18 @@
                     }
                 ).subscribe();
             } else {
-                 document.getElementById('notificationBtn').style.display = 'none'; window.pendingRequests = [];
+                 document.getElementById('notifBadge').style.display = 'none'; 
+                 window.pendingRequests = [];
             }
         }
 
         async function checkPendingRequests() {
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
-            if (approvedSchoolIds.length === 0) { document.getElementById('notificationBtn').style.display = 'none'; window.pendingRequests = []; return; }
+            if (approvedSchoolIds.length === 0) { 
+                document.getElementById('notifBadge').style.display = 'none'; 
+                window.pendingRequests = []; 
+                return; 
+            }
 
             try {
                 const { data: reqs, error: reqErr } = await sysDB.from('user_school')
@@ -1505,17 +1510,17 @@
                 const lastRead = currentUserData?.last_notif_read ? new Date(currentUserData.last_notif_read) : new Date(0);
                 const unreadCount = pendingData.filter(r => new Date(r.created_at) > lastRead).length;
 
-                const notifBtn = document.getElementById('notificationBtn'); const badge = document.getElementById('notifBadge');
+                const notifBtn = document.getElementById('notificationBtn'); 
+                const badge = document.getElementById('notifBadge');
 
-                if (pendingData.length > 0) {
-                    notifBtn.style.display = 'flex'; 
-                    if (unreadCount > 0) {
-                        badge.style.display = 'flex'; badge.innerText = unreadCount; notifBtn.classList.add('ringing'); 
-                    } else {
-                        badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
-                    }
+                // จัดการแสดงผลเฉพาะจุดสีแดง (Badge) และแอนิเมชันสั่น
+                if (pendingData.length > 0 && unreadCount > 0) {
+                    badge.style.display = 'flex'; 
+                    badge.innerText = unreadCount; 
+                    notifBtn.classList.add('ringing'); 
                 } else {
-                    notifBtn.style.display = 'flex'; badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
+                    badge.style.display = 'none'; 
+                    notifBtn.classList.remove('ringing'); 
                 }
                 
                 if (!document.getElementById('notifDropdown').classList.contains('hidden')) renderPendingList();
