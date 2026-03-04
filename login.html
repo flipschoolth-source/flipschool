@@ -312,15 +312,13 @@
             else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
-        // 🌟 ฟังก์ชันถอดรหัส URL (Reverse Base64) 🌟
+        // 🌟 ฟังก์ชันถอดรหัส URL (Base64URL Safe) 🌟
         function decodeMagicToken(token) {
-            // สลับอักษรกลับด้าน
-            const reversed = token.split('').reverse().join('');
-            // เติม padding กลับเข้าไป (เผื่อไว้ แต่เบราว์เซอร์ใหม่ๆ มักไม่บ่น)
-            const pad = reversed.length % 4 === 0 ? '' : '='.repeat(4 - (reversed.length % 4));
-            // แปลงจาก Base64 คืนเป็น String
-            const decoded = atob(reversed + pad);
-            return decoded.split('||'); // คืนค่าเป็น Array [classCode, userId, enrollId]
+            // คืนค่า Base64 กลับมาเป็นปกติ
+            let base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+            while (base64.length % 4) { base64 += '='; }
+            const raw = decodeURIComponent(atob(base64));
+            return raw.split('||'); // คืนค่าเป็น Array [classCode, userId, enrollId]
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -374,7 +372,7 @@
             try {
                 // 1. ถอดรหัส Token
                 const parts = decodeMagicToken(encodedToken);
-                if (parts.length !== 3) throw new Error("รูปแบบ QR Code ไม่ถูกต้อง");
+                if (parts.length !== 3) throw new Error("รูปแบบ QR Code ไม่ถูกต้อง หรือถูกดัดแปลง");
 
                 const classCode = parts[0];
                 const userId = parts[1];
@@ -382,10 +380,16 @@
 
                 const db = getDB();
 
+                // 🌟 ตรวจสอบโครงสร้างคอลัมน์แบบ Dynamic ป้องกัน Error 42703
+                let userColName = 'user_id';
+                const { error: testErr } = await db.from('classroom_users').select('user_id').limit(1);
+                if (testErr && String(testErr.code).includes('42703')) {
+                    userColName = 'student_id';
+                }
+
                 // 2. ตรวจสอบข้อมูลในตารางห้องเรียนด้วย enrollment_id โดยตรง 
-                // หากคุณครูลบเด็กออกจากห้องแล้วเพิ่มใหม่ enrollment_id จะเปลี่ยนไป QR ใบเดิมจึงใช้ไม่ได้อีก! (Individual Revoke)
                 const { data: enrollment, error: enErr } = await db.from('classroom_users')
-                    .select('user_id, student_id, classrooms(class_code, is_joinable)')
+                    .select(`${userColName}, classrooms(class_code, is_joinable)`)
                     .eq('enrollment_id', enrollId)
                     .maybeSingle();
 
@@ -394,8 +398,7 @@
                 }
 
                 // 3. ป้องกันการสวมรอย (Cross-check User ID) 
-                // รองรับทั้งตารางแบบเก่า (student_id) และใหม่ (user_id)
-                const targetUserId = enrollment.user_id || enrollment.student_id;
+                const targetUserId = enrollment[userColName];
                 if (targetUserId !== userId) {
                     throw new Error("ข้อมูลนักเรียนไม่ตรงกัน ไม่สามารถเข้าห้องเรียนได้");
                 }
