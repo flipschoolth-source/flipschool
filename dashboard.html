@@ -1416,15 +1416,32 @@
                 renderPendingList();
                 
                 if (badge.style.display !== 'none') {
-                    const nowIso = new Date().toISOString();
                     badge.style.display = 'none';
                     btn.classList.remove('ringing');
                     
-                    if (currentUserData) currentUserData.last_notif_read = nowIso;
+                    // 🌟 แก้ปัญหาเวลาเครื่องไม่ตรงกัน (Clock Sync Issue) โดยดึงเวลาจากคำขอล่าสุดแทน
+                    let latestTime = new Date(0);
+                    if (window.pendingRequests && window.pendingRequests.length > 0) {
+                        window.pendingRequests.forEach(req => {
+                            const reqTime = new Date(req.created_at);
+                            if (reqTime > latestTime) latestTime = reqTime;
+                        });
+                    }
+                    
+                    // บวกเพิ่มไป 1 วินาที เพื่อให้แน่ใจว่าเวลาที่อ่าน มากกว่าคำขอตัวล่าสุดจริงๆ
+                    if (latestTime.getTime() > 0) {
+                        latestTime.setSeconds(latestTime.getSeconds() + 1);
+                    } else {
+                        latestTime = new Date(); // fallback
+                    }
+                    
+                    const timeToSave = latestTime.toISOString();
+                    
+                    if (currentUserData) currentUserData.last_notif_read = timeToSave;
                     
                     try {
                         const db = getDB();
-                        await db.from('users').update({ last_notif_read: nowIso }).eq('user_id', currentUser.id);
+                        await db.from('users').update({ last_notif_read: timeToSave }).eq('user_id', currentUser.id);
                     } catch(e) {
                         console.error('ไม่สามารถอัปเดตเวลาที่อ่านล่าสุดได้', e);
                     }
