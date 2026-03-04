@@ -39,6 +39,22 @@
                               radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
 
+        /* --- หน้าจอ Loading ตอนสแกน QR --- */
+        #authLoader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255,255,255,0.95); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease; backdrop-filter: blur(5px);
+        }
+        .loader-icon {
+            font-size: 50px; color: var(--primary); margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        .loader-text {
+            font-family: 'Kanit', sans-serif; font-size: 18px; color: var(--text-muted);
+            animation: pulse 1.5s infinite; font-weight: 500;
+        }
+
         nav { 
             display: flex; justify-content: space-between; align-items: center; 
             padding: 0 5%; height: clamp(70px, 8vw, 90px); background: var(--primary); 
@@ -135,10 +151,10 @@
         .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
         .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
         .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
-        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; min-width: 120px; }
         .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
-        .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
-        .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         @media (max-width: 768px) {
             nav { padding: 0 15px; height: 65px; }
@@ -146,6 +162,7 @@
             .brand-name { font-size: 20px; }
             .slogan { display: none; }
             .btn-back { padding: 6px 14px; font-size: 13px; }
+            
             .main-container { padding: 10px 15px; }
             .login-card { padding: 25px 20px; border-radius: 20px; }
             .login-header { margin-bottom: 15px; }
@@ -161,15 +178,21 @@
 </head>
 <body>
 
+    <!-- หน้าจอ Loading สำหรับตอนสแกน QR -->
+    <div id="authLoader" style="display: none;">
+        <div class="loader-icon"><i class="fas fa-qrcode"></i></div>
+        <div class="loader-text" id="loaderText">กำลังประมวลผล QR Code...</div>
+    </div>
+
     <nav>
         <a href="index.html" class="logo-container">
             <div class="logo-emoji">🎓</div>
             <div class="logo-text-group">
                 <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan">นวัตกรรมการศึกษา</div>
+                <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
             </div>
         </a>
-        <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> ย้อนกลับ</a>
+        <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> หน้าแรก</a>
     </nav>
 
     <main class="main-container">
@@ -193,14 +216,12 @@
                 <div class="form-group">
                     <label class="form-label">อีเมล หรือ รหัสนักเรียน</label>
                     <div class="input-wrapper">
-                        <!-- เปลี่ยน Type เป็น text เพื่อรองรับฟอร์แมต 12345@t1sk -->
                         <input type="text" id="email" class="form-input" placeholder="เช่น name@email.com หรือ 12345@t1sk" required>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">รหัสผ่าน หรือ ว.ด.ป.เกิด</label>
                     <div class="input-wrapper">
-                        <!-- เพิ่ม Hint ให้นักเรียนรู้วิธีใส่รหัสผ่าน -->
                         <input type="password" id="password" class="form-input" placeholder="ระบุรหัสผ่าน (นร.ใช้วันเกิด เช่น 15/05/2010)" required>
                         <i class="fas fa-eye password-toggle" id="togglePassword" onclick="togglePasswordVisibility()"></i>
                     </div>
@@ -233,7 +254,7 @@
             <p id="customAlertMessage" class="custom-modal-message"></p>
             <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
                 <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
-                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -283,8 +304,8 @@
                 cancelBtn.style.display = 'none';
             } else if (type === 'confirm') {
                 iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#FF8C00';
-                titleEl.innerText = 'ยืนยันการลงทะเบียน'; okBtn.style.background = '#FF8C00'; okBtn.innerText = 'ใช่, ลงทะเบียน';
-                cancelBtn.style.display = 'inline-block'; cancelBtn.innerText = 'ไม่, ยกเลิก';
+                titleEl.innerText = 'ยืนยันการดำเนินการ'; okBtn.style.background = '#FF8C00'; okBtn.innerText = 'ใช่';
+                cancelBtn.style.display = 'inline-block'; cancelBtn.innerText = 'ไม่';
             } else {
                 iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
                 titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757'; okBtn.innerText = 'ตกลง';
@@ -300,7 +321,8 @@
             else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // ================= เริ่มต้นการทำงานหน้าเว็บ =================
+        document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
             
             if (typeof APP_CONFIG !== 'undefined') {
@@ -314,17 +336,26 @@
                 
                 document.querySelectorAll('.footer-display-text').forEach(el => {
                     const year = APP_CONFIG.YEAR || new Date().getFullYear();
-                    el.innerHTML = `&copy; ${year} ${APP_CONFIG.APP_NAME} - ${APP_CONFIG.APP_SLOGAN}`;
+                    el.innerHTML = `&copy; ${year} ${APP_CONFIG.APP_NAME}. ${APP_CONFIG.FOOTER_TEXT}`;
                 });
             }
 
-            // หากเป็นนักเรียนที่เคยล็อกอินไว้แบบ Local Session
+            // 🌟 1. เช็คว่ามี Magic Link สแกนมาจาก QR Code หรือไม่ 🌟
+            const urlParams = new URLSearchParams(window.location.search);
+            const magicToken = urlParams.get('magic');
+
+            if (magicToken) {
+                // ถ้ามีให้ทำการล็อกอินอัตโนมัติและหยุดการทำงานอื่น
+                handleMagicLogin(magicToken);
+                return; 
+            }
+
+            // 2. เช็ค Session ปกติ
             if (localStorage.getItem('flip_student_session_id')) {
                 window.location.replace('dashboard.html');
                 return;
             }
 
-            // ตรวจสอบเซสชันเก่า (Auth Session ของ Supabase)
             const checkSessionInterval = setInterval(async () => {
                 try {
                     const db = getDB();
@@ -334,6 +365,63 @@
                 } catch(e) {}
             }, 300);
         });
+
+        // ================= 🌟 ฟังก์ชันล็อกอินด้วย QR Code 🌟 =================
+        async function handleMagicLogin(base64Token) {
+            document.getElementById('authLoader').style.display = 'flex';
+            document.getElementById('loaderText').innerText = 'กำลังตรวจสอบสิทธิ์เข้าห้องเรียน...';
+            
+            try {
+                // ถอดรหัส (Decode) โทเค็นที่แนบมา
+                const decoded = atob(base64Token);
+                const parts = decoded.split('|');
+                
+                if (parts.length !== 2) throw new Error("รูปแบบ QR Code ไม่ถูกต้อง");
+
+                const classCode = parts[0];
+                const userId = parts[1];
+
+                const db = getDB();
+
+                // 1. เช็คว่าผู้ใช้นี้มีในระบบหรือไม่
+                const { data: userRecord, error: uErr } = await db.from('users').select('user_id').eq('user_id', userId).maybeSingle();
+                if (!userRecord || uErr) throw new Error("ไม่พบข้อมูลนักเรียนนี้ในระบบ");
+
+                // 2. เช็คว่ารหัสห้องเรียนนี้ยังใช้งานได้อยู่หรือไม่ (ป้องกันครูรีเซ็ตรหัสแล้วเด็กแอบเอา QR เก่ามาใช้)
+                const { data: enrollments, error: enErr } = await db.from('classroom_users')
+                    .select('classrooms(class_code, is_joinable)')
+                    .eq('user_id', userId);
+
+                if (enErr || !enrollments || enrollments.length === 0) throw new Error("คุณไม่ได้อยู่ในห้องเรียนใดๆ เลย");
+
+                let isValidQR = false;
+                for (let en of enrollments) {
+                    if (en.classrooms && en.classrooms.class_code === classCode) {
+                        isValidQR = true;
+                        break;
+                    }
+                }
+
+                if (!isValidQR) {
+                    throw new Error("QR Code นี้หมดอายุ หรือคุณครูได้ทำการรีเซ็ตรหัสห้องเรียนไปแล้วครับ");
+                }
+
+                // 3. ถ้าทุกอย่างถูกต้อง ให้บันทึกเครื่องนี้ไว้ตลอดไป และพาทะลุเข้าหน้า Dashboard เลย
+                localStorage.setItem('flip_student_session_id', userId);
+                
+                showCustomAlert('แสกนเข้าห้องเรียนสำเร็จ!', 'success', () => {
+                    window.location.replace('dashboard.html');
+                });
+
+            } catch(err) {
+                document.getElementById('authLoader').style.display = 'none';
+                showCustomAlert(err.message, 'error', () => {
+                    // หาก Error ให้ลบพารามิเตอร์ ?magic ออกจาก URL เพื่อให้เด็กล็อกอินแบบปกติได้
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                });
+            }
+        }
+
 
         async function redirectByRole(userId) {
             try {
@@ -373,10 +461,7 @@
         async function handleGoogleCredentialResponse(response) {
             try {
                 const db = getDB();
-                const { data, error } = await db.auth.signInWithIdToken({
-                    provider: 'google',
-                    token: response.credential,
-                });
+                const { data, error } = await db.auth.signInWithIdToken({ provider: 'google', token: response.credential });
                 if (error) throw error;
 
                 const userEmail = data.user.email;
@@ -394,45 +479,28 @@
                                 const fullName = data.user.user_metadata?.full_name || '';
                                 let fName = fullName; let lName = '';
                                 if(fullName.includes(' ')) {
-                                    const parts = fullName.split(' ');
-                                    fName = parts[0]; lName = parts.slice(1).join(' ');
+                                    const parts = fullName.split(' '); fName = parts[0]; lName = parts.slice(1).join(' ');
                                 } else if (!fName) { fName = userEmail.split('@')[0]; }
 
                                 const googlePic = data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null;
 
                                 const { error: insertError } = await db.from('users').insert([{
-                                    user_id: data.user.id,
-                                    first_name: fName,
-                                    last_name: lName,
-                                    email: userEmail,
-                                    role: 'user', 
-                                    profile_pic: googlePic,
-                                    created_at: new Date().toISOString()
+                                    user_id: data.user.id, first_name: fName, last_name: lName, email: userEmail,
+                                    role: 'user', profile_pic: googlePic, created_at: new Date().toISOString()
                                 }]);
-
                                 if (insertError) throw insertError;
 
-                                showCustomAlert('ลงทะเบียนเสร็จสมบูรณ์!<br>ระบบกำลังพาคุณเข้าสู่หน้าแดชบอร์ด', 'success', () => {
-                                    window.location.replace('dashboard.html');
-                                });
+                                showCustomAlert('ลงทะเบียนเสร็จสมบูรณ์!<br>ระบบกำลังพาคุณเข้าสู่หน้าแดชบอร์ด', 'success', () => { window.location.replace('dashboard.html'); });
 
-                            } catch (err) {
-                                console.error("Registration Error:", err);
-                                showCustomAlert("เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message, "error");
-                            }
+                            } catch (err) { showCustomAlert("เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message, "error"); }
                         },
                         async () => {
                             try { await db.rpc('delete_current_user'); } catch (e) {}
                             await db.auth.signOut();
-                            
                             const btnContainer = document.getElementById("googleSignInBtn");
                             btnContainer.innerHTML = '';
-                            let btnWidth = btnContainer.offsetWidth;
-                            if (btnWidth < 200) btnWidth = 300;
-                            google.accounts.id.renderButton(
-                                btnContainer,
-                                { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" }
-                            );
+                            let btnWidth = btnContainer.offsetWidth; if (btnWidth < 200) btnWidth = 300;
+                            google.accounts.id.renderButton(btnContainer, { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" });
                         }
                     );
                     return;
@@ -443,13 +511,10 @@
                 
                 redirectByRole(data.user.id);
 
-            } catch (err) {
-                console.error("Google Auth Error:", err);
-                showCustomAlert("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: <br><br><small>" + err.message + "</small>", "error");
-            }
+            } catch (err) { showCustomAlert("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: <br><br><small>" + err.message + "</small>", "error"); }
         }
 
-        // ================= 🌟 ฟังก์ชันล็อกอินอัจฉริยะ (อีเมล หรือ รหัสนักเรียน@ตัวย่อ) 🌟 =================
+        // ================= ล็อกอินอัจฉริยะ =================
         async function handleEmailLogin(e) {
             e.preventDefault();
             const loginId = document.getElementById('email').value.trim();
@@ -463,92 +528,56 @@
 
                 const db = getDB();
 
-                // 🌟 ตรวจสอบฟอร์แมต "รหัสนักเรียน@ตัวย่อโรงเรียน" (นักเรียนที่มาจากการ Import) 🌟
-                // ถ้ารูปแบบมี @ แต่ไม่ใช่โดเมนอีเมลทั่วไป (เช่น .com, .th, .net) ถือว่าเป็นบัญชีนักเรียนแบบ Offline
                 if (loginId.includes('@') && !loginId.includes('.')) {
-                    
                     const [studentCode, schoolAbbr] = loginId.split('@');
-                    
                     if (!studentCode || !schoolAbbr) throw new Error("รูปแบบรหัสผ่านไม่ถูกต้อง (ตัวอย่างที่ถูกต้อง: 12345@t1sk)");
 
-                    // 1. หา school_id จากอักษรย่อที่กรอก
-                    const { data: schData, error: schErr } = await db.from('schools')
-                        .select('school_id')
-                        .eq('school_abbr', schoolAbbr.toLowerCase())
-                        .maybeSingle();
-                        
+                    const { data: schData, error: schErr } = await db.from('schools').select('school_id').eq('school_abbr', schoolAbbr.toLowerCase()).maybeSingle();
                     if (schErr || !schData) throw new Error("ไม่พบอักษรย่อโรงเรียนนี้ในระบบ");
 
-                    // 2. หานักเรียนจากตาราง users โดยเทียบ student_code
-                    const { data: usersData, error: usrErr } = await db.from('users')
-                        .select('user_id, birth_date, email')
-                        .eq('student_code', studentCode);
-
+                    const { data: usersData, error: usrErr } = await db.from('users').select('user_id, birth_date, email').eq('student_code', studentCode);
                     if (usrErr || !usersData || usersData.length === 0) throw new Error("ไม่พบรหัสนักเรียนนี้");
 
                     let matchedUser = null;
-
-                    // 3. ตรวจสอบว่า User คนไหนผูกกับ School นี้ (ผ่าน user_school)
                     for (let usr of usersData) {
-                        const { data: linkData } = await db.from('user_school')
-                            .select('id')
-                            .eq('user_id', usr.user_id)
-                            .eq('school_id', schData.school_id)
-                            .maybeSingle();
-
-                        if (linkData) {
-                            matchedUser = usr;
-                            break;
-                        }
+                        const { data: linkData } = await db.from('user_school').select('id').eq('user_id', usr.user_id).eq('school_id', schData.school_id).maybeSingle();
+                        if (linkData) { matchedUser = usr; break; }
                     }
 
                     if (!matchedUser) throw new Error(`พบรหัสนักเรียน ${studentCode} แต่ไม่ได้สังกัดอยู่ในโรงเรียน ${schoolAbbr}`);
 
-                    // 4. ตรวจสอบรหัสผ่านกับ ว.ด.ป.เกิด
                     if (matchedUser.birth_date) {
                         let [y, m, d] = matchedUser.birth_date.split('-');
                         let possibleDates = [ matchedUser.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
                         
                         if (possibleDates.includes(password)) {
-                            // ✅ ล็อกอินสำเร็จ (แบบ Local Session เพราะไม่มีบัญชี Auth)
                             localStorage.setItem('flip_student_session_id', matchedUser.user_id);
                             window.location.replace('dashboard.html');
                             return;
-                        } else {
-                            throw new Error("ว.ด.ป. เกิด ไม่ถูกต้อง");
-                        }
-                    } else {
-                        throw new Error("บัญชีนี้ไม่มีข้อมูลวันเกิด ไม่สามารถเข้าระบบได้ กรุณาติดต่อคุณครู");
-                    }
+                        } else { throw new Error("ว.ด.ป. เกิด ไม่ถูกต้อง"); }
+                    } else { throw new Error("บัญชีนี้ไม่มีข้อมูลวันเกิด ไม่สามารถเข้าระบบได้ กรุณาติดต่อคุณครู"); }
                 } 
-                
-                // 🌟 หากเป็นรูปแบบอีเมลปกติ (ครู / ผู้ใช้ทั่วไป) ให้ใช้ Supabase Auth ตามปกติ 🌟
                 else {
                     const { data, error } = await db.auth.signInWithPassword({ email: loginId, password: password });
-                    
                     if (error) throw new Error("อีเมล หรือ รหัสผ่านไม่ถูกต้อง");
 
-                    // ตรวจสอบสถานะในตาราง users
                     const { data: userRow } = await db.from('users').select('user_id').eq('user_id', data.user.id).single();
                     if (!userRow) {
                         await db.auth.signOut();
                         throw new Error("บัญชีนี้ไม่ได้ลงทะเบียนไว้ในระบบครับ");
                     }
-
                     redirectByRole(data.user.id);
                 }
 
             } catch (err) {
                 let errorMsg = err.message;
                 if (errorMsg === 'Invalid login credentials') errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-                
                 showCustomAlert(errorMsg, "error");
                 btn.innerHTML = origText;
                 btn.disabled = false;
             }
         }
 
-        // ================= เปิด-ปิด ลูกตารหัสผ่าน =================
         function togglePasswordVisibility() {
             const pwdInput = document.getElementById('password');
             const toggleIcon = document.getElementById('togglePassword');
