@@ -275,7 +275,7 @@
                 <div class="logo-emoji">🎓</div>
                 <div class="logo-text-group">
                     <div class="brand-name">Flip<span>School</span></div>
-                    <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                    <div class="slogan">นวัตกรรมการศึกษา</div>
                 </div>
             </a>
             <a href="login.html" class="nav-btn-outline"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
@@ -400,15 +400,15 @@
                         if (session && session.user) {
                             const userId = session.user.id;
                             
-                            // ตรวจสอบข้อมูลจากตาราง profiles แบบรวบยอด (Unified Users)
-                            const { data: profileData, error } = await window.sysDB.from('profiles')
-                                .select('role')
-                                .eq('id', userId)
+                            // ตรวจสอบข้อมูลจากตาราง users 
+                            const { data: profileData, error } = await window.sysDB.from('users')
+                                .select('role, is_super_admin')
+                                .eq('user_id', userId)
                                 .maybeSingle();
                                 
                             if (profileData) {
                                 // แยกเส้นทางตาม Role
-                                if (profileData.role === 'super_admin') {
+                                if (profileData.is_super_admin || profileData.role === 'super_admin') {
                                     window.location.replace('super_admin.html');
                                 } else {
                                     // สำหรับ teacher และ student ใช้ Dashboard เดียวกัน
@@ -417,9 +417,14 @@
                                 return;
                             }
                             
-                            // หากมี Session แต่ไม่พบข้อมูลในตาราง profiles (ข้อมูลอาจถูกลบ)
                             showMainContent();
                         } else {
+                            // 🌟 เช็ค Session ของนักเรียนที่ล็อกอินผ่าน QR Code / รหัสนักเรียน (ไม่มี Supabase Auth)
+                            if (localStorage.getItem('flip_student_session_id')) {
+                                window.location.replace('dashboard.html');
+                                return;
+                            }
+
                             // ไม่มีเซสชันล็อกอิน
                             showMainContent();
                         }
