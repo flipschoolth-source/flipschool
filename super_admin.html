@@ -185,6 +185,7 @@
         let currentUser = null;
         let alertCallback = null;
         let alertCancelCallback = null;
+        let realtimeSubscription = null; // 🌟 เพิ่มตัวแปรสำหรับเก็บสถานะการดักฟัง Realtime
 
         function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
@@ -250,6 +251,32 @@
             document.getElementById('navProfileImg').src = displayPic;
             
             fetchPendingRequests();
+            setupRealtime(); // 🌟 เรียกใช้ระบบดักฟัง (Realtime) หลังจากโหลดข้อมูลครั้งแรกเสร็จ
+        }
+
+        // ================= 🌟 ฟังก์ชันตั้งค่า Realtime (โหลดคำขออัตโนมัติ) =================
+        function setupRealtime() {
+            if (realtimeSubscription) {
+                sysDB.removeChannel(realtimeSubscription);
+            }
+            
+            // สั่งให้ Supabase แจ้งเตือนเมื่อมีการเปลี่ยนแปลงในตาราง user_school
+            realtimeSubscription = sysDB.channel('admin-pending-requests')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'user_school' },
+                    (payload) => {
+                        // ตรวจสอบว่าเป็นการเพิ่ม/ลบ/แก้ไข ที่เกี่ยวกับสถานะ pending หรือไม่
+                        const isNewPending = payload.new && payload.new.verification_status === 'pending';
+                        const isOldPending = payload.old && payload.old.verification_status === 'pending';
+                        
+                        // ถ้าเกี่ยวกับการรออนุมัติ ให้โหลดการ์ดข้อมูลใหม่ทันที
+                        if (isNewPending || isOldPending) {
+                            fetchPendingRequests();
+                        }
+                    }
+                )
+                .subscribe();
         }
 
         // 2. ดึงข้อมูลคำขอจากตาราง user_school
@@ -482,6 +509,7 @@
 
         async function handleLogout() {
             showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'confirm', async () => {
+                if (realtimeSubscription) sysDB.removeChannel(realtimeSubscription); // ยกเลิกดักฟังเมื่อล็อกเอาท์
                 await sysDB.auth.signOut(); 
                 location.href='login.html'; 
             });
