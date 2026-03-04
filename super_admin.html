@@ -86,7 +86,18 @@
         .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
         .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
 
-        @media (max-width: 768px) { nav { padding: 0 20px; height: 70px; } .main-container { padding: 20px; } .hero-banner { padding: 30px 20px; } .hero-title { font-size: 24px; } }
+        /* --- Toast Notification สำหรับแจ้งเตือนคำขอใหม่ --- */
+        #toastBox {
+            position: fixed; top: 100px; right: -400px;
+            background: white; border-left: 5px solid #f1c40f;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 15px 25px;
+            border-radius: 12px; z-index: 9999; display: flex; align-items: center; gap: 15px;
+            transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-family: 'Kanit';
+        }
+        #toastBox.show { right: 30px; }
+        .toast-icon { width: 45px; height: 45px; background: #fff8e1; color: #f1c40f; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; }
+
+        @media (max-width: 768px) { nav { padding: 0 20px; height: 70px; } .main-container { padding: 20px; } .hero-banner { padding: 30px 20px; } .hero-title { font-size: 24px; } #toastBox { top: 80px; width: 90%; } #toastBox.show { right: 5%; } }
     </style>
 </head>
 <body>
@@ -181,12 +192,36 @@
         </div>
     </div>
 
+    <!-- Toast แจ้งเตือนแบบเด้งอัตโนมัติ -->
+    <div id="toastBox">
+        <div class="toast-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div>
+            <h4 style="margin: 0; color: #2d3436; font-size: 18px;" id="toastTitle">มีคำขออนุมัติใหม่!</h4>
+            <p style="margin: 0; color: #636e72; font-size: 14px; font-family: 'Sarabun';" id="toastDesc">ระบบกำลังอัปเดตข้อมูลบนหน้าจอให้คุณ</p>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let alertCallback = null;
         let alertCancelCallback = null;
-        let realtimeSubscription = null; // 🌟 เพิ่มตัวแปรสำหรับเก็บสถานะการดักฟัง Realtime
+        let realtimeSubscription = null; // 🌟 ตัวแปรสำหรับเก็บสถานะ Realtime
 
+        // ================= Toast Notification (Popup ด้านขวา) =================
+        function showToastNotification(title, desc) {
+            const toast = document.getElementById('toastBox');
+            document.getElementById('toastTitle').innerText = title;
+            if(desc) document.getElementById('toastDesc').innerText = desc;
+            
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        // ================= Custom Alert =================
         function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
             const titleEl = document.getElementById('customAlertTitle');
@@ -239,11 +274,9 @@
                 return;
             }
 
-            // ดึงชื่อและรูปภาพจาก Google (อยู่ใน user_metadata) เป็นอันดับแรก
             const googleName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name;
             const googlePic = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture;
 
-            // หากไม่มีข้อมูลจาก Google ให้ใช้ข้อมูลจากตาราง users แทน
             const displayName = googleName || userRecord.first_name || 'แอดมิน';
             const displayPic = googlePic || userRecord.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userRecord.first_name}`;
 
@@ -251,7 +284,7 @@
             document.getElementById('navProfileImg').src = displayPic;
             
             fetchPendingRequests();
-            setupRealtime(); // 🌟 เรียกใช้ระบบดักฟัง (Realtime) หลังจากโหลดข้อมูลครั้งแรกเสร็จ
+            setupRealtime(); // 🌟 เรียกใช้ระบบดักฟัง (Realtime)
         }
 
         // ================= 🌟 ฟังก์ชันตั้งค่า Realtime (โหลดคำขออัตโนมัติ) =================
@@ -260,23 +293,32 @@
                 sysDB.removeChannel(realtimeSubscription);
             }
             
-            // สั่งให้ Supabase แจ้งเตือนเมื่อมีการเปลี่ยนแปลงในตาราง user_school
+            // สั่งให้ Supabase ดักฟังตาราง user_school ว่ามีอะไรเปลี่ยนแปลงหรือไม่
             realtimeSubscription = sysDB.channel('admin-pending-requests')
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'user_school' },
                     (payload) => {
-                        // ตรวจสอบว่าเป็นการเพิ่ม/ลบ/แก้ไข ที่เกี่ยวกับสถานะ pending หรือไม่
-                        const isNewPending = payload.new && payload.new.verification_status === 'pending';
-                        const isOldPending = payload.old && payload.old.verification_status === 'pending';
+                        console.log("มีการอัปเดตข้อมูล Realtime: ", payload);
                         
-                        // ถ้าเกี่ยวกับการรออนุมัติ ให้โหลดการ์ดข้อมูลใหม่ทันที
-                        if (isNewPending || isOldPending) {
-                            fetchPendingRequests();
+                        // ถ้ามีการ Insert ใหม่และสถานะเป็น pending
+                        if (payload.eventType === 'INSERT' && payload.new && payload.new.verification_status === 'pending') {
+                            showToastNotification("🔔 มีคำขอใหม่เข้ามา!", "ระบบกำลังเพิ่มการ์ดลงในหน้ารายการครับ");
+                            fetchPendingRequests(); // โหลดการ์ดใหม่
+                        } 
+                        // ถ้ามีการ Update 
+                        else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+                            fetchPendingRequests(); // โหลดหน้าใหม่
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('🟢 เปิดใช้งานระบบ Realtime แจ้งเตือนอัตโนมัติเรียบร้อยแล้ว');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('🔴 เกิดข้อผิดพลาดกับ Realtime! โปรดตรวจสอบว่าเปิด Replication หรือยัง');
+                    }
+                });
         }
 
         // 2. ดึงข้อมูลคำขอจากตาราง user_school
@@ -396,6 +438,7 @@
             if (!fileName) return;
             try {
                 await sysDB.storage.from('teacher-verifications').remove([fileName]);
+                // อัปเดตในฐานข้อมูลว่าลบรูปไปแล้ว
                 await sysDB.from('user_school').update({ verification_card_url: null }).eq('verification_card_url', fileName);
             } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
         }
@@ -413,7 +456,6 @@
                 }
 
                 try {
-                    // อัปเดตข้อมูลการยืนยันใน user_school
                     await sysDB.from('user_school').update({ 
                         verification_status: 'approved', 
                         reject_reason: null,
@@ -421,6 +463,7 @@
                         approved_at: new Date().toISOString() 
                     }).eq('id', tsId);
                     
+                    // หลังจากอนุมัติแล้ว ลบรูปลบทิ้งเพื่อความปลอดภัย PDPA
                     if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
                     
                     showCustomAlert('อนุมัติสิทธิ์สำเร็จ!', 'success', () => {
@@ -471,6 +514,7 @@
                     reject_reason: reason
                 }).eq('id', tsId);
 
+                // หากปฏิเสธก็ลบรูปทิ้งเช่นกัน
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
 
                 closeRejectModal();
@@ -509,7 +553,7 @@
 
         async function handleLogout() {
             showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'confirm', async () => {
-                if (realtimeSubscription) sysDB.removeChannel(realtimeSubscription); // ยกเลิกดักฟังเมื่อล็อกเอาท์
+                if (realtimeSubscription) sysDB.removeChannel(realtimeSubscription);
                 await sysDB.auth.signOut(); 
                 location.href='login.html'; 
             });
