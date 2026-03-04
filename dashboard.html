@@ -125,7 +125,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         /* =========================================================
-           ✨ Floating Action Button & Menu (Speed Dial ล่าสุด) ✨
+           ✨ Floating Action Button & Menu ✨
            ========================================================= */
         .fab-container {
             position: fixed; 
@@ -195,6 +195,10 @@
             background: #ff4757;
             box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
         }
+
+        /* --- Notification Animations --- */
+        @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
+        .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
     </style>
 </head>
 <body>
@@ -204,7 +208,7 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
     </div>
 
-    <!-- Drawer Overlay & Sidebar (ใช้ Tailwind ล้วน ลดการตีกันของ CSS) -->
+    <!-- Drawer Overlay & Sidebar -->
     <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1990] bg-black/50 backdrop-blur-sm hidden transition-opacity"></div>
     <div id="sideDrawer" class="fixed top-0 right-0 h-full w-[85vw] max-w-[320px] bg-white z-[2000] shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out rounded-l-3xl flex flex-col">
         <div class="p-6 md:p-8 border-b border-slate-100 text-center relative">
@@ -261,7 +265,7 @@
         <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <h3 class="font-bold text-lg font-['Kanit'] text-slate-800">การแจ้งเตือน</h3>
         </div>
-        <div id="notifList" class="max-h-[60vh] overflow-y-auto p-2"></div>
+        <div id="notifList" class="max-h-[60vh] overflow-y-auto p-2 bg-slate-50/50"></div>
     </div>
 
     <!-- Main Content Area -->
@@ -336,14 +340,11 @@
 
     <!-- ✨ Floating Action Button & Menu ✨ -->
     <div class="fab-container">
-        <!-- เมนูย่อยจะลอยอยู่เหนือปุ่ม ไม่ดันเนื้อหาหน้าเว็บ -->
         <div class="fab-menu" id="fabMenu">
-            <!-- ลำดับที่ 1 (อยู่ล่างสุด ใกล้ปุ่มหลัก) -->
             <div class="fab-item" onclick="openJoinModal()">
                 <span class="fab-label">เข้าร่วมห้องเรียน</span>
                 <button class="fab-action" style="background: #10b981; color: white;"><i class="fas fa-sign-in-alt"></i></button>
             </div>
-            <!-- ลำดับที่ 2 (อยู่บนสุด) -->
             <div class="fab-item" onclick="handleCreateNewClass()">
                 <span class="fab-label">สร้างห้องเรียนใหม่</span>
                 <button class="fab-action" style="background: var(--primary-light); color: white;"><i class="fas fa-chalkboard-teacher"></i></button>
@@ -355,7 +356,7 @@
     </div>
 
     <!-- ================= MODAL: เข้าร่วมห้องเรียนด้วยรหัส ================= -->
-    <div id="joinClassModal" class="modal-overlay">
+    <div id="joinClassModal" class="modal-overlay" style="z-index:4000;">
         <div class="modal-box relative">
             <div class="modal-header" style="margin-bottom: 0; border-bottom: none;">
                 <h3><i class="fas fa-sign-in-alt text-[var(--primary)] mr-2"></i>เข้าร่วมห้องเรียน</h3>
@@ -372,7 +373,7 @@
     </div>
 
     <!-- ================= MODAL: เข้าร่วม/สร้าง กลุ่มสถานศึกษา ================= -->
-    <div id="joinSchoolModal" class="modal-overlay">
+    <div id="joinSchoolModal" class="modal-overlay" style="z-index:4000;">
         <div class="modal-box">
             <div class="modal-header">
                 <h3 id="joinModalTitle"><i class="fas fa-school mr-2"></i> ค้นหากลุ่มสถานศึกษา</h3>
@@ -463,22 +464,32 @@
     </div>
 
     <!-- Custom Alert Modal -->
-    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px;">
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box text-center" style="max-width: 400px; border-radius: 25px;">
             <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
             <div style="display: flex; justify-content: center; gap: 10px;">
                 <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="btn-theme max-w-[120px]">ตกลง</button>
-                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert()" class="btn-theme max-w-[120px] !bg-slate-200 !text-slate-700 hover:!bg-slate-300">ยกเลิก</button>
+                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert(true)" class="btn-theme max-w-[120px] !bg-slate-200 !text-slate-700 hover:!bg-slate-300">ยกเลิก</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-100 py-6 text-center mt-auto">
-        <p class="text-[var(--primary)] font-bold mb-1 italic font-sans text-xs md:text-sm">© <span id="currentYear"></span> <span id="footerAppName">FlipSchool</span>.</p>
-    </footer>
+    <!-- ================= MODAL ดูรูปภาพบัตรในตัว ================= -->
+    <div id="imageModal" class="modal-overlay" style="z-index: 6000;">
+        <div class="modal-box" style="background: transparent; box-shadow: none;">
+            <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                <div class="modal-header">
+                    <h3><i class="fas fa-id-badge"></i> เอกสารยืนยันตัวตน</h3>
+                    <i class="fas fa-times" style="cursor: pointer; font-size: 20px; color: #a4b0be;" onclick="closeImageModal()"></i>
+                </div>
+                <div class="modal-body" style="padding: 20px; text-align: center; background: #000;">
+                    <img id="modalImage" src="" alt="บัตรยืนยันตัวตน" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px;">
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ================= ฟังก์ชันค้นหาฐานข้อมูล =================
@@ -548,17 +559,15 @@
             modal.classList.add('show');
         }
         
-        function closeCustomAlert() {
+        function closeCustomAlert(isCancel = false) {
             document.getElementById('customAlertModal').classList.remove('show');
-            if (event && event.target.id === 'customAlertCancelBtn' && alertCancelCallback) {
+            if (isCancel && alertCancelCallback) {
                 setTimeout(alertCancelCallback, 300);
-            } else if (alertCallback) { 
+            } else if (!isCancel && alertCallback) { 
                 setTimeout(alertCallback, 300); 
             }
             alertCallback = null; alertCancelCallback = null;
         }
-
-        document.getElementById('customAlertCancelBtn').addEventListener('click', closeCustomAlert);
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {
@@ -567,7 +576,6 @@
                 document.getElementById('displayAppName').innerText = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip' : APP_CONFIG.APP_NAME;
                 document.getElementById('displayAppSlogan').innerText = APP_CONFIG.APP_SLOGAN || '';
                 
-                // --- ดึงข้อมูลจาก config.js มาแสดงใน Footer ---
                 document.getElementById('footerAppName').innerText = APP_CONFIG.APP_NAME || 'FlipSchool';
                 document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
                 
@@ -796,6 +804,7 @@
 
         async function fetchAllClasses(db) {
             try {
+                // 🌟 แก้ไข: ใช้ตารางใหม่ classrooms ไม่ต้อง testColumn แล้ว
                 let teachData = [];
                 let testTargetCol = 'owner_id';
                 const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
@@ -810,7 +819,7 @@
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
                 let learnData = [];
-                // 🌟 แก้ไข: ดึงจากตาราง classroom_users ให้ตรงกับฐานข้อมูลใหม่
+                // 🌟 แก้ไข: ดึงจากตาราง classroom_users ตาม Unified Schema
                 const resLearn = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.id);
                 if (!resLearn.error) {
                     learnData = resLearn.data || [];
@@ -970,7 +979,7 @@
                 
                 if (!targetClass) throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
 
-                // 🌟 แก้ไข: ค้นหาการเข้าร่วมซ้ำจากตาราง classroom_users
+                // 🌟 แก้ไข: ใช้ classroom_users 
                 const { data: existEnroll } = await db.from('classroom_users')
                     .select('enrollment_id')
                     .eq('classroom_id', targetClass.classroom_id)
@@ -979,9 +988,9 @@
                 
                 if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
 
-                // 🌟 แก้ไข: บันทึกข้อมูลเข้าตาราง classroom_users
                 const payload = { classroom_id: targetClass.classroom_id, student_number: 0, user_id: currentUser.id };
                 
+                // 🌟 แก้ไข: ใช้ classroom_users
                 const { error: enrollError } = await db.from('classroom_users').insert([payload]);
                 if (enrollError) throw enrollError;
 
@@ -1347,14 +1356,33 @@
             }
         }
 
-        // ================= กระดิ่งแจ้งเตือน Realtime =================
-        function toggleNotifDropdown() {
+        // ================= 🌟 กระดิ่งแจ้งเตือน 🌟 =================
+        async function toggleNotifDropdown() {
             const dropdown = document.getElementById('notifDropdown');
             const btn = document.getElementById('notificationBtn');
+            const badge = document.getElementById('notifBadge');
+            
             dropdown.classList.toggle('hidden');
+            
             if (!dropdown.classList.contains('hidden')) {
                 btn.classList.add('bg-slate-100');
                 renderPendingList();
+                
+                // Method 2: Mark as read (ลบจุดแดง อัปเดตตาราง users)
+                if (badge.style.display !== 'none') {
+                    const nowIso = new Date().toISOString();
+                    badge.style.display = 'none';
+                    btn.classList.remove('ringing');
+                    
+                    if (currentUserData) currentUserData.last_notif_read = nowIso;
+                    
+                    try {
+                        const db = getDB();
+                        await db.from('users').update({ last_notif_read: nowIso }).eq('user_id', currentUser.id);
+                    } catch(e) {
+                        console.error('ไม่สามารถอัปเดตเวลาที่อ่านล่าสุดได้', e);
+                    }
+                }
             } else {
                 btn.classList.remove('bg-slate-100');
             }
@@ -1372,7 +1400,6 @@
         function setupRealtimePendingRequests() {
             if (pendingRequestsSubscription) { sysDB.removeChannel(pendingRequestsSubscription); pendingRequestsSubscription = null; }
             
-            // ให้ทุกคนที่อยู่สถานะ approved สามารถเห็นแจ้งเตือนได้ (Admin โรงเรียนร่วมกันพิจารณา)
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
             if (approvedSchoolIds.length > 0) {
@@ -1402,10 +1429,9 @@
                     const userIds = reqs.map(r => r.user_id); const schoolIds = reqs.map(r => r.school_id);
                     const { data: usersData } = await sysDB.from('users').select('user_id, first_name, last_name, email, profile_pic').in('user_id', userIds);
                     const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
-                    const hiddenReqs = JSON.parse(localStorage.getItem('flip_hidden_notifs') || '[]');
 
                     reqs.forEach(r => {
-                        if (r.user_id !== currentUser.id && !hiddenReqs.includes(r.id)) {
+                        if (r.user_id !== currentUser.id) {
                             const uData = usersData ? usersData.find(u => u.user_id === r.user_id) : {};
                             const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
                             pendingData.push({ ...r, users: uData || {}, schools: sData || {} });
@@ -1413,13 +1439,22 @@
                     });
                 }
 
-                const notifBtn = document.getElementById('notificationBtn'); const badge = document.getElementById('notifBadge');
                 window.pendingRequests = pendingData;
 
+                const lastRead = currentUserData?.last_notif_read ? new Date(currentUserData.last_notif_read) : new Date(0);
+                const unreadCount = pendingData.filter(r => new Date(r.created_at) > lastRead).length;
+
+                const notifBtn = document.getElementById('notificationBtn'); const badge = document.getElementById('notifBadge');
+
                 if (pendingData.length > 0) {
-                    notifBtn.style.display = 'flex'; badge.style.display = 'flex'; badge.innerText = pendingData.length; 
+                    notifBtn.style.display = 'flex'; 
+                    if (unreadCount > 0) {
+                        badge.style.display = 'flex'; badge.innerText = unreadCount; notifBtn.classList.add('ringing'); 
+                    } else {
+                        badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
+                    }
                 } else {
-                    notifBtn.style.display = 'flex'; badge.style.display = 'none'; 
+                    notifBtn.style.display = 'flex'; badge.style.display = 'none'; notifBtn.classList.remove('ringing'); 
                 }
                 
                 if (!document.getElementById('notifDropdown').classList.contains('hidden')) renderPendingList();
@@ -1431,7 +1466,7 @@
             const requests = window.pendingRequests || [];
             
             if(requests.length === 0) { 
-                listContainer.innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit']">ไม่มีการแจ้งเตือนใหม่</span></div>`; return; 
+                listContainer.innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit'] mt-2">ไม่มีการแจ้งเตือนใหม่</span></div>`; return; 
             }
             
             let html = '';
@@ -1448,29 +1483,21 @@
                 
                 const reqTitle = req.role === 'admin' ? 'ขอสิทธิ์แอดมินกลุ่ม' : 'ขอเข้าร่วมกลุ่ม';
 
+                // 🌟 โค้ดใหม่ จัดระเบียบการแสดงผล Flexbox (min-w-0 ป้องกันข้อความล้น) 🌟
                 html += `
                 <div class="p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors mb-2 border border-slate-100" id="req-card-${req.id}">
-                    <div class="flex gap-3">
-                        <img src="${avatar}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-slate-200">
-                        <div class="flex-1">
-                            <p class="text-[13px] text-slate-700 leading-snug mb-2">
-                                <b class="font-['Kanit'] text-slate-900">${u.first_name || 'ไม่ระบุชื่อ'} ${u.last_name || ''}</b> ${reqTitle} <b>${schoolName}</b>
+                    <div class="flex gap-3 items-start">
+                        <img src="${avatar}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-slate-200 mt-1">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] text-slate-700 leading-snug mb-2 break-words">
+                                <b class="font-['Kanit'] text-slate-900">${u.first_name || 'ไม่ระบุชื่อ'} ${u.last_name || ''}</b> 
+                                ${reqTitle} 
+                                <b class="text-[var(--primary)]">${schoolName}</b>
                                 ${viewCardBtn}
                             </p>
-                            
-                            <div class="flex gap-2 mt-2" id="action-box-${req.id}">
-                                <button class="flex-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="approveUserFB('${req.id}', '${req.role}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
-                                <button class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="dismissNotification('${req.id}')" title="ซ่อนจากเครื่องของฉัน">ซ่อน</button>
-                                <button class="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-500 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="showRejectBoxFB('${req.id}')">ปฏิเสธ</button>
-                            </div>
-
-                            <div id="reject-box-${req.id}" class="hidden flex-col gap-2 mt-2">
-                                <input type="text" id="reject-reason-${req.id}" class="w-full text-xs p-2 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white outline-none" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
-                                <div class="flex gap-2">
-                                    <button class="flex-1 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="rejectUserFB('${req.id}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
-                                    <button class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
-                                </div>
-                            </div>
+                            <button class="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-['Kanit'] text-[13px] font-bold rounded-lg transition cursor-pointer border-none flex items-center justify-center gap-1 shadow-sm" onclick="approveUserFB('${req.id}', '${req.role}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">
+                                <i class="fas fa-check-circle"></i> อนุมัติคำขอ
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -1481,42 +1508,21 @@
         async function approveUserFB(tsId, requestRole, userId, schoolId, cardUrl) {
             try {
                 await sysDB.from('user_school').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
+                
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
-                removePendingRequestCard(tsId);
+                
+                const card = document.getElementById(`req-card-${tsId}`);
+                if (card) {
+                    card.style.opacity = '0'; card.style.transform = 'scale(0.9) translateX(50px)';
+                    setTimeout(() => {
+                        card.remove(); 
+                        window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
+                        if (window.pendingRequests.length === 0) { 
+                            document.getElementById('notifList').innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit'] mt-2">ไม่มีการแจ้งเตือนใหม่</span></div>`; 
+                        }
+                    }, 300);
+                }
             } catch(err) { showCustomAlert('ไม่สามารถอนุมัติได้: ' + err.message, 'error'); }
-        }
-
-        function dismissNotification(tsId) {
-            let hidden = JSON.parse(localStorage.getItem('flip_hidden_notifs') || '[]');
-            if(!hidden.includes(tsId)) { hidden.push(tsId); localStorage.setItem('flip_hidden_notifs', JSON.stringify(hidden)); }
-            removePendingRequestCard(tsId);
-        }
-
-        function showRejectBoxFB(reqId) { document.getElementById(`action-box-${reqId}`).style.display = 'none'; document.getElementById(`reject-box-${reqId}`).style.display = 'flex'; }
-        function hideRejectBoxFB(reqId) { document.getElementById(`reject-box-${reqId}`).style.display = 'none'; document.getElementById(`action-box-${reqId}`).style.display = 'flex'; }
-
-        async function rejectUserFB(tsId, userId, schoolId, cardUrl) {
-            const reasonInput = document.getElementById(`reject-reason-${tsId}`);
-            const reasonValue = reasonInput ? reasonInput.value.trim() : '';
-            if (!reasonValue) { reasonInput.style.border = "1px solid #ff4757"; reasonInput.focus(); return; }
-            try {
-                await sysDB.from('user_school').update({ verification_status: 'rejected', reject_reason: reasonValue }).eq('id', tsId);
-                if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
-                removePendingRequestCard(tsId);
-            } catch(err) { showCustomAlert('ไม่สามารถปฏิเสธได้: ' + err.message, 'error'); }
-        }
-
-        function removePendingRequestCard(tsId) {
-            const card = document.getElementById(`req-card-${tsId}`);
-            if (card) {
-                card.style.opacity = '0'; card.style.transform = 'scale(0.9) translateX(50px)';
-                setTimeout(() => {
-                    card.remove(); window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
-                    const count = window.pendingRequests.length; const badge = document.getElementById('notifBadge');
-                    if (count > 0) { badge.innerText = count; } 
-                    else { badge.style.display = 'none'; document.getElementById('notificationBtn').classList.remove('bg-slate-100'); document.getElementById('notifList').innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit']">ไม่มีการแจ้งเตือนใหม่</span></div>`; }
-                }, 300);
-            }
         }
 
         async function deleteCardFromStorage(fileName) {
