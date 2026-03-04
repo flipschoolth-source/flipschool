@@ -12,7 +12,6 @@
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,222 +26,174 @@
             --bg-body: #f4f7fe; 
             --text-main: #2d3436; 
             --text-muted: #636e72; 
-            --white: #ffffff; 
-            --sidebar-width: 380px; 
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html, body { height: 100%; margin: 0; padding: 0; }
         body { 
             font-family: 'Sarabun', sans-serif; 
             background-color: var(--bg-body); 
             color: var(--text-main);
-            display: flex; flex-direction: column; overflow-x: hidden; 
-            min-height: 100vh;
+            margin: 0; padding: 0; overflow-x: hidden; 
             background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
                               radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+            min-height: 100vh; display: flex; flex-direction: column;
         }
 
-        /* --- Navbar --- */
-        nav { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 0 5%; height: 90px; background: var(--primary); 
-            box-shadow: 0 4px 20px rgba(0,0,80,0.15); 
-            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+        .nav-gradient { background: var(--primary); box-shadow: 0 4px 20px rgba(0,0,80,0.15); }
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+
+        /* Navbar Clean Style */
+        .nav-clean { background: white; border-bottom: 1px solid #f1f5f9; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+
+        /* --- Class Card --- */
+        .class-card { 
+            background: white; border-radius: 24px; overflow: hidden; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            cursor: pointer; border: 1px solid #f1f5f9; display: flex; flex-direction: column; height: 100%; 
+            position: relative;
         }
-        .nav-left { display: flex; align-items: center; gap: 16px; }
-
-        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; color: white; transition: 0.3s ease; }
-        .logo-container:hover { transform: translateY(-2px); }
-        .logo-icon-box { 
-            width: 40px; height: 40px; background: white; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
-            border: 2px solid rgba(255,255,255,0.2); 
-            font-size: 22px; color: var(--text-main); flex-shrink: 0;
+        .class-card:hover { transform: translateY(-6px); box-shadow: 0 20px 35px rgba(0,0,0,0.08); border-color: #e2e8f0; }
+        
+        .card-banner { 
+            height: 90px; display: flex; align-items: center; justify-content: center; 
+            font-size: 40px; color: rgba(255,255,255,0.25); position: relative; overflow: hidden; 
         }
-        .brand-text-group { display: flex; flex-direction: column; justify-content: center; }
-        .brand-name { font-size: 24px; font-weight: 700; color: white; font-family: 'Kanit', sans-serif; letter-spacing: -0.5px; line-height: 1; margin-bottom: -2px; }
-        .brand-name span { color: var(--accent); } 
-        .brand-slogan { font-size: 12px; color: #e0e8ff; font-family: 'Sarabun', sans-serif; font-weight: 500; margin-top: 2px; letter-spacing: 0.5px; opacity: 0.9; font-style: italic; }
-        
-        .nav-right { display: flex; align-items: center; gap: 12px; }
-        .nav-profile-trigger { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; object-fit: cover; transition: transform 0.3s ease; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-        .nav-profile-trigger:hover { transform: scale(1.05); border-color: white; }
-
-        /* --- Sidebar --- */
-        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 1999; }
-        .sidebar { position: fixed; top: 0; right: calc(var(--sidebar-width) * -1.1); width: var(--sidebar-width); height: 100%; background: rgba(255, 255, 255, 0.98); box-shadow: -15px 0 45px rgba(0,0,0,0.1); transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2000; padding: 40px 30px; display: flex; flex-direction: column; box-sizing: border-box; border-radius: 40px 0 0 40px; overflow-y: auto; }
-        .sidebar.active { right: 0; }
-        
-        .sidebar-close-btn { position: absolute; top: 20px; left: 20px; background: #f0f4ff; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: var(--primary-light); cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 10; }
-        .sidebar-close-btn:hover { background: #ff4757; color: white; transform: rotate(90deg); }
-        
-        .profile-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 15px; }
-        .sidebar-profile-img { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        
-        .info-card { background: #f8faff; padding: 25px; border-radius: 30px; margin: 15px 0; position: relative; border: 1px solid #edf2f7; }
-        .info-item { margin-bottom: 20px; }
-        .info-item label { font-size: 11px; color: #b2bec3; font-weight: 700; text-transform: uppercase; display: block; letter-spacing: 1px; margin-bottom: 5px; }
-        .info-item span { display: block; color: #2d3436; font-weight: 600; font-size: 16px; margin-top: 3px; }
-
-        .school-switcher-item { padding: 12px 15px; border-radius: 12px; border: 1px solid #edf2f7; cursor: pointer; transition: 0.2s; font-size: 14px; display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 8px; }
-        .school-switcher-item:hover { border-color: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .school-switcher-item.active { background: #e0e8ff; border-color: #a4bcfc; font-weight: 600; color: var(--primary-dark); }
-        .action-icon-btn { opacity: 0.6; padding: 4px; display: flex; align-items: center; justify-content: center; }
-        .action-icon-btn:hover { opacity: 1; transform: scale(1.1); }
-        .btn-red:hover { color: #ff4757; }
-
-        .logout-btn { margin-top: 20px; padding: 18px; border-radius: 20px; background: #fff5f5; color: #ff4757; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 600; transition: 0.3s; width: 100%; }
-        
-        /* --- Main Dashboard --- */
-        .main-container { flex: 1; padding: 30px 0; width: 98%; max-width: none; margin: 0 auto; box-sizing: border-box; transition: opacity 0.3s ease; }
-        
-        .welcome-hero { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); 
-            border-radius: 20px; padding: 35px 45px; color: white; margin-bottom: 30px; 
-            display: flex; justify-content: space-between; align-items: flex-start; 
-            box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); position: relative; overflow: hidden; 
-            box-sizing: border-box; flex-direction: column;
+        .card-banner::after { 
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40%; 
+            background: linear-gradient(to top, rgba(0,0,0,0.15), transparent); 
         }
-        .hero-text-content { position: relative; z-index: 5; flex: 1; width: 100%; overflow: hidden; }
-        .welcome-header { font-family: 'Kanit', sans-serif; font-size: 34px; font-weight: 700; margin: 0 0 5px 0; white-space: normal; word-wrap: break-word; width: 100%; }
-        .welcome-sub { font-size: 17px; opacity: 0.9; font-weight: 300; margin: 0; line-height: 1.5; white-space: normal; word-wrap: break-word; width: 100%; }
-        .hero-bg-icon { font-size: 100px; color: rgba(255,255,255,0.08); position: absolute; right: 40px; bottom: -20px; transform: rotate(-15deg); pointer-events: none; }
-
-        /* --- View Filters (Tabs) --- */
-        .view-filter-container { margin-bottom: 30px; position: relative; }
-        .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
-        .view-filter-scroll::-webkit-scrollbar { display: none; }
-        .filter-tab { padding: 12px 24px; background: white; border: 2px solid transparent; border-radius: 50px; font-family: 'Kanit'; font-size: 15px; font-weight: 500; color: #636e72; cursor: pointer; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .filter-tab:hover { background: #f8faff; color: var(--primary-light); }
-        .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(0, 82, 212, 0.2); }
-
-        #classroomSection { min-height: 400px; }
-        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; transition: opacity 0.3s ease; }
-        .class-card { background: var(--white); border-radius: 35px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: 0.4s; cursor: pointer; border: 1px solid rgba(0,0,0,0.01); display: flex; flex-direction: column; height: 100%; }
-        .class-card:hover { transform: translateY(-10px); box-shadow: 0 15px 35px rgba(0,0,0,0.08); }
-        .card-banner { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 45px; color: rgba(255,255,255,0.3); }
-        .card-body { padding: 25px; display: flex; flex-direction: column; flex: 1; }
-        .room-badge { display: inline-block; padding: 6px 16px; background: #f0f4ff; color: var(--primary-light); border-radius: 50px; font-size: 13px; font-weight: 700; margin-bottom: 12px; align-self: flex-start; }
-        .subject-title { font-family: 'Kanit'; font-size: 22px; font-weight: 600; color: #2d3436; margin: 0; line-height: 1.4; word-break: break-word; }
-
-        .fab-add { position: fixed; bottom: 50px; right: 50px; width: 70px; height: 70px; background: var(--accent); color: white; border-radius: 50%; border:none; font-size: 32px; cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); text-decoration: none; transition: 0.3s; }
         
-        /* --- Facebook-style Notification Dropdown --- */
-        .notif-container { position: relative; }
-        .notif-btn-wrapper { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
-        .notif-btn-wrapper:hover { background: rgba(255,255,255,0.2); }
-        .notif-btn-wrapper i { font-size: 18px; color: white; transition: 0.3s; }
-        .notif-btn-wrapper.active { background: white; color: var(--primary); }
-        .notif-btn-wrapper.active i { color: var(--primary); }
+        .card-body { padding: 16px 20px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+        .room-badge { 
+            display: inline-block; padding: 4px 12px; background: #f0f4ff; color: var(--primary-light); 
+            border-radius: 8px; font-size: 13px; font-weight: 700; font-family: 'Kanit';
+        }
         
-        .notif-dropdown { position: absolute; top: 55px; right: 0; width: 380px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s ease; z-index: 1050; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 100px); }
-        .notif-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
-        .notif-header { padding: 18px 20px 12px; font-family: 'Kanit'; font-size: 24px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; color: #050505; background: #fff; }
-        .notif-body { overflow-y: auto; flex: 1; padding: 0 8px 8px 8px; }
-        .notif-item { padding: 12px; border-radius: 8px; display: flex; gap: 12px; transition: 0.2s; background: white; position: relative; margin-bottom: 2px; }
-        .notif-item:hover { background: #f2f2f2; }
-        .notif-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid #eee; }
-        .notif-content { flex: 1; }
-        .notif-text { font-size: 14.5px; color: #050505; margin: 0 0 8px 0; line-height: 1.4; word-break: break-word; }
-        .notif-text b { font-weight: 600; font-family: 'Kanit'; }
-        .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
-        .btn-notif-action { padding: 8px 0; border-radius: 6px; font-family: 'Kanit'; font-size: 14.5px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; flex: 1; text-align: center; }
-        .btn-notif-approve { background: var(--primary-light); color: white; }
-        .btn-notif-approve:hover { background: var(--primary); }
-        .btn-notif-reject { background: #e4e6eb; color: #050505; }
-        .btn-notif-reject:hover { background: #d8dadf; }
-        .notif-time { font-size: 13px; color: #65676b; margin-top: 4px; display: block; font-weight: 500; }
-        .notif-unread-dot { width: 12px; height: 12px; background: #ff4757; border-radius: 50%; position: absolute; right: 15px; top: 35px; box-shadow: 0 0 0 3px white; }
+        .role-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; font-family: 'Kanit';
+        }
+        .role-teacher { background: #e0f2fe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .role-student { background: #dcfce7; color: #047857; border: 1px solid #bbf7d0; }
 
-        /* --- Footer --- */
-        .footer { padding: 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; }
-
-        @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
-        .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
-        .req-card-anim { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .subject-title { 
+            font-family: 'Kanit'; font-size: 18px; font-weight: 700; color: #1e293b; 
+            margin: 10px 0 5px 0; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; 
+        }
 
         /* --- Modals --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
-        .modal-box { background: white; border-radius: 24px; width: 100%; max-width: 550px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: none; }
-        .modal-header { padding: 20px 30px; background: #f8faff; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { margin: 0; font-family: 'Kanit'; color: var(--primary); font-size: 20px; }
-        .modal-body { padding: 30px; overflow-y: auto; flex: 1; background: #fff; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; transition: opacity 0.3s; }
+        .modal-box { background: white; border-radius: clamp(20px, 5vw, 25px); width: 100%; max-width: 500px; padding: clamp(20px, 5vw, 30px); box-shadow: 0 20px 50px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #edf2f7; padding-bottom: 15px; }
+        .modal-header h3 { margin: 0; font-family: 'Kanit'; font-size: 20px; color: var(--primary); }
+        .modal-body { overflow-y: auto; padding-right: 5px; flex: 1; }
 
         .form-label { font-size: 14px; font-weight: 600; color: #2d3436; margin-bottom: 8px; display: block; }
-        .form-input { width: 100%; padding: 14px 18px; margin-bottom: 20px; border: 2px solid #eef2f7; border-radius: 15px; font-family: 'Sarabun'; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
-        .form-input:focus { border-color: var(--primary-light); outline: none; box-shadow: 0 0 0 4px rgba(0,82,212,0.1); }
-        .btn-save { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 15px; cursor: pointer; font-family: 'Kanit'; font-weight: 500; margin-top: 10px; transition: 0.3s; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px;}
-        .btn-save:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,82,212,0.2); }
+        .form-input { width: 100%; padding: 12px 16px; border: 2px solid #eef2f7; border-radius: 12px; font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; background: #f8faff; outline: none; margin-bottom: 15px; }
+        .form-input:focus { border-color: var(--primary-light); background: white; box-shadow: 0 0 0 4px rgba(0,82,212,0.1); }
         
-        .search-container { position: relative; }
-        .search-results { position: absolute; width: 100%; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 250px; overflow-y: auto; display: none; border: 1px solid #eef2f7; margin-top: -15px; }
-        .search-item { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #f8f9fa; font-size: 15px; color: #333; transition: 0.2s; display: flex; align-items: center;}
-        .search-item:hover { background: #f0f4ff; color: var(--primary); padding-left: 25px; }
+        .btn-theme { background: var(--primary); color: white; padding: 14px; border-radius: 12px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.3s; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; border: none; }
+        .btn-theme:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,82,212,0.2); }
+        .btn-theme:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Search & File Upload UI */
+        .search-container { position: relative; margin-bottom: 15px; }
+        .search-results { position: absolute; width: 100%; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eef2f7; top: 100%; margin-top: 5px; }
+        .search-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f8f9fa; font-size: 14px; color: #333; transition: 0.2s; display: flex; align-items: center;}
+        .search-item:hover { background: #f0f4ff; color: var(--primary); padding-left: 20px; }
         .search-item-add { color: var(--primary); font-weight: 600; justify-content: center; background: #f8faff; border-bottom: none; }
 
         .file-upload-box { border: 2px dashed #dcdde1; border-radius: 15px; padding: 25px 20px; text-align: center; transition: 0.3s; background: #fafbfc; margin-bottom: 20px; }
         .file-upload-box:hover { border-color: var(--primary-light); background: #f0f4ff; }
-        
-        .btn-upload-option { padding: 10px 15px; border-radius: 12px; font-family: 'Kanit'; cursor: pointer; font-size: 14px; transition: 0.2s; flex: 1; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-upload-option { padding: 10px 15px; border-radius: 10px; font-family: 'Kanit'; cursor: pointer; font-size: 13px; transition: 0.2s; flex: 1; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; }
         .btn-upload-gallery { background: white; border: 1px solid var(--primary-light); color: var(--primary-light); }
         .btn-upload-gallery:hover { background: #e0e8ff; }
         .btn-upload-camera { background: var(--primary-light); color: white; box-shadow: 0 4px 10px rgba(0,82,212,0.2); }
         .btn-upload-camera:hover { background: var(--primary); transform: translateY(-1px); }
 
-        /* --- Custom Alert Modal --- */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s; z-index: 5000; }
-        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
-        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
-        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
-        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
-        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
-        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; min-width: 120px; }
-        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 82, 212, 0.2); }
-        .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
-        .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
+        /* View Filter Tabs */
+        .view-filter-container { margin-bottom: 20px; position: relative; }
+        .view-filter-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; -ms-overflow-style: none; scrollbar-width: none; }
+        .view-filter-scroll::-webkit-scrollbar { display: none; }
+        .filter-tab { padding: 10px 20px; background: white; border: 2px solid transparent; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; font-weight: 500; color: #636e72; cursor: pointer; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .filter-tab:hover { background: #f8faff; color: var(--primary-light); }
+        .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(0, 82, 212, 0.2); }
 
-        /* FAB Menu */
-        .fab-container { position: fixed; bottom: clamp(20px, 5vw, 40px); right: clamp(20px, 5vw, 40px); z-index: 998; }
-        .fab-menu { position: absolute; bottom: calc(100% + 15px); right: 0; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px; pointer-events: none; }
-        .fab-item { display: flex; align-items: center; gap: 12px; cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(20px) scale(0.8); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: right bottom; }
-        .fab-menu.show .fab-item { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; }
+        /* Loader */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* =========================================================
+           ✨ Floating Action Button & Menu (Speed Dial ล่าสุด) ✨
+           ========================================================= */
+        .fab-container {
+            position: fixed; 
+            bottom: clamp(20px, 5vw, 40px); 
+            right: clamp(20px, 5vw, 40px);
+            z-index: 998; 
+        }
+        
+        .fab-menu {
+            position: absolute; 
+            bottom: calc(100% + 15px); 
+            right: 0;
+            display: flex; 
+            flex-direction: column-reverse;
+            align-items: flex-end; 
+            gap: 15px;
+            pointer-events: none; 
+        }
+        
+        .fab-item {
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer;
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(20px) scale(0.8); 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: right bottom;
+        }
+
+        .fab-menu.show .fab-item {
+            opacity: 1; 
+            visibility: visible; 
+            transform: translateY(0) scale(1); 
+            pointer-events: auto; 
+        }
+        
         .fab-menu.show .fab-item:nth-child(1) { transition-delay: 0.05s; }
         .fab-menu.show .fab-item:nth-child(2) { transition-delay: 0.1s; }
-        .fab-label { background: white; padding: 6px 14px; border-radius: 8px; font-family: 'Kanit'; font-size: 14px; font-weight: 500; color: #1e293b; box-shadow: 0 4px 15px rgba(0,0,0,0.1); white-space: nowrap; border: 1px solid #f1f5f9; }
-        .fab-action { width: clamp(45px, 12vw, 50px); height: clamp(45px, 12vw, 50px); border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.2s; }
+
+        .fab-label {
+            background: white; padding: 6px 14px; border-radius: 8px; font-family: 'Kanit';
+            font-size: 14px; font-weight: 500; color: #1e293b; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            white-space: nowrap; 
+            border: 1px solid #f1f5f9;
+        }
+        .fab-action {
+            width: clamp(45px, 12vw, 50px); height: clamp(45px, 12vw, 50px); 
+            border-radius: 50%; border: none; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.2s;
+        }
         .fab-item:hover .fab-action { transform: scale(1.1); }
-        .fab-add { width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); background: var(--accent); color: white; border-radius: 50%; border: none; font-size: clamp(24px, 6vw, 30px); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s; }
+        .fab-item:hover .fab-label { color: var(--primary); }
+        
+        .fab-add { 
+            width: clamp(55px, 15vw, 70px); height: clamp(55px, 15vw, 70px); 
+            background: var(--accent); color: white; border-radius: 50%; border: none; 
+            font-size: clamp(24px, 6vw, 30px); cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s; 
+        }
         .fab-add:hover:not(.active) { transform: scale(1.08); }
-        .fab-add.active { transform: rotate(45deg); background: #ff4757; box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4); }
-
-        @media (max-width: 768px) { 
-            nav { padding: 0 16px; height: 80px; } 
-            .nav-left { gap: 10px; }
-            .brand-name { font-size: 20px; margin-bottom: 0; }
-            .brand-slogan { display: none; } 
-            .logo-icon-box { width: 24px; height: 24px; border-radius: 6px; font-size: 14px; }
-            .nav-right { gap: 10px; }
-            .nav-profile-trigger { width: 36px; height: 36px; }
-            .notif-btn-wrapper { width: 36px; height: 36px; }
-            .notif-btn-wrapper i { font-size: 16px; }
-            .notif-dropdown { position: fixed; top: 75px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 90px); }
-            
-            .main-container { padding: 20px 2%; width: 98%; max-width: none; } 
-            .welcome-hero { padding: 25px 25px; flex-direction: column; text-align: left; border-radius: 16px; justify-content: center; } 
-            .welcome-header { font-size: 24px; margin-bottom: 5px; } 
-            .welcome-sub { font-size: 14px; margin-bottom: 0; }
-            .hero-bg-icon { right: -20px; bottom: -20px; font-size: 80px; opacity: 0.1; }
-            .class-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; } 
-            .fab-add { bottom: 30px; right: 30px; width: 60px; height: 60px; font-size: 24px; } 
-            .filter-tab { font-size: 14px; padding: 10px 18px; }
-
-            .sidebar { width: 85vw; right: -100vw; padding: 30px 20px; border-radius: 30px 0 0 30px; }
-            .sidebar.active { right: 0; }
-            .sidebar-close-btn { top: 15px; left: 15px; width: 32px; height: 32px; font-size: 16px; }
+        .fab-add.active {
+            transform: rotate(45deg); 
+            background: #ff4757;
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
         }
     </style>
 </head>
@@ -253,107 +204,137 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
     </div>
 
-    <!-- Drawer Overlay & Sidebar -->
-    <div id="drawerOverlay" onclick="toggleSidebar()" class="sidebar-overlay"></div>
-    <div id="sideDrawer" class="sidebar" id="profileSidebar">
-        <!-- ปุ่มกากบาทสำหรับปิด Sidebar -->
-        <div class="sidebar-close-btn" onclick="toggleSidebar()" title="ปิดแถบเมนู">
-            <i class="fas fa-times"></i>
-        </div>
-
-        <div class="profile-wrapper">
-            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" id="sidebarImg" class="sidebar-profile-img">
-        </div>
-        <h3 id="sideDisplayName" style="text-align:center; font-family:'Kanit'; color:var(--primary-dark); margin:0; font-size: 24px;">...</h3>
-        <p id="sideDisplayEmail" style="text-align:center; color:#a4b0be; font-size:14px; margin: 2px 0 15px 0;"></p>
-        
-        <div class="info-card">
-            <div class="info-item"><label>ชื่อ-นามสกุล</label><span id="dispFullName">...</span></div>
-            <div class="info-item" style="margin-bottom: 0;">
-                <label>กลุ่มสถานศึกษา</label>
-                <div id="schoolSwitcherList" style="margin-top: 10px; display: flex; flex-direction: column;"></div>
-
-                <button onclick="openJoinSchoolModal()" style="background: none; border: none; color: var(--primary-light); font-size: 14px; cursor: pointer; margin-top: 15px; font-family: 'Sarabun'; font-weight: 600; display: flex; align-items: center; gap: 5px; width: 100%; justify-content: center; padding: 12px; border-radius: 12px; background: #e0e8ff; transition: 0.2s;">
-                    <i class="fas fa-plus-circle"></i> ค้นหา / สร้างกลุ่มโรงเรียน
-                </button>
+    <!-- Drawer Overlay & Sidebar (ใช้ Tailwind ล้วน ลดการตีกันของ CSS) -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 z-[1990] bg-black/50 backdrop-blur-sm hidden transition-opacity"></div>
+    <div id="sideDrawer" class="fixed top-0 right-0 h-full w-[85vw] max-w-[320px] bg-white z-[2000] shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out rounded-l-3xl flex flex-col">
+        <div class="p-6 md:p-8 border-b border-slate-100 text-center relative">
+            <button onclick="toggleDrawer()" class="absolute top-4 left-4 w-8 h-8 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-colors"><i class="fas fa-times"></i></button>
+            <div class="w-24 h-24 mx-auto bg-slate-100 rounded-full p-1 shadow-inner mb-4 relative">
+                <img id="sidebarProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-full h-full rounded-full object-cover border-4 border-white shadow-md">
             </div>
+            <h3 id="sidebarName" class="font-bold text-xl text-slate-800 font-['Kanit']">...</h3>
+            <p id="sidebarEmail" class="text-sm text-slate-500 mt-1">...</p>
         </div>
-        <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-power-off"></i> ออกจากระบบ</button>
+        <div class="p-4 flex-1 overflow-y-auto">
+            <div id="sidebarSchoolsList" class="flex flex-col gap-2"></div>
+            <button onclick="openJoinSchoolModal()" class="mt-4 w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold transition-all text-sm cursor-pointer border-none">
+                <i class="fas fa-plus-circle"></i> ค้นหา / สร้างกลุ่มโรงเรียน
+            </button>
+        </div>
+        <div class="p-4 border-t border-slate-100">
+            <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all border-none"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
+        </div>
     </div>
 
-    <!-- ================= NAVBAR ================= -->
-    <nav>
-        <div class="nav-left">
-            <div class="logo-container" onclick="window.location.href='index.html'">
-                <div class="logo-icon-box">🎓</div>
-                <div class="brand-text-group">
-                    <div class="brand-name" id="displayAppName">Flip<span>School</span></div>
-                    <div class="brand-slogan slogan" id="displayAppSlogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+    <!-- Navbar -->
+    <nav class="nav-clean h-[70px] flex items-center justify-center sticky top-0 z-50">
+        <div class="w-full max-w-[1800px] px-4 md:px-8 xl:px-12 flex items-center justify-between">
+            <div class="flex items-center gap-3 md:gap-4">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+                    <div class="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shrink-0">
+                        <span class="text-xl text-white">🎓</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="text-xl md:text-2xl font-bold tracking-tight leading-none text-slate-800 font-['Kanit']">
+                            <span id="displayAppName">Flip</span><span class="text-[var(--accent)]">School</span>
+                        </div>
+                        <span id="displayAppSlogan" class="text-[10px] text-slate-400 font-medium mt-0.5 tracking-wide hidden md:block"></span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="nav-right">
-            
-            <!-- ไอคอนกระดิ่ง Facebook Style -->
-            <div class="notif-container" id="notificationContainer">
-                <div class="notif-btn-wrapper" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
-                    <i class="fas fa-bell"></i>
-                    <span id="notifBadge" style="position: absolute; top: -2px; right: -2px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; font-family: 'Kanit'; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">0</span>
+            <div class="flex items-center gap-4">
+                <!-- กระดิ่งแจ้งเตือน -->
+                <div class="relative cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
+                    <i class="fas fa-bell text-xl text-slate-600"></i>
+                    <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
                 </div>
-                
-                <!-- กล่อง Dropdown แจ้งเตือน -->
-                <div id="notifDropdown" class="notif-dropdown">
-                    <div class="notif-header">การแจ้งเตือน</div>
-                    <div class="notif-body" id="notifList"></div>
+                <!-- Profile -->
+                <div class="w-10 h-10 rounded-full border-2 border-slate-200 p-0.5 cursor-pointer hover:border-blue-400 transition-colors" onclick="toggleDrawer()">
+                    <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-full h-full rounded-full object-cover">
                 </div>
             </div>
-
-            <!-- ใส่ Placeholder 1x1 แทนค่าว่างเพื่อป้องกันเบราว์เซอร์ยุบขนาดก่อนโหลดรูปเสร็จ -->
-            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" id="navProfileImg" class="nav-profile-trigger" onclick="toggleSidebar()" alt="Profile">
         </div>
     </nav>
 
-    <!-- ================= MAIN DASHBOARD ================= -->
-    <main class="main-container" id="mainDashboardContent">
-        <div class="welcome-hero">
-            <div class="hero-text-content">
-                <h1 class="welcome-header"><span id="welcomeHeader">กำลังโหลด...</span></h1>
-                <p class="welcome-sub" id="welcomeSub">ยินดีต้อนรับกลับสู่พื้นที่สร้างสรรค์นวัตกรรมเพื่อการจัดการเรียนรู้</p>
-            </div>
-            <!-- Background Icon -->
-            <i class="fas fa-gem hero-bg-icon"></i>
+    <!-- Dropdown แจ้งเตือน -->
+    <div id="notifDropdown" class="hidden absolute top-[70px] right-[2%] md:right-[5%] w-[90vw] md:w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-100 z-[1050] overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-lg font-['Kanit'] text-slate-800">การแจ้งเตือน</h3>
         </div>
+        <div id="notifList" class="max-h-[60vh] overflow-y-auto p-2"></div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 md:px-8 xl:px-12 py-6 relative">
         
-        <div class="view-filter-container">
-            <div class="view-filter-scroll" id="viewFilterTabs"></div>
+        <!-- Compact Header & Stats -->
+        <div class="bg-white rounded-3xl p-5 md:p-6 mb-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl items-center justify-center text-2xl shadow-inner shrink-0">
+                    <i class="fas fa-hands-helping"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight font-['Kanit'] text-slate-800">
+                        สวัสดี, <span id="welcomeText" class="text-[var(--primary)]">...</span>
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-1">พื้นที่จัดการเรียนรู้ของคุณ พร้อมใช้งานแล้ว</p>
+                </div>
+            </div>
+            
+            <div id="statsContainer" class="flex gap-3 w-full md:w-auto">
+                <div class="bg-slate-50 rounded-2xl px-5 py-3 border border-slate-100 flex items-center gap-4 flex-1 md:flex-none">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg shrink-0"><i class="fas fa-chalkboard-teacher"></i></div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">สร้าง (สอน)</p>
+                        <p id="countTeach" class="text-xl font-black text-slate-700 leading-none mt-1">0</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl px-5 py-3 border border-slate-100 flex items-center gap-4 flex-1 md:flex-none">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0"><i class="fas fa-user-graduate"></i></div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">เข้าร่วม (เรียน)</p>
+                        <p id="countLearn" class="text-xl font-black text-slate-700 leading-none mt-1">0</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div id="pendingAlertSection" style="display: none; background: #fff8e1; border: 1px solid #ffecb3; border-radius: 20px; padding: 25px 30px; align-items: center; gap: 20px; margin-bottom: 40px; box-shadow: 0 10px 25px rgba(255, 193, 7, 0.15);">
-            <div id="alertIconBg" style="background: #ffeaa7; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
-                <i id="alertIcon" class="fas fa-info-circle" style="font-size: 30px; color: #d35400;"></i>
+        <!-- Toolbar: Filters -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 sticky top-[70px] z-40 bg-[var(--bg-body)] py-2 border-b border-slate-200/50">
+            <div class="view-filter-container mb-0 w-full overflow-hidden">
+                <div class="view-filter-scroll" id="viewFilterTabs"></div>
+            </div>
+        </div>
+
+        <!-- แจ้งเตือนรอการอนุมัติ -->
+        <div id="pendingAlertSection" style="display: none; background: #fff8e1; border: 1px solid #ffecb3; border-radius: 20px; padding: 25px 30px; align-items: center; gap: 20px; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(255, 193, 7, 0.10);">
+            <div id="alertIconBg" style="background: #ffeaa7; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                <i id="alertIcon" class="fas fa-info-circle" style="font-size: 24px; color: #d35400;"></i>
             </div>
             <div style="text-align: left; flex: 1;">
-                <h2 style="font-family: 'Kanit'; color: #d35400; margin: 0 0 5px 0; font-size: 20px;" id="pendingAlertTitle">อยู่ระหว่างรอการอนุมัติ</h2>
-                <p style="color: #856404; font-size: 15px; margin: 0; line-height: 1.5;" id="pendingAlertDesc">โปรดรอให้แอดมินตรวจสอบข้อมูลและอนุมัติการเข้าถึงกลุ่มโรงเรียนนี้</p>
-                <div id="resubmitBtnContainer" style="display: none; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;"></div>
+                <h2 style="font-family: 'Kanit'; color: #d35400; margin: 0 0 5px 0; font-size: 18px;" id="pendingAlertTitle">สถานะ: รอตรวจสอบ</h2>
+                <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;" id="pendingAlertDesc">กรุณารอแอดมินอนุมัติสิทธิ์ในกลุ่มโรงเรียนนี้</p>
+                <div id="resubmitBtnContainer" style="display: none; flex-wrap: wrap; gap: 10px; margin-top: 15px;"></div>
             </div>
         </div>
 
-        <div id="classroomSection">
-            <div class="class-grid" id="classGrid"></div>
+        <!-- Section: ห้องเรียนทั้งหมดรวมกัน -->
+        <div id="sectionAllClasses" class="block animate-fade-in">
+            <div id="gridAllClasses" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6"></div>
         </div>
-    </main>
 
-    <!-- Footer -->
-    <div class="footer footer-display-text"></div>
+    </main>
 
     <!-- ✨ Floating Action Button & Menu ✨ -->
     <div class="fab-container">
+        <!-- เมนูย่อยจะลอยอยู่เหนือปุ่ม ไม่ดันเนื้อหาหน้าเว็บ -->
         <div class="fab-menu" id="fabMenu">
-            <div class="fab-item" onclick="openJoinClassModal()">
+            <!-- ลำดับที่ 1 (อยู่ล่างสุด ใกล้ปุ่มหลัก) -->
+            <div class="fab-item" onclick="openJoinModal()">
                 <span class="fab-label">เข้าร่วมห้องเรียน</span>
                 <button class="fab-action" style="background: #10b981; color: white;"><i class="fas fa-sign-in-alt"></i></button>
             </div>
+            <!-- ลำดับที่ 2 (อยู่บนสุด) -->
             <div class="fab-item" onclick="handleCreateNewClass()">
                 <span class="fab-label">สร้างห้องเรียนใหม่</span>
                 <button class="fab-action" style="background: var(--primary-light); color: white;"><i class="fas fa-chalkboard-teacher"></i></button>
@@ -365,62 +346,52 @@
     </div>
 
     <!-- ================= MODAL: เข้าร่วมห้องเรียนด้วยรหัส ================= -->
-    <div id="joinClassModal" class="modal-overlay" style="z-index:4000;">
+    <div id="joinClassModal" class="modal-overlay">
         <div class="modal-box relative">
-            <div class="modal-header">
+            <div class="modal-header" style="margin-bottom: 0; border-bottom: none;">
                 <h3><i class="fas fa-sign-in-alt text-[var(--primary)] mr-2"></i>เข้าร่วมห้องเรียน</h3>
-                <button onclick="closeJoinClassModal()" class="text-slate-400 hover:text-rose-500 transition-colors bg-transparent border-none text-xl cursor-pointer"><i class="fas fa-times"></i></button>
+                <button onclick="closeJoinModal()" class="text-slate-400 hover:text-rose-500 transition-colors bg-transparent border-none text-xl"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body" style="padding-top: 5px;">
                 <p class="text-sm text-slate-500 mb-4 text-center">กรอกรหัสห้องเรียน หรือ Join Code จากคุณครู</p>
                 <input type="text" id="classCodeInput" class="form-input text-center text-lg font-bold tracking-widest uppercase" placeholder="รหัสห้องเรียน (ถ้ามี)">
-                <button onclick="submitJoinClass()" id="btnSubmitJoinClass" class="btn-save mt-2">ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i></button>
+                <button onclick="submitJoinClass()" id="btnSubmitJoinClass" class="btn-theme mt-2">
+                    ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- ================= MODAL เข้าร่วมกลุ่มโรงเรียน / ขอสิทธิ์แอดมิน ================= -->
-    <div id="joinSchoolModal" class="modal-overlay" style="z-index:4000;">
+    <!-- ================= MODAL: เข้าร่วม/สร้าง กลุ่มสถานศึกษา ================= -->
+    <div id="joinSchoolModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <h3 id="joinModalTitle"><i class="fas fa-school" style="margin-right: 8px;"></i> เข้าร่วมกลุ่มสถานศึกษา</h3>
-                <i class="fas fa-times" style="cursor: pointer; font-size: 24px; color: #b2bec3;" onclick="closeJoinSchoolModal()"></i>
+                <h3 id="joinModalTitle"><i class="fas fa-school mr-2"></i> ค้นหากลุ่มสถานศึกษา</h3>
+                <button onclick="closeJoinSchoolModal()" class="text-slate-400 hover:text-rose-500 transition-colors bg-transparent border-none text-xl"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <form id="joinSchoolForm" onsubmit="submitSchoolJoin(event)">
                     
                     <div id="joinModalGuideText" style="background: #f8faff; border: 1px solid #e0e8ff; border-radius: 12px; padding: 12px 15px; margin-bottom: 20px; font-size: 13px; color: #2d3436; line-height: 1.5;">
                         <i class="fas fa-lightbulb" style="color: #f1c40f; margin-right: 5px; font-size: 16px; vertical-align: middle;"></i>
-                        <b style="color: var(--primary-light);">ประโยชน์:</b> ช่วยให้คุณและครูท่านอื่นในโรงเรียน <b>ใช้ฐานข้อมูลนักเรียนร่วมกัน</b> และบริหารจัดการระบบได้อย่างเป็นเอกภาพ
+                        <b style="color: var(--primary-light);">สำหรับคุณครู:</b> สร้างหรือเข้าร่วมกลุ่มโรงเรียนเพื่อแชร์ฐานข้อมูลนักเรียนและจัดการระบบร่วมกัน
                     </div>
 
                     <div id="searchSchoolGroup">
-                        <label class="form-label">ค้นหาชื่อโรงเรียนของท่าน</label>
+                        <label class="form-label">ค้นหาชื่อโรงเรียน</label>
                         <div class="search-container">
-                            <input type="text" id="reqSchoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียน..." oninput="searchSchools(this.value)" autocomplete="off">
+                            <input type="text" id="reqSchoolSearch" class="form-input" style="margin-bottom: 0;" placeholder="พิมพ์ชื่อโรงเรียน..." oninput="searchSchools(this.value)" autocomplete="off">
                             <div id="reqSchoolResults" class="search-results"></div>
                         </div>
                     </div>
 
                     <div id="selectedSchoolCard" style="display: none; background: #f8faff; border: 1px solid #d1d8e0; border-radius: 15px; padding: 15px; margin-bottom: 20px; position: relative;">
                         <h4 id="selSchoolName" style="margin:0 0 5px 0; font-family:'Kanit'; color: var(--text-main); font-size: 16px;"></h4>
-                        <span id="selSchoolAbbr" style="font-size: 13px; color: var(--primary-light); font-weight: 600; background: #e0e8ff; padding: 3px 8px; border-radius: 8px;"></span>
+                        <span id="selSchoolAbbr" style="font-size: 12px; color: var(--primary-light); font-weight: 600; background: #e0e8ff; padding: 3px 8px; border-radius: 8px;"></span>
                         
                         <div id="missingAbbrGroup" style="display:none; margin-top: 15px; background: white; padding: 15px; border-radius: 10px; border: 1px dashed #d1d8e0;">
-                            <label class="form-label" style="font-size: 13px; color: #d35400; margin-bottom: 5px;"><i class="fas fa-exclamation-circle"></i> โรงเรียนนี้ยังไม่มีอักษรย่อ กรุณาระบุ (ภาษาอังกฤษ)</label>
-                            <p style="font-size: 12px; color: #636e72; margin: 0 0 10px 0; line-height: 1.4;">อักษรย่อนี้จะใช้เป็นส่วนท้ายของรหัสนักเรียนในการล็อกอิน</p>
+                            <label class="form-label" style="font-size: 13px; color: #d35400; margin-bottom: 5px;"><i class="fas fa-exclamation-circle"></i> โปรดระบุอักษรย่อภาษาอังกฤษ</label>
                             <input type="text" id="updateSchoolAbbr" class="form-input" style="margin-bottom: 0; padding: 10px 14px;" placeholder="เช่น t1sk" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()">
-                        </div>
-
-                        <!-- 🌟 ส่วนเสริม: ตัวเลือกเพื่อขอเป็นแอดมิน (แม้จะมีแอดมินอยู่แล้วก็ตาม) -->
-                        <div id="optionalAdminGroup" style="display:none; margin-top: 15px; background: white; padding: 15px; border-radius: 10px; border: 1px solid #dfe4ea;">
-                            <label style="display: flex; align-items: start; gap: 10px; cursor: pointer; margin: 0;">
-                                <input type="checkbox" id="reqAdminCheck" onchange="toggleOptionalAdminCard(this.checked)" style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent);">
-                                <span style="font-size: 13px; color: #2d3436; line-height: 1.4;">
-                                    <b>ต้องการขอสิทธิ์เป็น "แอดมินกลุ่มสถานศึกษา"</b><br>
-                                    <span style="color: var(--text-muted);">ต้องแนบภาพถ่ายคู่กับบัตรเพื่อให้ส่วนกลางตรวจสอบ</span>
-                                </span>
-                            </label>
                         </div>
 
                         <i class="fas fa-times-circle" onclick="resetSchoolSelection()" style="position: absolute; top: 15px; right: 15px; color: #ff4757; font-size: 18px; cursor: pointer;" id="cancelSelectSchoolBtn"></i>
@@ -434,29 +405,27 @@
                         <input type="text" id="newSchoolName" class="form-input" placeholder="ระบุชื่อโรงเรียนเต็ม" oninput="autoSuggestAbbr('newSchoolName', 'newSchoolAbbr')" style="margin-bottom: 10px;">
                         <label class="form-label" style="font-size: 13px; margin-bottom: 5px;">อักษรย่อภาษาอังกฤษ <span style="color:#ff4757;">*</span></label>
                         <input type="text" id="newSchoolAbbr" class="form-input" placeholder="เช่น t1sk" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()">
-                        <div style="text-align: right;"><button type="button" onclick="cancelNewSchool()" style="background: none; border: none; color: #ff4757; cursor: pointer; font-family: 'Kanit'; text-decoration: underline; margin-top: -10px;">ยกเลิกการสร้างใหม่</button></div>
+                        <div style="text-align: right;"><button type="button" onclick="cancelNewSchool()" style="background: none; border: none; color: #ff4757; cursor: pointer; font-family: 'Kanit'; text-decoration: underline; margin-top: -10px; font-size: 12px;">ยกเลิกการสร้าง</button></div>
                     </div>
 
                     <div id="reqIdCardGroup" style="display: none;">
                         <div id="reqIdCardAlertBox" style="background: #fff8e1; border: 1px solid #ffecb3; color: #b08d00; padding: 12px 15px; border-radius: 10px; font-size: 13px; margin-bottom: 15px; line-height: 1.5;"></div>
-                        <label class="form-label">ภาพถ่ายเซลฟี่คู่กับบัตรข้าราชการ/บัตรพนักงาน <span style="color:red;">*</span></label>
+                        <label class="form-label" style="font-size: 13px;">ภาพถ่ายเซลฟี่คู่กับบัตรข้าราชการ/พนักงาน <span style="color:red;">*</span></label>
                         
                         <div class="file-upload-box">
                             <div id="reqFileNameDisplay">
                                 <i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i>
-                                <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
                             </div>
-                            
                             <div style="display: flex; gap: 10px; justify-content: center;" id="uploadBtnContainer">
                                 <button type="button" class="btn-upload-option btn-upload-gallery" id="btnStandardUpload" onclick="document.getElementById('reqIdCardImageMain').click()"><i class="fas fa-image"></i> เลือกรูปภาพ</button>
                                 <button type="button" class="btn-upload-option btn-upload-camera" id="btnWebcamUpload" onclick="openCameraModal()"><i class="fas fa-desktop"></i> ถ่ายด้วยเว็บแคม</button>
                             </div>
-                            
                             <input type="file" id="reqIdCardImageMain" accept="image/*" style="display: none;" onchange="processSelectedImage(this)">
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-save" id="btnSubmitJoin">ยืนยันส่งคำขอ <i class="fas fa-paper-plane"></i></button>
+                    <button type="submit" class="btn-theme" id="btnSubmitJoinSchool">ยืนยันส่งคำขอ <i class="fas fa-paper-plane"></i></button>
                 </form>
             </div>
         </div>
@@ -465,54 +434,45 @@
     <!-- ================= MODAL กล้องเว็บแคม ================= -->
     <div id="cameraModal" class="modal-overlay" style="z-index: 4000;">
         <div class="modal-box">
-            <div class="modal-header">
-                <h3><i class="fas fa-camera" style="margin-right: 8px;"></i> ถ่ายภาพเซลฟี่</h3>
-                <i class="fas fa-times" style="cursor: pointer; font-size: 24px; color: #b2bec3;" onclick="closeCameraModal()"></i>
+            <div class="modal-header" style="margin-bottom: 15px;">
+                <h3><i class="fas fa-camera mr-2"></i> ถ่ายภาพเซลฟี่</h3>
+                <button onclick="closeCameraModal()" class="text-slate-400 hover:text-rose-500 bg-transparent border-none text-xl"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body" style="text-align: center; padding: 20px;">
-                <p style="color: #636e72; font-size: 14px; margin-top: 0;">กรุณาถือบัตรให้เห็นชัดเจน</p>
-                <video id="cameraVideo" autoplay playsinline style="width: 100%; max-height: 350px; background: #000; border-radius: 15px; transform: scaleX(-1);"></video>
+            <div class="modal-body" style="text-align: center;">
+                <p style="color: #636e72; font-size: 13px; margin-top: 0; margin-bottom: 15px;">กรุณาถือบัตรประจำตัวให้เห็นชัดเจน</p>
+                <video id="cameraVideo" autoplay playsinline style="width: 100%; max-height: 300px; background: #000; border-radius: 15px; transform: scaleX(-1);"></video>
                 <canvas id="cameraCanvas" style="display: none;"></canvas>
-                <img id="cameraPreview" style="display: none; width: 100%; max-height: 350px; border-radius: 15px; object-fit: contain; background: #000; transform: scaleX(-1);" />
+                <img id="cameraPreview" style="display: none; width: 100%; max-height: 300px; border-radius: 15px; object-fit: contain; background: #000; transform: scaleX(-1);" />
                 
                 <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
-                    <button type="button" id="btnCapture" onclick="takeSnapshot()" class="btn-save" style="margin: 0; width: auto; padding: 12px 30px;"><i class="fas fa-camera"></i> กดถ่ายภาพ</button>
-                    <button type="button" id="btnRetake" onclick="startCamera()" class="btn-save" style="display: none; margin: 0; width: auto; padding: 12px 30px; background: #636e72;"><i class="fas fa-redo"></i> ถ่ายใหม่</button>
-                    <button type="button" id="btnConfirmPhoto" onclick="confirmSnapshot()" class="btn-save" style="display: none; margin: 0; width: auto; padding: 12px 30px; background: #2ed573;"><i class="fas fa-check"></i> ใช้รูปนี้</button>
+                    <button type="button" id="btnCapture" onclick="takeSnapshot()" class="btn-theme" style="width: auto; padding: 12px 24px;"><i class="fas fa-camera"></i> กดถ่ายภาพ</button>
+                    <button type="button" id="btnRetake" onclick="startCamera()" class="btn-theme" style="display: none; width: auto; padding: 12px 24px; background: #64748b;"><i class="fas fa-redo"></i> ถ่ายใหม่</button>
+                    <button type="button" id="btnConfirmPhoto" onclick="confirmSnapshot()" class="btn-theme" style="display: none; width: auto; padding: 12px 24px; background: #10b981;"><i class="fas fa-check"></i> ใช้รูปนี้</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ================= MODAL ดูรูปภาพบัตรในตัว ================= -->
-    <div id="imageModal" class="modal-overlay" style="z-index: 6000;">
-        <div class="modal-box" style="background: transparent; box-shadow: none;">
-            <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
-                <div class="modal-header">
-                    <h3><i class="fas fa-id-badge"></i> เอกสารยืนยันตัวตน</h3>
-                    <i class="fas fa-times" style="cursor: pointer; font-size: 20px; color: #a4b0be;" onclick="closeImageModal()"></i>
-                </div>
-                <div class="modal-body" style="padding: 20px; text-align: center; background: #000;">
-                    <img id="modalImage" src="" alt="บัตรยืนยันตัวตน" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px;">
-                </div>
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 5000;">
+        <div class="modal-box text-center" style="max-width: 400px; border-radius: 25px;">
+            <div id="customAlertIcon" class="text-5xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="btn-theme max-w-[120px]">ตกลง</button>
+                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert()" class="btn-theme max-w-[120px] !bg-slate-200 !text-slate-700 hover:!bg-slate-300">ยกเลิก</button>
             </div>
         </div>
     </div>
 
-    <!-- ================= Custom Alert Modal ================= -->
-    <div id="customAlertModal" class="custom-modal-overlay">
-        <div class="custom-modal-box">
-            <div class="custom-modal-icon"><i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i></div>
-            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
-            <p id="customAlertMessage" class="custom-modal-message"></p>
-            <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;" id="customAlertBtns">
-                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert()">ตกลง</button>
-                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-6 text-center mt-auto">
+        <p class="text-[var(--primary)] font-bold mb-1 italic font-sans text-xs md:text-sm">© <span id="currentYear"></span> <span id="footerAppName">FlipSchool</span>.</p>
+    </footer>
 
     <script>
+        // ================= ฟังก์ชันค้นหาฐานข้อมูล =================
         function getDB() {
             if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
             try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
@@ -524,308 +484,318 @@
         }
 
         let currentUser = null;
-        let currentUserData = null; 
+        let userData = null; 
         let userSchools = []; 
-        
         let activeViewMode = 'all'; 
-        let activeSchool = null; 
-        let allClasses = [];
-        
-        let reqSchoolHasAdmin = false;
+        let activeSchoolObj = null;
+        let allClasses = []; 
+
         let isCreatingNewSchool = false;
-        let isAppealing = false; 
-        // 🌟 ตัวแปรใหม่สำหรับโหมดการขอสิทธิ์เป็นแอดมินโดยเฉพาะ
-        window.isUpgradingToAdmin = false; 
-        
-        let activeImageFile = null; 
+        let reqSchoolHasAdmin = false;
+        let isAppealing = false;
+        let activeImageFile = null;
         let cameraStream = null;
         let isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        let alertCallback = null;
-        let alertCancelCallback = null;
         let pendingRequestsSubscription = null;
 
-        // ตั้งค่า EmailJS (นำ Public Key มาใส่ตรงนี้)
-        (function() {
-            if (typeof emailjs !== 'undefined') {
-                emailjs.init("YOUR_PUBLIC_KEY"); 
-            }
-        })();
+        // UI Helpers
+        function toggleDrawer() {
+            const dr = document.getElementById('sideDrawer');
+            const ov = document.getElementById('drawerOverlay');
+            dr.classList.toggle('translate-x-full');
+            ov.classList.toggle('hidden');
+        }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof APP_CONFIG !== 'undefined') {
-                const brandNameEl = document.getElementById('displayAppName');
-                if (brandNameEl && APP_CONFIG.APP_NAME) {
-                    brandNameEl.innerHTML = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip<span>School</span>' : APP_CONFIG.APP_NAME;
-                }
-                const sloganEl = document.getElementById('displayAppSlogan');
-                if (sloganEl && APP_CONFIG.APP_SLOGAN) sloganEl.textContent = APP_CONFIG.APP_SLOGAN;
-
-                document.querySelectorAll('.footer-display-text').forEach(el => {
-                    const year = APP_CONFIG.YEAR || new Date().getFullYear();
-                    el.innerHTML = `&copy; ${year} ${APP_CONFIG.APP_NAME}. ${APP_CONFIG.FOOTER_TEXT}`;
-                });
-            }
-
-            if (typeof initAppUI === 'function') initAppUI();
-            if (typeof sysDB !== 'undefined') {
-                const { data: { user } } = await sysDB.auth.getUser();
-                if (!user) { window.location.href = 'login.html'; return; }
-                currentUser = user;
-                await fetchProfile();
-            }
-        });
-
+        let alertCallback = null;
+        let alertCancelCallback = null;
         function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
-            const titleEl = document.getElementById('customAlertTitle');
-            const msgEl = document.getElementById('customAlertMessage');
-            const iconEl = document.getElementById('customAlertIcon');
-            const cancelBtn = document.getElementById('customAlertCancelBtn');
-            const okBtn = document.getElementById('customAlertOkBtn');
-
-            msgEl.innerHTML = message; alertCallback = callback; alertCancelCallback = cancelCallback;
-
-            if (type === 'success') { iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573'; titleEl.innerText = 'สำเร็จ!'; cancelBtn.style.display = 'none'; okBtn.style.background = '#2ed573'; } 
-            else if (type === 'warning') { iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502'; titleEl.innerText = 'แจ้งเตือน'; cancelBtn.style.display = 'none'; okBtn.style.background = '#ffa502'; } 
-            else if (type === 'confirm') { iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#ff4757'; titleEl.innerText = 'ยืนยันการดำเนินการ'; cancelBtn.style.display = 'block'; okBtn.style.background = '#ff4757'; } 
-            else { iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757'; titleEl.innerText = 'เกิดข้อผิดพลาด'; cancelBtn.style.display = 'none'; okBtn.style.background = 'var(--primary)'; }
+            const icon = document.getElementById('customAlertIcon');
+            const title = document.getElementById('customAlertTitle');
+            const btn = document.getElementById('customAlertOkBtn');
+            const btnCancel = document.getElementById('customAlertCancelBtn');
             
+            document.getElementById('customAlertMessage').innerHTML = message;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            btnCancel.style.display = 'none';
+
+            if (type === 'success') {
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>'; icon.className = 'text-5xl mb-4 text-emerald-500';
+                title.innerText = 'สำเร็จ!'; btn.style.background = '#10b981';
+            } else if (type === 'warning') {
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; icon.className = 'text-5xl mb-4 text-amber-500';
+                title.innerText = 'แจ้งเตือน'; btn.style.background = '#f59e0b';
+            } else if (type === 'confirm') {
+                icon.innerHTML = '<i class="fas fa-question-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
+                title.innerText = 'ยืนยัน'; btn.style.background = '#ff4757';
+                btnCancel.style.display = 'block';
+            } else {
+                icon.innerHTML = '<i class="fas fa-times-circle"></i>'; icon.className = 'text-5xl mb-4 text-rose-500';
+                title.innerText = 'ข้อผิดพลาด'; btn.style.background = '#ef4444';
+            }
             modal.classList.add('show');
         }
-
-        function closeCustomAlert(isCancel = false) { 
-            document.getElementById('customAlertModal').classList.remove('show'); 
-            if (!isCancel && alertCallback) { setTimeout(alertCallback, 200); alertCallback = null; alertCancelCallback = null; }
-            else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 200); alertCancelCallback = null; alertCallback = null; }
+        
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').classList.remove('show');
+            if (event && event.target.id === 'customAlertCancelBtn' && alertCancelCallback) {
+                setTimeout(alertCancelCallback, 300);
+            } else if (alertCallback) { 
+                setTimeout(alertCallback, 300); 
+            }
+            alertCallback = null; alertCancelCallback = null;
         }
 
-        async function fetchProfile() {
-            try {
-                // อิงจากตาราง users (Unified Schema)
-                const { data: userRecord, error: profileError } = await sysDB.from('users').select('*').eq('user_id', currentUser.id).single();
-                if (profileError) throw profileError;
+        document.getElementById('customAlertCancelBtn').addEventListener('click', closeCustomAlert);
 
-                if (userRecord.is_super_admin || userRecord.role === 'super_admin') { window.location.href = 'super_admin.html'; return; }
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.title = `แดชบอร์ด - ${APP_CONFIG.APP_NAME || 'FlipSchool'}`;
+                document.getElementById('displayAppName').innerText = APP_CONFIG.APP_NAME === 'FlipSchool' ? 'Flip' : APP_CONFIG.APP_NAME;
+                document.getElementById('footerAppName').innerText = APP_CONFIG.APP_NAME || 'FlipSchool';
+                document.getElementById('displayAppSlogan').innerText = APP_CONFIG.APP_SLOGAN || '';
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+            }
+
+            const checkDB = setInterval(async () => {
+                try {
+                    const db = getDB();
+                    clearInterval(checkDB);
+                    await initDashboard(db);
+                } catch(e) {}
+            }, 300);
+        });
+
+        async function initDashboard(db) {
+            try {
+                const { data: { session }, error: sessionError } = await db.auth.getSession();
+                if (sessionError || !session) throw new Error("No session");
+
+                const { data: userRecord, error: uErr } = await db.from('users').select('*').eq('user_id', session.user.id).maybeSingle();
                 
-                await refreshDashboardState();
+                if (uErr || !userRecord) {
+                    await db.auth.signOut();
+                    window.location.replace('login.html');
+                    return;
+                }
+
+                currentUser = session.user;
+                userData = userRecord;
+
+                await refreshSchoolData(db);
+
+                document.getElementById('loadingOverlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+
             } catch (err) {
-                showCustomAlert("เซสชันหมดอายุ กรุณาล็อกอินใหม่", 'error', () => { handleLogout(); });
+                console.error("Dashboard Init Error:", err);
+                window.location.replace('login.html');
             }
         }
 
-        async function refreshDashboardState() {
-            try {
-                const { data: userRecord, error: uErr } = await sysDB.from('users').select('*').eq('user_id', currentUser.id).single();
-                if (uErr) throw uErr;
-                currentUserData = userRecord;
+        async function refreshSchoolData(db) {
+            const { data: schoolsData } = await db.from('user_school')
+                .select('id, school_id, role, verification_status, reject_reason, schools(school_name, school_abbr)')
+                .eq('user_id', currentUser.id);
+            
+            userSchools = schoolsData || [];
 
-                // ดึงข้อมูลกลุ่มโรงเรียนจาก user_school
-                const { data: schools, error: sErr } = await sysDB.from('user_school')
-                    .select('id, school_id, role, verification_status, reject_reason, verification_card_url, schools(school_name, school_abbr)')
-                    .eq('user_id', currentUser.id);
-                
-                if (sErr) throw sErr;
-                userSchools = schools || [];
+            const savedMode = localStorage.getItem('flip_active_view') || 'all';
+            
+            if (savedMode !== 'all' && savedMode !== 'independent') {
+                activeSchoolObj = userSchools.find(s => s.school_id === savedMode);
+                if (activeSchoolObj) {
+                    activeViewMode = savedMode;
+                } else {
+                    activeViewMode = 'all';
+                    localStorage.setItem('flip_active_view', 'all');
+                }
+            } else {
+                activeViewMode = savedMode;
+                activeSchoolObj = null;
+            }
 
-                const savedMode = localStorage.getItem('flip_active_view') || 'all';
-                if (savedMode !== 'all' && savedMode !== 'independent') {
-                    activeSchool = userSchools.find(s => s.school_id === savedMode);
-                    if (activeSchool) { activeViewMode = savedMode; } 
-                    else { activeViewMode = 'all'; localStorage.setItem('flip_active_view', 'all'); }
-                } else { activeViewMode = savedMode; activeSchool = null; }
-
-                renderDashboard();
-            } catch (err) { console.error("Error refreshing state: ", err); }
+            renderProfileUI();
+            renderFilterTabs();
+            handleVerificationStatus();
+            await fetchAllClasses(db);
+            setupRealtimePendingRequests();
         }
 
-        function renderDashboard() {
-            const displayName = currentUserData.first_name || 'ผู้ใช้งาน';
-            document.getElementById('welcomeHeader').innerText = `สวัสดีครับ คุณ${displayName}`;
-            document.getElementById('dispFullName').innerText = `${currentUserData.first_name} ${currentUserData.last_name}`;
-            document.getElementById('sideDisplayName').innerHTML = `คุณ${displayName}`;
-            document.getElementById('sideDisplayEmail').innerText = currentUser.email || '';
+        function renderProfileUI() {
+            const fName = userData.first_name || '';
+            const lName = userData.last_name || '';
+            const fullName = `${fName} ${lName}`.trim();
             
-            setupProfilePicture(currentUserData.profile_pic, currentUserData.first_name);
+            document.getElementById('welcomeText').innerText = fName;
+            document.getElementById('sidebarName').innerText = fullName;
+            document.getElementById('sidebarEmail').innerText = userData.email || '';
+            
+            const picUrl = userData.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fName}`;
+            document.getElementById('navProfileImg').src = picUrl;
+            document.getElementById('sidebarProfileImg').src = picUrl;
 
-            if (activeViewMode === 'all') { handleVerificationStatus('all'); } 
-            else if (activeViewMode === 'independent') { handleVerificationStatus('independent'); } 
-            else { handleVerificationStatus(activeSchool.verification_status); }
+            const sbContainer = document.getElementById('sidebarSchoolsList');
+            if (userSchools.length === 0) {
+                sbContainer.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">ยังไม่มีสังกัดโรงเรียน</div>`;
+            } else {
+                sbContainer.innerHTML = userSchools.map(s => {
+                    const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle text-emerald-500"></i>' : 
+                                      (s.verification_status === 'pending' ? '<i class="fas fa-clock text-amber-500"></i>' : '<i class="fas fa-times-circle text-rose-500"></i>');
+                    
+                    const roleText = s.role === 'admin' ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200 shadow-sm">Admin</span>' : '';
+                    
+                    const abbrText = s.schools?.school_abbr 
+                        ? `<div class="mt-1.5"><span class="text-[10px] text-blue-600 bg-white/60 border border-blue-200/60 px-1.5 py-0.5 rounded-md font-mono font-medium shadow-sm">@${s.schools.school_abbr}</span></div>` 
+                        : '';
 
-            renderFilterTabs();
-            renderSchoolSwitcher();
-            setupRealtimePendingRequests();
+                    return `
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex flex-col cursor-pointer hover:bg-blue-100/50 transition mb-2" onclick="switchViewMode('${s.school_id}')">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">สถานศึกษา</p>
+                            ${roleText}
+                        </div>
+                        <div class="flex items-center gap-1.5 w-full">
+                            ${statusIcon}
+                            <span class="font-bold text-blue-900 text-sm truncate" title="${s.schools?.school_name || ''}">${s.schools?.school_name || 'ไม่ระบุ'}</span>
+                        </div>
+                        ${abbrText}
+                    </div>
+                `}).join('');
+            }
+        }
+
+        function handleVerificationStatus() {
+            const alertSection = document.getElementById('pendingAlertSection');
+            const resubmitBtnContainer = document.getElementById('resubmitBtnContainer');
+            
+            if (activeViewMode === 'all' || activeViewMode === 'independent' || !activeSchoolObj) {
+                alertSection.style.display = 'none';
+                return;
+            }
+
+            if (activeSchoolObj.verification_status === 'approved') {
+                alertSection.style.display = 'none';
+            } else if (activeSchoolObj.verification_status === 'rejected') {
+                alertSection.style.display = 'flex';
+                alertSection.style.background = '#fff0f0'; 
+                alertSection.style.borderColor = '#ffcccc'; 
+                document.getElementById('alertIconBg').style.background = '#ffcccc'; 
+                document.getElementById('alertIcon').className = 'fas fa-exclamation-circle'; 
+                document.getElementById('alertIcon').style.color = '#ff4757';
+                
+                document.getElementById('pendingAlertTitle').innerText = 'เอกสารไม่ผ่านการอนุมัติ';
+                document.getElementById('pendingAlertTitle').style.color = '#ff4757';
+                const reason = activeSchoolObj.reject_reason || 'ไม่ระบุเหตุผลแน่ชัด';
+                document.getElementById('pendingAlertDesc').innerHTML = `<b>เหตุผล:</b> ${reason}<br><span class="text-xs mt-1 block">คุณสามารถยื่นขอสิทธิ์ใหม่ได้ หรือลบคำขอนี้ทิ้ง</span>`;
+                
+                resubmitBtnContainer.style.display = 'flex';
+                resubmitBtnContainer.innerHTML = `
+                    <button onclick="openAppealModal()" class="bg-white border border-rose-500 text-rose-500 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-50"><i class="fas fa-id-card mr-1"></i> ยื่นใหม่</button>
+                    <button onclick="cancelSchoolRequest('${activeSchoolObj.school_id}', '${activeSchoolObj.schools?.school_name || 'โรงเรียนนี้'}')" class="bg-rose-50 border border-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-100"><i class="fas fa-trash-alt mr-1"></i> ลบคำขอ</button>
+                `;
+            } else {
+                alertSection.style.display = 'flex';
+                alertSection.style.background = '#fff8e1'; 
+                alertSection.style.borderColor = '#ffecb3'; 
+                document.getElementById('alertIconBg').style.background = '#ffeaa7'; 
+                document.getElementById('alertIcon').className = 'fas fa-info-circle'; 
+                document.getElementById('alertIcon').style.color = '#d35400';
+                
+                document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอตรวจสอบสิทธิ์';
+                document.getElementById('pendingAlertTitle').style.color = '#d35400';
+                document.getElementById('pendingAlertDesc').innerHTML = `คำขอเข้าร่วมกลุ่ม <b>${activeSchoolObj.schools?.school_name || 'โรงเรียนนี้'}</b> อยู่ระหว่างรออนุมัติ<br><span class="text-xs text-slate-500">*คุณยังสามารถจัดการเนื้อหาได้ตามปกติ</span>`;
+                
+                resubmitBtnContainer.style.display = 'flex';
+                resubmitBtnContainer.innerHTML = `
+                    <button onclick="cancelSchoolRequest('${activeSchoolObj.school_id}', '${activeSchoolObj.schools?.school_name || 'โรงเรียนนี้'}')" class="bg-white border border-slate-300 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50"><i class="fas fa-times mr-1"></i> ยกเลิกคำขอ</button>
+                `;
+            }
+        }
+
+        async function cancelSchoolRequest(schoolId, schoolName) {
+            showCustomAlert(`ยกเลิกคำขอเข้าร่วม "${schoolName}" ใช่หรือไม่?`, 'confirm', async () => {
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('user_school').delete().eq('user_id', currentUser.id).eq('school_id', schoolId);
+                    if (error) throw error;
+                    
+                    if (activeViewMode === schoolId) {
+                        localStorage.setItem('flip_active_view', 'all');
+                    }
+                    showCustomAlert('ยกเลิกคำขอเรียบร้อยแล้ว', 'success', () => refreshSchoolData(db));
+                } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
+            });
         }
 
         function renderFilterTabs() {
             const container = document.getElementById('viewFilterTabs');
-            if (!container) return;
-
             let html = `
-                <button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchSchool('all')"><i class="fas fa-layer-group"></i> พื้นที่ทั้งหมด</button>
-                <button class="filter-tab ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchSchool('independent')"><i class="fas fa-user"></i> พื้นที่ส่วนตัว</button>
+                <button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchViewMode('all')">
+                    <i class="fas fa-layer-group"></i> ทั้งหมด
+                </button>
+                <button class="filter-tab ${activeViewMode === 'independent' ? 'active' : ''}" onclick="switchViewMode('independent')">
+                    <i class="fas fa-user"></i> พื้นที่ส่วนตัว
+                </button>
             `;
 
             userSchools.forEach(s => {
                 const isActive = activeViewMode === s.school_id;
-                const statusIcon = s.verification_status === 'approved' ? '' : (s.verification_status === 'pending' ? '<i class="fas fa-clock" style="color:#ffa502;"></i> ' : '<i class="fas fa-times-circle" style="color:#ff4757;"></i> ');
-                html += `<button class="filter-tab ${isActive ? 'active' : ''}" onclick="switchSchool('${s.school_id}')">${statusIcon}<i class="fas fa-school"></i> ${s.schools?.school_name}</button>`;
-            });
-            container.innerHTML = html;
-        }
-
-        function renderSchoolSwitcher() {
-            const container = document.getElementById('schoolSwitcherList');
-            if (!container) return;
-            
-            let html = '';
-
-            userSchools.forEach(s => {
-                const isAct = (activeViewMode === s.school_id);
-                const statusIcon = s.verification_status === 'approved' ? '<i class="fas fa-check-circle" style="color:#2ed573; margin-right:5px;"></i>' : (s.verification_status === 'pending' ? '<i class="fas fa-clock" style="color:#ffa502; margin-right:5px;"></i>' : '<i class="fas fa-times-circle" style="color:#ff4757; margin-right:5px;"></i>');
-                const roleBadge = s.role === 'admin' ? '<span style="background:#ffeaa7; color:#d63031; font-size:10px; padding:2px 6px; border-radius:6px; margin-left:8px; font-weight:700; border:1px solid #fdcb6e;">Admin</span>' : '';
+                const statusDot = s.verification_status === 'approved' ? '' : '<span class="w-2 h-2 rounded-full bg-amber-500 absolute top-2 right-2"></span>';
                 
-                let actionBtn = s.verification_status === 'approved' 
-                    ? `<div onclick="leaveSchool(event, '${s.school_id}', '${s.schools?.school_name}')" title="ออกจากกลุ่ม" class="action-icon-btn btn-red"><i class="fas fa-sign-out-alt"></i></div>`
-                    : `<div onclick="cancelRequest(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยกเลิกคำขอ" class="action-icon-btn btn-red"><i class="fas fa-times"></i></div>`;
-
-                // 🌟 เพิ่มปุ่มขออัปเกรดเป็น Admin หากยังไม่ได้เป็น 🌟
-                let upgradeBtn = (s.role !== 'admin') 
-                    ? `<div onclick="openUpgradeAdminModal(event, '${s.school_id}', '${s.schools?.school_name}')" title="ยื่นเอกสารขอสิทธิ์แอดมิน" class="action-icon-btn" style="color: var(--accent); margin-right: 5px;"><i class="fas fa-id-badge"></i></div>` 
-                    : '';
-
-                const loginFormatHtml = (s.verification_status === 'approved' && s.schools?.school_abbr) 
-                    ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 6px; font-family: 'Sarabun', sans-serif;"><i class="fas fa-user-graduate" style="color:var(--primary-light); margin-right:5px;"></i>ล็อกอินนร.: เลขประจำตัว<strong style="color:var(--accent); font-family:monospace;">@${s.schools.school_abbr}</strong></div>` 
-                    : '';
-
                 html += `
-                    <div class="school-switcher-item ${isAct ? 'active' : ''}" onclick="switchSchool('${s.school_id}')" style="display:flex; flex-direction:column; align-items:stretch;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; display:flex; align-items:center;">
-                                ${statusIcon} <span>${s.schools?.school_name}</span> ${roleBadge}
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                ${isAct ? '<i class="fas fa-check" style="color:var(--primary); margin-right: 5px;"></i>' : ''}
-                                ${upgradeBtn}
-                                ${actionBtn}
-                            </div>
-                        </div>
-                        ${loginFormatHtml}
-                    </div>`;
+                <button class="filter-tab relative pr-6 ${isActive ? 'active' : ''}" onclick="switchViewMode('${s.school_id}')">
+                    <i class="fas fa-school"></i> ${s.schools?.school_name || 'ไม่ระบุ'} ${statusDot}
+                </button>`;
             });
             container.innerHTML = html;
         }
 
-        function switchSchool(schoolId) { 
-            localStorage.setItem('flip_active_view', schoolId); 
-            if (document.getElementById('profileSidebar').classList.contains('active')) toggleSidebar();
-            refreshDashboardState();
-        }
-
-        function handleFabClick(e) {
-            e.preventDefault();
-            if (activeViewMode === 'all') {
-                showCustomAlert("กรุณาเลือกพื้นที่การทำงานให้ชัดเจน (พื้นที่ส่วนตัว หรือ กลุ่มสถานศึกษา) จากแท็บเมนูด้านบน ก่อนเริ่มสร้างห้องเรียนครับ", "warning");
+        function switchViewMode(mode) {
+            activeViewMode = mode;
+            localStorage.setItem('flip_active_view', mode);
+            
+            if (mode !== 'all' && mode !== 'independent') {
+                activeSchoolObj = userSchools.find(s => s.school_id === mode);
             } else {
-                window.location.href = 'classroom-add.html';
+                activeSchoolObj = null;
+            }
+
+            renderFilterTabs();
+            handleVerificationStatus();
+            renderFilteredGrids();
+            
+            if(window.innerWidth < 768 && !document.getElementById('sideDrawer').classList.contains('translate-x-full')) {
+                toggleDrawer();
             }
         }
 
-        function setupProfilePicture(dbPic, firstName = 'User') {
-            let finalImg = '';
-            if (!dbPic || dbPic.includes('dicebear')) {
-                if (currentUser.user_metadata && currentUser.user_metadata.avatar_url) finalImg = currentUser.user_metadata.avatar_url;
-                else finalImg = dbPic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`;
-            } else { finalImg = dbPic; }
-            document.getElementById('navProfileImg').src = finalImg; document.getElementById('sidebarImg').src = finalImg;
-        }
-
-        async function leaveSchool(event, schoolId, schoolName) {
-            event.stopPropagation(); 
-            showCustomAlert(`คุณต้องการออกจากกลุ่ม "${schoolName}" ใช่หรือไม่?\n\nห้องเรียนของคุณจะย้ายไปอยู่พื้นที่ส่วนตัวชั่วคราว`, 'confirm', async () => {
-                try {
-                    const { error } = await sysDB.from('user_school').delete().eq('user_id', currentUser.id).eq('school_id', schoolId);
-                    if (error) throw error;
-                    
-                    if (activeViewMode === schoolId) localStorage.setItem('flip_active_view', 'all');
-                    showCustomAlert('คุณได้ออกจากกลุ่มสถานศึกษาเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
-                } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
-            });
-        }
-
-        async function cancelRequest(event, schoolId, schoolName) {
-            event.stopPropagation();
-            showCustomAlert(`ยกเลิกคำขอเข้าร่วม "${schoolName}" ใช่หรือไม่?`, 'confirm', async () => {
-                try {
-                    const { error } = await sysDB.from('user_school').delete().eq('user_id', currentUser.id).eq('school_id', schoolId);
-                    if (error) throw error;
-                    
-                    if (activeViewMode === schoolId) localStorage.setItem('flip_active_view', 'all');
-                    showCustomAlert('ยกเลิกคำขอเรียบร้อยแล้ว', 'success', () => refreshDashboardState());
-                } catch (err) { showCustomAlert('ข้อผิดพลาด: ' + err.message, 'error'); }
-            });
-        }
-
-        function handleVerificationStatus(status) {
-            const classSection = document.getElementById('classroomSection');
-            const alertSection = document.getElementById('pendingAlertSection');
-            const fabBtn = document.getElementById('fabAddBtn');
-            const resubmitBtn = document.getElementById('resubmitBtnContainer');
-            const iconBg = document.getElementById('alertIconBg');
-            const icon = document.getElementById('alertIcon');
-
-            if (resubmitBtn) resubmitBtn.style.display = 'none';
-
-            if (status === 'all' || status === 'independent' || status === 'approved') {
-                classSection.style.display = 'block'; alertSection.style.display = 'none'; fabBtn.style.display = 'flex';
-                fetchClassrooms();
-            } else if (status === 'rejected') {
-                classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex'; if (resubmitBtn) resubmitBtn.style.display = 'flex'; 
-                alertSection.style.background = '#fff0f0'; alertSection.style.borderColor = '#ffcccc'; iconBg.style.background = '#ffcccc'; icon.className = 'fas fa-exclamation-circle'; icon.style.color = '#ff4757';
-                document.getElementById('pendingAlertTitle').innerText = 'เอกสารไม่ผ่านการอนุมัติ';
-                document.getElementById('pendingAlertTitle').style.color = '#ff4757';
-                
-                const reason = activeSchool.reject_reason || 'ไม่ระบุเหตุผลแน่ชัด (กรุณาแนบภาพยืนยันตัวตนให้ชัดเจน)';
-                document.getElementById('pendingAlertDesc').innerHTML = `<b>เหตุผลจากผู้ตรวจสอบ:</b> ${reason}<br><span style="font-size:14px; color:#2d3436;">หากท่านมั่นใจ โปรดคลิก <b>"ยื่นอุทธรณ์"</b> พร้อมแนบรูปถ่ายคู่บัตรประจำตัว เพื่อให้ส่วนกลางและเพื่อนครูตรวจสอบอีกครั้งครับ</span>`;
-                
-                resubmitBtn.innerHTML = `
-                    <button onclick="openAppealModal()" style="background: white; border: 2px solid #ff4757; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-id-card"></i> ยื่นอุทธรณ์ (บังคับแนบบัตร)</button>
-                    <button onclick="cancelRequest(event, '${activeSchool.school_id}', '${activeSchool.schools.school_name}')" style="background: #fff0f0; border: none; color: #ff4757; padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; transition: 0.3s; margin-top: 10px;"><i class="fas fa-times"></i> ยกเลิกคำขอนี้</button>
-                `;
-                fetchClassrooms();
-            } else { // pending
-                classSection.style.display = 'block'; alertSection.style.display = 'flex'; fabBtn.style.display = 'flex';
-                alertSection.style.background = '#fff8e1'; alertSection.style.borderColor = '#ffecb3'; iconBg.style.background = '#ffeaa7'; icon.className = 'fas fa-info-circle'; icon.style.color = '#d35400';
-                document.getElementById('pendingAlertTitle').innerText = 'สถานะ: รอการอนุมัติเข้ากลุ่ม';
-                document.getElementById('pendingAlertTitle').style.color = '#d35400';
-                
-                let descText = "<b>โปรดรอแอดมินหรือเพื่อนครูในกลุ่มกดอนุมัติรับเข้ากลุ่ม</b> ระหว่างนี้คุณสามารถใช้งานระบบล่วงหน้าได้ทันทีครับ";
-                if (activeSchool.role === 'admin') {
-                    descText = "คุณเป็นผู้ขอสร้าง/ขอสิทธิ์แอดมินกลุ่มโรงเรียนนี้ <b>โปรดรอส่วนกลางตรวจสอบเอกสาร</b> ระหว่างนี้คุณสามารถใช้งานระบบล่วงหน้าได้ทันทีครับ";
-                }
-                document.getElementById('pendingAlertDesc').innerHTML = descText;
-                fetchClassrooms();
-            }
-        }
-
-        async function fetchClassrooms() {
-            const grid = document.getElementById('classGrid');
-            grid.style.opacity = '0.4'; 
-            grid.innerHTML = `<div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: #a4b0be;"><i class="fas fa-circle-notch fa-spin" style="font-size: 40px; margin-bottom: 15px;"></i><span style="font-family: 'Kanit'; font-size: 16px;">กำลังโหลดห้องเรียน...</span></div>`;
-
+        async function fetchAllClasses(db) {
             try {
                 let teachData = [];
                 let testTargetCol = 'owner_id';
-                const { error: testErr } = await sysDB.from('classrooms').select('owner_id').limit(1);
-                if (testErr && testErr.code === '42703') testTargetCol = 'teacher_id';
+                const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
+                if (testErr && String(testErr.code) === '42703') {
+                    testTargetCol = 'teacher_id';
+                }
                 
-                const { data: resTeach, error: errT } = await sysDB.from('classrooms').select('*').eq(testTargetCol, currentUser.id);
-                if (!errT) teachData = resTeach || [];
+                const resTeach = await db.from('classrooms').select('*').eq(testTargetCol, currentUser.id);
+                if (!resTeach.error) {
+                    teachData = resTeach.data || [];
+                }
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
                 let learnData = [];
-                const { data: resLearn, error: errL } = await sysDB.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.id);
-                if (!errL) learnData = resLearn || [];
+                // 🌟 แก้ไข: ดึงจากตาราง classroom_users ให้ตรงกับฐานข้อมูลใหม่
+                const resLearn = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.id);
+                if (!resLearn.error) {
+                    learnData = resLearn.data || [];
+                }
+                
                 const mappedLearn = learnData.map(item => item.classrooms).filter(c => c !== null).map(c => ({ ...c, userRole: 'student' }));
 
                 allClasses = [...mappedTeach, ...mappedLearn];
@@ -834,8 +804,10 @@
                 const uniqueSchoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
                 let schoolDict = {};
                 if (uniqueSchoolIds.length > 0) {
-                    const { data: sData } = await sysDB.from('schools').select('school_id, school_name').in('school_id', uniqueSchoolIds);
-                    if (sData) sData.forEach(s => schoolDict[s.school_id] = s.school_name);
+                    const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', uniqueSchoolIds);
+                    if (sData) {
+                        sData.forEach(s => schoolDict[s.school_id] = s.school_name);
+                    }
                 }
                 
                 allClasses = allClasses.map(c => ({
@@ -843,74 +815,544 @@
                     school_name: c.school_id ? (schoolDict[c.school_id] || 'กลุ่มสถานศึกษา') : 'พื้นที่ส่วนตัว'
                 }));
 
-                let displayData = [];
-                if (activeViewMode === 'all') { displayData = allClasses; } 
-                else if (activeViewMode === 'independent') {
-                    const knownSchoolIds = userSchools.map(s => s.school_id);
-                    displayData = allClasses.filter(c => !c.school_id || !knownSchoolIds.includes(c.school_id));
-                } else { displayData = allClasses.filter(c => c.school_id === activeViewMode); }
+                renderFilteredGrids();
 
-                document.getElementById('countTeach').innerText = displayData.filter(c => c.userRole === 'teacher').length;
-                document.getElementById('countLearn').innerText = displayData.filter(c => c.userRole === 'student').length;
-
-                if (!displayData || displayData.length === 0) {
-                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border-radius: 35px; border: 2px dashed #edf2f7; min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 80px; height: 80px; background: #f0f4ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: var(--primary-light); font-size: 35px;"><i class="fas fa-chalkboard"></i></div><h3 style="font-family: 'Kanit'; color: #2d3436; margin: 0 0 10px 0; font-size: 22px;">ยังไม่มีห้องเรียนในพื้นที่นี้</h3><p style="color: #636e72; margin: 0;">กดปุ่ม + มุมขวาล่างเพื่อสร้างหรือเข้าร่วมห้องเรียนได้เลยครับ</p></div>`;
-                } else {
-                    grid.innerHTML = displayData.map(c => {
-                        const targetUrl = `classroom-detail.html?id=${c.classroom_id}`;
-                        const roleBadgeHtml = c.userRole === 'teacher' 
-                            ? `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-[10px] font-bold border border-blue-200"><i class="fas fa-chalkboard-teacher mr-1"></i> ครูผู้สอน</span>`
-                            : `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-bold border border-emerald-200"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
-                        const schoolInfoHtml = c.school_id 
-                            ? `<span class="text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-school mr-1"></i> ${c.school_name}</span>`
-                            : `<span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-user mr-1"></i> พื้นที่ส่วนตัว</span>`;
-
-                        return `
-                            <div class="class-card group" onclick="window.location.href='${targetUrl}'">
-                                <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};"><i class="fas fa-book-reader" style="opacity: 0.8;"></i></div>
-                                <div class="card-body">
-                                    <div class="flex justify-between items-start mb-2"><div class="room-badge">${c.room_name || 'ไม่ระบุห้อง'}</div>${roleBadgeHtml}</div>
-                                    <h3 class="subject-title">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
-                                    <div class="mt-1 mb-2">${schoolInfoHtml}</div>
-                                    <div style="color: var(--text-muted); font-size: 14px; margin-top: auto; padding-top: 15px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f5f9;"><i class="fas fa-calendar-alt" style="color: #a4b0be;"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}</div>
-                                </div>
-                            </div>`;
-                    }).join('');
-                }
-            } catch (err) { grid.innerHTML = `<div style="color: #ff4757; padding: 40px;">ข้อผิดพลาด: ${err.message}</div>`; } finally { grid.style.opacity = '1'; }
+            } catch (e) { console.error("Fetch Classes Error:", e); }
         }
 
-        // ================= การทำงานแจ้งเตือน =================
-        function toggleNotifDropdown() {
-            const dropdown = document.getElementById('notifDropdown');
-            const btn = document.getElementById('notificationBtn');
-            dropdown.classList.toggle('show');
-            if (dropdown.classList.contains('show')) { btn.classList.add('active'); renderPendingList(); } 
-            else { btn.classList.remove('active'); }
+        function renderFilteredGrids() {
+            let filteredClasses = [];
+            if (activeViewMode === 'all') {
+                filteredClasses = allClasses;
+            } else if (activeViewMode === 'independent') {
+                const knownIds = userSchools.map(s => s.school_id);
+                filteredClasses = allClasses.filter(c => !c.school_id || !knownIds.includes(c.school_id));
+            } else {
+                filteredClasses = allClasses.filter(c => c.school_id === activeViewMode);
+            }
+
+            const teachCount = filteredClasses.filter(c => c.userRole === 'teacher').length;
+            const learnCount = filteredClasses.filter(c => c.userRole === 'student').length;
+            document.getElementById('countTeach').innerText = teachCount;
+            document.getElementById('countLearn').innerText = learnCount;
+
+            renderClassGrid(filteredClasses, 'gridAllClasses');
+        }
+
+        function renderClassGrid(classes, containerId) {
+            const container = document.getElementById(containerId);
+            if (classes.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-20 bg-white border border-dashed border-slate-200 rounded-3xl">
+                        <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-box-open"></i></div>
+                        <h3 class="font-bold font-['Kanit'] text-slate-600 text-lg mb-1">ยังไม่มีห้องเรียน</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">กดปุ่ม + มุมล่างขวาเพื่อสร้างหรือเข้าร่วมห้องเรียนได้เลยครับ</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = classes.map(c => {
+                const targetUrl = `classroom-detail.html?id=${c.classroom_id}`;
+                const roleBadgeHtml = c.userRole === 'teacher' 
+                    ? `<span class="role-badge role-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i> ครูผู้สอน</span>`
+                    : `<span class="role-badge role-student"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
+
+                const schoolInfoHtml = c.school_id 
+                    ? `<span class="text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-school mr-1"></i> ${c.school_name}</span>`
+                    : `<span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium"><i class="fas fa-user mr-1"></i> พื้นที่ส่วนตัว</span>`;
+
+                return `
+                    <div class="class-card group" onclick="window.location.href='${targetUrl}'">
+                        <div class="card-banner" style="background: ${c.color_code || 'linear-gradient(135deg, #00008B, #0000cd)'};">
+                            <i class="fas fa-book-reader opacity-80 group-hover:scale-110 transition-transform"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="room-badge">${c.room_name || 'ไม่ระบุ'}</div>
+                                ${roleBadgeHtml}
+                            </div>
+                            <h3 class="subject-title" title="${c.subject_name || ''}">${c.subject_name || 'ไม่มีชื่อวิชา'}</h3>
+                            
+                            <div class="mt-1 mb-2">
+                                ${schoolInfoHtml}
+                            </div>
+
+                            <div class="mt-auto pt-3 flex items-center gap-2 text-[12px] text-slate-400 font-medium border-t border-slate-50">
+                                <i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${c.semester || '-'}/${c.academic_year || '-'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ================= FAB Menu =================
+        function toggleFabMenu() {
+            const menu = document.getElementById('fabMenu');
+            const mainBtn = document.getElementById('fabMainBtn');
+            menu.classList.toggle('show');
+            mainBtn.classList.toggle('active');
+        }
+
+        function closeFabMenu() {
+            const menu = document.getElementById('fabMenu');
+            const mainBtn = document.getElementById('fabMainBtn');
+            if (menu && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                mainBtn.classList.remove('active');
+            }
         }
 
         document.addEventListener('click', function(event) {
-            const container = document.getElementById('notificationContainer');
-            const dropdown = document.getElementById('notifDropdown');
-            const btn = document.getElementById('notificationBtn');
-            if (container && dropdown && !container.contains(event.target)) {
-                dropdown.classList.remove('show'); btn.classList.remove('active');
+            const fabContainer = document.querySelector('.fab-container');
+            if (fabContainer && !fabContainer.contains(event.target)) {
+                closeFabMenu();
             }
         });
 
-        function getTimeAgo(dateString) {
-            if (!dateString) return 'เมื่อสักครู่';
-            const date = new Date(dateString); const now = new Date(); const diffSec = Math.floor((now - date) / 1000);
-            if (diffSec < 60) return 'เมื่อสักครู่'; const diffMin = Math.floor(diffSec / 60);
-            if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`; const diffHour = Math.floor(diffMin / 60);
-            if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`; const diffDay = Math.floor(diffHour / 24);
-            if (diffDay < 7) return `${diffDay} วันที่แล้ว`; return date.toLocaleDateString('th-TH');
+        function handleCreateNewClass() {
+            closeFabMenu();
+            if (activeViewMode === 'all') {
+                setTimeout(() => {
+                    showCustomAlert("กรุณาเลือกพื้นที่ (ส่วนตัว หรือ สถานศึกษา) จากแถบด้านบน ก่อนสร้างห้องเรียนครับ", "warning");
+                }, 300);
+                return;
+            }
+            window.location.href = 'classroom-add.html';
         }
+
+        // ================= MODAL: Join Classroom =================
+        function openJoinModal() {
+            closeFabMenu();
+            document.getElementById('classCodeInput').value = '';
+            document.getElementById('joinClassModal').classList.add('show');
+        }
+
+        function closeJoinModal() { 
+            document.getElementById('joinClassModal').classList.remove('show'); 
+        }
+
+        async function submitJoinClass() {
+            const inputCode = document.getElementById('classCodeInput').value.trim();
+            if (!inputCode) { showCustomAlert('กรุณากรอกรหัสห้องเรียนก่อนครับ', 'warning'); return; }
+
+            const btn = document.getElementById('btnSubmitJoinClass');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'; btn.disabled = true;
+
+            try {
+                const db = getDB();
+                let targetClass = null;
+                const { data: c1 } = await db.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
+                if (c1) { targetClass = c1; }
+                else {
+                    const { data: c2 } = await db.from('classrooms').select('classroom_id, subject_name').eq('join_code', inputCode.toUpperCase()).maybeSingle();
+                    if (c2) targetClass = c2;
+                }
+                
+                if (!targetClass) throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
+
+                // 🌟 แก้ไข: ค้นหาการเข้าร่วมซ้ำจากตาราง classroom_users
+                const { data: existEnroll } = await db.from('classroom_users')
+                    .select('enrollment_id')
+                    .eq('classroom_id', targetClass.classroom_id)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+                
+                if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
+
+                // 🌟 แก้ไข: บันทึกข้อมูลเข้าตาราง classroom_users
+                const payload = { classroom_id: targetClass.classroom_id, student_number: 0, user_id: currentUser.id };
+                
+                const { error: enrollError } = await db.from('classroom_users').insert([payload]);
+                if (enrollError) throw enrollError;
+
+                closeJoinModal();
+                showCustomAlert(`เข้าร่วมวิชา ${targetClass.subject_name} สำเร็จ!`, 'success', async () => {
+                    await fetchAllClasses(db);
+                });
+
+            } catch (err) {
+                showCustomAlert(err.message, 'warning');
+            } finally {
+                btn.innerHTML = 'ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i>'; btn.disabled = false;
+            }
+        }
+
+        // ================= MODAL: School Group =================
+        function openJoinSchoolModal() { 
+            isAppealing = false;
+            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-school mr-2"></i> ค้นหากลุ่มสถานศึกษา';
+            document.getElementById('joinModalGuideText').style.display = 'block'; 
+            document.getElementById('cancelSelectSchoolBtn').style.display = 'block'; 
+            document.getElementById('joinSchoolModal').classList.add('show'); 
+            
+            if(!document.getElementById('sideDrawer').classList.contains('translate-x-full')) toggleDrawer();
+            setupUploadButtons(); 
+        }
+
+        function closeJoinSchoolModal() { 
+            document.getElementById('joinSchoolModal').classList.remove('show'); 
+            resetSchoolSelection(); 
+            document.getElementById('reqSchoolSearch').value = ''; 
+        }
+        
+        async function searchSchools(query) { 
+            const resultBox = document.getElementById('reqSchoolResults'); 
+            if (query.trim().length < 2) { resultBox.style.display = 'none'; return; } 
+            try {
+                const db = getDB();
+                const { data, error } = await db.from('schools').select('school_id, school_name, school_abbr').ilike('school_name', `%${query}%`).limit(10); 
+                let html = ''; 
+                if (!error && data && data.length > 0) {
+                    html += data.map(s => `<div class="search-item" onclick="selectSchoolReq('${s.school_id}', '${s.school_name}', '${s.school_abbr || ''}')"><i class="fas fa-school mr-2 text-[var(--primary-light)]"></i> ${s.school_name}</div>`).join(''); 
+                } else {
+                    html += '<div style="padding:15px;text-align:center;color:#888;font-size:13px;">ไม่พบข้อมูล ค้นหาใหม่หรือสร้างกลุ่ม</div>'; 
+                }
+                html += `<div class="search-item search-item-add" onclick="showNewSchoolForm()"><i class="fas fa-plus-circle mr-2"></i> สร้างกลุ่มโรงเรียนใหม่</div>`; 
+                resultBox.innerHTML = html; 
+                resultBox.style.display = 'block'; 
+            } catch(e){}
+        }
+        
+        async function selectSchoolReq(id, name, abbr) { 
+            isCreatingNewSchool = false; 
+            document.getElementById('searchSchoolGroup').style.display = 'none'; 
+            document.getElementById('reqSchoolResults').style.display = 'none'; 
+            document.getElementById('reqSchoolId').value = id; 
+            document.getElementById('selSchoolName').innerText = name; 
+            document.getElementById('reqSchoolHasOriginalAbbr').value = abbr ? 'true' : 'false'; 
+            
+            if (abbr) { 
+                document.getElementById('selSchoolAbbr').innerText = `อักษรย่อ: ${abbr}`; 
+                document.getElementById('selSchoolAbbr').style.display = 'inline-block'; 
+                document.getElementById('missingAbbrGroup').style.display = 'none'; 
+            } else { 
+                document.getElementById('selSchoolAbbr').style.display = 'none'; 
+                document.getElementById('missingAbbrGroup').style.display = 'block'; 
+                document.getElementById('updateSchoolAbbr').value = suggestAbbreviation(name); 
+            } 
+            document.getElementById('selectedSchoolCard').style.display = 'block'; 
+            
+            try {
+                const db = getDB();
+                const { data: admins } = await db.from('user_school').select('id').eq('school_id', id).eq('verification_status', 'approved').eq('role', 'admin').limit(1); 
+                reqSchoolHasAdmin = (admins && admins.length > 0); 
+                
+                if (reqSchoolHasAdmin && !isAppealing) {
+                    document.getElementById('reqIdCardGroup').style.display = 'none'; 
+                } else { 
+                    document.getElementById('reqIdCardGroup').style.display = 'block'; 
+                    document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>การยืนยันตัวตน:</b> กลุ่มนี้ยังไม่มีผู้ดูแล คุณจะได้รับสิทธิ์ <b>Admin</b> กรุณาแนบภาพถ่ายคู่บัตรเพื่อยืนยันตัวตน'; 
+                } 
+            } catch(e){}
+        }
+
+        function showNewSchoolForm() { 
+            isCreatingNewSchool = true; 
+            document.getElementById('searchSchoolGroup').style.display = 'none'; 
+            document.getElementById('reqSchoolResults').style.display = 'none'; 
+            document.getElementById('selectedSchoolCard').style.display = 'none'; 
+            document.getElementById('newSchoolGroup').style.display = 'block'; 
+            document.getElementById('newSchoolName').value = document.getElementById('reqSchoolSearch').value; 
+            autoSuggestAbbr('newSchoolName', 'newSchoolAbbr'); 
+            document.getElementById('reqIdCardGroup').style.display = 'block'; 
+            document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>การยืนยันตัวตน:</b> คุณจะได้รับสิทธิ์ <b>Admin</b> สูงสุดของกลุ่มนี้ กรุณาแนบภาพถ่ายคู่บัตรเพื่อยืนยันกับส่วนกลาง'; 
+        }
+        
+        function cancelNewSchool() { 
+            isCreatingNewSchool = false; 
+            document.getElementById('newSchoolGroup').style.display = 'none'; 
+            document.getElementById('searchSchoolGroup').style.display = 'block'; 
+            document.getElementById('reqIdCardGroup').style.display = 'none'; 
+            resetImagePreview(); 
+        }
+        
+        function resetSchoolSelection() { 
+            isCreatingNewSchool = false; 
+            document.getElementById('reqSchoolId').value = ''; 
+            document.getElementById('reqSchoolHasOriginalAbbr').value = ''; 
+            document.getElementById('selectedSchoolCard').style.display = 'none'; 
+            document.getElementById('searchSchoolGroup').style.display = 'block'; 
+            document.getElementById('reqIdCardGroup').style.display = 'none'; 
+            resetImagePreview(); 
+        }
+
+        function openAppealModal() {
+            if (!activeSchoolObj) return;
+            isCreatingNewSchool = false; 
+            isAppealing = true; 
+            resetImagePreview();
+            
+            document.getElementById('joinSchoolModal').classList.add('show');
+
+            document.getElementById('searchSchoolGroup').style.display = 'none'; 
+            document.getElementById('reqSchoolResults').style.display = 'none'; 
+            document.getElementById('newSchoolGroup').style.display = 'none';
+            document.getElementById('reqSchoolId').value = activeSchoolObj.school_id;
+            document.getElementById('reqSchoolHasOriginalAbbr').value = activeSchoolObj.schools.school_abbr ? 'true' : 'false';
+            document.getElementById('selSchoolName').innerText = activeSchoolObj.schools.school_name;
+            
+            if (activeSchoolObj.schools.school_abbr) { 
+                document.getElementById('selSchoolAbbr').innerText = `อักษรย่อ: ${activeSchoolObj.schools.school_abbr}`; 
+                document.getElementById('selSchoolAbbr').style.display = 'inline-block'; 
+                document.getElementById('missingAbbrGroup').style.display = 'none'; 
+            } else { 
+                document.getElementById('selSchoolAbbr').style.display = 'none'; 
+                document.getElementById('missingAbbrGroup').style.display = 'block'; 
+                document.getElementById('updateSchoolAbbr').value = suggestAbbreviation(activeSchoolObj.schools.school_name); 
+            }
+            
+            document.getElementById('selectedSchoolCard').style.display = 'block';
+            document.getElementById('cancelSelectSchoolBtn').style.display = 'none';
+
+            document.getElementById('reqIdCardGroup').style.display = 'block';
+            document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-exclamation-circle"></i> <b>ยื่นตรวจสอบใหม่:</b> กรุณาแนบภาพถ่ายเซลฟี่คู่กับบัตรข้าราชการ/บัตรพนักงานให้เห็นชัดเจนอีกครั้ง';
+            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-id-card mr-2"></i> ยื่นขอสิทธิ์อีกครั้ง';
+            document.getElementById('joinModalGuideText').style.display = 'none';
+            setupUploadButtons();
+        }
+
+        function suggestAbbreviation(thaiText) { 
+            let txt = thaiText.replace(/โรงเรียน/g, '').replace(/เทศบาล/g, 't').replace(/บ้าน/g, 'b').trim(); 
+            let abbr = ''; 
+            let hasNum = txt.match(/\d+/); 
+            const chars = { 'ก':'k','ข':'k','ค':'k','ง':'ng', 'จ':'j','ช':'ch','ซ':'s', 'ญ':'y','ฎ':'d','ฏ':'t','ฐ':'t','ด':'d','ต':'t','ถ':'t','ท':'t','ธ':'t','น':'n', 'บ':'b','ป':'p','ผ':'p','พ':'p','ฟ':'f','ภ':'p','ม':'m', 'ย':'y','ร':'r','ล':'l','ว':'w','ศ':'s','ส':'s','ห':'h','อ':'a' }; 
+            for(let i=0; i<txt.length; i++) { 
+                if(chars[txt[i]] && abbr.length < 3) { 
+                    if(abbr.slice(-1) !== chars[txt[i]]) abbr += chars[txt[i]]; 
+                } else if(/[a-zA-Z]/.test(txt[i]) && abbr.length < 4) { 
+                    abbr += txt[i].toLowerCase(); 
+                } 
+            } 
+            if(hasNum) abbr += hasNum[0]; 
+            return abbr || 'sch' + Math.floor(Math.random()*100); 
+        }
+        
+        function autoSuggestAbbr(nameId, abbrId) { 
+            document.getElementById(abbrId).value = suggestAbbreviation(document.getElementById(nameId).value); 
+        }
+
+        function setupUploadButtons() { 
+            if (isMobileDevice) { 
+                document.getElementById('btnWebcamUpload').style.display = 'none'; 
+                const btnStandard = document.getElementById('btnStandardUpload'); 
+                btnStandard.innerHTML = '<i class="fas fa-camera"></i> ถ่ายรูป / เลือกไฟล์'; 
+                btnStandard.classList.remove('btn-upload-gallery'); 
+                btnStandard.classList.add('btn-upload-camera'); 
+            } else { 
+                document.getElementById('btnWebcamUpload').style.display = 'flex'; 
+                const btnStandard = document.getElementById('btnStandardUpload'); 
+                btnStandard.innerHTML = '<i class="fas fa-folder-open"></i> เลือกไฟล์ใน PC'; 
+                btnStandard.classList.add('btn-upload-gallery'); 
+                btnStandard.classList.remove('btn-upload-camera'); 
+            } 
+        }
+
+        async function openCameraModal() { 
+            document.getElementById('cameraModal').classList.add('show'); 
+            await startCamera(); 
+        }
+        function closeCameraModal() { 
+            document.getElementById('cameraModal').classList.remove('show'); 
+            if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; } 
+        }
+        
+        async function startCamera() { 
+            document.getElementById('cameraVideo').style.display = 'block'; 
+            document.getElementById('cameraPreview').style.display = 'none'; 
+            document.getElementById('btnCapture').style.display = 'flex'; 
+            document.getElementById('btnRetake').style.display = 'none'; 
+            document.getElementById('btnConfirmPhoto').style.display = 'none'; 
+            try { 
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: true }); 
+                document.getElementById('cameraVideo').srcObject = cameraStream; 
+            } catch (err) { 
+                showCustomAlert('ไม่สามารถเข้าถึงกล้องได้ ตรวจสอบการอนุญาตบนเบราว์เซอร์', 'warning'); 
+                closeCameraModal(); 
+            } 
+        }
+        
+        function takeSnapshot() { 
+            const video = document.getElementById('cameraVideo'); 
+            const canvas = document.getElementById('cameraCanvas'); 
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight; 
+            const ctx = canvas.getContext('2d'); 
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1); 
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height); 
+            document.getElementById('cameraPreview').src = canvas.toDataURL('image/jpeg'); 
+            document.getElementById('cameraVideo').style.display = 'none'; 
+            document.getElementById('cameraPreview').style.display = 'block'; 
+            document.getElementById('btnCapture').style.display = 'none'; 
+            document.getElementById('btnRetake').style.display = 'flex'; 
+            document.getElementById('btnConfirmPhoto').style.display = 'flex'; 
+        }
+        
+        function confirmSnapshot() { 
+            const canvas = document.getElementById('cameraCanvas'); 
+            canvas.toBlob((blob) => { 
+                activeImageFile = new File([blob], "webcam_capture_" + Date.now() + ".jpg", { type: "image/jpeg" }); 
+                document.getElementById('reqIdCardImageMain').value = ''; 
+                const reader = new FileReader(); 
+                reader.onload = function(e) { 
+                    document.getElementById('reqFileNameDisplay').innerHTML = `<div style="margin-bottom: 10px;"><img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain;"></div><div style="color: #10b981; font-weight: 600; font-size: 14px;"><i class="fas fa-check-circle"></i> ภาพพร้อมส่งแล้ว</div>`; 
+                }; 
+                reader.readAsDataURL(activeImageFile); 
+                closeCameraModal(); 
+            }, 'image/jpeg', 0.9); 
+        }
+        
+        function processSelectedImage(inputElement) { 
+            if (inputElement.files && inputElement.files[0]) { 
+                activeImageFile = inputElement.files[0]; 
+                const reader = new FileReader(); 
+                reader.onload = function(e) { 
+                    document.getElementById('reqFileNameDisplay').innerHTML = `<div style="margin-bottom: 10px;"><img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain;"></div><div style="color: #10b981; font-weight: 600; font-size: 14px;"><i class="fas fa-check-circle"></i> ภาพพร้อมส่งแล้ว</div>`; 
+                }; 
+                reader.readAsDataURL(activeImageFile); 
+            } 
+        }
+        
+        function resetImagePreview() { 
+            activeImageFile = null; 
+            if (document.getElementById('reqIdCardImageMain')) document.getElementById('reqIdCardImageMain').value = ''; 
+            document.getElementById('reqFileNameDisplay').innerHTML = `<i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i><div style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>`; 
+        }
+
+        async function submitSchoolJoin(e) {
+            e.preventDefault(); 
+            const btn = document.getElementById('btnSubmitJoinSchool'); 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...'; 
+            btn.disabled = true;
+
+            try {
+                const db = getDB();
+                let targetSchoolId = document.getElementById('reqSchoolId').value; 
+                let applyRole = 'teacher'; 
+                let needsCardUpload = false; 
+                let isUpdatingAbbr = false; 
+                let newAbbrToUpdate = null;
+                
+                if (isCreatingNewSchool) {
+                    const newName = document.getElementById('newSchoolName').value.trim(); 
+                    const newAbbr = document.getElementById('newSchoolAbbr').value.trim().toLowerCase();
+                    if(!newName || !newAbbr) throw new Error('กรุณาระบุชื่อและอักษรย่อโรงเรียน');
+                    
+                    const { data: existing, error: existErr } = await db.from('schools').select('school_id').eq('school_abbr', newAbbr);
+                    if(existErr) throw existErr;
+                    if(existing && existing.length > 0) throw new Error(`อักษรย่อ ${newAbbr} มีคนใช้แล้ว`);
+                    
+                    targetSchoolId = 'SCH-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'); 
+                    const { error: insErr } = await db.from('schools').insert([{ school_id: targetSchoolId, school_name: newName, school_abbr: newAbbr }]);
+                    if(insErr) throw insErr;
+                    
+                    applyRole = 'admin'; 
+                    needsCardUpload = true;
+                } else {
+                    if (!targetSchoolId) throw new Error('กรุณาเลือกกลุ่มโรงเรียนที่ต้องการเข้าร่วม');
+                    const hasOriginalAbbr = document.getElementById('reqSchoolHasOriginalAbbr').value === 'true';
+                    if (!hasOriginalAbbr) {
+                        newAbbrToUpdate = document.getElementById('updateSchoolAbbr').value.trim().toLowerCase();
+                        if (!newAbbrToUpdate) throw new Error('กรุณาระบุอักษรย่อโรงเรียน');
+                        const { data: existing, error: existErr } = await db.from('schools').select('school_id').eq('school_abbr', newAbbrToUpdate);
+                        if(existErr) throw existErr;
+                        if(existing && existing.length > 0) throw new Error(`อักษรย่อ ${newAbbrToUpdate} มีคนใช้แล้ว โปรดเปลี่ยนใหม่`);
+                        isUpdatingAbbr = true;
+                    }
+                    applyRole = reqSchoolHasAdmin ? 'teacher' : 'admin'; 
+                    needsCardUpload = !reqSchoolHasAdmin;
+                }
+
+                const { data: alreadyJoined } = await db.from('user_school')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('school_id', targetSchoolId)
+                    .maybeSingle();
+                
+                let isResubmitting = false;
+                if (alreadyJoined) {
+                    if (alreadyJoined.verification_status === 'pending' || alreadyJoined.verification_status === 'approved') {
+                        throw new Error('คุณอยู่ในกลุ่มนี้หรือได้ส่งคำขอไปยังโรงเรียนนี้แล้วครับ!');
+                    }
+                    if (alreadyJoined.verification_status === 'rejected') {
+                        isResubmitting = true;
+                        if (isAppealing) {
+                            needsCardUpload = true; 
+                            applyRole = alreadyJoined.role || 'teacher'; 
+                        }
+                    }
+                }
+
+                let cardUrl = null;
+                if (needsCardUpload) {
+                    if (!activeImageFile) throw new Error('กรุณาแนบภาพถ่ายเซลฟี่คู่กับบัตรยืนยันตัวตนครับ');
+                    const fileName = `${currentUser.id}_${Date.now()}.${activeImageFile.name ? activeImageFile.name.split('.').pop() : 'jpg'}`;
+                    const { error: upErr } = await db.storage.from('teacher-verifications').upload(fileName, activeImageFile); 
+                    if(upErr) throw upErr;
+                    cardUrl = fileName;
+                }
+
+                if (isUpdatingAbbr && targetSchoolId && newAbbrToUpdate) {
+                    const { error: updSchErr } = await db.from('schools').update({ school_abbr: newAbbrToUpdate }).eq('school_id', targetSchoolId);
+                    if(updSchErr) throw updSchErr;
+                }
+
+                if (isResubmitting) {
+                    await db.from('user_school').update({ 
+                        role: applyRole, 
+                        verification_card_url: cardUrl || alreadyJoined.verification_card_url, 
+                        verification_status: 'pending', 
+                        reject_reason: null 
+                    }).eq('id', alreadyJoined.id);
+                } else {
+                    await db.from('user_school').insert([{ 
+                        user_id: currentUser.id, 
+                        school_id: targetSchoolId, 
+                        role: applyRole, 
+                        verification_card_url: cardUrl, 
+                        verification_status: 'pending' 
+                    }]);
+                }
+                
+                localStorage.setItem('flip_active_view', targetSchoolId);
+                
+                closeJoinSchoolModal();
+                showCustomAlert('ส่งคำขอสำเร็จ! กรุณารอตรวจสอบสิทธิ์', 'success', () => { 
+                    refreshSchoolData(db); 
+                });
+
+            } catch (err) { 
+                showCustomAlert(err.message, 'warning'); 
+            } finally {
+                btn.disabled = false; 
+                btn.innerHTML = 'ยืนยันส่งคำขอ <i class="fas fa-paper-plane"></i>'; 
+            }
+        }
+
+        // ================= กระดิ่งแจ้งเตือน Realtime =================
+        function toggleNotifDropdown() {
+            const dropdown = document.getElementById('notifDropdown');
+            const btn = document.getElementById('notificationBtn');
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                btn.classList.add('bg-slate-100');
+                renderPendingList();
+            } else {
+                btn.classList.remove('bg-slate-100');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('notificationBtn');
+            const dropdown = document.getElementById('notifDropdown');
+            if (container && dropdown && !container.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+                container.classList.remove('bg-slate-100');
+            }
+        });
 
         function setupRealtimePendingRequests() {
             if (pendingRequestsSubscription) { sysDB.removeChannel(pendingRequestsSubscription); pendingRequestsSubscription = null; }
             
-            // 🌟 แก้ไข: ให้ทุกคนที่อยู่สถานะ approved สามารถเห็นแจ้งเตือนได้ (เอา s.role === 'admin' ออก)
+            // ให้ทุกคนที่อยู่สถานะ approved สามารถเห็นแจ้งเตือนได้ (Admin โรงเรียนร่วมกันพิจารณา)
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
             if (approvedSchoolIds.length > 0) {
@@ -927,9 +1369,7 @@
         }
 
         async function checkPendingRequests() {
-            // 🌟 แก้ไข: ใช้เฉพาะ school_id ที่ตัวเองได้รับการอนุมัติให้อยู่ในกลุ่มแล้ว
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
-            
             if (approvedSchoolIds.length === 0) { document.getElementById('notificationBtn').style.display = 'none'; window.pendingRequests = []; return; }
 
             try {
@@ -957,12 +1397,12 @@
                 window.pendingRequests = pendingData;
 
                 if (pendingData.length > 0) {
-                    notifBtn.style.display = 'flex'; badge.style.display = 'inline-block'; badge.innerText = pendingData.length; notifBtn.classList.add('ringing'); 
+                    notifBtn.style.display = 'flex'; badge.style.display = 'flex'; badge.innerText = pendingData.length; 
                 } else {
-                    notifBtn.style.display = 'flex'; badge.style.display = 'none'; notifBtn.classList.remove('ringing');
+                    notifBtn.style.display = 'flex'; badge.style.display = 'none'; 
                 }
                 
-                if (document.getElementById('notifDropdown').classList.contains('show')) renderPendingList();
+                if (!document.getElementById('notifDropdown').classList.contains('hidden')) renderPendingList();
             } catch (err) { console.error("Error fetching pending requests: ", err); }
         }
 
@@ -971,7 +1411,7 @@
             const requests = window.pendingRequests || [];
             
             if(requests.length === 0) { 
-                listContainer.innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; return; 
+                listContainer.innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit']">ไม่มีการแจ้งเตือนใหม่</span></div>`; return; 
             }
             
             let html = '';
@@ -979,41 +1419,39 @@
                 const u = req.users || {};
                 const schoolName = req.schools?.school_name || 'กลุ่มสถานศึกษา';
                 const avatar = u.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.first_name || 'U'}`;
-                const timeAgo = getTimeAgo(req.created_at);
                 
                 let viewCardBtn = '';
                 if (req.verification_card_url && req.verification_card_url !== 'null') {
                     const publicUrl = sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
-                    viewCardBtn = `<span onclick="viewImage('${publicUrl}')" style="color: var(--primary-light); cursor: pointer; text-decoration: underline; margin-left: 5px; font-weight: normal; font-size: 13px;"><i class="fas fa-id-card"></i> ดูเอกสาร</span>`;
+                    viewCardBtn = `<span onclick="viewImage('${publicUrl}')" class="text-blue-500 hover:text-blue-700 cursor-pointer underline ml-1 font-normal text-[12px]"><i class="fas fa-id-card"></i> ดูเอกสาร</span>`;
                 }
                 
                 const reqTitle = req.role === 'admin' ? 'ขอสิทธิ์แอดมินกลุ่ม' : 'ขอเข้าร่วมกลุ่ม';
 
                 html += `
-                <div class="notif-item req-card-anim" id="req-card-${req.id}">
-                    <div class="notif-unread-dot"></div>
-                    <img src="${avatar}" class="notif-avatar">
-                    <div class="notif-content">
-                        <p class="notif-text">
-                            <b>${u.first_name || 'ไม่ระบุชื่อ'} ${u.last_name || ''}</b> ${reqTitle} <b>${schoolName}</b>
-                            ${viewCardBtn}
-                        </p>
-                        
-                        <div class="notif-actions" id="action-box-${req.id}">
-                            <button class="btn-notif-action btn-notif-approve" onclick="approveUserFB('${req.id}', '${req.role}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
-                            <button class="btn-notif-action btn-notif-hide" onclick="dismissNotification('${req.id}')" title="ซ่อนไม่ให้ฉันเห็น (แอดมินคนอื่นยังเห็นอยู่)">ซ่อน</button>
-                            <button class="btn-notif-action btn-notif-reject" onclick="showRejectBoxFB('${req.id}')">ปฏิเสธ</button>
-                        </div>
+                <div class="p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors mb-2 border border-slate-100" id="req-card-${req.id}">
+                    <div class="flex gap-3">
+                        <img src="${avatar}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-slate-200">
+                        <div class="flex-1">
+                            <p class="text-[13px] text-slate-700 leading-snug mb-2">
+                                <b class="font-['Kanit'] text-slate-900">${u.first_name || 'ไม่ระบุชื่อ'} ${u.last_name || ''}</b> ${reqTitle} <b>${schoolName}</b>
+                                ${viewCardBtn}
+                            </p>
+                            
+                            <div class="flex gap-2 mt-2" id="action-box-${req.id}">
+                                <button class="flex-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="approveUserFB('${req.id}', '${req.role}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">อนุมัติ</button>
+                                <button class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="dismissNotification('${req.id}')" title="ซ่อนจากเครื่องของฉัน">ซ่อน</button>
+                                <button class="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-500 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="showRejectBoxFB('${req.id}')">ปฏิเสธ</button>
+                            </div>
 
-                        <div id="reject-box-${req.id}" style="display:none; margin-top: 10px; flex-direction: column; gap: 8px;">
-                            <input type="text" id="reject-reason-${req.id}" class="form-input" style="font-size:13px; padding: 8px 12px; margin-bottom: 0; border-radius: 8px; border: 1px solid #ccd0d5; background: #f0f2f5;" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
-                            <div style="display:flex; gap:8px;">
-                                <button class="btn-notif-action" style="background:#e41e3f; color:white;" onclick="rejectUserFB('${req.id}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
-                                <button class="btn-notif-action btn-notif-hide" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
+                            <div id="reject-box-${req.id}" class="hidden flex-col gap-2 mt-2">
+                                <input type="text" id="reject-reason-${req.id}" class="w-full text-xs p-2 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white outline-none" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
+                                <div class="flex gap-2">
+                                    <button class="flex-1 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="rejectUserFB('${req.id}', '${req.user_id}', '${req.school_id}', '${req.verification_card_url || ''}')">ยืนยันลบ</button>
+                                    <button class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-['Kanit'] text-xs font-bold rounded-lg transition" onclick="hideRejectBoxFB('${req.id}')">ยกเลิก</button>
+                                </div>
                             </div>
                         </div>
-
-                        <span class="notif-time">${timeAgo}</span>
                     </div>
                 </div>`;
             }
@@ -1056,7 +1494,7 @@
                     card.remove(); window.pendingRequests = window.pendingRequests.filter(r => r.id !== tsId);
                     const count = window.pendingRequests.length; const badge = document.getElementById('notifBadge');
                     if (count > 0) { badge.innerText = count; } 
-                    else { badge.style.display = 'none'; document.getElementById('notificationBtn').classList.remove('ringing'); document.getElementById('notifList').innerHTML = `<div style="text-align:center; color:#888; padding: 40px 20px; display:flex; flex-direction:column; align-items:center;"><i class="fas fa-check-circle" style="font-size:45px; color:#e4e6eb; margin-bottom:15px;"></i><span style="font-family:'Kanit'; font-size:16px;">ไม่มีการแจ้งเตือนใหม่</span></div>`; }
+                    else { badge.style.display = 'none'; document.getElementById('notificationBtn').classList.remove('bg-slate-100'); document.getElementById('notifList').innerHTML = `<div class="text-center text-slate-400 py-10 px-5 flex flex-col items-center"><i class="fas fa-check-circle text-[40px] text-slate-200 mb-3"></i><span class="font-['Kanit']">ไม่มีการแจ้งเตือนใหม่</span></div>`; }
                 }, 300);
             }
         }
@@ -1069,300 +1507,22 @@
             } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
         }
 
-        function viewImage(url) { document.getElementById('modalImage').src = url; document.getElementById('imageModal').style.display = 'flex'; }
-        function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
-
-
-        // ================= ยื่นเรื่องอุทธรณ์ / ขอเป็นแอดมิน =================
-        function openAppealModal() {
-            if (!activeSchool) return;
-            isCreatingNewSchool = false; isAppealing = true; window.isUpgradingToAdmin = false; resetImagePreview();
-            document.getElementById('joinSchoolModal').style.display = 'flex';
-            document.getElementById('profileSidebar').classList.remove('active'); document.getElementById('sidebarOverlay').style.display = 'none';
-
-            document.getElementById('searchSchoolGroup').style.display = 'none'; document.getElementById('reqSchoolResults').style.display = 'none'; document.getElementById('newSchoolGroup').style.display = 'none';
-            document.getElementById('reqSchoolId').value = activeSchool.school_id;
-            document.getElementById('reqSchoolHasOriginalAbbr').value = activeSchool.schools.school_abbr ? 'true' : 'false';
-            document.getElementById('selSchoolName').innerText = activeSchool.schools.school_name;
-            
-            if (activeSchool.schools.school_abbr) { document.getElementById('selSchoolAbbr').innerText = `อักษรย่อ: ${activeSchool.schools.school_abbr}`; document.getElementById('selSchoolAbbr').style.display = 'inline-block'; document.getElementById('missingAbbrGroup').style.display = 'none'; } 
-            else { document.getElementById('selSchoolAbbr').style.display = 'none'; document.getElementById('missingAbbrGroup').style.display = 'block'; document.getElementById('updateSchoolAbbr').value = suggestAbbreviation(activeSchool.schools.school_name); }
-            document.getElementById('selectedSchoolCard').style.display = 'block';
-            document.getElementById('cancelSelectSchoolBtn').style.display = 'none';
-            document.getElementById('optionalAdminGroup').style.display = 'none'; 
-
-            document.getElementById('reqIdCardGroup').style.display = 'block';
-            document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-exclamation-circle"></i> <b>ยื่นอุทธรณ์ถึงส่วนกลาง:</b> กรุณาแนบภาพถ่ายคู่กับบัตรข้าราชการ/บัตรประจำตัว เพื่อยืนยันตัวตนใหม่อีกครั้ง';
-            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-id-card" style="margin-right: 8px;"></i> ยื่นอุทธรณ์ยืนยันตัวตน';
-            document.getElementById('joinModalGuideText').style.display = 'none';
-            setupUploadButtons();
+        function viewImage(url) {
+            document.getElementById('modalImage').src = url;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
         }
 
-        // 🌟 1. เปิดหน้าต่างขอสิทธิ์เป็นแอดมินโดยเฉพาะ (คลิกจาก Sidebar) 🌟
-        function openUpgradeAdminModal(event, schoolId, schoolName) {
-            event.stopPropagation();
-            isCreatingNewSchool = false; isAppealing = false; window.isUpgradingToAdmin = true; resetImagePreview();
-            
-            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-user-shield" style="margin-right: 8px;"></i> ขอสิทธิ์แอดมินกลุ่ม';
-            document.getElementById('joinModalGuideText').style.display = 'none';
-
-            document.getElementById('searchSchoolGroup').style.display = 'none';
-            document.getElementById('reqSchoolResults').style.display = 'none';
-            document.getElementById('newSchoolGroup').style.display = 'none';
-
-            document.getElementById('reqSchoolId').value = schoolId;
-            document.getElementById('selSchoolName').innerText = schoolName;
-            document.getElementById('selSchoolAbbr').style.display = 'none'; 
-            document.getElementById('missingAbbrGroup').style.display = 'none';
-
-            document.getElementById('selectedSchoolCard').style.display = 'block';
-            document.getElementById('cancelSelectSchoolBtn').style.display = 'none'; 
-            document.getElementById('optionalAdminGroup').style.display = 'none'; 
-
-            // บังคับแสดงช่องอัปโหลดเอกสาร
-            document.getElementById('reqIdCardGroup').style.display = 'block';
-            document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>การขอสิทธิ์แอดมิน:</b> กรุณาแนบภาพถ่ายเซลฟี่คู่กับบัตรข้าราชการ/บัตรประจำตัว เพื่อให้ส่วนกลางตรวจสอบ';
-
-            setupUploadButtons();
-
-            document.getElementById('joinSchoolModal').style.display = 'flex';
-            if(document.getElementById('profileSidebar').classList.contains('active')) toggleSidebar();
-        }
-
-        function openJoinSchoolModal() { 
-            isAppealing = false; window.isUpgradingToAdmin = false;
-            document.getElementById('joinModalTitle').innerHTML = '<i class="fas fa-school" style="margin-right: 8px;"></i> ค้นหากลุ่มสถานศึกษา';
-            document.getElementById('joinModalGuideText').style.display = 'block'; document.getElementById('cancelSelectSchoolBtn').style.display = 'block'; 
-            document.getElementById('joinSchoolModal').style.display = 'flex'; document.getElementById('profileSidebar').classList.remove('active'); document.getElementById('sidebarOverlay').style.display = 'none'; setupUploadButtons(); 
-        }
-
-        function closeJoinSchoolModal() { 
-            document.getElementById('joinSchoolModal').style.display = 'none'; 
-            resetSchoolSelection(); 
-            document.getElementById('reqSchoolSearch').value = ''; 
-            window.isUpgradingToAdmin = false;
-        }
-
-        // 🌟 2. แสดง Checkbox ตัวเลือกขอเป็นแอดมิน เมื่อกดค้นหาโรงเรียน 🌟
-        function toggleOptionalAdminCard(isChecked) {
-            if (isChecked) {
-                document.getElementById('reqIdCardGroup').style.display = 'block';
-                document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>ขอสิทธิ์แอดมิน:</b> กรุณาแนบภาพถ่ายคู่บัตรข้าราชการ/บัตรพนักงาน';
-            } else {
-                document.getElementById('reqIdCardGroup').style.display = 'none';
-            }
-        }
-        
-        async function searchSchools(query) { const resultBox = document.getElementById('reqSchoolResults'); if (query.trim().length < 2) { resultBox.style.display = 'none'; return; } const { data, error } = await sysDB.from('schools').select('school_id, school_name, school_abbr').ilike('school_name', `%${query}%`).limit(10); let html = ''; if (!error && data && data.length > 0) html += data.map(s => `<div class="search-item" onclick="selectSchoolReq('${s.school_id}', '${s.school_name}', '${s.school_abbr || ''}')"><i class="fas fa-school" style="margin-right: 8px; color: var(--primary-light);"></i> ${s.school_name}</div>`).join(''); else html += '<div style="padding:15px;text-align:center;color:#888;">ไม่พบรายชื่อโรงเรียน</div>'; html += `<div class="search-item search-item-add" onclick="showNewSchoolForm()"><i class="fas fa-plus-circle" style="margin-right:5px;"></i> + สร้างกลุ่มโรงเรียนใหม่</div>`; resultBox.innerHTML = html; resultBox.style.display = 'block'; }
-        
-        async function selectSchoolReq(id, name, abbr) { 
-            isCreatingNewSchool = false; document.getElementById('searchSchoolGroup').style.display = 'none'; document.getElementById('reqSchoolResults').style.display = 'none'; document.getElementById('reqSchoolId').value = id; document.getElementById('selSchoolName').innerText = name; document.getElementById('reqSchoolHasOriginalAbbr').value = abbr ? 'true' : 'false'; 
-            if (abbr) { document.getElementById('selSchoolAbbr').innerText = `อักษรย่อ: ${abbr}`; document.getElementById('selSchoolAbbr').style.display = 'inline-block'; document.getElementById('missingAbbrGroup').style.display = 'none'; } else { document.getElementById('selSchoolAbbr').style.display = 'none'; document.getElementById('missingAbbrGroup').style.display = 'block'; document.getElementById('updateSchoolAbbr').value = suggestAbbreviation(name); } 
-            document.getElementById('selectedSchoolCard').style.display = 'block'; 
-            
-            // เช็คว่าโรงเรียนนี้มีแอดมินหรือยัง
-            const { data: admins } = await sysDB.from('user_school').select('id').eq('school_id', id).eq('verification_status', 'approved').eq('role', 'admin').limit(1); 
-            reqSchoolHasAdmin = (admins && admins.length > 0); 
-            
-            if (reqSchoolHasAdmin && !isAppealing) {
-                document.getElementById('reqIdCardGroup').style.display = 'none';
-                document.getElementById('optionalAdminGroup').style.display = 'block'; // โชว์กล่องให้ติ๊กเลือกขอเป็นแอดมิน
-            } else { 
-                document.getElementById('reqIdCardGroup').style.display = 'block'; 
-                document.getElementById('optionalAdminGroup').style.display = 'none';
-                document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>ส่วนกลางต้องการยืนยันตัวตน:</b> เนื่องจากกลุ่มนี้ยังไม่มีผู้ดูแล คุณจะได้รับสิทธิ์ <b>Admin</b> กรุณาแนบภาพถ่ายคู่บัตร'; 
-            } 
-        }
-
-        function showNewSchoolForm() { isCreatingNewSchool = true; document.getElementById('searchSchoolGroup').style.display = 'none'; document.getElementById('reqSchoolResults').style.display = 'none'; document.getElementById('selectedSchoolCard').style.display = 'none'; document.getElementById('newSchoolGroup').style.display = 'block'; document.getElementById('newSchoolName').value = document.getElementById('reqSchoolSearch').value; autoSuggestAbbr('newSchoolName', 'newSchoolAbbr'); document.getElementById('reqIdCardGroup').style.display = 'block'; document.getElementById('optionalAdminGroup').style.display = 'none'; document.getElementById('reqIdCardAlertBox').innerHTML = '<i class="fas fa-info-circle"></i> <b>ส่วนกลางต้องการยืนยันตัวตน:</b> คุณจะได้รับสิทธิ์ <b>Admin</b> กรุณาแนบภาพถ่ายคู่บัตร'; }
-        function cancelNewSchool() { isCreatingNewSchool = false; document.getElementById('newSchoolGroup').style.display = 'none'; document.getElementById('searchSchoolGroup').style.display = 'block'; document.getElementById('reqIdCardGroup').style.display = 'none'; resetImagePreview(); }
-        function resetSchoolSelection() { isCreatingNewSchool = false; document.getElementById('reqSchoolId').value = ''; document.getElementById('reqSchoolHasOriginalAbbr').value = ''; document.getElementById('selectedSchoolCard').style.display = 'none'; document.getElementById('searchSchoolGroup').style.display = 'block'; document.getElementById('reqIdCardGroup').style.display = 'none'; document.getElementById('optionalAdminGroup').style.display = 'none'; if(document.getElementById('reqAdminCheck')) document.getElementById('reqAdminCheck').checked = false; resetImagePreview(); }
-        function suggestAbbreviation(thaiText) { let txt = thaiText.replace(/โรงเรียน/g, '').replace(/เทศบาล/g, 't').replace(/บ้าน/g, 'b').trim(); let abbr = ''; let hasNum = txt.match(/\d+/); const chars = { 'ก':'k','ข':'k','ค':'k','ง':'ng', 'จ':'j','ช':'ch','ซ':'s', 'ญ':'y','ฎ':'d','ฏ':'t','ฐ':'t','ด':'d','ต':'t','ถ':'t','ท':'t','ธ':'t','น':'n', 'บ':'b','ป':'p','ผ':'p','พ':'p','ฟ':'f','ภ':'p','ม':'m', 'ย':'y','ร':'r','ล':'l','ว':'w','ศ':'s','ส':'s','ห':'h','อ':'a' }; for(let i=0; i<txt.length; i++) { if(chars[txt[i]] && abbr.length < 3) { if(abbr.slice(-1) !== chars[txt[i]]) abbr += chars[txt[i]]; } else if(/[a-zA-Z]/.test(txt[i]) && abbr.length < 4) { abbr += txt[i].toLowerCase(); } } if(hasNum) abbr += hasNum[0]; return abbr || 'sch' + Math.floor(Math.random()*100); }
-        function autoSuggestAbbr(nameId, abbrId) { document.getElementById(abbrId).value = suggestAbbreviation(document.getElementById(nameId).value); }
-
-        function setupUploadButtons() { if (isMobileDevice) { document.getElementById('btnWebcamUpload').style.display = 'none'; const btnStandard = document.getElementById('btnStandardUpload'); btnStandard.innerHTML = '<i class="fas fa-camera"></i> ถ่ายรูป / เลือกจากเครื่อง'; btnStandard.classList.remove('btn-upload-gallery'); btnStandard.classList.add('btn-upload-camera'); } else { document.getElementById('btnWebcamUpload').style.display = 'flex'; const btnStandard = document.getElementById('btnStandardUpload'); btnStandard.innerHTML = '<i class="fas fa-folder-open"></i> เลือกไฟล์ใน PC'; btnStandard.classList.add('btn-upload-gallery'); btnStandard.classList.remove('btn-upload-camera'); } }
-        async function openCameraModal() { document.getElementById('cameraModal').style.display = 'flex'; await startCamera(); }
-        function closeCameraModal() { document.getElementById('cameraModal').style.display = 'none'; if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; } }
-        async function startCamera() { document.getElementById('cameraVideo').style.display = 'block'; document.getElementById('cameraPreview').style.display = 'none'; document.getElementById('btnCapture').style.display = 'flex'; document.getElementById('btnRetake').style.display = 'none'; document.getElementById('btnConfirmPhoto').style.display = 'none'; try { cameraStream = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('cameraVideo').srcObject = cameraStream; } catch (err) { showCustomAlert('ไม่สามารถเข้าถึงกล้องได้ ตรวจสอบการอนุญาตใช้งานกล้องบนเบราว์เซอร์', 'warning'); closeCameraModal(); } }
-        function takeSnapshot() { const video = document.getElementById('cameraVideo'); const canvas = document.getElementById('cameraCanvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight; const ctx = canvas.getContext('2d'); ctx.translate(canvas.width, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, canvas.width, canvas.height); document.getElementById('cameraPreview').src = canvas.toDataURL('image/jpeg'); document.getElementById('cameraVideo').style.display = 'none'; document.getElementById('cameraPreview').style.display = 'block'; document.getElementById('btnCapture').style.display = 'none'; document.getElementById('btnRetake').style.display = 'flex'; document.getElementById('btnConfirmPhoto').style.display = 'flex'; }
-        function confirmSnapshot() { const canvas = document.getElementById('cameraCanvas'); canvas.toBlob((blob) => { activeImageFile = new File([blob], "webcam_capture_" + Date.now() + ".jpg", { type: "image/jpeg" }); document.getElementById('reqIdCardImageMain').value = ''; const reader = new FileReader(); reader.onload = function(e) { document.getElementById('reqFileNameDisplay').innerHTML = `<div style="margin-bottom: 10px;"><img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain;"></div><div style="color: #2ed573; font-weight: 600; font-size: 15px;"><i class="fas fa-check-circle"></i> ภาพพร้อมส่งแล้ว</div>`; } ; reader.readAsDataURL(activeImageFile); closeCameraModal(); }, 'image/jpeg', 0.9); }
-        function processSelectedImage(inputElement) { if (inputElement.files && inputElement.files[0]) { activeImageFile = inputElement.files[0]; const reader = new FileReader(); reader.onload = function(e) { document.getElementById('reqFileNameDisplay').innerHTML = `<div style="margin-bottom: 10px;"><img src="${e.target.result}" style="max-width: 100%; max-height: 180px; border-radius: 12px; border: 2px solid #edf2f7; object-fit: contain;"></div><div style="color: #2ed573; font-weight: 600; font-size: 15px;"><i class="fas fa-check-circle"></i> ภาพพร้อมส่งแล้ว</div>`; } ; reader.readAsDataURL(activeImageFile); } }
-        function resetImagePreview() { activeImageFile = null; if (document.getElementById('reqIdCardImageMain')) document.getElementById('reqIdCardImageMain').value = ''; document.getElementById('reqFileNameDisplay').innerHTML = `<i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i><div style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>`; }
-
-        // ================= 🌟 จัดการตรรกะการส่งคำขอ 🌟 =================
-        async function submitSchoolJoin(e) {
-            e.preventDefault(); const btn = document.getElementById('btnSubmitJoin'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...'; btn.disabled = true;
-            try {
-                let targetSchoolId = document.getElementById('reqSchoolId').value; 
-                let applyRole = 'teacher'; 
-                let needsCardUpload = false; 
-                let isUpdatingAbbr = false; 
-                let newAbbrToUpdate = null;
-                let isUpgrading = window.isUpgradingToAdmin;
-                
-                if (isCreatingNewSchool) {
-                    const newName = document.getElementById('newSchoolName').value.trim(); const newAbbr = document.getElementById('newSchoolAbbr').value.trim().toLowerCase();
-                    if(!newName || !newAbbr) throw new Error('กรุณาระบุชื่อและอักษรย่อโรงเรียน');
-                    const { data: existing, error: existErr } = await sysDB.from('schools').select('school_id').eq('school_abbr', newAbbr);
-                    if(existErr) throw existErr;
-                    if(existing && existing.length > 0) throw new Error(`อักษรย่อ ${newAbbr} มีคนใช้แล้ว`);
-                    
-                    targetSchoolId = crypto.randomUUID(); 
-                    const { error: insErr } = await sysDB.from('schools').insert([{ school_id: targetSchoolId, school_name: newName, school_abbr: newAbbr }]);
-                    if(insErr) throw insErr;
-                    applyRole = 'admin'; needsCardUpload = true;
-                } else {
-                    if (!targetSchoolId) throw new Error('กรุณาเลือกกลุ่มโรงเรียนที่ต้องการเข้าร่วม');
-                    const hasOriginalAbbr = document.getElementById('reqSchoolHasOriginalAbbr').value === 'true';
-                    if (!hasOriginalAbbr) {
-                        newAbbrToUpdate = document.getElementById('updateSchoolAbbr').value.trim().toLowerCase();
-                        if (!newAbbrToUpdate) throw new Error('กรุณาระบุอักษรย่อโรงเรียน');
-                        const { data: existing, error: existErr } = await sysDB.from('schools').select('school_id').eq('school_abbr', newAbbrToUpdate);
-                        if(existErr) throw existErr;
-                        if(existing && existing.length > 0) throw new Error(`อักษรย่อ ${newAbbrToUpdate} มีคนใช้แล้ว โปรดเปลี่ยนใหม่`);
-                        isUpdatingAbbr = true;
-                    }
-                    
-                    // คำนวณ Role เริ่มต้น
-                    applyRole = reqSchoolHasAdmin ? 'teacher' : 'admin'; 
-                    needsCardUpload = !reqSchoolHasAdmin;
-
-                    // หากผู้ใช้ติ๊กถูกขอเป็นแอดมิน (กรณีค้นหาใหม่) หรือกดปุ่มขอเป็นแอดมิน (กรณีเป็นสมาชิกอยู่แล้ว)
-                    if ((reqSchoolHasAdmin && document.getElementById('reqAdminCheck') && document.getElementById('reqAdminCheck').checked) || isUpgrading) {
-                        applyRole = 'admin';
-                        needsCardUpload = true;
-                    }
-                }
-
-                // ดึงข้อมูลในตาราง user_school ตาม Unified Schema
-                const { data: alreadyJoined } = await sysDB.from('user_school')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .eq('school_id', targetSchoolId)
-                    .maybeSingle();
-                
-                let isResubmitting = false;
-                
-                if (alreadyJoined) {
-                    // หากไม่ได้กำลังขออัปเกรดเป็นแอดมิน และไม่ได้ยื่นอุทธรณ์ แล้วอยู่ในกลุ่มอยู่แล้ว จะเตือนว่าซ้ำ
-                    if (!isUpgrading && !isAppealing && (alreadyJoined.verification_status === 'pending' || alreadyJoined.verification_status === 'approved')) {
-                        throw new Error('คุณอยู่ในกลุ่มนี้หรือได้ส่งคำขอไปยังโรงเรียนนี้แล้วครับ!');
-                    }
-                    
-                    // อนุญาตให้อัปเดตได้ หากถูกปฏิเสธมา หรือ กำลังขออัปเกรดเป็นแอดมิน
-                    if (alreadyJoined.verification_status === 'rejected' || isUpgrading) {
-                        isResubmitting = true;
-                        if (isAppealing || isUpgrading) {
-                            needsCardUpload = true; 
-                        }
-                    }
-                }
-
-                let cardUrl = null;
-                if (needsCardUpload) {
-                    if (!activeImageFile) throw new Error('กรุณาแนบภาพถ่ายเซลฟี่คู่กับบัตรยืนยันตัวตนครับ');
-                    const fileName = `${currentUser.id}_${Date.now()}.${activeImageFile.name ? activeImageFile.name.split('.').pop() : 'jpg'}`;
-                    const { error: upErr } = await sysDB.storage.from('teacher-verifications').upload(fileName, activeImageFile); 
-                    if(upErr) throw upErr;
-                    cardUrl = fileName;
-                }
-
-                if (isUpdatingAbbr && targetSchoolId && newAbbrToUpdate) {
-                    const { error: updSchErr } = await sysDB.from('schools').update({ school_abbr: newAbbrToUpdate }).eq('school_id', targetSchoolId);
-                    if(updSchErr) throw updSchErr;
-                }
-
-                if (isResubmitting) {
-                    await sysDB.from('user_school').update({ 
-                        role: applyRole, 
-                        verification_card_url: cardUrl || alreadyJoined.verification_card_url, 
-                        verification_status: 'pending', 
-                        reject_reason: null 
-                    }).eq('id', alreadyJoined.id);
-                } else {
-                    await sysDB.from('user_school').insert([{ 
-                        user_id: currentUser.id, 
-                        school_id: targetSchoolId, 
-                        role: applyRole, 
-                        verification_card_url: cardUrl, 
-                        verification_status: 'pending' 
-                    }]);
-                }
-
-                // ส่งอีเมลแจ้งเตือนแอดมิน
-                const submittedSchoolName = isCreatingNewSchool ? document.getElementById('newSchoolName').value.trim() : document.getElementById('selSchoolName').innerText;
-                sendAdminNotification(currentUserData.first_name, currentUserData.last_name, submittedSchoolName);
-
-                localStorage.setItem('flip_active_view', targetSchoolId);
-                showCustomAlert('ส่งคำขอสำเร็จ! ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว', 'success', () => { 
-                    closeJoinSchoolModal();
-                    refreshDashboardState(); 
-                });
-            } catch (err) { showCustomAlert(err.message, 'warning'); btn.disabled = false; btn.innerHTML = 'ยืนยันส่งคำขอ <i class="fas fa-paper-plane"></i>'; }
-        }
-
-        // ฟังก์ชันจัดการเมนู FAB
-        function toggleFabMenu() {
-            const menu = document.getElementById('fabMenu');
-            const mainBtn = document.getElementById('fabMainBtn');
-            menu.classList.toggle('show');
-            mainBtn.classList.toggle('active');
-        }
-
-        function closeFabMenu() {
-            const menu = document.getElementById('fabMenu');
-            const mainBtn = document.getElementById('fabMainBtn');
-            if (menu && menu.classList.contains('show')) {
-                menu.classList.remove('show');
-                mainBtn.classList.remove('active');
-            }
-        }
-        
-        function openJoinClassModal() {
-            closeFabMenu();
-            document.getElementById('classCodeInput').value = '';
-            document.getElementById('joinClassModal').classList.add('show');
-        }
-        function closeJoinClassModal() { document.getElementById('joinClassModal').classList.remove('show'); }
-
-        async function submitJoinClass() {
-            const inputCode = document.getElementById('classCodeInput').value.trim();
-            if (!inputCode) { showCustomAlert('กรุณากรอกรหัสห้องเรียนก่อนครับ', 'warning'); return; }
-            const btn = document.getElementById('btnSubmitJoinClass');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'; btn.disabled = true;
-
-            try {
+        async function handleLogout() {
+            showCustomAlert('ต้องการออกจากระบบใช่หรือไม่?', 'warning', async () => {
                 const db = getDB();
-                let targetClass = null;
-                const { data: c1 } = await db.from('classrooms').select('classroom_id, subject_name').eq('class_code', inputCode.toUpperCase()).maybeSingle();
-                if (c1) { targetClass = c1; }
-                else {
-                    const { data: c2 } = await db.from('classrooms').select('classroom_id, subject_name').eq('join_code', inputCode.toUpperCase()).maybeSingle();
-                    if (c2) targetClass = c2;
-                }
-                if (!targetClass) throw new Error('ไม่พบรหัสห้องเรียนนี้ในระบบ');
-                
-                const { data: existEnroll } = await db.from('classroom_users').select('enrollment_id').eq('classroom_id', targetClass.classroom_id).eq('user_id', currentUser.id).maybeSingle();
-                if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้ว');
-
-                const { error: enrollError } = await db.from('classroom_users').insert([{ classroom_id: targetClass.classroom_id, user_id: currentUser.id, student_number: 0 }]);
-                if (enrollError) throw enrollError;
-
-                closeJoinClassModal();
-                showCustomAlert(`เข้าร่วมวิชา ${targetClass.subject_name} สำเร็จ!`, 'success', async () => { await fetchAllClasses(db); });
-            } catch (err) { showCustomAlert(err.message, 'warning'); } 
-            finally { btn.innerHTML = 'ยืนยันเข้าร่วม <i class="fas fa-arrow-right"></i>'; btn.disabled = false; }
+                await db.auth.signOut();
+                localStorage.removeItem('flip_active_view');
+                window.location.replace('login.html');
+            });
         }
-
-        window.toggleSidebar = function() { document.getElementById('profileSidebar').classList.toggle('active'); document.getElementById('sidebarOverlay').style.display = document.getElementById('profileSidebar').classList.contains('active') ? 'block' : 'none'; };
-        async function handleLogout() { showCustomAlert('คุณต้องการออกจากระบบใช่หรือไม่?', 'confirm', async () => { await sysDB.auth.signOut(); localStorage.removeItem('flip_active_view'); location.href='login.html'; }); }
-
-        function sendAdminNotification(fName, lName, schoolName) {
-            if (typeof emailjs === 'undefined') return;
-            const templateParams = { teacher_name: `คุณ${fName} ${lName || ''}`.trim(), school_name: schoolName, login_url: window.location.origin + "/super_admin.html" };
-            emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams).then(function(response) {}, function(error) { console.error('ส่งอีเมลแจ้งเตือนล้มเหลว...', error); });
-        }
-
     </script>
 </body>
 </html>
