@@ -137,7 +137,7 @@
 
         .footer { padding: 25px; font-size: 0.85rem; color: #a4b0be; text-align: center; margin-top: auto; }
 
-        /* Custom Alert Modal */
+        /* Custom Alert Modal - เขียนใหม่ให้แสดงกึ่งกลางเสมอ */
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -146,7 +146,9 @@
         .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
         .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
         .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; min-width: 120px; }
-        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 139, 0.2); }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 139, 0.1); }
+        .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
+        .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
@@ -182,10 +184,10 @@
             <div class="logo-emoji">🎓</div>
             <div class="logo-text-group">
                 <div class="brand-name">Flip<span>School</span></div>
-                <div class="slogan">นวัตกรรมเพื่อการจัดการเรียนรู้</div>
+                <div class="slogan">นวัตกรรมการศึกษา</div>
             </div>
         </a>
-        <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> หน้าแรก</a>
+        <a href="index.html" class="btn-back"><i class="fas fa-home"></i> <span class="hidden sm:inline">หน้าแรก</span></a>
     </nav>
 
     <main class="main-container">
@@ -236,6 +238,7 @@
 
     <div class="footer footer-display-text">...</div>
 
+    <!-- Custom Alert Modal (ใช้ CSS พื้นฐานแทน Tailwind เพื่อป้องกันเพี้ยน) -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
             <div class="custom-modal-icon">
@@ -245,7 +248,7 @@
             <p id="customAlertMessage" class="custom-modal-message"></p>
             <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
                 <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
-                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -312,15 +315,15 @@
             else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
-        // 🌟 ฟังก์ชันถอดรหัส URL (Base64URL Safe) 🌟
+        // 🌟 ฟังก์ชันถอดรหัส URL (Base64URL Safe)
         function decodeMagicToken(token) {
-            // คืนค่า Base64 กลับมาเป็นปกติ
             let base64 = token.replace(/-/g, '+').replace(/_/g, '/');
             while (base64.length % 4) { base64 += '='; }
             const raw = decodeURIComponent(atob(base64));
-            return raw.split('||'); // คืนค่าเป็น Array [classCode, userId, enrollId]
+            return raw.split('||'); // คืนค่ากลับเป็น Array [classCode, userId, enrollId]
         }
 
+        // ================= เริ่มต้นการทำงาน =================
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
             
@@ -339,7 +342,7 @@
                 });
             }
 
-            // 🌟 1. เช็คว่ามี Magic Link สแกนมาจาก QR Code หรือไม่ 🌟
+            // 1. เช็คว่ามี Magic Link สแกนมาจาก QR Code หรือไม่
             const urlParams = new URLSearchParams(window.location.search);
             const magicToken = urlParams.get('magic');
 
@@ -364,7 +367,7 @@
             }, 300);
         });
 
-        // ================= 🌟 ฟังก์ชันล็อกอินด้วย QR Code อัจฉริยะ (มีระบบ Revoke ในตัว) 🌟 =================
+        // ================= 🌟 ฟังก์ชันล็อกอินด้วย QR Code (ป้องกัน DB Error) 🌟 =================
         async function handleMagicLogin(encodedToken) {
             document.getElementById('authLoader').style.display = 'flex';
             document.getElementById('loaderText').innerText = 'กำลังตรวจสอบสิทธิ์...';
@@ -380,40 +383,38 @@
 
                 const db = getDB();
 
-                // 🌟 ตรวจสอบโครงสร้างคอลัมน์แบบ Dynamic ป้องกัน Error 42703
-                let userColName = 'user_id';
-                const { error: testErr } = await db.from('classroom_users').select('user_id').limit(1);
-                if (testErr && String(testErr.code).includes('42703')) {
-                    userColName = 'student_id';
-                }
-
-                // 2. ตรวจสอบข้อมูลในตารางห้องเรียนด้วย enrollment_id โดยตรง 
-                const { data: enrollment, error: enErr } = await db.from('classroom_users')
-                    .select(`${userColName}, classrooms(class_code, is_joinable)`)
+                // 2. ดึงข้อมูลตารางแบบหลีกเลี่ยง Error (ใช้ select * แทนการระบุชื่อคอลัมน์เจาะจง)
+                const { data: enrollData, error: enErr } = await db.from('classroom_users')
+                    .select('*')
                     .eq('enrollment_id', enrollId)
                     .maybeSingle();
 
-                if (enErr || !enrollment) {
-                    throw new Error("QR Code ใบนี้ถูกยกเลิกการใช้งานแล้ว หรือคุณไม่มีชื่อในห้องเรียนนี้");
+                if (!enrollData) {
+                    throw new Error("ไม่พบรายชื่อของคุณในห้องเรียนนี้ (หรือคุณครูได้นำชื่อคุณออกไปแล้ว)");
                 }
 
-                // 3. ป้องกันการสวมรอย (Cross-check User ID) 
-                const targetUserId = enrollment[userColName];
+                // 3. ตรวจสอบความถูกต้องของบัญชี
+                const targetUserId = enrollData.user_id || enrollData.student_id;
                 if (targetUserId !== userId) {
-                    throw new Error("ข้อมูลนักเรียนไม่ตรงกัน ไม่สามารถเข้าห้องเรียนได้");
+                    throw new Error("ข้อมูลนักเรียนไม่ตรงกัน ไม่สามารถใช้ QR Code ใบนี้ได้");
                 }
 
-                // 4. ตรวจสอบว่ารหัสห้องเปลี่ยนไปหรือยัง (Mass Revoke)
-                if (!enrollment.classrooms || enrollment.classrooms.class_code !== classCode) {
-                    throw new Error("QR Code นี้หมดอายุ! เนื่องจากคุณครูได้ทำการรีเซ็ตรหัสห้องเรียนไปแล้วครับ");
+                // 4. ดึงข้อมูลจาก classrooms มาตรวจสอบการระงับ (Mass Revoke)
+                const { data: classData } = await db.from('classrooms')
+                    .select('*')
+                    .eq('classroom_id', enrollData.classroom_id)
+                    .maybeSingle();
+
+                if (classData) {
+                    if (classData.class_code && classData.class_code !== classCode) {
+                        throw new Error("QR Code นี้หมดอายุแล้ว! (คุณครูได้สุ่มเปลี่ยนรหัสห้องเรียนใหม่)");
+                    }
+                    if (classData.is_joinable === false) {
+                        throw new Error("ห้องเรียนนี้ปิดรับนักเรียนชั่วคราว ไม่สามารถเข้าสู่ระบบได้");
+                    }
                 }
 
-                // 5. ตรวจสอบสถานะการเปิด/ปิดรับนักเรียน
-                if (enrollment.classrooms.is_joinable === false) {
-                    throw new Error("คุณครูได้ทำการปิดรับการเข้าห้องเรียนชั่วคราว");
-                }
-
-                // 6. สำเร็จ! บันทึก Session ทะลุเข้า Dashboard
+                // 5. ผ่านทุกด่าน ล็อกอินทะลุเข้า Dashboard ได้เลย
                 localStorage.setItem('flip_student_session_id', userId);
                 
                 showCustomAlert('แสกนเข้าห้องเรียนสำเร็จ!', 'success', () => {
@@ -461,6 +462,8 @@
                     btnContainer,
                     { theme: "outline", size: "large", text: "signin_with", width: btnWidth, shape: "pill" }
                 );
+            } else {
+                document.getElementById("googleSignInBtn").innerHTML = '<div style="color:#ff4757; font-size:13px;"><i class="fas fa-exclamation-triangle"></i> ไม่พบรหัส Google Client ID ในระบบ</div>';
             }
         };
 
