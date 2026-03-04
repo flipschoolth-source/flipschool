@@ -303,8 +303,13 @@
                         
                         // ถ้ามีการ Insert ใหม่และสถานะเป็น pending
                         if (payload.eventType === 'INSERT' && payload.new && payload.new.verification_status === 'pending') {
-                            showToastNotification("🔔 มีคำขอใหม่เข้ามา!", "ระบบกำลังเพิ่มการ์ดลงในหน้ารายการครับ");
-                            fetchPendingRequests(); // โหลดการ์ดใหม่
+                            // 🌟 ตรวจสอบว่ามีเอกสารแนบมาด้วยหรือไม่ ถ้าไม่มีจะไม่แจ้งเตือน
+                            const hasCard = payload.new.verification_card_url && payload.new.verification_card_url !== 'null' && payload.new.verification_card_url.trim() !== '';
+                            
+                            if (hasCard) {
+                                showToastNotification("🔔 มีคำขอใหม่เข้ามา!", "ระบบกำลังเพิ่มการ์ดลงในหน้ารายการครับ");
+                                fetchPendingRequests(); // โหลดการ์ดใหม่
+                            }
                         } 
                         // ถ้ามีการ Update 
                         else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
@@ -326,12 +331,17 @@
             const container = document.getElementById('requestContainer');
             
             try {
-                const { data: reqData, error: reqError } = await sysDB.from('user_school')
+                // 🌟 เพิ่มเงื่อนไข .not() เพื่อกรองข้อมูลที่ไม่มีเอกสารออกตั้งแต่ระดับฐานข้อมูล
+                const { data: rawReqData, error: reqError } = await sysDB.from('user_school')
                     .select('*')
                     .eq('verification_status', 'pending')
+                    .not('verification_card_url', 'is', null)
                     .order('created_at', { ascending: false });
 
                 if (reqError) throw reqError;
+
+                // 🌟 กรองซ้ำด้วย JavaScript เพื่อให้แน่ใจว่าไม่ใช่ค่าว่าง หรือคำว่า 'null'
+                const reqData = (rawReqData || []).filter(req => req.verification_card_url && req.verification_card_url !== 'null' && req.verification_card_url.trim() !== '');
 
                 document.getElementById('badgeCount').innerText = reqData.length;
 
