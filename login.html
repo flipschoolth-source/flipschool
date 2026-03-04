@@ -137,8 +137,8 @@
 
         .footer { padding: 25px; font-size: 0.85rem; color: #a4b0be; text-align: center; margin-top: auto; }
 
-        /* Custom Alert Modal - เขียนใหม่ให้แสดงกึ่งกลางเสมอ */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+        /* 🌟 ปรับ Z-index ของ Alert ให้อยู่สูงสุดเสมอ 🌟 */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
@@ -238,7 +238,6 @@
 
     <div class="footer footer-display-text">...</div>
 
-    <!-- Custom Alert Modal (ใช้ CSS พื้นฐานแทน Tailwind เพื่อป้องกันเพี้ยน) -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
             <div class="custom-modal-icon">
@@ -248,7 +247,7 @@
             <p id="customAlertMessage" class="custom-modal-message"></p>
             <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
                 <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
-                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -272,7 +271,12 @@
         let alertCallback = null;
         let alertCancelCallback = null;
 
+        // 🌟 เพิ่มเงื่อนไขตรวจสอบ Object Error ป้องกันข้อความเด้งเป็น undefined
         function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
+            if (typeof message === 'object' && message !== null) {
+                message = message.message || JSON.stringify(message);
+            }
+
             const modal = document.getElementById('customAlertModal');
             const titleEl = document.getElementById('customAlertTitle');
             const msgEl = document.getElementById('customAlertMessage');
@@ -417,11 +421,15 @@
                 // 5. ผ่านทุกด่าน ล็อกอินทะลุเข้า Dashboard ได้เลย
                 localStorage.setItem('flip_student_session_id', userId);
                 
+                // 🌟 ปิด Loader ทิ้งก่อนแสดงแจ้งเตือน (แก้บั๊กค้าง)
+                document.getElementById('authLoader').style.display = 'none';
+                
                 showCustomAlert('แสกนเข้าห้องเรียนสำเร็จ!', 'success', () => {
                     window.location.replace('dashboard.html');
                 });
 
             } catch(err) {
+                // หากผิดพลาด ปิดหน้าโหลดแล้วเด้ง Alert
                 document.getElementById('authLoader').style.display = 'none';
                 showCustomAlert(err.message, 'error', () => {
                     window.history.replaceState({}, document.title, window.location.pathname);
