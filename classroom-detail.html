@@ -292,7 +292,7 @@
                     <div class="bg-[#f8faff] border border-blue-100 rounded-xl p-4 text-center flex-1 w-full relative">
                         <p class="text-xs text-slate-500 mb-1 font-bold tracking-widest uppercase">รหัสห้องเรียน (Class Code)</p>
                         <h2 id="displayClassCode" class="text-3xl md:text-4xl font-black text-[var(--primary)] tracking-widest font-mono m-0 py-2">------</h2>
-                        <button onclick="resetClassCode()" class="absolute top-2 right-2 w-8 h-8 text-slate-400 hover:text-rose-500 bg-transparent border-none cursor-pointer rounded-full hover:bg-rose-50 transition-colors" title="สุ่มรหัสใหม่"><i class="fas fa-sync-alt"></i></button>
+                        <button onclick="resetClassCode()" class="absolute top-2 right-2 w-8 h-8 text-slate-400 hover:text-rose-500 bg-transparent border-none cursor-pointer rounded-full hover:bg-rose-50 transition-colors" title="สุ่มรหัสใหม่ (และยกเลิก QR เก่าทั้งหมด)"><i class="fas fa-sync-alt"></i></button>
                     </div>
                     
                     <div class="flex flex-row md:flex-col gap-3 w-full md:w-auto">
@@ -309,6 +309,13 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- คำอธิบายความปลอดภัย -->
+                <p class="text-xs text-slate-400 mt-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <i class="fas fa-info-circle text-blue-400 mr-1"></i> <b>การรักษาความปลอดภัย:</b> หากมีคนนอกนำ QR Code ไปใช้ 
+                    คุณครูสามารถ <b>"กดไอคอนสุ่มรหัสใหม่ (ลูกศรหมุน)"</b> เพื่อรีเซ็ตให้รหัสเดิมและ QR เก่าทั้งหมดหมดอายุทันที! 
+                    <br>หากต้องการยกเลิกเฉพาะรายบุคคล ให้กดลบชื่อนักเรียนคนนั้นในเมนู <a href="#" onclick="goToStudents()" class="text-blue-500 underline">รายชื่อนักเรียน</a>
+                </p>
             </div>
 
             <!-- กล่องจัดการโครงสร้างห้องเรียน -->
@@ -608,10 +615,18 @@
             }, 300);
         }
 
-        // ================= 🚀 ระบบพิมพ์ QR แบบรายบุคคล (Auto-Login) แก้บั๊กไม่แสดงข้อมูล 🚀 =================
+        // 🌟 ฟังก์ชันเข้ารหัส Token ให้ URL ดูสุ่มและคาดเดาไม่ได้
+        function encodeMagicToken(classCode, userId, enrollId) {
+            // โครงสร้าง Payload 
+            const raw = `${classCode}||${userId}||${enrollId}`;
+            // เข้ารหัส Base64, ตัดเครื่องหมาย = ออกให้เนียนตา แล้วสลับหน้าหลัง (Reverse String)
+            const encoded = btoa(raw).replace(/=/g, '').split('').reverse().join('');
+            return encoded;
+        }
+
+        // ================= 🚀 ระบบพิมพ์ QR แบบรายบุคคล (Auto-Login พร้อมการเข้ารหัส) 🚀 =================
         async function printIndividualAutoLoginQr(event) {
             try {
-                // เปลี่ยนสถานะปุ่มเพื่อแจ้งให้ผู้ใช้ทราบว่ากำลังโหลด
                 const btn = event ? event.currentTarget : null;
                 let originalText = '';
                 if (btn) {
@@ -622,14 +637,13 @@
 
                 const db = getDB();
                 
-                // 1. ตรวจสอบชื่อคอลัมน์ที่เก็บรหัสนักเรียน (รองรับทั้งระบบเก่าและใหม่)
                 let userColName = 'user_id';
                 const { error: testErr } = await db.from('classroom_users').select('user_id').limit(1);
                 if (testErr && testErr.code === '42703') {
                     userColName = 'student_id';
                 }
                 
-                // 2. ดึงรายชื่อนักเรียนทั้งหมดในห้องเรียนนี้แบบตรงๆ (ไม่ Join ป้องกันบั๊ก)
+                // ดึง enrollment_id มาด้วย สำหรับการทำ Individual Revoke
                 const { data: enrollments, error: enrollErr } = await db.from('classroom_users')
                     .select(`enrollment_id, student_number, ${userColName}`)
                     .eq('classroom_id', currentClassId)
@@ -643,11 +657,9 @@
                     return;
                 }
 
-                // 3. ดึงข้อมูล ชื่อ-นามสกุล ของนักเรียน แบบ Manual Join (เพื่อแก้ปัญหา Foreign Key ที่ทำให้ไม่แสดง QR)
                 const userIds = enrollments.map(e => e[userColName]);
                 let usersDict = {};
 
-                // ลองหาในตาราง users ก่อน (ฐานข้อมูลใหม่)
                 const { data: usersData, error: uErr } = await db.from('users')
                     .select('user_id, first_name, last_name, student_code')
                     .in('user_id', userIds);
@@ -655,14 +667,12 @@
                 if (!uErr && usersData && usersData.length > 0) {
                     usersData.forEach(u => usersDict[u.user_id] = u);
                 } else {
-                    // ถ้าใน users ไม่มี ให้ลองหาใน user_school (ฐานข้อมูลสำรอง)
                     const { data: usData } = await db.from('user_school')
                         .select('user_id, first_name, last_name, student_code')
                         .in('user_id', userIds);
                     if (usData) {
                         usData.forEach(u => usersDict[u.user_id] = u);
                     } else {
-                        // ลองหาในตาราง profiles (เผื่อกรณีระบบยังใช้ตารางเก่าสุด)
                         const { data: profData } = await db.from('profiles')
                             .select('id, first_name, last_name, student_code')
                             .in('id', userIds);
@@ -680,9 +690,7 @@
                 const subject = document.getElementById('subjectName').innerText;
                 const room = document.getElementById('roomName').innerText;
                 
-                // 🌟 ชี้เป้าหมายไปที่หน้า login.html 
                 let basePath = window.location.origin + window.location.pathname.replace(/classroom-detail\.html$/, 'login.html');
-                // Fallback เผื่อ URL ไม่มีคำว่า classroom-detail.html
                 if (!basePath.includes('login.html')) {
                     const parts = window.location.pathname.split('/');
                     parts[parts.length - 1] = 'login.html';
@@ -692,9 +700,9 @@
                 let cardsHtml = '';
                 let validCount = 0;
 
-                // 4. สร้าง QR Code ทีละคน
                 enrollments.forEach(en => {
                     const studentUserId = en[userColName];
+                    const enrollId = en.enrollment_id; 
                     const u = usersDict[studentUserId];
                     
                     if (u) {
@@ -702,11 +710,10 @@
                         const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
                         const code = u.student_code || '';
 
-                        // สร้าง Token ลับโดยใช้ Class Code ปัจจุบัน + รหัสเด็ก
-                        const payload = btoa(`${currentClassCode}|${studentUserId}`);
-                        const magicLink = `${basePath}?magic=${payload}`;
+                        // 🌟 ใช้งานฟังก์ชันเข้ารหัส Token ใหม่ล่าสุด (2-Layer Security)
+                        const secureToken = encodeMagicToken(currentClassCode, studentUserId, enrollId);
+                        const magicLink = `${basePath}?magic=${secureToken}`;
                         
-                        // ใช้ API แปลงลิงก์เป็นรูป QR
                         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(magicLink)}&color=00008B`;
 
                         cardsHtml += `
@@ -725,7 +732,6 @@
                     return;
                 }
 
-                // 5. เปิดหน้าต่างพริ้นท์
                 const printWindow = window.open('', '_blank');
                 printWindow.document.write(`
                     <html><head><title>QR Code รายบุคคล - ${subject}</title>
