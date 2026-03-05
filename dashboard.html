@@ -62,7 +62,7 @@
         .mobile-dropdown a i { width: 20px; text-align: center; color: var(--primary-light); }
         
         /* ================= DASHBOARD SPECIFIC STYLES ================= */
-        .class-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; border: 1px solid #f1f5f9; display: flex; flex-direction: column; height: 100%; position: relative; }
+        .class-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; border: 1px solid #f1f5f9; display: flex; flex-direction: column; height: 100%; position: relative; animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
         .class-card:hover { transform: translateY(-6px); box-shadow: 0 20px 35px rgba(0,0,0,0.08); }
         .card-banner { height: 90px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: rgba(255,255,255,0.25); position: relative; overflow: hidden; }
         .card-body { padding: 16px 20px 20px 20px; display: flex; flex-direction: column; flex: 1; }
@@ -71,6 +71,11 @@
         .filter-tab { padding: 10px 20px; background: white; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 2px solid transparent; }
         .filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
         
+        /* Syncing Indicator */
+        .sync-indicator { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; opacity: 0; transition: opacity 0.3s; }
+        .sync-indicator.syncing { opacity: 1; }
+        .sync-spinner { animation: spin 1s linear infinite; color: var(--primary); }
+
         /* ================= MODALS & ALERTS ================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; padding: clamp(15px, 4vw, 30px); backdrop-filter: blur(8px); overflow-y: auto; }
         .modal-content { background: white; width: 100%; max-width: 950px; border-radius: clamp(20px, 4vw, 30px); padding: clamp(25px, 5vw, 40px); position: relative; margin: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
@@ -87,8 +92,17 @@
 
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s;}
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* การทำ Staggered Animation ให้การ์ดค่อยๆ โผล่ */
+        .class-card:nth-child(1) { animation-delay: 0.05s; }
+        .class-card:nth-child(2) { animation-delay: 0.1s; }
+        .class-card:nth-child(3) { animation-delay: 0.15s; }
+        .class-card:nth-child(4) { animation-delay: 0.2s; }
+        .class-card:nth-child(5) { animation-delay: 0.25s; }
 
         #smartAppBanner { display: none; background: white; padding: 12px 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e4e6eb; position: sticky; top: 70px; z-index: 900; }
 
@@ -103,12 +117,13 @@
 </head>
 <body>
 
+    <!-- เปลี่ยน Loading Overlay เป็นแบบ Fallback เท่านั้น จะแสดงก็ต่อเมื่อไม่มี Cache -->
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังตรวจสอบบัญชี...</div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Navbar (ไตเติลบาร์) 🌟 -->
+    <!-- 🌟 Navbar 🌟 -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -133,14 +148,11 @@
                 <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] flex items-center justify-center border border-white font-bold">0</span>
             </div>
             
-            <!-- รูปโปรไฟล์เปิด Sidebar -->
             <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-slate-200 cursor-pointer object-cover hover:border-[var(--primary)] transition-colors shadow-sm" onclick="toggleDrawer()" title="เมนูบัญชีผู้ใช้งาน">
             
-            <!-- ปุ่มแฮมเบอร์เกอร์สำหรับมือถือ/แท็บเล็ต -->
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
 
-        <!-- เมนู Dropdown มือถือ -->
         <div id="mobileMenu" class="mobile-dropdown">
             <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจการเรียนรู้</a>
@@ -148,7 +160,6 @@
             <a href="#" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info'); toggleMobileMenu();"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
         </div>
 
-        <!-- Notification Dropdown -->
         <div id="notifDropdown" class="hidden absolute top-[100%] right-4 w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-100 z-[1050] overflow-hidden mt-2">
             <div class="p-4 border-b border-slate-100 font-bold font-['Kanit'] text-slate-800">คำขอเข้ากลุ่มใหม่</div>
             <div id="notifList" class="max-h-[400px] overflow-y-auto p-4 text-sm text-slate-500 text-center">ไม่มีการแจ้งเตือนใหม่</div>
@@ -170,7 +181,11 @@
                 <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center text-2xl">👋</div>
                 <div>
                     <h1 class="text-2xl font-bold font-['Kanit'] text-slate-800">สวัสดี, <span id="welcomeText" class="text-[var(--primary)]">...</span></h1>
-                    <p class="text-sm text-slate-500">ยินดีต้อนรับสู่แดชบอร์ดจัดการเรียนรู้</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-sm text-slate-500 m-0">ยินดีต้อนรับสู่แดชบอร์ดจัดการเรียนรู้</p>
+                        <!-- ไอคอนกระพริบเล็กๆ แจ้งว่ากำลังซิงค์ข้อมูลเบื้องหลัง -->
+                        <span id="syncIndicator" class="sync-indicator syncing"><i class="fas fa-sync-alt sync-spinner"></i> ซิงค์ข้อมูล...</span>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-3 shrink-0">
@@ -183,11 +198,7 @@
         
         <!-- Grid แสดงห้องเรียน -->
         <div id="gridAllClasses" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Loading Placeholder ให้เห็นระหว่างดึงข้อมูลห้องเรียน -->
-            <div class="col-span-full py-16 text-center text-slate-400">
-                <i class="fas fa-circle-notch fa-spin text-4xl mb-4 text-[var(--primary-light)]"></i>
-                <p class="font-['Kanit'] text-lg font-bold">กำลังโหลดห้องเรียน...</p>
-            </div>
+            <!-- Skeleton Loader จะแสดงเฉพาะกรณีที่ไม่มี Cache ในเครื่อง -->
         </div>
     </main>
 
@@ -220,23 +231,20 @@
         <button onclick="handleLogout()" class="mt-6 w-full p-4 bg-rose-50 text-rose-600 font-bold font-['Kanit'] rounded-2xl border-none cursor-pointer hover:bg-rose-100 transition-colors flex justify-center items-center gap-2"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
     </div>
 
-    <!-- ================= Glory Innovation Modal (เหมือน index.html) ================= -->
+    <!-- Glory Innovation Modal -->
     <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
+        <!-- เนื้อหา GLORY (เหมือนเดิม) -->
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
             <h2 style="font-family:'Kanit'; color:var(--primary); text-align:center; font-size:clamp(24px, 5vw, 32px); margin-bottom:5px;">นวัตกรรม GLORY Model</h2>
             <div style="height: 4px; width: 60px; background: var(--accent); margin: 0 auto 30px; border-radius: 2px;"></div>
-            
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: clamp(15px, 3vw, 25px);">
-                <!-- คอลัมน์ 1: บ้าน (สีส้ม Accent) -->
                 <div style="background: #fffcf0; border: 1px solid #ffe0b2; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--accent); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #ffe0b2; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-home text-xl"></i> เรียนรู้ที่บ้าน
                     </h3>
                     <div id="homeDetail" style="display: flex; flex-direction: column; gap: 20px;"></div>
                 </div>
-                
-                <!-- คอลัมน์ 2: โรงเรียน (สีน้ำเงิน Primary) -->
                 <div style="background: #f8faff; border: 1px solid #dbeafe; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 139, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--primary); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #dbeafe; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-school text-xl"></i> ประสบการณ์ที่โรงเรียน
@@ -266,11 +274,10 @@
         </div>
     </div>
 
-    <!-- 🌟 Footer มาตรฐาน 🌟 -->
     <footer class="footer footer-display-text"></footer>
 
     <script>
-        // ระบบการทำงานพื้นฐานของ Navbar (Scroll และ Mobile Menu)
+        // UI Helpers
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
             if (window.scrollY > 20) nav.classList.add('scrolled');
@@ -299,10 +306,11 @@
             }
         }
 
+        // --- 🌟 Global Variables & Cache Keys 🌟 ---
         let currentUser = null;
         let userData = null;
         let userSchools = [];
-        let activeViewMode = 'all';
+        let activeViewMode = localStorage.getItem('flip_view_pref') || 'all';
         let allClasses = [];
 
         function getDB() {
@@ -311,70 +319,92 @@
             return window.sysDB;
         }
 
+        // --- 🌟 Stale-While-Revalidate (SWR) Core Logic 🌟 ---
         async function initDashboard() {
             if (typeof initAppUI === 'function') initAppUI();
 
-            try {
-                const db = getDB();
-                const { data: { session } } = await db.auth.getSession();
-                
-                let userId = session?.user?.id || localStorage.getItem('flip_student_session_id') || localStorage.getItem('flip_student_session');
-                if (!userId) return window.location.replace('login.html');
+            const db = getDB();
+            const { data: { session } } = await db.auth.getSession();
+            let userId = session?.user?.id || localStorage.getItem('flip_student_session_id');
+            
+            if (!userId) return window.location.replace('login.html');
+            currentUser = { id: userId, email: session?.user?.email || '' };
 
-                // 1. ดึงข้อมูล User Profile พื้นฐาน
+            // 1. อ่านข้อมูลจาก Cache ก่อนเลย (ถ้ามี)
+            const cacheProfile = localStorage.getItem(`flip_cache_profile_${userId}`);
+            const cacheSchools = localStorage.getItem(`flip_cache_schools_${userId}`);
+            const cacheClasses = localStorage.getItem(`flip_cache_classes_${userId}`);
+
+            let hasCache = false;
+
+            if (cacheProfile) {
+                hasCache = true;
+                userData = JSON.parse(cacheProfile);
+                updateProfileUI(userData);
+                document.getElementById('loadingOverlay').style.display = 'none'; // ปิด Loader ทันที
+
+                if (cacheSchools) {
+                    userSchools = JSON.parse(cacheSchools);
+                    renderFilterTabs();
+                    renderSidebarSchools();
+                }
+                if (cacheClasses) {
+                    allClasses = JSON.parse(cacheClasses);
+                    renderFilteredGrids();
+                }
+            } else {
+                // ถ้าไม่มี Cache ให้แสดง Loader หมุนๆ กลางจอไว้ก่อน (เช่น เพิ่งล็อกอินครั้งแรก)
+                document.getElementById('gridAllClasses').innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400">
+                        <i class="fas fa-circle-notch fa-spin text-4xl mb-4 text-[var(--primary-light)]"></i>
+                        <p class="font-['Kanit'] text-lg font-bold">กำลังซิงค์ข้อมูลล่าสุด...</p>
+                    </div>`;
+            }
+
+            // แสดงสถานะ "กำลังซิงค์" มุมบนขวา (ไม่กวนสายตา)
+            document.getElementById('syncIndicator').classList.add('syncing');
+
+            // 2. แอบไปโหลดข้อมูลล่าสุดจากฐานข้อมูล (Background Fetch)
+            await fetchFreshData(userId, db);
+        }
+
+        function updateProfileUI(user) {
+            document.getElementById('welcomeText').innerText = user.first_name || 'ผู้ใช้งาน';
+            document.getElementById('sidebarName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
+            document.getElementById('sidebarEmail').innerText = currentUser.email || `รหัส: ${user.student_code || '-'}`;
+            const pic = user.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name || 'User'}`;
+            document.getElementById('navProfileImg').src = pic;
+            document.getElementById('sidebarProfileImg').src = pic;
+        }
+
+        async function fetchFreshData(userId, db) {
+            try {
+                // 1. ดึง Profile ล่าสุด
                 let { data: user } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
-                
                 if (!user) {
                     const { data: us } = await db.from('user_school').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
                     if (us) user = { user_id: userId, first_name: us.first_name, last_name: us.last_name, student_code: us.student_code };
                 }
+                
+                if (user) {
+                    userData = user;
+                    localStorage.setItem(`flip_cache_profile_${userId}`, JSON.stringify(userData));
+                    updateProfileUI(userData);
+                }
 
-                if (!user) return window.location.replace('login.html');
-
-                currentUser = { id: userId, email: session?.user?.email || '' };
-                userData = user;
-
-                // 🌟 (UX Improvement) อัปเดตข้อมูลผู้ใช้และปิดฉากโหลดเต็มจอทันที 🌟
-                document.getElementById('welcomeText').innerText = user.first_name || 'ผู้ใช้งาน';
-                document.getElementById('sidebarName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
-                document.getElementById('sidebarEmail').innerText = currentUser.email || `รหัส: ${user.student_code || '-'}`;
-                const pic = user.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name || 'User'}`;
-                document.getElementById('navProfileImg').src = pic;
-                document.getElementById('sidebarProfileImg').src = pic;
-
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
-
-                // 2. ดึงข้อมูลโรงเรียน (ทำงานเบื้องหลัง)
-                fetchUserSchools(db, userId).then(() => {
+                // 2. ดึง โรงเรียน ล่าสุด
+                const { data: schools } = await db.from('user_school').select('*, schools(*)').eq('user_id', userId);
+                if (schools) {
+                    userSchools = schools;
+                    localStorage.setItem(`flip_cache_schools_${userId}`, JSON.stringify(userSchools));
                     renderFilterTabs();
                     renderSidebarSchools();
-                });
+                }
 
-                // 3. ดึงข้อมูลห้องเรียน (ทำงานเบื้องหลัง)
-                fetchAllClasses(db);
+                // 3. ดึง ห้องเรียน ล่าสุด
+                const { data: teachData } = await db.from('classrooms').select('*').eq('owner_id', userId);
+                const { data: enrollments } = await db.from('classroom_users').select('classroom_id').eq('user_id', userId);
                 
-            } catch (err) {
-                console.error(err);
-                window.location.replace('login.html');
-            }
-        }
-
-        // ฟังก์ชันแยกสำหรับดึงข้อมูลโรงเรียนโดยเฉพาะ (ไม่รอกัน)
-        async function fetchUserSchools(db, userId) {
-            try {
-                const { data: schools } = await db.from('user_school').select('*, schools(*)').eq('user_id', userId);
-                userSchools = schools || [];
-            } catch (e) {
-                console.error("Fetch Schools Error:", e);
-            }
-        }
-
-        async function fetchAllClasses(db) {
-            try {
-                const { data: teachData } = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
-                const { data: enrollments } = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
-
                 let learnData = [];
                 if (enrollments && enrollments.length > 0) {
                     const classIds = [...new Set(enrollments.map(e => e.classroom_id))];
@@ -385,34 +415,45 @@
                 const mappedTeach = (teachData || []).map(c => ({ ...c, userRole: 'teacher' }));
                 const mappedLearn = (learnData || []).map(c => ({ ...c, userRole: 'student' }));
 
-                allClasses = [...mappedTeach, ...mappedLearn];
+                let newAllClasses = [...mappedTeach, ...mappedLearn];
+                
+                // กรองตัวซ้ำ และเรียงลำดับใหม่
                 const uniqueMap = new Map();
-                allClasses.forEach(item => {
-                    if (!uniqueMap.has(item.classroom_id) || item.userRole === 'teacher') {
-                        uniqueMap.set(item.classroom_id, item);
-                    }
+                newAllClasses.forEach(item => {
+                    if (!uniqueMap.has(item.classroom_id) || item.userRole === 'teacher') uniqueMap.set(item.classroom_id, item);
                 });
-                allClasses = Array.from(uniqueMap.values());
-                allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                newAllClasses = Array.from(uniqueMap.values());
+                newAllClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                const schoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
+                // ดึงชื่อโรงเรียนมาแปะ
+                const schoolIds = [...new Set(newAllClasses.map(c => c.school_id).filter(id => id))];
                 if (schoolIds.length > 0) {
                     const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', schoolIds);
                     const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s.school_name]));
-                    allClasses = allClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
+                    newAllClasses = newAllClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
                 }
 
+                // เปรียบเทียบว่าข้อมูลเปลี่ยนไหม (ถ้ายาวเท่ากันและ ID ตรงกัน อาจจะไม่ต้องวาดใหม่ให้กระพริบ แต่เพื่อความง่าย เราเซฟทับและวาดใหม่)
+                allClasses = newAllClasses;
+                localStorage.setItem(`flip_cache_classes_${userId}`, JSON.stringify(allClasses));
                 renderFilteredGrids();
-            } catch (e) {
-                console.error(e);
-                document.getElementById('gridAllClasses').innerHTML = '<div class="col-span-full py-16 text-center text-rose-500"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p class="font-[\'Kanit\'] font-bold">เกิดข้อผิดพลาดในการโหลดข้อมูลห้องเรียน</p></div>';
+
+            } catch (err) {
+                console.error("Background Fetch Error:", err);
+            } finally {
+                // ปิด Loader และสถานะ Sync
+                const loader = document.getElementById('loadingOverlay');
+                if (loader.style.display !== 'none') {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+                document.getElementById('syncIndicator').classList.remove('syncing');
             }
         }
 
+        // ================= Render UI Functions =================
         function renderFilterTabs() {
             const container = document.getElementById('viewFilterTabs');
-            const savedView = localStorage.getItem('flip_view_pref') || 'all';
-            activeViewMode = savedView;
             let html = `<button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchView('all')">ทั้งหมด</button>`;
             html += `<button class="filter-tab ${activeViewMode === 'private' ? 'active' : ''}" onclick="switchView('private')">ส่วนตัว</button>`;
             userSchools.forEach(s => { 
@@ -432,7 +473,12 @@
             }).join('');
         }
 
-        function switchView(mode) { activeViewMode = mode; localStorage.setItem('flip_view_pref', mode); renderFilterTabs(); renderFilteredGrids(); }
+        function switchView(mode) { 
+            activeViewMode = mode; 
+            localStorage.setItem('flip_view_pref', mode); 
+            renderFilterTabs(); 
+            renderFilteredGrids(); 
+        }
 
         function renderFilteredGrids() {
             let filtered = [];
@@ -447,6 +493,7 @@
 
             const grid = document.getElementById('gridAllClasses');
             if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full py-24 text-center text-slate-300"><i class="fas fa-folder-open text-5xl mb-3 block"></i> <span class="font-[\'Kanit\'] text-lg font-bold">ยังไม่มีห้องเรียน</span></div>'; return; }
+            
             grid.innerHTML = filtered.map(c => `
                 <div class="class-card group" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
                     <div class="card-banner" style="background: ${c.color_code || 'var(--primary)'};"><i class="fas fa-graduation-cap group-hover:scale-110 transition-transform"></i></div>
@@ -504,6 +551,7 @@
         function closeSmartBanner() { document.getElementById('smartAppBanner').style.display = 'none'; }
         function handleOpenInAppClick(e) { if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) { e.preventDefault(); showCustomAlert('<b>ระบบ iOS ไม่รองรับการติดตั้งอัตโนมัติ</b><br><br>กรุณากดปุ่ม "แชร์" (สี่เหลี่ยมลูกศรชี้ขึ้น) และเลือก "เพิ่มไปยังหน้าจอโฮม" ครับ'); } }
 
+        // Start Dashboard App
         document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
