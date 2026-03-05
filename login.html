@@ -17,6 +17,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- 🌟 เพิ่มไลบรารีสำหรับอ่าน QR Code ผ่านกล้อง 🌟 -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,11 +27,9 @@
     <style>
         :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-color: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
         
-        /* บังคับให้มีแถบเลื่อนแนวตั้งเสมอ ป้องกันหน้าจอกระตุก (Scrollbar Jump) */
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: scroll; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
-        
-        /* ================= NAVBAR (เป๊ะตาม index.html 100%) ================= */
+        /* ================= NAVBAR ================= */
         #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
@@ -52,10 +53,6 @@
         
         .nav-right { display: flex; align-items: center; gap: 15px; }
         
-        /* ล็อก min-width ให้เท่ากับหน้าแรก เพื่อไม่ให้เมนูตรงกลางถูกดันเบี้ยว */
-        .nav-btn-primary { background: var(--primary); color: white; border: none; padding: clamp(8px, 2vw, 10px) clamp(16px, 3vw, 24px); border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: clamp(13px, 1.5vw, 15px); transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,139,0.2); cursor: pointer; min-width: 150px; }
-        .nav-btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 139, 0.3); }
-
         .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
         .mobile-menu-btn:hover { background: #eef2f7; }
         
@@ -69,6 +66,10 @@
         .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 15px; width: 100%; box-sizing: border-box; }
         
         .login-card { background: white; width: 100%; max-width: 420px; border-radius: 30px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); text-align: center; border-top: 6px solid var(--accent); position: relative; }
+        
+        .btn-qr-scan { width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
+        .btn-qr-scan:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+
         .form-input { width: 100%; padding: 14px 18px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #f8faff; box-sizing: border-box; outline: none; font-family: 'Sarabun'; transition: 0.3s; }
         .form-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
         .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -80,19 +81,28 @@
         .register-link a:hover { text-decoration: underline; }
         .google-btn-container { min-height: 44px; display: flex; justify-content: center; margin-bottom: 15px; }
         
+        /* ================= QR SCANNER MODAL ================= */
+        .qr-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px); flex-direction: column; }
+        .qr-modal-content { width: 100%; max-width: 400px; background: white; border-radius: 24px; overflow: hidden; padding: 20px; text-align: center; }
+        #qr-reader { width: 100%; border-radius: 16px; overflow: hidden; border: 3px solid #f1f5f9; margin-bottom: 15px; }
+        #qr-reader__scan_region { background: #000; }
+        #qr-reader img { display: none; } /* ซ่อนภาพโลโก้ของ lib */
+        .btn-cancel-scan { background: #ff4757; color: white; border: none; padding: 12px 30px; border-radius: 50px; font-family: 'Kanit'; font-weight: 600; font-size: 16px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-cancel-scan:hover { background: #ff6b81; transform: scale(1.05); }
+
         /* ================= MODALS & ALERTS ================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: clamp(15px, 4vw, 30px); backdrop-filter: blur(8px); overflow-y: auto; }
         .modal-content { background: white; width: 100%; max-width: 950px; border-radius: clamp(20px, 4vw, 30px); padding: clamp(25px, 5vw, 40px); position: relative; margin: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         .close-modal { position: absolute; top: 15px; right: 15px; background: #f0f2f5; border: none; width: clamp(30px, 4vw, 38px); height: clamp(30px, 4vw, 38px); border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10; transition: 0.2s; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
         .close-modal:hover { background: #ff4757; color: white; transform: rotate(90deg); }
 
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 15px; }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 15px; }
         .custom-modal-box { background: white; padding: clamp(25px, 5vw, 35px) clamp(20px, 5vw, 30px); border-radius: 25px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
 
         /* ================= FOOTER ================= */
-        .footer { padding: clamp(20px, 4vw, 30px) 20px; font-size: clamp(12px, 1.5vw, 13px); color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
+        .footer { padding: 30px 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
 
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10500; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
         .spinner { border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -112,10 +122,10 @@
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังตรวจสอบการเข้าสู่ระบบ...</div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังตรวจสอบระบบ...</div>
     </div>
 
-    <!-- 🌟 Navbar (ไตเติลบาร์) รูปแบบเดียวกับ index.html 🌟 -->
+    <!-- 🌟 Navbar (ไตเติลบาร์) 🌟 -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -133,8 +143,7 @@
         </div>
 
         <div class="nav-right">
-            <!-- เนื่องจากอยู่ในหน้า Login ปุ่มขวาบนจึงเชื่อมไปหน้าสมัครสมาชิกแทน -->
-            <a href="register.html" class="nav-btn-primary"><i class="fas fa-user-plus"></i> สมัครสมาชิก</a>
+            <!-- ปุ่มเมนูสำหรับมือถือ -->
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
 
@@ -144,20 +153,25 @@
             <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจการเรียนรู้</a>
             <a href="#" onclick="openGloryModal(); toggleMobileMenu();"><i class="fas fa-star"></i> นวัตกรรม GLORY Model</a>
             <a href="#" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info'); toggleMobileMenu();"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
-            <a href="register.html" style="color: var(--primary); background: #f0f4ff; font-weight: 600;"><i class="fas fa-user-plus"></i> สมัครสมาชิก</a>
+            <a href="register.html" style="color: var(--primary); background: #f0f4ff;"><i class="fas fa-user-plus"></i> สมัครสมาชิก</a>
         </div>
     </nav>
 
     <!-- 🌟 ครอบด้วย main-container เพื่อให้ Transition ลื่นไหล 🌟 -->
     <main class="main-container">
         <div class="login-card">
-            <!-- ไอคอนล็อกอินให้ดูสะอาดตา -->
             <div style="font-size: 45px; color: var(--primary); margin-bottom: 10px;">
                 <i class="fas fa-sign-in-alt"></i>
             </div>
             <h1 style="font-family: 'Kanit'; font-size: 26px; font-weight: 700; color: var(--primary); margin-bottom: 5px;">เข้าสู่ระบบ</h1>
             <p style="color: #636e72; font-size: 14px; margin-bottom: 25px;">ระบบจัดการเรียนรู้สำหรับครูและนักเรียน</p>
 
+            <!-- 🌟 ปุ่มสแกน QR Code (โดดเด่นสำหรับเด็กเล็ก) 🌟 -->
+            <button type="button" onclick="startQrScanner()" class="btn-qr-scan">
+                <i class="fas fa-qrcode text-xl"></i> สแกน QR Code เข้าเรียน
+            </button>
+
+            <!-- กล่องสำหรับปุ่ม Google Sign In -->
             <div id="googleSignInBtn" class="google-btn-container"></div>
 
             <div class="divider"><span style="padding: 0 10px;">หรือเข้าสู่ระบบด้วยรหัสผ่าน</span></div>
@@ -174,7 +188,16 @@
         </div>
     </main>
 
-    <!-- ================= Glory Innovation Modal (Responsive 2 Columns) ================= -->
+    <!-- 🌟 หน้าต่างสแกน QR Code 🌟 -->
+    <div id="qrScannerModal" class="qr-modal-overlay">
+        <div class="qr-modal-content">
+            <h3 style="font-family: 'Kanit'; color: var(--primary); font-size: 20px; margin-top: 0; margin-bottom: 15px;"><i class="fas fa-camera"></i> สแกน QR Code</h3>
+            <div id="qr-reader"></div>
+            <button type="button" onclick="stopQrScanner()" class="btn-cancel-scan"><i class="fas fa-times"></i> ยกเลิก</button>
+        </div>
+    </div>
+
+    <!-- ================= Glory Innovation Modal ================= -->
     <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
@@ -182,15 +205,12 @@
             <div style="height: 4px; width: 60px; background: var(--accent); margin: 0 auto 30px; border-radius: 2px;"></div>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: clamp(15px, 3vw, 25px);">
-                <!-- คอลัมน์ 1: บ้าน (สีส้ม Accent) -->
                 <div style="background: #fffcf0; border: 1px solid #ffe0b2; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--accent); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #ffe0b2; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-home text-xl"></i> เรียนรู้ที่บ้าน
                     </h3>
                     <div id="homeDetail" style="display: flex; flex-direction: column; gap: 20px;"></div>
                 </div>
-                
-                <!-- คอลัมน์ 2: โรงเรียน (สีน้ำเงิน Primary) -->
                 <div style="background: #f8faff; border: 1px solid #dbeafe; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 139, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--primary); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #dbeafe; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-school text-xl"></i> ประสบการณ์ที่โรงเรียน
@@ -215,7 +235,7 @@
     <footer class="footer footer-display-text"></footer>
 
     <script>
-        // ระบบ Navbar อัตโนมัติและสคริปต์เมนู
+        // ระบบ Navbar อัตโนมัติ
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
             if (window.scrollY > 20) nav.classList.add('scrolled');
@@ -226,16 +246,6 @@
         function openGloryModal() { renderGloryDetails(); document.getElementById('gloryModal').style.display = 'flex'; }
         function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; }
         
-        function showCustomAlert(msg, type='info') {
-            document.getElementById('customAlertMessage').innerHTML = msg;
-            const icon = document.getElementById('customAlertIcon').querySelector('i');
-            if(type === 'success') { icon.className = 'fas fa-check-circle'; icon.style.color = '#2ed573'; }
-            else { icon.className = 'fas fa-info-circle'; icon.style.color = 'var(--primary)'; }
-            document.getElementById('customAlertModal').style.display = 'flex';
-        }
-        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
-
-        // ================= เรนเดอร์ GLORY Modal (แบ่ง 2 คอลัมน์) =================
         function renderGloryDetails() {
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS) {
                 const generateHtml = (item, bgColor, textColor) => `
@@ -254,7 +264,17 @@
             }
         }
 
-        // ระบบฐานข้อมูลและการล็อกอิน (ทำงานเหมือนเดิมทุกประการ)
+        function showCustomAlert(msg, type='info') {
+            document.getElementById('customAlertMessage').innerHTML = msg;
+            const icon = document.getElementById('customAlertIcon').querySelector('i');
+            if(type === 'success') { icon.className = 'fas fa-check-circle'; icon.style.color = '#2ed573'; }
+            else if(type === 'error') { icon.className = 'fas fa-times-circle'; icon.style.color = '#ff4757'; }
+            else { icon.className = 'fas fa-info-circle'; icon.style.color = 'var(--primary)'; }
+            document.getElementById('customAlertModal').style.display = 'flex';
+        }
+        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
+
+        // ================= ระบบฐานข้อมูลและการตรวจสอบเซสชัน =================
         function getDB() {
             if (window.sysDB) return window.sysDB;
             window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
@@ -264,6 +284,19 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
             
+            // 🌟 1. ตรวจสอบการล็อกอินอัตโนมัติผ่านลิงก์ QR Code 
+            // (รองรับการสแกนจากกล้องมือถือ/iPad โดยตรง)
+            const urlParams = new URLSearchParams(window.location.search);
+            // ดักจับ Parameter ทุกรูปแบบที่อาจจะเคยสร้างค้างไว้ (magic, token, id, sid)
+            const magicToken = urlParams.get('magic') || urlParams.get('token') || urlParams.get('id') || urlParams.get('sid');
+            
+            if (magicToken) {
+                // หากเปิดผ่านการสแกน QR ลิงก์ ให้ประมวลผลทันที
+                await processMagicLogin(magicToken);
+                return;
+            }
+
+            // 2. ตรวจสอบเซสชันปกติ
             try {
                 const db = getDB();
                 const { data: { session } } = await db.auth.getSession();
@@ -292,6 +325,106 @@
             }
         }
 
+        // ================= 🌟 ระบบถอดรหัส QR Code (Fast Login แบบดั้งเดิม) 🌟 =================
+        function decodeMagicToken(token) {
+            try {
+                // 1. รองรับแพทเทิร์นแรกสุด (กรณีเป็น ID แบบตรงๆ หรือ UUID)
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token) || token.length < 50) {
+                    return { userId: token };
+                }
+
+                // 2. รูปแบบใหม่ (Base64 Encoded)
+                let base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+                while (base64.length % 4) { base64 += '='; }
+                
+                const decodedUri = atob(base64);
+                const rawString = decodeURIComponent(decodedUri);
+                const parts = rawString.split('||');
+                
+                if (parts.length >= 2) {
+                    return { classCode: parts[0], userId: parts[1] };
+                }
+                return { userId: token }; 
+            } catch(e) { 
+                return { userId: token }; // Fallback เผื่อถอดรหัสไม่ได้
+            }
+        }
+
+        async function processMagicLogin(token) {
+            const loaderText = document.getElementById('loadingText');
+            if (loaderText) loaderText.innerText = "กำลังเข้าสู่ระบบผ่าน QR Code...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingOverlay').style.opacity = '1';
+
+            const data = decodeMagicToken(token);
+            
+            if (data && data.userId) {
+                // 🌟 รูปแบบ Fast Login (Offline First): ไม่ต้องเช็ค DB ในหน้านี้เพื่อความเร็วสูงสุด
+                // บันทึก Session แล้วพุ่งเข้าหน้าแดชบอร์ดทันที! (Dashboard จะเป็นตัวบล็อกไอดีปลอมเอง)
+                localStorage.setItem('flip_student_session_id', data.userId);
+                
+                // (สำรองไว้เผื่อมีสคริปต์เก่าที่เรียกใช้ flip_student_session)
+                localStorage.setItem('flip_student_session', data.userId);
+                
+                window.location.replace('dashboard.html');
+            } else {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                showCustomAlert("ข้อมูล QR Code ไม่ถูกต้อง หรือลิงก์หมดอายุแล้ว", "error");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // ================= 🌟 ระบบสแกน QR ด้วยกล้องเว็บแคม (Html5Qrcode) 🌟 =================
+        let html5QrCodeScanner = null;
+
+        function startQrScanner() {
+            document.getElementById('qrScannerModal').style.display = 'flex';
+            
+            setTimeout(() => {
+                html5QrCodeScanner = new Html5Qrcode("qr-reader");
+                const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+                
+                html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => {
+                    stopQrScanner();
+                    showCustomAlert("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้องบนเบราว์เซอร์ครับ", "warning");
+                });
+            }, 300);
+        }
+
+        function stopQrScanner() {
+            document.getElementById('qrScannerModal').style.display = 'none';
+            if (html5QrCodeScanner) {
+                html5QrCodeScanner.stop().then(() => {
+                    html5QrCodeScanner.clear();
+                }).catch(err => console.error(err));
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            stopQrScanner(); // ปิดกล้องทันทีที่สแกนติด
+            
+            try {
+                let token = decodedText;
+                
+                // ถ้ายิงมาเป็นลิงก์ยาวๆ (เหมือนเอากล้องปกติสแกน) ให้สกัดเอาเฉพาะ Token
+                if (decodedText.includes('http')) {
+                    const url = new URL(decodedText);
+                    token = url.searchParams.get('magic') || url.searchParams.get('token') || url.searchParams.get('id') || url.searchParams.get('sid');
+                }
+                
+                if (token) {
+                    processMagicLogin(token);
+                } else {
+                    // ถ้าไม่มีพารามิเตอร์เลย ลองโยนข้อความตรงๆ เข้าไปประมวลผล
+                    processMagicLogin(decodedText);
+                }
+            } catch (e) {
+                processMagicLogin(decodedText);
+            }
+        }
+
+        // ================= การล็อกอินด้วย Google =================
         window.onload = function () {
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GOOGLE_CLIENT_ID) {
                 google.accounts.id.initialize({
@@ -307,6 +440,7 @@
 
         async function handleGoogleLogin(response) {
             try {
+                document.getElementById('loadingText').innerText = "กำลังตรวจสอบบัญชี Google...";
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 document.getElementById('loadingOverlay').style.opacity = '1';
                 
@@ -331,6 +465,7 @@
             }
         }
 
+        // ================= ล็อกอินแบบใช้อีเมล/รหัสนักเรียน =================
         async function handleEmailLogin(e) {
             e.preventDefault();
             const loginId = document.getElementById('emailOrCode').value.trim();
