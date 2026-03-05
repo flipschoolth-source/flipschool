@@ -1,35 +1,35 @@
-<!-- ไฟล์: login.html -->
+<!-- ไฟล์: classroom-add.html -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบ - FlipSchool</title>
+    <title>สร้างห้องเรียนใหม่ - FlipSchool</title>
     
     <!-- 🌟 PWA Manifest & Icons 🌟 -->
-    <link rel="icon" href="img/favicon.png">
-    <link rel="apple-touch-icon" href="img/favicon.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
     
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <!-- 🌟 เพิ่มไลบรารีสำหรับอ่าน QR Code ผ่านกล้อง 🌟 -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-color: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
         
-        /* ================= NAVBAR ================= */
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: scroll; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
+        
+        /* ================= NAVBAR (เป๊ะตาม index.html 100%) ================= */
         #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
@@ -52,7 +52,9 @@
         .nav-link:hover::after { width: 100%; }
         
         .nav-right { display: flex; align-items: center; gap: 15px; }
-        
+        .nav-btn-primary { background: white; color: var(--primary); border: 2px solid var(--primary); padding: clamp(8px, 2vw, 10px) clamp(16px, 3vw, 24px); border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: clamp(13px, 1.5vw, 15px); transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer; min-width: 150px; }
+        .nav-btn-primary:hover { background: var(--primary-light); color: white; border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 139, 0.2); }
+
         .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
         .mobile-menu-btn:hover { background: #eef2f7; }
         
@@ -62,33 +64,37 @@
         .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
         .mobile-dropdown a i { width: 20px; text-align: center; color: var(--primary-light); }
 
-        /* ================= MAIN CONTAINER ================= */
+        /* ================= MAIN CONTAINER & FORM ================= */
         .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 15px; width: 100%; box-sizing: border-box; }
         
-        .login-card { background: white; width: 100%; max-width: 420px; border-radius: 30px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); text-align: center; border-top: 6px solid var(--accent); position: relative; }
+        .form-card { background: white; width: 100%; max-width: 700px; border-radius: 30px; padding: clamp(30px, 6vw, 50px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-top: 6px solid var(--accent); position: relative; }
         
-        .btn-qr-scan { width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
-        .btn-qr-scan:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .header-icon-box { width: clamp(60px, 15vw, 75px); height: clamp(60px, 15vw, 75px); background: #fffcf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: var(--accent); font-size: clamp(28px, 6vw, 32px); box-shadow: 0 4px 15px rgba(255, 140, 0, 0.1); }
+        .header-title { font-family: 'Kanit', sans-serif; color: var(--primary); font-weight: 700; margin: 0 0 5px 0; font-size: clamp(22px, 6vw, 26px); text-align: center; }
+        .header-subtitle { color: var(--text-muted); margin: 0 0 30px 0; font-size: clamp(14px, 3vw, 15px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;}
 
-        .form-input { width: 100%; padding: 14px 18px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #f8faff; box-sizing: border-box; outline: none; font-family: 'Sarabun'; transition: 0.3s; }
-        .form-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
-        .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-submit:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,139,0.2); }
-        .divider { margin: 20px 0; color: #a4b0be; font-size: 13px; display: flex; align-items: center; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #edf2f7; }
-        .register-link { margin-top: 20px; font-size: 14px; color: #636e72; }
-        .register-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
-        .register-link a:hover { text-decoration: underline; }
-        .google-btn-container { min-height: 44px; display: flex; justify-content: center; margin-bottom: 15px; }
-        
-        /* ================= QR SCANNER MODAL ================= */
-        .qr-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px); flex-direction: column; }
-        .qr-modal-content { width: 100%; max-width: 400px; background: white; border-radius: 24px; overflow: hidden; padding: 20px; text-align: center; }
-        #qr-reader { width: 100%; border-radius: 16px; overflow: hidden; border: 3px solid #f1f5f9; margin-bottom: 15px; }
-        #qr-reader__scan_region { background: #000; }
-        #qr-reader img { display: none; } /* ซ่อนภาพโลโก้ของ lib */
-        .btn-cancel-scan { background: #ff4757; color: white; border: none; padding: 12px 30px; border-radius: 50px; font-family: 'Kanit'; font-weight: 600; font-size: 16px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-cancel-scan:hover { background: #ff6b81; transform: scale(1.05); }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-label { display: block; margin-bottom: 8px; font-family: 'Kanit'; font-weight: 500; color: var(--text-main); font-size: 15px; }
+        .form-input { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid #edf2f7; font-family: 'Sarabun'; font-size: 15px; box-sizing: border-box; transition: 0.3s; background: #f8faff; outline: none; color: var(--text-main); }
+        .form-input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
+        select.form-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4b0be' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; padding-right: 40px; }
+
+        /* Color Picker */
+        .color-options { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 5px; }
+        .color-option { width: 45px; height: 45px; border-radius: 50%; cursor: pointer; border: 3px solid white; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .color-option.selected { transform: scale(1.15); box-shadow: 0 0 0 3px var(--accent); border-color: white; }
+        .g-1 { background: linear-gradient(135deg, #00008B, #4361ee); }
+        .g-2 { background: linear-gradient(135deg, #6a11cb, #2575fc); }
+        .g-3 { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .g-4 { background: linear-gradient(135deg, #FF8C00, #ffae42); }
+
+        .custom-color-btn { background: #f8faff; border: 2px dashed #cbd5e1; display: flex; justify-content: center; align-items: center; color: #a4b0be; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; position: relative; overflow: hidden; transition: 0.2s; }
+        .custom-color-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0f4ff; }
+        .custom-color-btn input[type="color"] { position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+        .btn-submit { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 30px; box-shadow: 0 4px 15px rgba(0,0,139,0.2); }
+        .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,139,0.3); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
         /* ================= MODALS & ALERTS ================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: clamp(15px, 4vw, 30px); backdrop-filter: blur(8px); overflow-y: auto; }
@@ -96,17 +102,18 @@
         .close-modal { position: absolute; top: 15px; right: 15px; background: #f0f2f5; border: none; width: clamp(30px, 4vw, 38px); height: clamp(30px, 4vw, 38px); border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10; transition: 0.2s; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
         .close-modal:hover { background: #ff4757; color: white; transform: rotate(90deg); }
 
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 15px; }
-        .custom-modal-box { background: white; padding: clamp(25px, 5vw, 35px) clamp(20px, 5vw, 30px); border-radius: 25px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 15px; transition: opacity 0.3s; }
+        .custom-modal-box { background: white; padding: clamp(25px, 5vw, 35px) clamp(20px, 5vw, 30px); border-radius: 25px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); animation: bounceIn 0.4s ease-out forwards; }
 
         /* ================= FOOTER ================= */
-        .footer { padding: 30px 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
+        .footer { padding: clamp(20px, 4vw, 30px) 20px; font-size: clamp(12px, 1.5vw, 13px); color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
 
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10500; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
         .spinner { border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes bounceIn { 0% { transform: translateY(-20px) scale(0.9); opacity: 0; } 50% { transform: translateY(5px) scale(1.02); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
 
         @media (max-width: 992px) {
             .nav-center { display: none; }
@@ -114,7 +121,6 @@
         }
         @media (max-width: 768px) {
             #mainNav { padding: 0 15px; height: 75px; }
-            .login-card { padding: 30px 20px; }
         }
     </style>
 </head>
@@ -122,10 +128,10 @@
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังตรวจสอบระบบ...</div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Navbar (ไตเติลบาร์) 🌟 -->
+    <!-- 🌟 Navbar (ไตเติลบาร์) รูปแบบเดียวกับ index.html 🌟 -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -143,59 +149,82 @@
         </div>
 
         <div class="nav-right">
-            <!-- ปุ่มเมนูสำหรับมือถือ -->
+            <!-- ปุ่มเชื่อมไปหน้าแดชบอร์ด -->
+            <a href="dashboard.html" class="nav-btn-primary hidden md:flex"><i class="fas fa-arrow-left"></i> กลับแดชบอร์ด</a>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
 
         <!-- เมนู Dropdown สำหรับมือถือ -->
         <div id="mobileMenu" class="mobile-dropdown">
+            <a href="dashboard.html" style="color: var(--accent); background: #fff8e1; font-weight: 600;"><i class="fas fa-arrow-left"></i> กลับไปหน้าแดชบอร์ด</a>
             <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจการเรียนรู้</a>
             <a href="#" onclick="openGloryModal(); toggleMobileMenu();"><i class="fas fa-star"></i> นวัตกรรม GLORY Model</a>
             <a href="#" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info'); toggleMobileMenu();"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
-            <a href="register.html" style="color: var(--primary); background: #f0f4ff;"><i class="fas fa-user-plus"></i> สมัครสมาชิก</a>
         </div>
     </nav>
 
-    <!-- 🌟 ครอบด้วย main-container เพื่อให้ Transition ลื่นไหล 🌟 -->
+    <!-- 🌟 ครอบด้วย main-container 🌟 -->
     <main class="main-container">
-        <div class="login-card">
-            <div style="font-size: 45px; color: var(--primary); margin-bottom: 10px;">
-                <i class="fas fa-sign-in-alt"></i>
+        <div class="form-card">
+            
+            <div class="header-icon-box"><i class="fas fa-chalkboard-teacher"></i></div>
+            <h2 class="header-title">สร้างห้องเรียนใหม่</h2>
+            <div class="header-subtitle">
+                <span>ระบุรายละเอียดวิชาเพื่อเริ่มต้นการสอนใน</span>
+                <span id="contextBadge" class="px-3 py-1 bg-[#f0f4ff] text-[var(--primary-light)] border border-[#dbeafe] rounded-full text-xs font-bold font-['Kanit'] inline-flex items-center gap-1.5"><i id="contextIcon" class="fas fa-user"></i> <span id="contextDisplay">กำลังโหลด...</span></span>
             </div>
-            <h1 style="font-family: 'Kanit'; font-size: 26px; font-weight: 700; color: var(--primary); margin-bottom: 5px;">เข้าสู่ระบบ</h1>
-            <p style="color: #636e72; font-size: 14px; margin-bottom: 25px;">ระบบจัดการเรียนรู้สำหรับครูและนักเรียน</p>
 
-            <!-- 🌟 ปุ่มสแกน QR Code (โดดเด่นสำหรับเด็กเล็ก) 🌟 -->
-            <button type="button" onclick="startQrScanner()" class="btn-qr-scan">
-                <i class="fas fa-qrcode text-xl"></i> สแกน QR Code เข้าเรียน
-            </button>
+            <form onsubmit="createClassroom(event)">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-1 text-left">
+                    <div class="md:col-span-2 input-group">
+                        <label class="input-label">ชื่อวิชา <span class="text-rose-500">*</span></label>
+                        <input type="text" id="subject" class="form-input" placeholder="เช่น ภาษาไทย, คณิตศาสตร์, เทคโนโลยี" required>
+                    </div>
 
-            <!-- กล่องสำหรับปุ่ม Google Sign In -->
-            <div id="googleSignInBtn" class="google-btn-container"></div>
+                    <div class="md:col-span-2 input-group">
+                        <label class="input-label">ระดับชั้น / ห้อง <span class="text-rose-500">*</span></label>
+                        <input type="text" id="room" class="form-input" placeholder="เช่น ป.1/1, ม.3/2" required>
+                    </div>
 
-            <div class="divider"><span style="padding: 0 10px;">หรือเข้าสู่ระบบด้วยรหัสผ่าน</span></div>
+                    <div class="input-group">
+                        <label class="input-label">ปีการศึกษา (พ.ศ.) <span class="text-rose-500">*</span></label>
+                        <input type="number" id="year" class="form-input" required>
+                    </div>
 
-            <form onsubmit="handleEmailLogin(event)">
-                <input type="text" id="emailOrCode" class="form-input" placeholder="อีเมล / รหัสนักเรียน@อักษรย่อ" required>
-                <input type="password" id="password" class="form-input" placeholder="รหัสผ่าน / ว.ด.ป.เกิด (เช่น 15/05/2010)" required>
-                <button type="submit" id="btnLogin" class="btn-submit">เข้าสู่ระบบ <i class="fas fa-arrow-right"></i></button>
+                    <div class="input-group">
+                        <label class="input-label">ภาคเรียน</label>
+                        <select id="semester" class="form-input">
+                            <option value="1">ภาคเรียนที่ 1</option>
+                            <option value="2">ภาคเรียนที่ 2</option>
+                            <option value="ฤดูร้อน">ภาคฤดูร้อน</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2 input-group mt-2">
+                        <label class="input-label">เลือกธีมสีประจำวิชา</label>
+                        <div class="color-options">
+                            <div class="color-option g-1 selected" onclick="selectPreset(this, 'linear-gradient(135deg, #00008B, #4361ee)')"></div>
+                            <div class="color-option g-2" onclick="selectPreset(this, 'linear-gradient(135deg, #6a11cb, #2575fc)')"></div>
+                            <div class="color-option g-3" onclick="selectPreset(this, 'linear-gradient(135deg, #11998e, #38ef7d)')"></div>
+                            <div class="color-option g-4" onclick="selectPreset(this, 'linear-gradient(135deg, #FF8C00, #ffae42)')"></div>
+                            
+                            <div class="custom-color-btn" id="customColorBtn" title="เลือกสีอื่นๆ">
+                                <i class="fas fa-eye-dropper text-slate-400"></i>
+                                <input type="color" id="colorPicker" oninput="handleCustomColor(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnSave" class="btn-submit">
+                    ยืนยันการสร้างห้องเรียน <i class="fas fa-check-circle"></i>
+                </button>
+
             </form>
-
-            <div class="register-link">
-                สำหรับผู้ใช้งานใหม่ <br><a href="register.html">สร้างบัญชีที่นี่</a>
-            </div>
         </div>
     </main>
-
-    <!-- 🌟 หน้าต่างสแกน QR Code 🌟 -->
-    <div id="qrScannerModal" class="qr-modal-overlay">
-        <div class="qr-modal-content">
-            <h3 style="font-family: 'Kanit'; color: var(--primary); font-size: 20px; margin-top: 0; margin-bottom: 15px;"><i class="fas fa-camera"></i> สแกน QR Code</h3>
-            <div id="qr-reader"></div>
-            <button type="button" onclick="stopQrScanner()" class="btn-cancel-scan"><i class="fas fa-times"></i> ยกเลิก</button>
-        </div>
-    </div>
 
     <!-- ================= Glory Innovation Modal ================= -->
     <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
@@ -227,7 +256,7 @@
             <div style="font-size: clamp(40px, 8vw, 50px); color: var(--primary); margin-bottom: 20px;" id="customAlertIcon"><i class="fas fa-info-circle"></i></div>
             <h3 style="font-family:'Kanit'; font-size:clamp(20px, 5vw, 22px); margin-bottom:10px;" id="customAlertTitle">แจ้งเตือน</h3>
             <p id="customAlertMessage" style="margin-bottom:25px; line-height:1.6; color:var(--text-muted); font-size: clamp(14px, 3vw, 15px);"></p>
-            <button onclick="closeCustomAlert()" style="background:var(--primary); color:white; border:none; padding:12px 40px; border-radius:50px; font-family:'Kanit'; cursor:pointer; font-size:16px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,139,0.2);">ตกลง</button>
+            <button onclick="closeCustomAlert()" style="background:var(--primary); color:white; border:none; padding:12px 40px; border-radius:50px; font-family:'Kanit'; cursor:pointer; font-size:16px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,139,0.2);" id="customAlertOkBtn">ตกลง</button>
         </div>
     </div>
 
@@ -235,7 +264,25 @@
     <footer class="footer footer-display-text"></footer>
 
     <script>
-        // ระบบ Navbar อัตโนมัติ
+        // ================= ค้นหาฐานข้อมูล (Supabase) =================
+        function getDB() {
+            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
+            try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
+            if (typeof window.initSupabase === 'function') {
+                window.initSupabase();
+                if (window.sysDB && window.sysDB.auth) return window.sysDB;
+            }
+            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
+                const key = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY || APP_CONFIG.ANON_KEY;
+                if (APP_CONFIG.SUPABASE_URL && key) {
+                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
+                    return window.sysDB;
+                }
+            }
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+        }
+
+        // ระบบ Navbar อัตโนมัติและสคริปต์เมนู
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
             if (window.scrollY > 20) nav.classList.add('scrolled');
@@ -245,7 +292,7 @@
         function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
         function openGloryModal() { renderGloryDetails(); document.getElementById('gloryModal').style.display = 'flex'; }
         function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; }
-        
+
         function renderGloryDetails() {
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS) {
                 const generateHtml = (item, bgColor, textColor) => `
@@ -264,268 +311,180 @@
             }
         }
 
-        function showCustomAlert(msg, type='info') {
-            document.getElementById('customAlertMessage').innerHTML = msg;
-            const icon = document.getElementById('customAlertIcon').querySelector('i');
-            if(type === 'success') { icon.className = 'fas fa-check-circle'; icon.style.color = '#2ed573'; }
-            else if(type === 'error') { icon.className = 'fas fa-times-circle'; icon.style.color = '#ff4757'; }
-            else { icon.className = 'fas fa-info-circle'; icon.style.color = 'var(--primary)'; }
-            document.getElementById('customAlertModal').style.display = 'flex';
-        }
-        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
+        let selectedGradient = 'linear-gradient(135deg, #00008B, #4361ee)'; 
+        let alertCallback = null;
+        let currentUser = null;
+        let targetSchoolId = null;
 
-        // ================= ระบบฐานข้อมูลและการตรวจสอบเซสชัน =================
-        function getDB() {
-            if (window.sysDB) return window.sysDB;
-            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
-            return window.sysDB;
+        function showCustomAlert(message, type = 'error', callback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const titleEl = document.getElementById('customAlertTitle');
+            const msgEl = document.getElementById('customAlertMessage');
+            const iconEl = document.getElementById('customAlertIcon');
+            const okBtn = document.getElementById('customAlertOkBtn');
+
+            msgEl.innerHTML = message;
+            alertCallback = callback;
+
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#10b981';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#10b981';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#f59e0b';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#f59e0b';
+            } else {
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ef4444';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ef4444';
+            }
+
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('show'); okBtn.focus(); }, 10);
+        }
+
+        function closeCustomAlert() { 
+            const modal = document.getElementById('customAlertModal');
+            modal.classList.remove('show'); 
+            setTimeout(() => {
+                modal.style.display = 'none';
+                if (alertCallback) { alertCallback(); alertCallback = null; }
+            }, 300);
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
-            
-            // 🌟 1. ตรวจสอบการล็อกอินอัตโนมัติผ่านลิงก์ QR Code 
-            // (รองรับการสแกนจากกล้องมือถือ/iPad โดยตรง)
-            const urlParams = new URLSearchParams(window.location.search);
-            // ดักจับ Parameter ทุกรูปแบบที่อาจจะเคยสร้างค้างไว้ (magic, token, id, sid)
-            const magicToken = urlParams.get('magic') || urlParams.get('token') || urlParams.get('id') || urlParams.get('sid');
-            
-            if (magicToken) {
-                // หากเปิดผ่านการสแกน QR ลิงก์ ให้ประมวลผลทันที
-                await processMagicLogin(magicToken);
-                return;
-            }
 
-            // 2. ตรวจสอบเซสชันปกติ
+            const currentYear = new Date().getFullYear() + 543;
+            document.getElementById('year').value = currentYear;
+
             try {
                 const db = getDB();
                 const { data: { session } } = await db.auth.getSession();
                 
-                if (session && session.user) {
-                    checkAndRedirect(session.user.id);
-                } else if (localStorage.getItem('flip_student_session_id')) {
-                    checkAndRedirect(localStorage.getItem('flip_student_session_id'));
-                } else {
-                    document.getElementById('loadingOverlay').style.opacity = '0';
-                    setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+                if (!session) {
+                    window.location.replace('login.html');
+                    return;
                 }
-            } catch(e) {
-                document.getElementById('loadingOverlay').style.display = 'none';
+                currentUser = session.user;
+
+                // ตรวจสอบพื้นที่ (Context) ที่ครูเลือกไว้ก่อนกดปุ่มเข้ามา
+                const activeView = localStorage.getItem('flip_active_view') || 'independent';
+                
+                if (activeView !== 'all' && activeView !== 'independent') {
+                    targetSchoolId = activeView;
+                    // ดึงชื่อโรงเรียนมาแสดง
+                    const { data: sData } = await db.from('schools').select('school_name').eq('school_id', targetSchoolId).maybeSingle();
+                    if (sData) {
+                        document.getElementById('contextDisplay').innerText = sData.school_name;
+                        document.getElementById('contextIcon').className = 'fas fa-school mr-1 text-[var(--primary)]';
+                    }
+                } else {
+                    targetSchoolId = null;
+                    document.getElementById('contextDisplay').innerText = "พื้นที่ส่วนตัว (Independent)";
+                }
+
+                // ซ่อน Loader
+                const loader = document.getElementById('loadingOverlay');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+
+            } catch (err) {
+                console.error("Initialization Error:", err);
+                showCustomAlert("ไม่สามารถเชื่อมต่อระบบได้ กรุณาล็อกอินใหม่", "error", () => {
+                    window.location.replace('login.html');
+                });
             }
         });
 
-        async function checkAndRedirect(userId) {
-            const db = getDB();
-            const { data: userRecord } = await db.from('users').select('is_super_admin, role').eq('user_id', userId).maybeSingle();
+        // ================= Color Picker =================
+        function selectPreset(element, gradient) {
+            document.querySelectorAll('.color-option, .custom-color-btn').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedGradient = gradient;
             
-            if (userRecord && (userRecord.is_super_admin || userRecord.role === 'super_admin')) {
-                window.location.replace('super_admin.html');
-            } else {
-                window.location.replace('dashboard.html');
-            }
+            const customBtn = document.getElementById('customColorBtn');
+            customBtn.style.background = '#f8faff';
+            customBtn.style.borderColor = '#cbd5e1';
+            customBtn.querySelector('i').style.color = '#a4b0be';
         }
 
-        // ================= 🌟 ระบบถอดรหัส QR Code (Fast Login แบบดั้งเดิม) 🌟 =================
-        function decodeMagicToken(token) {
-            try {
-                // 1. รองรับแพทเทิร์นแรกสุด (กรณีเป็น ID แบบตรงๆ หรือ UUID)
-                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token) || token.length < 50) {
-                    return { userId: token };
-                }
-
-                // 2. รูปแบบใหม่ (Base64 Encoded)
-                let base64 = token.replace(/-/g, '+').replace(/_/g, '/');
-                while (base64.length % 4) { base64 += '='; }
-                
-                const decodedUri = atob(base64);
-                const rawString = decodeURIComponent(decodedUri);
-                const parts = rawString.split('||');
-                
-                if (parts.length >= 2) {
-                    return { classCode: parts[0], userId: parts[1] };
-                }
-                return { userId: token }; 
-            } catch(e) { 
-                return { userId: token }; // Fallback เผื่อถอดรหัสไม่ได้
-            }
-        }
-
-        async function processMagicLogin(token) {
-            const loaderText = document.getElementById('loadingText');
-            if (loaderText) loaderText.innerText = "กำลังเข้าสู่ระบบผ่าน QR Code...";
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            document.getElementById('loadingOverlay').style.opacity = '1';
-
-            const data = decodeMagicToken(token);
+        function handleCustomColor(input) {
+            const color = input.value;
+            selectedGradient = `linear-gradient(135deg, ${color}, ${color})`;
             
-            if (data && data.userId) {
-                // 🌟 รูปแบบ Fast Login (Offline First): ไม่ต้องเช็ค DB ในหน้านี้เพื่อความเร็วสูงสุด
-                // บันทึก Session แล้วพุ่งเข้าหน้าแดชบอร์ดทันที! (Dashboard จะเป็นตัวบล็อกไอดีปลอมเอง)
-                localStorage.setItem('flip_student_session_id', data.userId);
-                
-                // (สำรองไว้เผื่อมีสคริปต์เก่าที่เรียกใช้ flip_student_session)
-                localStorage.setItem('flip_student_session', data.userId);
-                
-                window.location.replace('dashboard.html');
-            } else {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                showCustomAlert("ข้อมูล QR Code ไม่ถูกต้อง หรือลิงก์หมดอายุแล้ว", "error");
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            const customBtn = document.getElementById('customColorBtn');
+            customBtn.classList.add('selected');
+            customBtn.style.background = color;
+            customBtn.style.borderColor = 'white';
+            customBtn.querySelector('i').style.color = 'white';
         }
 
-        // ================= 🌟 ระบบสแกน QR ด้วยกล้องเว็บแคม (Html5Qrcode) 🌟 =================
-        let html5QrCodeScanner = null;
-
-        function startQrScanner() {
-            document.getElementById('qrScannerModal').style.display = 'flex';
-            
-            setTimeout(() => {
-                html5QrCodeScanner = new Html5Qrcode("qr-reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-                
-                html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-                .catch(err => {
-                    stopQrScanner();
-                    showCustomAlert("ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้องบนเบราว์เซอร์ครับ", "warning");
-                });
-            }, 300);
-        }
-
-        function stopQrScanner() {
-            document.getElementById('qrScannerModal').style.display = 'none';
-            if (html5QrCodeScanner) {
-                html5QrCodeScanner.stop().then(() => {
-                    html5QrCodeScanner.clear();
-                }).catch(err => console.error(err));
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            stopQrScanner(); // ปิดกล้องทันทีที่สแกนติด
-            
-            try {
-                let token = decodedText;
-                
-                // ถ้ายิงมาเป็นลิงก์ยาวๆ (เหมือนเอากล้องปกติสแกน) ให้สกัดเอาเฉพาะ Token
-                if (decodedText.includes('http')) {
-                    const url = new URL(decodedText);
-                    token = url.searchParams.get('magic') || url.searchParams.get('token') || url.searchParams.get('id') || url.searchParams.get('sid');
-                }
-                
-                if (token) {
-                    processMagicLogin(token);
-                } else {
-                    // ถ้าไม่มีพารามิเตอร์เลย ลองโยนข้อความตรงๆ เข้าไปประมวลผล
-                    processMagicLogin(decodedText);
-                }
-            } catch (e) {
-                processMagicLogin(decodedText);
-            }
-        }
-
-        // ================= การล็อกอินด้วย Google =================
-        window.onload = function () {
-            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GOOGLE_CLIENT_ID) {
-                google.accounts.id.initialize({
-                    client_id: APP_CONFIG.GOOGLE_CLIENT_ID,
-                    callback: handleGoogleLogin
-                });
-                google.accounts.id.renderButton(
-                    document.getElementById("googleSignInBtn"),
-                    { theme: "outline", size: "large", text: "signin_with", width: 340, shape: "pill" }
-                );
-            }
-        };
-
-        async function handleGoogleLogin(response) {
-            try {
-                document.getElementById('loadingText').innerText = "กำลังตรวจสอบบัญชี Google...";
-                document.getElementById('loadingOverlay').style.display = 'flex';
-                document.getElementById('loadingOverlay').style.opacity = '1';
-                
-                const db = getDB();
-                const { data, error } = await db.auth.signInWithIdToken({ provider: 'google', token: response.credential });
-                if (error) throw error;
-
-                const { data: user } = await db.from('users').select('user_id').eq('user_id', data.user.id).maybeSingle();
-                if (!user) {
-                    await db.from('users').insert([{
-                        user_id: data.user.id,
-                        first_name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
-                        last_name: '',
-                        email: data.user.email,
-                        profile_pic: data.user.user_metadata?.avatar_url
-                    }]);
-                }
-                checkAndRedirect(data.user.id);
-            } catch (err) {
-                showCustomAlert("เข้าสู่ระบบด้วย Google ไม่สำเร็จ: " + err.message, "error");
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
-        }
-
-        // ================= ล็อกอินแบบใช้อีเมล/รหัสนักเรียน =================
-        async function handleEmailLogin(e) {
+        // ================= สร้างห้องเรียน (ใช้ Schema ใหม่ Unified Users) =================
+        async function createClassroom(e) {
             e.preventDefault();
-            const loginId = document.getElementById('emailOrCode').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const btn = document.getElementById('btnLogin');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+            const btn = document.getElementById('btnSave');
+            
+            const subject = document.getElementById('subject').value.trim();
+            const room = document.getElementById('room').value.trim();
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+
+            if (!subject || !room) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
 
             try {
                 const db = getDB();
 
-                if (loginId.includes('@') && !loginId.includes('.')) {
-                    const [code, abbr] = loginId.split('@');
-                    const { data: school } = await db.from('schools').select('school_id').eq('school_abbr', abbr.toLowerCase()).maybeSingle();
-                    if (!school) throw new Error("อักษรย่อโรงเรียนไม่ถูกต้อง");
-
-                    const { data: studentRecords } = await db.from('user_school')
-                        .select('user_id, student_code, birth_date')
-                        .eq('school_id', school.school_id)
-                        .eq('student_code', code);
-
-                    if (!studentRecords || studentRecords.length === 0) throw new Error("ไม่พบรหัสนักเรียนนี้ในระบบ");
-
-                    let matchedUserId = null;
-
-                    for (let std of studentRecords) {
-                        let bDate = std.birth_date;
-                        if (!bDate) {
-                            const { data: uData } = await db.from('users').select('birth_date').eq('user_id', std.user_id).maybeSingle();
-                            if (uData) bDate = uData.birth_date;
-                        }
-
-                        if (bDate) {
-                            let [y, m, d] = bDate.split('-');
-                            let ty = parseInt(y) + 543; 
-                            let possibleDates = [ bDate, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}`, `${d}/${m}/${ty}`, `${d}-${m}-${ty}`, `${d}${m}${ty}` ];
-                            
-                            if (possibleDates.includes(password)) {
-                                matchedUserId = std.user_id;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (matchedUserId) {
-                        localStorage.setItem('flip_student_session_id', matchedUserId);
-                        window.location.replace('dashboard.html');
-                        return;
-                    } else {
-                        throw new Error("รหัสผ่าน หรือ ว.ด.ป.เกิด ไม่ถูกต้อง");
-                    }
-                } 
-                else {
-                    const { data, error } = await db.auth.signInWithPassword({ email: loginId, password: password });
-                    if (error) throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-                    checkAndRedirect(data.user.id);
+                // 1. เช็คชื่อคอลัมน์ของฐานข้อมูล เพื่อให้รองรับทั้ง DB โครงสร้างเก่าและใหม่ (teacher_id vs owner_id)
+                let targetCol = 'owner_id';
+                const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
+                if (testErr && String(testErr.code).includes('42703')) { // column does not exist
+                    targetCol = 'teacher_id';
                 }
 
+                // 2. ตรวจสอบห้องเรียนซ้ำ
+                const { data: existing, error: checkErr } = await db.from('classrooms')
+                    .select('classroom_id')
+                    .eq(targetCol, currentUser.id)
+                    .eq('subject_name', subject)
+                    .eq('room_name', room)
+                    .eq('academic_year', year)
+                    .eq('semester', semester)
+                    .maybeSingle();
+
+                if (existing) {
+                    showCustomAlert(`คุณมีห้องเรียนวิชา "${subject}" สำหรับห้อง "${room}" ในปี/เทอมนี้อยู่แล้วครับ`, 'warning');
+                    btn.disabled = false;
+                    btn.innerHTML = 'ยืนยันสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
+                    return;
+                }
+
+                // 3. เตรียมข้อมูลและบันทึก
+                const payload = {
+                    school_id: targetSchoolId, 
+                    subject_name: subject,
+                    room_name: room,
+                    academic_year: year,
+                    semester: semester,
+                    color_code: selectedGradient
+                };
+                payload[targetCol] = currentUser.id;
+
+                const { error: insErr } = await db.from('classrooms').insert([payload]);
+
+                if (insErr) throw insErr;
+
+                showCustomAlert('สร้างห้องเรียนสำเร็จ!', 'success', () => {
+                    window.location.href = 'dashboard.html';
+                });
+
             } catch (err) {
-                showCustomAlert(err.message, "error");
-                btn.innerHTML = 'เข้าสู่ระบบ <i class="fas fa-arrow-right"></i>'; btn.disabled = false;
+                console.error(err);
+                showCustomAlert('เกิดข้อผิดพลาด: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'ยืนยันสร้างห้องเรียน <i class="fas fa-check-circle"></i>';
             }
         }
     </script>
