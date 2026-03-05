@@ -303,25 +303,6 @@
         </div>
     </div>
 
-    <!-- ================= หน้าจอ Launcher ให้เด้งไปเปิดแอป ================= -->
-    <div id="pwaBlockerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); z-index: 11000; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;">
-        <i class="fas fa-rocket" style="font-size: 80px; margin-bottom: 20px; color: var(--accent); animation: pulse 2s infinite;"></i>
-        <h2 id="pwaBlockerTitle" style="font-family: 'Kanit'; font-size: 28px; margin-bottom: 10px; font-weight: 700;">พร้อมใช้งานผ่านแอปแล้ว!</h2>
-        <p id="pwaBlockerDesc" style="font-family: 'Sarabun'; font-size: 16px; opacity: 0.9; max-width: 400px; margin-bottom: 30px; line-height: 1.5;">
-            เพื่อประสบการณ์ใช้งานที่รวดเร็วและลื่นไหลที่สุด<br>
-            <b>กรุณากดปุ่มด้านล่างเพื่อสลับไปยังแอปพลิเคชัน</b>
-        </p>
-
-        <!-- 🌟 ปุ่มบังคับเปิดแอป (ใช้ <a> tag เพื่อหลอกให้ OS ดักจับ Intent แล้วเปิดแอป PWA) -->
-        <a id="btnRealLaunchApp" href="dashboard.html?launched=1" target="_blank" rel="noopener noreferrer" onclick="markAutoOpen()" style="background: var(--accent); color: white; padding: 16px 40px; border-radius: 50px; font-family: 'Kanit'; font-size: 18px; font-weight: bold; text-decoration: none; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(255,140,0,0.3); display: inline-block; transition: 0.3s;">
-            <i class="fas fa-external-link-alt"></i> เปิดแอปพลิเคชัน
-        </a>
-
-        <button onclick="cancelAutoPwa()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 12px 25px; border-radius: 50px; font-family: 'Kanit'; cursor: pointer; transition: 0.3s; font-size: 14px;">
-            ปิดหน้านี้ และใช้บนเว็บต่อไป
-        </button>
-    </div>
-
     <!-- ================= MODAL: เข้าร่วมห้องเรียนด้วยรหัส ================= -->
     <div id="joinClassModal" class="fixed inset-0 z-[4000] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-[450px] shadow-2xl relative text-center">
@@ -433,31 +414,33 @@
     </div>
 
     <script>
-        // ================= 🌟 PWA & Web App Install / Open 🌟 =================
+        // ================= 🌟 PWA Install (Clean & Safe) 🌟 =================
         let deferredPrompt;
 
-        // 1. เช็คสถานะการเปิดผ่านแอปพลิเคชัน (Standalone)
+        // 1. ตรวจสอบว่าเปิดผ่าน PWA (Standalone) หรือไม่
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         
         if (isStandalone) {
+            // ถ้าใช่ ให้จดจำไว้เลยว่าเคยติดตั้งแล้ว
             localStorage.setItem('is_pwa_installed', 'yes');
         }
 
-        // 2. ดักเหตุการณ์จากเบราว์เซอร์
+        // 2. ดักจับเหตุการณ์ก่อนติดตั้งจากเบราว์เซอร์
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            localStorage.removeItem('is_pwa_installed'); 
             
-            document.getElementById('pwaBlockerOverlay').style.display = 'none';
-
+            // แสดงปุ่มติดตั้งบน Navbar ถ้ายังไม่ได้เปิดในรูปแบบแอป
             const installBtn = document.getElementById('btnInstallPwaNav');
-            if (installBtn) installBtn.style.display = 'flex';
+            if (installBtn && !isStandalone) installBtn.style.display = 'flex';
         });
 
         // 3. ฟังก์ชันคลิกติดตั้ง PWA
         async function installPWA() {
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            
             if (deferredPrompt) {
+                // สำหรับ Android / Chrome PC
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
@@ -466,84 +449,51 @@
                 deferredPrompt = null;
                 const installBtn = document.getElementById('btnInstallPwaNav');
                 if (installBtn) installBtn.style.display = 'none';
+            } else if (isIos && !isStandalone) {
+                // สำหรับ iOS
+                showCustomAlert('สำหรับ iOS (iPhone/iPad):<br><br>1. กดปุ่ม <b>"แชร์"</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบเมนูด้านล่าง<br>2. เลื่อนลงแล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)', 'info');
             }
         }
 
-        // 4. เมื่อการติดตั้งสำเร็จ นำเสนอหน้าจอ Launcher ทันที
+        // 4. เหตุการณ์หลังติดตั้งเสร็จสมบูรณ์
         window.addEventListener('appinstalled', (evt) => {
             localStorage.setItem('is_pwa_installed', 'yes');
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
             
-            // รอให้ Android ติดตั้งแอปหลังบ้านให้เสร็จ 1 วินาที แล้วแสดงปุ่มเปิดแอป
-            setTimeout(() => {
-                showAppLauncher();
-            }, 1000);
+            // แสดงหน้าต่างบอกให้ผู้ใช้ไปเข้าที่หน้าจอหลักอย่างสุภาพ
+            showCustomAlert('<div style="text-align:center;"><i class="fas fa-home" style="font-size:40px; color:var(--primary); margin-bottom:15px;"></i><br><b style="font-size:20px; font-family:\'Kanit\';">ติดตั้งแอปเรียบร้อย!</b><br><br><span style="font-size:15px; color:#666; font-family:\'Sarabun\';">ระบบรักษาความปลอดภัยของมือถือไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen)<br>และกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ครับ</b></span></div>', 'success');
         });
 
-        // 5. แสดงหน้าจอ Launcher เพื่อหลอกให้ OS ดักจับ <a> Tag
-        function showAppLauncher() {
-            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            const blocker = document.getElementById('pwaBlockerOverlay');
-            
-            if (blocker) {
-                blocker.style.display = 'flex';
-                if (isIos) {
-                    // iOS ไม่ยอมให้เด้งเปิดแอปเด็ดขาด ต้องบอกให้ไปกดเองที่หน้าโฮม
-                    document.getElementById('pwaBlockerTitle').innerText = "ติดตั้งแอปสำเร็จ!";
-                    document.getElementById('pwaBlockerDesc').innerHTML = "ระบบ iOS ไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen)<br>แล้วกดเข้าแอป FlipSchool ด้วยตนเองครับ</b>";
-                    document.getElementById('btnRealLaunchApp').style.display = 'none'; 
-                }
-            }
-        }
+        // 5. ลอจิกการแสดงปุ่มติดตั้งบน Navbar ให้ถูกต้อง
+        if (!isStandalone && localStorage.getItem('is_pwa_installed') === 'yes') {
+            // ถ้าเคยติดตั้งแล้วแต่มาเปิดผ่านเบราว์เซอร์ ให้ซ่อนปุ่ม
+            const installBtn = document.getElementById('btnInstallPwaNav');
+            if (installBtn) installBtn.style.display = 'none';
 
-        // รองรับ iOS
-        function checkIOSPrompt() {
+            // ถ้าเพิ่งเปิดเข้ามาในเบราว์เซอร์ครั้งแรกของเซสชันนี้ ให้แจ้งเตือนเบาๆ 1 ครั้ง
+            if (!sessionStorage.getItem('notified_to_use_app')) {
+                sessionStorage.setItem('notified_to_use_app', 'true');
+                setTimeout(() => {
+                    showCustomAlert('<b>คุณติดตั้งแอปไว้ในเครื่องแล้ว!</b><br><br>เพื่อประสบการณ์การใช้งานที่ลื่นไหล แนะนำให้ออกไปกดใช้งานผ่านไอคอนแอป <b>FlipSchool</b> บนหน้าจอโฮมของคุณครับ', 'info');
+                }, 1000);
+            }
+        } else if (!isStandalone) {
+            // กรณี iOS ที่อาจจะยังไม่ติดตั้ง 
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             const isInstalled = localStorage.getItem('is_pwa_installed') === 'yes';
             
-            if (isIos && !isStandalone && !isInstalled) {
+            if (isIos && !isInstalled) {
                 const installBtn = document.getElementById('btnInstallPwaNav');
                 if (installBtn) {
                     installBtn.style.display = 'flex';
                     installBtn.innerHTML = '<i class="fab fa-apple text-lg"></i> <span class="hidden sm:inline">ติดตั้งแอป</span>';
-                    installBtn.onclick = () => {
-                        showCustomAlert('สำหรับ iOS (iPhone/iPad):<br><br>1. กดปุ่ม <b>"แชร์"</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบเมนูด้านล่าง<br>2. เลื่อนลงแล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)', 'info');
-                    };
                 }
             }
-        }
-
-        // 🌟 ลอจิกตรวจสอบ: ถ้าติดตั้งแล้วแต่เปิดในเบราว์เซอร์ ให้โชว์หน้า Launcher
-        if (!isStandalone && localStorage.getItem('is_pwa_installed') === 'yes') {
-            const installBtn = document.getElementById('btnInstallPwaNav');
-            if (installBtn) installBtn.style.display = 'none';
-
-            const autoOpen = localStorage.getItem('auto_open_pwa');
-            if (autoOpen !== 'no') {
-                showAppLauncher();
-            }
-        } else if (!isStandalone) {
-            checkIOSPrompt(); 
         } else {
+            // หากเปิดผ่านแอป (Standalone) อยู่แล้ว ให้ซ่อนปุ่มชัวร์ๆ
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
-        }
-
-        // ฟังก์ชันเมื่อผู้ใช้กดลิงก์ <a> "เปิดแอปพลิเคชัน"
-        function markAutoOpen() {
-            localStorage.setItem('auto_open_pwa', 'yes');
-            // ซ่อนหน้าจอบล็อกไปเลยเผื่อมันเด้งกลับมา
-            setTimeout(() => {
-                const blocker = document.getElementById('pwaBlockerOverlay');
-                if(blocker) blocker.style.display = 'none';
-            }, 1000);
-        }
-
-        // ฟังก์ชันเมื่อผู้ใช้รำคาญและขอกลับไปใช้เว็บ
-        function cancelAutoPwa() {
-            localStorage.setItem('auto_open_pwa', 'no');
-            document.getElementById('pwaBlockerOverlay').style.display = 'none';
         }
 
         // Register Service Worker
