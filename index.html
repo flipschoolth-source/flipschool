@@ -147,9 +147,18 @@
         .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; }
         .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1); }
 
+        /* --- iOS Prompt CSS --- */
+        .ios-prompt-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 9999; align-items: flex-end; justify-content: center; }
+        .ios-prompt-card { background: white; width: 100%; max-width: 400px; border-radius: 24px 24px 0 0; padding: 30px 20px; text-align: center; position: relative; animation: slideUp 0.3s ease-out; padding-bottom: 40px; }
+        .ios-step { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; text-align: left; font-size: 0.95rem; color: #333; }
+        .ios-step i { font-size: 1.2rem; color: #007aff; width: 30px; text-align: center; }
+        .close-prompt { position: absolute; top: 15px; right: 15px; background: #f3f4f6; border: none; width: 30px; height: 30px; border-radius: 50%; color: #666; cursor: pointer; transition: 0.2s; }
+        .close-prompt:hover { background: #ff4757; color: white; }
+
         @keyframes pulse { 0% { transform: scale(1); } 70% { transform: scale(1.03); } 100% { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 992px) {
@@ -261,6 +270,18 @@
             </div>
         </div>
 
+        <!-- iOS Prompt Modal (เฉพาะอุปกรณ์ของ Apple) -->
+        <div id="iosPrompt" class="ios-prompt-overlay" onclick="closeIosPrompt()">
+            <div class="ios-prompt-card" onclick="event.stopPropagation()">
+                <button class="close-prompt" onclick="closeIosPrompt()">&times;</button>
+                <h3 style="margin-top:0; color:#1f2937; font-family:'Kanit';">ติดตั้ง FlipSchool</h3>
+                <p style="color:#6b7280; font-size:0.9rem; margin-bottom:20px;">เพิ่มแอปลงหน้าจอโฮมเพื่อเข้าใช้งานระบบ</p>
+                <div class="ios-step"><i class="fas fa-share-square"></i><span>1. กดปุ่ม <b>"แชร์"</b> ที่แถบด้านล่างของ Safari</span></div>
+                <div class="ios-step"><i class="fas fa-plus-square"></i><span>2. เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b></span></div>
+                <div class="ios-step"><i class="fas fa-plus"></i><span style="font-weight:bold; color:#007aff; margin-left:8px;">เพิ่ม</span><span>3. กดปุ่ม <b>"เพิ่ม"</b> ที่มุมขวาบน</span></div>
+            </div>
+        </div>
+
         <!-- 🌟 Footer ผูกกับ config.js 🌟 -->
         <footer class="footer footer-display-text"></footer>
     </div> 
@@ -315,7 +336,7 @@
             // --- 🚀 ระบบ Auto Redirect แบบเบื้องหลัง ---
             if (localStorage.getItem('flip_student_session_id') || localStorage.getItem('flip_student_session')) {
                 const loginBtn = document.getElementById('topLoginBtn');
-                if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+                if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบแล้ว...';
                 window.location.replace('dashboard.html');
                 return;
             }
@@ -329,7 +350,7 @@
                         const { data: { session } } = await window.sysDB.auth.getSession();
                         if (session && session.user) {
                             const loginBtn = document.getElementById('topLoginBtn');
-                            if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+                            if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบแล้ว...';
 
                             const { data: profileData } = await window.sysDB.from('users').select('role, is_super_admin').eq('user_id', session.user.id).maybeSingle();
                             if (profileData && (profileData.is_super_admin || profileData.role === 'super_admin')) {
@@ -354,8 +375,9 @@
 
         function openGloryModal() { document.getElementById('gloryModal').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
         function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+        function closeIosPrompt() { document.getElementById('iosPrompt').style.display = 'none'; }
 
-        /* --- 🌟 PWA Logic (เช็คสถานะการติดตั้ง & เปลี่ยนปุ่ม) 🌟 --- */
+        /* --- 🌟 PWA Logic (ติดตั้ง & เปลี่ยนเป็นปุ่มเปิดแอป) 🌟 --- */
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const installBtnIcon = document.getElementById('installBtnIcon');
@@ -373,26 +395,33 @@
                 installBtn.style.display = 'none';
                 installAlert.style.display = 'none';
             } else if (isInstalled) {
-                // หากติดตั้งแล้ว แต่เปิดเบราว์เซอร์ปกติ -> ให้แสดงปุ่ม "เปิดแอป"
+                // หากติดตั้งแล้ว แต่เปิดเบราว์เซอร์ปกติ -> เปลี่ยนเป็นปุ่ม "เปิดแอป"
                 installBtn.style.display = 'inline-flex';
                 installBtn.classList.remove('pulse-anim');
                 installBtnIcon.className = 'fas fa-external-link-alt';
                 installBtnText.innerText = 'เปิดแอปพลิเคชัน';
                 installAlert.style.display = 'none';
             } else {
-                // บังคับแสดงปุ่ม "ติดตั้งแอป" เสมอ สำหรับคนที่ยังไม่ติดตั้ง (ไม่ต้องรอ Event จากเบราว์เซอร์)
+                // บังคับแสดงปุ่ม "ติดตั้งแอป" ทันที ไม่ต้องรอ Event
                 installBtn.style.display = 'inline-flex';
                 installBtn.classList.add('pulse-anim');
                 installBtnIcon.className = 'fas fa-download';
                 installBtnText.innerText = 'ติดตั้งแอปพลิเคชัน';
-                installAlert.style.display = 'block';
+                
+                // สำหรับ iOS ให้แสดงข้อความเตือนเล็กๆ ด้านบนปุ่ม
+                if (isIOS) {
+                    installAlert.style.display = 'block';
+                }
             }
         }
 
+        // ดักจับ Event เมื่อเบราว์เซอร์พร้อมให้ติดตั้ง (Android / PC)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); 
             deferredPrompt = e;
-            localStorage.removeItem('is_pwa_installed'); // เคลียร์สถานะเผื่อผู้ใช้ลบแอปไปแล้ว
+            // เคลียร์สถานะเผื่อผู้ใช้เคยลบแอปออกไปแล้ว
+            localStorage.removeItem('is_pwa_installed'); 
+            checkPWAStatus();
         });
 
         // ดัก Event เมื่อผู้ใช้กดยอมรับการติดตั้งเสร็จสิ้น
@@ -401,16 +430,17 @@
             checkPWAStatus();
         });
 
+        // ฟังก์ชันเมื่อกดปุ่ม ติดตั้ง/เปิดแอป
         function handleAppAction() {
             const isInstalled = localStorage.getItem('is_pwa_installed') === 'yes';
 
             if (isInstalled && !isStandalone) {
                 // ================= กรณี: สั่งเปิดแอป (Open App) =================
                 if (isIOS) {
-                    // iOS บล็อกการเด้งเข้าแอปอัตโนมัติ 
+                    // iOS บล็อกการเด้งเข้าแอปอัตโนมัติจากหน้าเว็บ 
                     showCustomAlert('ระบบ iOS ไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen) ของคุณ<br>แล้วกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ครับ</b>', 'info');
                 } else {
-                    // Android สามารถใช้ <a> tag หลอกดักจับ Intent สลับแอปได้
+                    // Android/PC: ใช้ลิงก์หลอกเพื่อ Intent สลับไปเปิดหน้าแอป
                     const link = document.createElement('a');
                     link.href = window.location.href;
                     link.target = '_blank';
@@ -421,11 +451,12 @@
                 }
             } else {
                 // ================= กรณี: สั่งติดตั้งแอป (Install App) =================
-                if (isIOS) { 
-                    showCustomAlert('<b>วิธีติดตั้งแอปบน iOS (iPhone/iPad)</b><br><br>1. กดปุ่ม <b>"แชร์"</b> <i class="fas fa-share-square"></i> ที่แถบด้านล่างของ Safari<br>2. เลื่อนลงและเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b><br>3. กด <b>"เพิ่ม" (Add)</b> มุมขวาบน', 'info'); 
+                if (isIOS) {
+                    // iOS ไม่รองรับการเด้งหน้าต่างติดตั้งอัตโนมัติ จึงเรียกหน้าต่างสอนใช้งาน (Modal) ขึ้นมาแทน
+                    document.getElementById('iosPrompt').style.display = 'flex';
                 } 
                 else if (deferredPrompt) {
-                    // แอนดรอยด์ที่รองรับระบบติดตั้งอัตโนมัติ
+                    // แอนดรอยด์ / PC ที่เบราว์เซอร์ส่ง Event มาแล้ว ให้โชว์หน้าต่างระบบ (Native Prompt) ทันที
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
                         if (choiceResult.outcome === 'accepted') { 
@@ -435,8 +466,8 @@
                         deferredPrompt = null;
                     });
                 } else {
-                    // กรณีเปิดในเบราว์เซอร์ที่ไม่รองรับ Event หรือทดสอบในคอมพิวเตอร์
-                    showCustomAlert('<b>วิธีติดตั้งแอปพลิเคชัน</b><br><br>กรุณากดไอคอน <b>เมนู (จุดสามจุด)</b> ที่มุมขวาบนของเบราว์เซอร์<br>แล้วเลือก <b>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</b>', 'info');
+                    // กรณีระบบยังไม่พร้อม หรือถูกเบราว์เซอร์บล็อก
+                    showCustomAlert('<b>ระบบไม่สามารถเปิดหน้าต่างติดตั้งอัตโนมัติได้</b><br><br>กรุณากดไอคอน <b>เมนู (จุดสามจุด)</b> ที่มุมขวาบนของเบราว์เซอร์<br>แล้วเลือก <b>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</b>', 'info');
                 }
             }
         }
