@@ -387,18 +387,24 @@
                 }
                 
                 if (user) {
-                    userData = user;
-                    localStorage.setItem(`flip_cache_profile_${userId}`, JSON.stringify(userData));
-                    updateProfileUI(userData);
+                    const newUserDataString = JSON.stringify(user);
+                    if (JSON.stringify(userData) !== newUserDataString) {
+                        userData = user;
+                        localStorage.setItem(`flip_cache_profile_${userId}`, newUserDataString);
+                        updateProfileUI(userData);
+                    }
                 }
 
                 // 2. ดึง โรงเรียน ล่าสุด
                 const { data: schools } = await db.from('user_school').select('*, schools(*)').eq('user_id', userId);
                 if (schools) {
-                    userSchools = schools;
-                    localStorage.setItem(`flip_cache_schools_${userId}`, JSON.stringify(userSchools));
-                    renderFilterTabs();
-                    renderSidebarSchools();
+                    const newSchoolsString = JSON.stringify(schools);
+                    if (JSON.stringify(userSchools) !== newSchoolsString) {
+                        userSchools = schools;
+                        localStorage.setItem(`flip_cache_schools_${userId}`, newSchoolsString);
+                        renderFilterTabs();
+                        renderSidebarSchools();
+                    }
                 }
 
                 // 3. ดึง ห้องเรียน ล่าสุด
@@ -433,10 +439,15 @@
                     newAllClasses = newAllClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
                 }
 
-                // เปรียบเทียบว่าข้อมูลเปลี่ยนไหม (ถ้ายาวเท่ากันและ ID ตรงกัน อาจจะไม่ต้องวาดใหม่ให้กระพริบ แต่เพื่อความง่าย เราเซฟทับและวาดใหม่)
-                allClasses = newAllClasses;
-                localStorage.setItem(`flip_cache_classes_${userId}`, JSON.stringify(allClasses));
-                renderFilteredGrids();
+                // ตรวจสอบว่าข้อมูลห้องเรียนมีการเปลี่ยนแปลงหรือไม่ ถ้าไม่เปลี่ยน จะไม่สั่งวาด UI ใหม่ (ลดการกระพริบ)
+                const oldClassesString = JSON.stringify(allClasses);
+                const newClassesString = JSON.stringify(newAllClasses);
+
+                if (oldClassesString !== newClassesString) {
+                    allClasses = newAllClasses;
+                    localStorage.setItem(`flip_cache_classes_${userId}`, newClassesString);
+                    renderFilteredGrids();
+                }
 
             } catch (err) {
                 console.error("Background Fetch Error:", err);
