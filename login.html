@@ -253,10 +253,19 @@
             // 🌟 1. ตรวจสอบการล็อกอินอัตโนมัติผ่านลิงก์ QR Code 
             const urlParams = new URLSearchParams(window.location.search);
             const magicToken = urlParams.get('magic') || urlParams.get('token') || urlParams.get('id') || urlParams.get('sid');
+            const joinCode = urlParams.get('join');
             
             if (magicToken) {
                 await processMagicLogin(magicToken);
                 return;
+            }
+            
+            // 🌟 รองรับลิงก์เชิญ (Copy Link) จากหน้าจัดการห้องเรียน
+            if (joinCode && joinCode !== 'null') {
+                localStorage.setItem('pending_join_class_code', joinCode.toUpperCase());
+                showCustomAlert(`พบลิงก์เชิญเข้าวิชาเรียน <b>${joinCode.toUpperCase()}</b><br><br>กรุณา <b>เข้าสู่ระบบ</b> ก่อนครับ<br>เดี๋ยวระบบจะพาเข้าห้องเรียนให้อัตโนมัติทันทีเลย!`, "success");
+                // ล้าง URL ออกเพื่อไม่ให้กวนตา
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
 
             // 2. ตรวจสอบเซสชันปกติ
