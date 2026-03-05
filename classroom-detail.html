@@ -736,7 +736,15 @@
                     // Update variables silently
                     let targetCol = cls.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
                     isClassOwner = (cls[targetCol] === currentUserId);
-                    currentClassCode = cls.class_code;
+                    
+                    // 🌟 แก้บั๊ก: ป้องกันการดึงค่า null จาก DB มาทับรหัสที่สร้างไว้แล้ว
+                    if (cls.class_code) {
+                        currentClassCode = cls.class_code;
+                    } else if (!currentClassCode && isClassOwner) {
+                        currentClassCode = generateRandomCode();
+                        try { db.from('classrooms').update({ class_code: currentClassCode }).eq('classroom_id', currentClassId); } catch(e) {}
+                    }
+                    
                     isJoinable = cls.is_joinable !== false; 
                 }
 
@@ -819,10 +827,11 @@
                 const btnMob = document.getElementById('manageModeMobileBtn');
                 if(btnMob) btnMob.classList.remove('hidden');
                 
-                currentClassCode = data.class_code;
+                // 🌟 แก้บั๊ก: ใช้ค่าเดิมหาก DB คืนค่า null มา
+                currentClassCode = data.class_code || currentClassCode;
                 isJoinable = data.is_joinable !== false; 
 
-                if (!currentClassCode) {
+                if (!currentClassCode || currentClassCode === 'null') {
                     currentClassCode = generateRandomCode();
                     try { getDB().from('classrooms').update({ class_code: currentClassCode }).eq('classroom_id', currentClassId); } catch(e) {}
                 }
@@ -894,6 +903,13 @@
         }
 
         function copyInviteLink() {
+            // 🌟 ป้องกันขั้นสุด: ตรวจสอบก่อนคัดลอก ถ้าไม่มีให้สร้างใหม่เลย
+            if (!currentClassCode || currentClassCode === 'null') {
+                currentClassCode = generateRandomCode();
+                getDB().from('classrooms').update({ class_code: currentClassCode }).eq('classroom_id', currentClassId);
+                document.getElementById('displayClassCode').innerText = currentClassCode;
+            }
+            
             const basePath = window.location.origin + window.location.pathname.replace('classroom-detail.html', 'login.html');
             const inviteLink = `${basePath}?join=${currentClassCode}`;
             navigator.clipboard.writeText(inviteLink).then(() => { showCustomAlert("คัดลอกลิงก์เรียบร้อยแล้ว", "success"); })
