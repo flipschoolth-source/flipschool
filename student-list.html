@@ -537,12 +537,16 @@
 
         async function fetchStudents() {
             try {
-                // ดึงรายชื่อนักเรียนจาก classroom_users แล้วไปรวมกับข้อมูลจริงที่ user_school แบบทำเอง
-                // เพราะไม่ได้ทำ Foreign Key จาก classroom_users.user_id ไปที่ user_school.user_id
-                
+                // 🌟 ดึงรายชื่อนักเรียนจาก classroom_users แบบยืดหยุ่นชื่อคอลัมน์
+                let userColName = 'user_id';
+                const { error: testColErr } = await window.sysDB.from('classroom_users').select('user_id').limit(1);
+                if (testColErr && String(testColErr.code).includes('42703')) {
+                    userColName = 'student_id';
+                }
+
                 const { data: enrollments, error: err1 } = await window.sysDB
                     .from('classroom_users')
-                    .select('student_number, user_id, enrollment_id')
+                    .select(`student_number, ${userColName}, enrollment_id`)
                     .eq('classroom_id', currentClassId)
                     .order('student_number');
                 
@@ -554,7 +558,7 @@
                 if(enrollments && enrollments.length > 0) {
                     document.getElementById('totalCount').innerText = enrollments.length;
                     
-                    const userIds = enrollments.map(e => e.user_id);
+                    const userIds = enrollments.map(e => e[userColName]);
                     
                     // ดึงข้อมูลชื่อ-นามสกุลจาก user_school (โดยใช้ currentSchoolId เป็นหลัก หรือถ้าไม่มีก็หาแบบไม่สน รร.)
                     let query = window.sysDB.from('user_school').select('user_id, first_name, last_name, student_code').in('user_id', userIds);
@@ -564,9 +568,10 @@
                     if(err2) throw err2;
 
                     enrollments.forEach(item => {
-                        const s = (localStudents || []).find(stu => stu.user_id === item.user_id) || { first_name: 'ไม่พบข้อมูล', last_name: '', student_code: '-' };
+                        const studentUserId = item[userColName];
+                        const s = (localStudents || []).find(stu => stu.user_id === studentUserId) || { first_name: 'ไม่พบข้อมูล', last_name: '', student_code: '-' };
                         const delBtn = isClassOwner ? `
-                            <button onclick="removeStudent('${item.user_id}', '${s.first_name} ${s.last_name}')" class="btn-delete-st" title="นำนักเรียนออกจากห้อง">
+                            <button onclick="removeStudent('${studentUserId}', '${s.first_name} ${s.last_name}')" class="btn-delete-st" title="นำนักเรียนออกจากห้อง">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         ` : '';
@@ -932,6 +937,13 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
             document.getElementById('progressSection').style.display = 'block';
 
+            // 🌟 เช็คคอลัมน์ของตาราง classroom_users ว่าเป็น user_id หรือ student_id
+            let userColName = 'user_id';
+            const { error: testColErr } = await window.sysDB.from('classroom_users').select('user_id').limit(1);
+            if (testColErr && String(testColErr.code).includes('42703')) {
+                userColName = 'student_id';
+            }
+
             for(let i=0; i < finalImportList.length; i++) {
                 const item = finalImportList[i];
                 const dot = document.querySelector(`#row_${i} .status-dot`);
@@ -983,7 +995,7 @@
                     const { data: existingEnroll, error: errChk2 } = await sysDB.from('classroom_users')
                         .select('enrollment_id')
                         .eq('classroom_id', currentClassId)
-                        .eq('user_id', studentUserId)
+                        .eq(userColName, studentUserId)
                         .maybeSingle();
 
                     if (errChk2) throw errChk2;
@@ -997,11 +1009,13 @@
                         if (errUpd2) throw errUpd2;
                     } else {
                         // แทรกรายชื่อลงในห้อง พร้อมจับ Error
-                        const { error: errIns2 } = await sysDB.from('classroom_users').insert({ 
+                        const payload = {
                             classroom_id: currentClassId, 
-                            user_id: studentUserId,
                             student_number: item.num 
-                        });
+                        };
+                        payload[userColName] = studentUserId;
+
+                        const { error: errIns2 } = await sysDB.from('classroom_users').insert([payload]);
                         
                         if (errIns2) throw errIns2;
                     }
