@@ -13,7 +13,7 @@
     <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <!-- SortableJS สำหรับระบบ Drag & Drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -656,7 +656,7 @@
                 
                 let userColName = 'user_id';
                 const { error: testErr } = await db.from('classroom_users').select('user_id').limit(1);
-                if (testErr && testErr.code === '42703') {
+                if (testErr && String(testErr.code).includes('42703')) {
                     userColName = 'student_id';
                 }
                 
@@ -744,7 +744,7 @@
                                 <div class="header" title="${fullName}">${fullName}</div>
                                 <div class="sub-header">${code ? 'รหัสประจำตัว: '+code : 'วิชา '+subject}</div>
                                 <img src="${qrUrl}" alt="QR Auto Login">
-                                <div class="text">แสกนเพื่อล็อกอินเข้าระบบทันที</div>
+                                <div><span class="btn-badge">สแกนเพื่อล็อกอินเข้าระบบทันที</span></div>
                             </div>
                         `;
                     }
@@ -760,22 +760,22 @@
                 printWindow.document.open();
                 printWindow.document.write(`
                     <html><head><title>QR Code รายบุคคล - ${subject}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Kanit:wght@600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&family=Kanit:wght@600;700;800&display=swap" rel="stylesheet">
                     <style>
                         @media print { 
-                            @page { margin: 1cm; size: A4; } 
-                            body { -webkit-print-color-adjust: exact; }
-                            .no-print { display: none !important; } /* ซ่อนส่วนนี้ตอนปริ้นท์ */
+                            @page { margin: 10mm; size: A4; } 
+                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            .no-print { display: none !important; }
                         }
                         body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 20px; }
-                        h2 { font-family: 'Kanit'; color: #00008B; margin-bottom: 5px; }
-                        p { color: #666; margin-top: 0; margin-bottom: 30px; }
-                        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 21cm; margin: 0 auto; }
-                        .card { border: 2px dashed #00008B; padding: 15px 10px; border-radius: 15px; text-align: center; break-inside: avoid; background: #f8faff; }
-                        .header { font-family: 'Kanit'; font-weight: 700; font-size: 16px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #2d3436; }
-                        .sub-header { font-size: 12px; color: #00008B; font-weight: 600; margin-bottom: 10px; }
-                        img { width: 130px; height: 130px; margin-bottom: 10px; border-radius: 8px; }
-                        .text { font-size: 11px; color: #fff; background: #FF8C00; padding: 4px 8px; border-radius: 20px; display: inline-block; font-weight: 600;}
+                        h2 { font-family: 'Kanit', sans-serif; color: #00008B; margin-bottom: 5px; font-size: 24px; font-weight: 800; }
+                        p.subtitle { color: #666; margin-top: 0; margin-bottom: 30px; font-size: 16px; }
+                        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 21cm; margin: 0 auto; }
+                        .card { border: 2px dashed #00008B; padding: 20px 15px; border-radius: 16px; text-align: center; break-inside: avoid; background: #ffffff; }
+                        .header { font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00008B; }
+                        .sub-header { font-size: 13px; color: #00008B; font-weight: 600; margin-bottom: 12px; font-family: 'Kanit', sans-serif; }
+                        img { width: 160px; height: 160px; margin-bottom: 12px; }
+                        .btn-badge { font-family: 'Kanit', sans-serif; font-size: 12px; color: #fff; background: #FF8C00; padding: 6px 16px; border-radius: 50px; display: inline-block; font-weight: 700; box-shadow: 0 2px 4px rgba(255,140,0,0.3); }
                         
                         /* สไตล์ปุ่ม X ปิดหน้าต่างมุมขวาบน */
                         .btn-close-floating {
@@ -789,11 +789,10 @@
                         .btn-close-floating:hover { background: #ff6b81; transform: scale(1.08); box-shadow: 0 8px 20px rgba(255, 71, 87, 0.4); }
                     </style></head>
                     <body>
-                        <!-- ปุ่ม X มุมขวาบน (แสดงเฉพาะบนจอ) -->
                         <button class="no-print btn-close-floating" onclick="window.close(); window.location.href='classroom-detail.html?id=${currentClassId}';" title="ปิดหน้าต่าง">&#10005;</button>
 
                         <h2>QR Code ล็อกอินอัตโนมัติ (รายบุคคล)</h2>
-                        <p>วิชา ${subject} ห้อง ${room} (ให้นักเรียนสแกนเพื่อเข้าเครื่องตัวเองเท่านั้น)</p>
+                        <p class="subtitle">วิชา ${subject} ห้อง ${room} (ให้นักเรียนสแกนเพื่อเข้าเครื่องตัวเองเท่านั้น)</p>
                         <div class="grid">${cardsHtml}</div>
                         <script>setTimeout(()=>window.print(), 1500);<\/script>
                     </body></html>
@@ -880,7 +879,7 @@
                 <style>
                     @media print { 
                         @page { margin: 1cm; size: A4; } 
-                        body { -webkit-print-color-adjust: exact; }
+                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .no-print { display: none !important; }
                     }
                     body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 20px; }
@@ -1310,7 +1309,7 @@
         function toggleDrawer() {
             const dr = document.getElementById('sideDrawer');
             const ov = document.getElementById('drawerOverlay');
-            dr.classList.toggle('-translate-x-full');
+            dr.classList.toggle('translate-x-full');
             ov.classList.toggle('hidden');
         }
 
