@@ -527,6 +527,7 @@
             if (autoOpen === 'yes') {
                 // ถ้าเคยตอบว่า "ใช่" ให้โชว์หน้าจอบล็อกเพื่อบังคับให้ไปเปิดแอป
                 document.getElementById('pwaBlockerOverlay').style.display = 'flex';
+                attemptAutoLaunchApp(); // พยายามเด้งเปิดแอปอัตโนมัติ
             } else if (autoOpen !== 'no') {
                 // ถ้ายังไม่เคยตอบ (เพิ่งติดตั้ง หรือยังไม่เคยกด) ให้ถาม
                 setTimeout(() => {
@@ -547,8 +548,41 @@
             localStorage.setItem('auto_open_pwa', 'yes');
             document.getElementById('pwaOpenModal').classList.remove('show');
             document.getElementById('pwaBlockerOverlay').style.display = 'flex';
-            // พยายามเด้งไปเปิดแอปผ่าน URL เดิม (อุปกรณ์ Android จะกระตุ้น Intent เรียกแอป PWA ให้เปิดขึ้นมา)
-            window.location.href = window.location.href;
+            
+            attemptAutoLaunchApp();
+        }
+
+        // ฟังก์ชันสำหรับจำลองการคลิกลิงก์เพื่อกระตุ้น Intent ไปเปิดแอป (ทะลุบล็อก)
+        function attemptAutoLaunchApp() {
+            // 1. สร้างลิงก์เสมือนและจำลองการคลิกแบบ _blank (กระตุ้น Android Intent ให้ดักจับแอป PWA)
+            const link = document.createElement('a');
+            link.href = window.location.href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 2. เผื่อกรณีมือถือรุ่นใหม่ๆ บล็อกการเปิดอัตโนมัติ 100% 
+            // ให้ตั้งหน่วงเวลา 2.5 วินาที ถ้าผู้ใช้ยังอยู่หน้าเบราว์เซอร์เดิม จะเปลี่ยนข้อความแจ้งให้กลับไปหน้าโฮม
+            setTimeout(() => {
+                if (!window.matchMedia('(display-mode: standalone)').matches) {
+                    const blocker = document.getElementById('pwaBlockerOverlay');
+                    if (blocker) {
+                        blocker.innerHTML = `
+                            <i class="fas fa-home" style="font-size: 80px; margin-bottom: 20px; color: var(--accent); animation: none;"></i>
+                            <h2 style="font-family: 'Kanit'; font-size: 26px; margin-bottom: 10px; font-weight: 700;">แอปติดตั้งเรียบร้อยแล้ว!</h2>
+                            <p style="font-family: 'Sarabun'; font-size: 15px; opacity: 0.9; max-width: 400px; margin-bottom: 30px; line-height: 1.5; padding: 0 15px;">
+                                ระบบความปลอดภัยของเบราว์เซอร์ไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br>
+                                <b>กรุณากลับไปที่หน้าจอหลัก (Home Screen) ของเครื่องคุณ<br>แล้วกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ได้เลยครับ</b>
+                            </p>
+                            <button onclick="cancelAutoPwa()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 12px 25px; border-radius: 50px; font-family: 'Kanit'; cursor: pointer; transition: 0.3s; font-size: 14px;">
+                                ตกลง เข้าใจแล้ว (ปิดหน้านี้)
+                            </button>
+                        `;
+                    }
+                }
+            }, 2500);
         }
 
         function declineOpenPwa() {
@@ -559,6 +593,18 @@
         function cancelAutoPwa() {
             localStorage.setItem('auto_open_pwa', 'no');
             document.getElementById('pwaBlockerOverlay').style.display = 'none';
+            // โหลดโค้ดกลับมาเป็น UI เดิม เผื่อผู้ใช้กดสลับอีกรอบ
+            document.getElementById('pwaBlockerOverlay').innerHTML = `
+                <i class="fas fa-mobile-alt" style="font-size: 80px; margin-bottom: 20px; color: var(--accent); animation: pulse 2s infinite;"></i>
+                <h2 style="font-family: 'Kanit'; font-size: 28px; margin-bottom: 10px; font-weight: 700;">กรุณาใช้งานผ่านแอปพลิเคชัน</h2>
+                <p style="font-family: 'Sarabun'; font-size: 16px; opacity: 0.9; max-width: 400px; margin-bottom: 40px; line-height: 1.5;">
+                    คุณได้ตั้งค่าให้ระบบจดจำการเข้าผ่านแอปไว้<br>
+                    <b>โปรดกดไอคอน FlipSchool จากหน้าจอหลัก (Home Screen) ของคุณเพื่อเข้าใช้งาน</b>
+                </p>
+                <button onclick="cancelAutoPwa()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 12px 25px; border-radius: 50px; font-family: 'Kanit'; cursor: pointer; transition: 0.3s; font-size: 14px;">
+                    ยกเลิกการจำค่า และกลับไปใช้บนเว็บ
+                </button>
+            `;
         }
 
         // Register Service Worker
