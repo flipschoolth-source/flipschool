@@ -106,7 +106,6 @@
         @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
         .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
 
-        /* 🌟 Custom Alert Modal CSS ดั้งเดิมที่แสดงผลกลางจอแน่นอน 100% 🌟 */
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s; z-index: 9999; }
         .custom-modal-overlay.show { opacity: 1; visibility: visible; }
         .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -167,8 +166,8 @@
                 </div>
             </div>
             <div class="flex items-center gap-4 relative">
-                <!-- กระดิ่งแจ้งเตือน -->
-                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" onclick="toggleNotifDropdown()">
+                <!-- กระดิ่งแจ้งเตือน (ซ่อน/แสดง อัตโนมัติด้วย JS) -->
+                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
                     <i class="fas fa-bell text-xl text-slate-600"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
                 </div>
@@ -284,9 +283,9 @@
             </div>
             <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="custom-modal-message"></p>
-            <div style="display: flex; justify-content: center; margin-top: 20px;">
+            <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
                 <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
-                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none;" onclick="closeCustomAlert(true)">ยกเลิก</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -565,10 +564,28 @@
                             profile_pic: null
                         };
                     } else {
-                        await db.auth.signOut();
-                        localStorage.removeItem('flip_student_session_id');
-                        window.location.replace('login.html');
-                        return;
+                        // 🌟 Fallback ท้ายสุด เผื่อหลุดไปอยู่ตารางเก่า (school_students)
+                        let ssCol = 'student_id';
+                        const { error: ssErr } = await db.from('school_students').select('student_id').limit(1);
+                        if (ssErr && String(ssErr.code).includes('42703')) ssCol = 'user_id';
+                        
+                        const { data: ssRecord } = await db.from('school_students').select('first_name, last_name, student_code').eq(ssCol, userId).limit(1).maybeSingle();
+                        
+                        if (ssRecord) {
+                            userRecord = {
+                                user_id: userId,
+                                first_name: ssRecord.first_name,
+                                last_name: ssRecord.last_name,
+                                student_code: ssRecord.student_code,
+                                role: 'student',
+                                profile_pic: null
+                            };
+                        } else {
+                            await db.auth.signOut();
+                            localStorage.removeItem('flip_student_session_id');
+                            window.location.replace('login.html');
+                            return;
+                        }
                     }
                 }
 
@@ -766,22 +783,48 @@
 
         async function fetchAllClasses(db) {
             try {
+                // 1. ดึงห้องเรียนที่ครูสร้าง (Teacher)
                 let teachData = [];
-                // ใช้ตาราง classrooms โดยตรงตาม Unified Schema ใหม่
-                const resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
+                let testTargetCol = 'owner_id';
+                const { error: testErr } = await db.from('classrooms').select('owner_id').limit(1);
+                if (testErr && String(testErr.code).includes('42703')) {
+                    testTargetCol = 'teacher_id';
+                }
+                
+                const resTeach = await db.from('classrooms').select('*').eq(testTargetCol, currentUser.id);
                 if (!resTeach.error) {
                     teachData = resTeach.data || [];
                 }
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
+                // 2. ดึงห้องเรียนที่นักเรียนเข้าร่วม (Student) 
+                // 🌟 แก้ไข: ใช้ 2-Step Query ป้องกันปัญหา Foreign Key รวน
                 let learnData = [];
-                // 🌟 แก้ไข: ใช้ classroom_users แทน classroom_students ให้ตรงฐานข้อมูล 100%
-                const resLearn = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.id);
-                if (!resLearn.error) {
-                    learnData = resLearn.data || [];
+                let userColName = 'user_id';
+                const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
+                if (testColErr && String(testColErr.code).includes('42703')) {
+                    userColName = 'student_id';
+                }
+
+                // Step 2.1: หารหัสห้องเรียน (classroom_id) ที่นักเรียนคนนี้อยู่
+                const { data: enrollments, error: enrollErr } = await db.from('classroom_users')
+                    .select('classroom_id')
+                    .eq(userColName, currentUser.id);
+
+                if (!enrollErr && enrollments && enrollments.length > 0) {
+                    const classIds = enrollments.map(e => e.classroom_id);
+                    
+                    // Step 2.2: นำรหัสห้องเรียนไปดึงข้อมูลจากตาราง classrooms โดยตรง
+                    const { data: classData, error: classErr } = await db.from('classrooms')
+                        .select('*')
+                        .in('classroom_id', classIds);
+                        
+                    if (!classErr && classData) {
+                        learnData = classData;
+                    }
                 }
                 
-                const mappedLearn = learnData.map(item => item.classrooms).filter(c => c !== null).map(c => ({ ...c, userRole: 'student' }));
+                const mappedLearn = learnData.map(c => ({ ...c, userRole: 'student' }));
 
                 allClasses = [...mappedTeach, ...mappedLearn];
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -940,15 +983,22 @@
                 if (!targetClass) throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
 
                 // 🌟 แก้ไข: ใช้ classroom_users 
+                let userColName = 'user_id';
+                const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
+                if (testColErr && String(testColErr.code).includes('42703')) {
+                    userColName = 'student_id';
+                }
+
                 const { data: existEnroll } = await db.from('classroom_users')
                     .select('enrollment_id')
                     .eq('classroom_id', targetClass.classroom_id)
-                    .eq('user_id', currentUser.id)
+                    .eq(userColName, currentUser.id)
                     .maybeSingle();
                 
                 if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
 
-                const payload = { classroom_id: targetClass.classroom_id, student_number: 0, user_id: currentUser.id };
+                const payload = { classroom_id: targetClass.classroom_id, student_number: 0 };
+                payload[userColName] = currentUser.id;
                 
                 const { error: enrollError } = await db.from('classroom_users').insert([payload]);
                 if (enrollError) throw enrollError;
@@ -1212,7 +1262,6 @@
             document.getElementById('reqFileNameDisplay').innerHTML = `<i class="fas fa-id-badge" style="font-size: 35px; color: #a4b0be; margin-bottom: 10px;"></i><div style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ยังไม่ได้เลือกไฟล์ภาพ</div>`; 
         }
 
-        // 🌟 แก้ไข: จัดการการยื่นคำขอใหม่แบบปลอดภัยไร้ Error 🌟
         async function submitSchoolJoin(e) {
             e.preventDefault(); 
             const btn = document.getElementById('btnSubmitJoinSchool'); 
@@ -1293,7 +1342,6 @@
 
                 let reqError = null;
 
-                // 🌟 อัปเดตตารางด้วยวิธีการ UPDATE 
                 if (isResubmitting) {
                     const { error: updateErr } = await db.from('user_school').update({ 
                         role: applyRole, 
@@ -1331,7 +1379,7 @@
             }
         }
 
-        // ================= 🌟 กระดิ่งแจ้งเตือน Realtime 🌟 =================
+        // ================= กระดิ่งแจ้งเตือน Realtime =================
         async function toggleNotifDropdown() {
             const dropdown = document.getElementById('notifDropdown');
             const btn = document.getElementById('notificationBtn');
