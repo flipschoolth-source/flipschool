@@ -379,10 +379,12 @@
                 installBtnIcon.className = 'fas fa-external-link-alt';
                 installBtnText.innerText = 'เปิดแอปพลิเคชัน';
                 installAlert.style.display = 'none';
-            } else if (isIOS) {
-                // สำหรับ iOS ที่ยังไม่ติดตั้ง
+            } else {
+                // บังคับแสดงปุ่ม "ติดตั้งแอป" เสมอ สำหรับคนที่ยังไม่ติดตั้ง (ไม่ต้องรอ Event จากเบราว์เซอร์)
                 installBtn.style.display = 'inline-flex';
                 installBtn.classList.add('pulse-anim');
+                installBtnIcon.className = 'fas fa-download';
+                installBtnText.innerText = 'ติดตั้งแอปพลิเคชัน';
                 installAlert.style.display = 'block';
             }
         }
@@ -391,14 +393,6 @@
             e.preventDefault(); 
             deferredPrompt = e;
             localStorage.removeItem('is_pwa_installed'); // เคลียร์สถานะเผื่อผู้ใช้ลบแอปไปแล้ว
-            
-            if (!isStandalone) { 
-                installBtn.style.display = 'inline-flex'; 
-                installBtn.classList.add('pulse-anim');
-                installBtnIcon.className = 'fas fa-download';
-                installBtnText.innerText = 'ติดตั้งแอปพลิเคชัน';
-                installAlert.style.display = 'block'; 
-            }
         });
 
         // ดัก Event เมื่อผู้ใช้กดยอมรับการติดตั้งเสร็จสิ้น
@@ -431,6 +425,7 @@
                     showCustomAlert('<b>วิธีติดตั้งแอปบน iOS (iPhone/iPad)</b><br><br>1. กดปุ่ม <b>"แชร์"</b> <i class="fas fa-share-square"></i> ที่แถบด้านล่างของ Safari<br>2. เลื่อนลงและเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b><br>3. กด <b>"เพิ่ม" (Add)</b> มุมขวาบน', 'info'); 
                 } 
                 else if (deferredPrompt) {
+                    // แอนดรอยด์ที่รองรับระบบติดตั้งอัตโนมัติ
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
                         if (choiceResult.outcome === 'accepted') { 
@@ -440,7 +435,8 @@
                         deferredPrompt = null;
                     });
                 } else {
-                    showCustomAlert('กรุณากดเมนูบนเบราว์เซอร์ แล้วเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)', 'info');
+                    // กรณีเปิดในเบราว์เซอร์ที่ไม่รองรับ Event หรือทดสอบในคอมพิวเตอร์
+                    showCustomAlert('<b>วิธีติดตั้งแอปพลิเคชัน</b><br><br>กรุณากดไอคอน <b>เมนู (จุดสามจุด)</b> ที่มุมขวาบนของเบราว์เซอร์<br>แล้วเลือก <b>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</b>', 'info');
                 }
             }
         }
