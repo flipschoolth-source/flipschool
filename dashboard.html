@@ -34,8 +34,8 @@
         .card-body { padding: 16px 20px 20px 20px; display: flex; flex-direction: column; flex: 1; }
         .room-badge { display: inline-block; padding: 4px 12px; background: #f0f4ff; color: var(--primary-light); border-radius: 8px; font-size: 13px; font-weight: 700; font-family: 'Kanit'; }
         .subject-title { font-family: 'Kanit'; font-size: 18px; font-weight: 700; color: #1e293b; margin: 10px 0 5px 0; }
-        .filter-tab { padding: 10px 20px; background: white; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .filter-tab.active { background: var(--primary); color: white; }
+        .filter-tab { padding: 10px 20px; background: white; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 2px solid transparent; }
+        .filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -47,7 +47,7 @@
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div id="loadingText" style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
+        <div id="loadingText" style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังรวบรวมห้องเรียน...</div>
     </div>
 
     <nav class="nav-clean h-[70px] flex items-center justify-center sticky top-0 z-50">
@@ -58,11 +58,7 @@
             </div>
             <div class="flex items-center gap-4">
                 <button id="btnInstallPwaNav" onclick="installPWA()" style="display: none;" class="bg-[var(--accent)] text-white px-3 py-1.5 rounded-full font-bold text-xs">ติดตั้งแอป</button>
-                <div class="relative cursor-pointer" id="notificationBtn" onclick="toggleNotifDropdown()" style="display: none;">
-                    <i class="fas fa-bell text-xl text-slate-600"></i>
-                    <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] flex items-center justify-center border border-white">0</span>
-                </div>
-                <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-200 cursor-pointer" onclick="toggleDrawer()">
+                <img id="navProfileImg" src="" class="w-10 h-10 rounded-full border-2 border-slate-200 cursor-pointer shadow-sm" onclick="toggleDrawer()">
             </div>
         </div>
     </nav>
@@ -73,39 +69,43 @@
             <div class="w-10 h-10 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white">🎓</div>
             <div>
                 <div class="font-bold text-sm font-['Kanit']">FlipSchool</div>
-                <div class="text-xs text-slate-500">ใช้งานได้ลื่นไหลกว่าในแอป</div>
+                <div class="text-xs text-slate-500">ใช้งานแอปเพื่อความรวดเร็ว</div>
             </div>
         </div>
         <a id="btnOpenInApp" href="#" onclick="handleOpenInAppClick(event)" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-bold text-sm no-underline">เปิดแอป</a>
     </div>
 
     <main class="flex-grow w-full max-w-[1400px] mx-auto px-4 py-6">
+        <!-- Header Section -->
         <div class="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4 w-full">
                 <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center text-2xl">👋</div>
                 <div>
-                    <h1 class="text-2xl font-bold font-['Kanit'] text-slate-800">สวัสดี, <span id="welcomeText" class="text-[var(--primary)]">...</span></h1>
-                    <p class="text-sm text-slate-500">ยินดีต้อนรับสู่พื้นที่จัดการเรียนรู้ของคุณ</p>
+                    <h1 class="text-2xl font-bold font-['Kanit'] text-slate-800">สวัสดี, <span id="welcomeText">...</span></h1>
+                    <p class="text-sm text-slate-500">ยินดีต้อนรับสู่แดชบอร์ดจัดการเรียนรู้</p>
                 </div>
             </div>
             <div class="flex gap-3 shrink-0">
-                <div class="bg-slate-50 px-4 py-2 rounded-2xl border text-center">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">สอน</p>
+                <div class="bg-slate-50 px-4 py-2 rounded-2xl border text-center min-w-[80px]">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">ฉันสอน</p>
                     <p id="countTeach" class="text-xl font-bold">0</p>
                 </div>
-                <div class="bg-slate-50 px-4 py-2 rounded-2xl border text-center">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">เรียน</p>
+                <div class="bg-slate-50 px-4 py-2 rounded-2xl border text-center min-w-[80px]">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">ฉันเรียน</p>
                     <p id="countLearn" class="text-xl font-bold">0</p>
                 </div>
             </div>
         </div>
 
-        <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar" id="viewFilterTabs"></div>
+        <!-- Filter Tabs -->
+        <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4" id="viewFilterTabs"></div>
 
+        <!-- Grid Container -->
         <div id="gridAllClasses" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </main>
 
-    <button id="fabMainBtn" onclick="toggleFabMenu()" class="fixed bottom-8 right-8 w-16 h-16 bg-[var(--accent)] text-white rounded-full shadow-2xl flex items-center justify-center text-2xl z-[998] transition-transform">
+    <!-- FAB -->
+    <button id="fabMainBtn" onclick="toggleFabMenu()" class="fixed bottom-8 right-8 w-16 h-16 bg-[var(--accent)] text-white rounded-full shadow-2xl flex items-center justify-center text-2xl z-[998] transition-all">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -120,24 +120,39 @@
         </div>
     </div>
 
-    <!-- Modals & Sidebars -->
+    <!-- Sidebar & Overlay -->
     <div id="drawerOverlay" onclick="toggleDrawer()" class="fixed inset-0 bg-black/50 z-[1999] hidden"></div>
     <div id="sideDrawer" class="fixed top-0 right-0 h-full w-[300px] bg-white z-[2000] translate-x-full transition-transform shadow-2xl p-6 flex flex-col">
         <div class="text-center mb-8">
-            <img id="sidebarProfileImg" src="" class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-slate-50 shadow-md">
-            <h3 id="sidebarName" class="font-bold text-lg">...</h3>
+            <div class="relative inline-block">
+                <img id="sidebarProfileImg" src="" class="w-24 h-24 rounded-full border-4 border-slate-50 shadow-md">
+            </div>
+            <h3 id="sidebarName" class="font-bold text-lg mt-3">...</h3>
             <p id="sidebarEmail" class="text-xs text-slate-400">...</p>
         </div>
+        <div class="font-bold text-xs text-slate-400 uppercase tracking-widest mb-3">กลุ่มโรงเรียนที่สังกัด</div>
         <div id="sidebarSchoolsList" class="flex-grow overflow-y-auto space-y-2"></div>
-        <button onclick="handleLogout()" class="mt-4 w-full p-4 bg-rose-50 text-rose-600 font-bold rounded-2xl border-none cursor-pointer">ออกจากระบบ</button>
+        <button onclick="handleLogout()" class="mt-4 w-full p-4 bg-rose-50 text-rose-600 font-bold rounded-2xl border-none cursor-pointer hover:bg-rose-100 transition-colors"><i class="fas fa-power-off mr-2"></i>ออกจากระบบ</button>
     </div>
 
-    <div id="customAlertModal" class="fixed inset-0 bg-black/50 z-[9999] hidden items-center justify-center p-4">
+    <!-- Modals -->
+    <div id="joinClassModal" class="fixed inset-0 bg-black/50 z-[9999] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[30px] p-8 w-full max-w-[420px] text-center shadow-2xl relative">
+            <button onclick="closeJoinModal()" class="absolute top-4 right-4 text-slate-300 hover:text-rose-500 border-none bg-transparent cursor-pointer text-xl">&times;</button>
+            <i class="fas fa-sign-in-alt text-5xl text-emerald-500 mb-4"></i>
+            <h3 class="text-xl font-bold font-['Kanit'] mb-2">เข้าร่วมห้องเรียน</h3>
+            <p class="text-slate-500 text-sm mb-6">กรอกรหัส 6 หลักที่คุณครูแจ้งไว้</p>
+            <input type="text" id="joinCodeInput" maxlength="6" class="w-full p-4 text-center text-3xl font-mono font-bold tracking-widest border-2 border-slate-100 rounded-2xl focus:border-accent outline-none mb-6 uppercase" placeholder="------">
+            <button onclick="submitJoinClass()" class="w-full bg-[var(--primary)] text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all">เข้าร่วมวิชาเรียน</button>
+        </div>
+    </div>
+
+    <div id="customAlertModal" class="fixed inset-0 bg-black/50 z-[9999] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-[30px] p-8 w-full max-w-[400px] text-center shadow-2xl">
             <i id="customAlertIcon" class="fas fa-info-circle text-5xl mb-4"></i>
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] mb-2"></h3>
             <p id="customAlertMessage" class="text-slate-500 mb-6"></p>
-            <button onclick="closeCustomAlert()" class="bg-[var(--primary)] text-white px-8 py-3 rounded-full font-bold">ตกลง</button>
+            <button onclick="closeCustomAlert()" class="w-full bg-[var(--primary)] text-white py-4 rounded-2xl font-bold">รับทราบ</button>
         </div>
     </div>
 
@@ -148,51 +163,67 @@
         let activeViewMode = 'all';
         let allClasses = [];
 
-        // ================= 🌟 ฟังก์ชันดึงข้อมูลห้องเรียน (ฉบับแก้บั๊กนักเรียนมองไม่เห็น) 🌟 =================
+        // ================= 🌟 ฟังก์ชันดึงข้อมูลห้องเรียน (Bulletproof) 🌟 =================
         async function fetchAllClasses(db) {
             try {
-                // 1. ตรวจสอบชื่อคอลัมน์ที่ใช้อ้างอิง (ตาม DDL ล่าสุดคือ user_id)
-                // ตรวจสอบห้องเรียนที่ครูสร้าง
-                const { data: teachData } = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
+                console.log("Starting fetchAllClasses for UID:", currentUser.id);
                 
-                // 2. ดึงรายชื่อห้องที่นักเรียนเข้าร่วมจากตาราง classroom_users
-                // 🌟 ยึดตาม DDL: คอลัมน์คือ user_id เท่านั้น
-                const { data: enrollments, error: enrollError } = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
+                // 1. ดึงห้องเรียนที่ครูสร้าง (ใช้ owner_id ตาม DDL)
+                const { data: teachData, error: teachErr } = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
+                if (teachErr) console.warn("Teach Fetch Error:", teachErr);
+
+                // 2. ดึงห้องเรียนที่นักเรียนเข้าร่วม (ใช้ user_id ตาม DDL)
+                const { data: enrollments, error: enrollErr } = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
+                if (enrollErr) console.warn("Enroll Fetch Error:", enrollErr);
 
                 let learnData = [];
                 if (enrollments && enrollments.length > 0) {
-                    const classIds = enrollments.map(e => e.classroom_id);
+                    const classIds = [...new Set(enrollments.map(e => e.classroom_id))];
+                    console.log("Enrolled Class IDs:", classIds);
                     
-                    // 🌟 วิธีแก้ปัญหา RLS: ดึงข้อมูลทีละก้อน หรือใช้ In หากสิทธิ์ Select เปิดกว้างพอ
-                    const { data: classDetails } = await db.from('classrooms').select('*').in('classroom_id', classIds);
-                    if (classDetails) learnData = classDetails;
+                    // ดึงรายละเอียดห้องเรียนเหล่านั้น
+                    const { data: classDetails, error: detailErr } = await db.from('classrooms').select('*').in('classroom_id', classIds);
+                    if (detailErr) {
+                        console.error("Detail Fetch Error (RLS Issue?):", detailErr);
+                    } else {
+                        learnData = classDetails || [];
+                    }
                 }
 
-                // 3. รวมและจัดกลุ่มข้อมูล
+                // 3. ประกอบร่างข้อมูล
                 const mappedTeach = (teachData || []).map(c => ({ ...c, userRole: 'teacher' }));
                 const mappedLearn = (learnData || []).map(c => ({ ...c, userRole: 'student' }));
 
+                // รวมและลบตัวซ้ำ
                 allClasses = [...mappedTeach, ...mappedLearn];
-                // กรองห้องซ้ำ (กรณีเป็นทั้งครูและนักเรียนในห้องเดียวกัน)
-                allClasses = Array.from(new Map(allClasses.map(item => [item.classroom_id, item])).values());
+                const uniqueMap = new Map();
+                allClasses.forEach(item => {
+                    // หากซ้ำ ให้ลำดับความสำคัญสิทธิ์ 'teacher' ก่อน
+                    if (!uniqueMap.has(item.classroom_id) || item.userRole === 'teacher') {
+                        uniqueMap.set(item.classroom_id, item);
+                    }
+                });
+                allClasses = Array.from(uniqueMap.values());
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                // 4. ดึงชื่อโรงเรียนมาแปะให้สวยงาม
+                console.log("Total unique classes loaded:", allClasses.length);
+
+                // 4. ดึงชื่อโรงเรียนมาใส่ (เพื่อความสวยงามใน UI)
                 const schoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
                 if (schoolIds.length > 0) {
                     const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', schoolIds);
                     const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s.school_name]));
-                    allClasses = allClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'พื้นที่ส่วนตัว' }));
+                    allClasses = allClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
                 }
 
                 renderFilteredGrids();
             } catch (e) {
-                console.error("Fetch Error:", e);
-                showCustomAlert("โหลดข้อมูลห้องเรียนไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ", "error");
+                console.error("Critical Fetch Error:", e);
+                showCustomAlert("เกิดข้อผิดพลาดในการรวบรวมข้อมูล กรุณาลองใหม่อีกครั้ง", "error");
             }
         }
 
-        // ================= Core Logic =================
+        // ================= Core Initialization =================
         async function initDashboard() {
             try {
                 const db = getDB();
@@ -201,16 +232,17 @@
                 let userId = session?.user?.id || localStorage.getItem('flip_student_session_id');
                 if (!userId) return window.location.replace('login.html');
 
-                // ดึงข้อมูลผู้ใช้ (ลองจากตาราง users ก่อน)
-                let { data: user } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
+                // 1. ดึงข้อมูล Profile (เน้น user_id ตาม DDL)
+                let { data: user, error: uErr } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
                 
-                // ถ้าไม่เจอ (กรณีนร.นำเข้าใหม่) ให้หาใน user_school
                 if (!user) {
+                    // ถ้าไม่เจอใน users (นักเรียนที่นำเข้า Excel แต่ยังไม่ Register Auth) ให้หาใน user_school
                     const { data: us } = await db.from('user_school').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
-                    if (us) user = { user_id: userId, first_name: us.first_name, last_name: us.last_name };
+                    if (us) user = { user_id: userId, first_name: us.first_name, last_name: us.last_name, student_code: us.student_code };
                 }
 
                 if (!user) {
+                    console.error("User not found in users or user_school");
                     localStorage.removeItem('flip_student_session_id');
                     return window.location.replace('login.html');
                 }
@@ -218,85 +250,127 @@
                 currentUser = { id: userId, email: session?.user?.email || '' };
                 userData = user;
 
-                // ดึงข้อมูลสังกัดโรงเรียน
+                // 2. ดึงข้อมูลสังกัดโรงเรียน
                 const { data: schools } = await db.from('user_school').select('*, schools(*)').eq('user_id', userId);
                 userSchools = schools || [];
 
-                // UI Rendering
+                // 3. อัปเดต UI เบื้องต้น
                 document.getElementById('welcomeText').innerText = user.first_name;
                 document.getElementById('sidebarName').innerText = `${user.first_name} ${user.last_name || ''}`;
-                document.getElementById('sidebarEmail').innerText = currentUser.email;
+                document.getElementById('sidebarEmail').innerText = currentUser.email || `ID: ${user.student_code || 'Student'}`;
                 const pic = user.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name}`;
                 document.getElementById('navProfileImg').src = pic;
                 document.getElementById('sidebarProfileImg').src = pic;
 
+                // 4. ดึงข้อมูลห้องเรียนและโรงเรียน
                 await fetchAllClasses(db);
                 renderFilterTabs();
+                renderSidebarSchools();
                 
-                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('loadingOverlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
             } catch (err) {
-                console.error(err);
+                console.error("Init Error:", err);
                 window.location.replace('login.html');
             }
         }
 
         function renderFilterTabs() {
             const container = document.getElementById('viewFilterTabs');
-            const saved = localStorage.getItem('flip_view') || 'all';
-            activeViewMode = saved;
+            const savedView = localStorage.getItem('flip_view_pref') || 'all';
+            activeViewMode = savedView;
 
-            let html = `<button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchView('all')">ทั้งหมด</button>`;
-            html += `<button class="filter-tab ${activeViewMode === 'private' ? 'active' : ''}" onclick="switchView('private')">ส่วนตัว</button>`;
+            let html = `<button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchView('all')"><i class="fas fa-layer-group mr-2"></i>ทั้งหมด</button>`;
+            html += `<button class="filter-tab ${activeViewMode === 'private' ? 'active' : ''}" onclick="switchView('private')"><i class="fas fa-user-lock mr-2"></i>ส่วนตัว</button>`;
+            
             userSchools.forEach(s => {
-                html += `<button class="filter-tab ${activeViewMode === s.school_id ? 'active' : ''}" onclick="switchView('${s.school_id}')">${s.schools.school_name}</button>`;
+                if (s.schools) {
+                    html += `<button class="filter-tab ${activeViewMode === s.school_id ? 'active' : ''}" onclick="switchView('${s.school_id}')"><i class="fas fa-school mr-2"></i>${s.schools.school_name}</button>`;
+                }
             });
             container.innerHTML = html;
         }
 
+        function renderSidebarSchools() {
+            const container = document.getElementById('sidebarSchoolsList');
+            if (userSchools.length === 0) {
+                container.innerHTML = `<div class="p-4 bg-slate-50 rounded-xl text-center text-slate-400 text-xs italic">ยังไม่มีสังกัดกลุ่มโรงเรียน</div>`;
+                return;
+            }
+            container.innerHTML = userSchools.map(s => `
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-check-circle text-emerald-500 text-xs"></i>
+                        <span class="text-sm font-bold text-slate-700">${s.schools?.school_name || 'ไม่ทราบชื่อ'}</span>
+                    </div>
+                    <span class="text-[10px] bg-white px-2 py-0.5 rounded border border-slate-200 uppercase font-bold text-slate-400">${s.role}</span>
+                </div>
+            `).join('');
+        }
+
         function switchView(mode) {
             activeViewMode = mode;
-            localStorage.setItem('flip_view', mode);
+            localStorage.setItem('flip_view_pref', mode);
             renderFilterTabs();
             renderFilteredGrids();
         }
 
         function renderFilteredGrids() {
             let filtered = [];
-            if (activeViewMode === 'all') filtered = allClasses;
-            else if (activeViewMode === 'private') filtered = allClasses.filter(c => !c.school_id);
-            else filtered = allClasses.filter(c => c.school_id === activeViewMode);
+            
+            // 🌟 ลอจิกการกรอง (ฉบับแก้ไข) 🌟
+            if (activeViewMode === 'all') {
+                filtered = allClasses;
+            } else if (activeViewMode === 'private') {
+                // กรองเอาเฉพาะห้องเรียนที่ไม่มี school_id หรือ school_id ไม่ได้อยู่ในรายการที่ผู้ใช้สังกัด
+                const joinedSchoolIds = userSchools.map(s => s.school_id);
+                filtered = allClasses.filter(c => !c.school_id || !joinedSchoolIds.includes(c.school_id));
+            } else {
+                // กรองตาม ID โรงเรียนที่เลือก
+                filtered = allClasses.filter(c => c.school_id === activeViewMode);
+            }
 
             document.getElementById('countTeach').innerText = filtered.filter(c => c.userRole === 'teacher').length;
             document.getElementById('countLearn').innerText = filtered.filter(c => c.userRole === 'student').length;
 
             const grid = document.getElementById('gridAllClasses');
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-20 text-center text-slate-400">ยังไม่มีห้องเรียนในกลุ่มนี้</div>`;
+                grid.innerHTML = `
+                    <div class="col-span-full py-24 text-center">
+                        <div class="w-20 h-20 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-400 font-['Kanit']">ยังไม่มีห้องเรียนในกลุ่มนี้</h3>
+                        <p class="text-xs text-slate-300 mt-2">คุณสามารถกดปุ่ม + เพื่อสร้างหรือเข้าร่วมห้องเรียนใหม่ได้ครับ</p>
+                    </div>`;
                 return;
             }
 
             grid.innerHTML = filtered.map(c => `
-                <div class="class-card" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
+                <div class="class-card group" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
                     <div class="card-banner" style="background: ${c.color_code || 'var(--primary)'};">
-                        <i class="fas fa-graduation-cap"></i>
+                        <i class="fas fa-graduation-cap group-hover:scale-110 transition-transform"></i>
                     </div>
                     <div class="card-body">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center mb-1">
                             <span class="room-badge">${c.room_name}</span>
-                            <span class="text-[10px] font-bold ${c.userRole === 'teacher' ? 'text-blue-500' : 'text-emerald-500'} uppercase">${c.userRole === 'teacher' ? 'สอน' : 'เรียน'}</span>
+                            <span class="text-[10px] font-bold ${c.userRole === 'teacher' ? 'text-blue-500' : 'text-emerald-500'} uppercase">
+                                <i class="fas ${c.userRole === 'teacher' ? 'fa-chalkboard-teacher' : 'fa-user-graduate'} mr-1"></i>${c.userRole === 'teacher' ? 'ฉันสอน' : 'ฉันเรียน'}
+                            </span>
                         </div>
                         <h3 class="subject-title truncate">${c.subject_name}</h3>
-                        <p class="text-xs text-slate-400 mt-auto"><i class="fas fa-school mr-1"></i> ${c.school_name || 'พื้นที่ส่วนตัว'}</p>
+                        <p class="text-[11px] text-slate-400 mt-auto flex items-center gap-1">
+                            <i class="fas fa-school text-slate-300"></i> ${c.school_name || 'พื้นที่ส่วนตัว'}
+                        </p>
                     </div>
                 </div>
             `).join('');
         }
 
-        // --- Helpers ---
+        // --- Utils & UI Helpers ---
         function getDB() {
             if (window.sysDB) return window.sysDB;
-            const key = APP_CONFIG.SUPABASE_KEY;
-            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
+            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
             return window.sysDB;
         }
 
@@ -314,13 +388,46 @@
             menu.style.pointerEvents = menu.classList.contains('opacity-0') ? 'none' : 'auto';
         }
 
-        function showCustomAlert(msg, type='info') {
-            document.getElementById('customAlertTitle').innerText = type === 'error' ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน';
-            document.getElementById('customAlertMessage').innerText = msg;
-            document.getElementById('customAlertIcon').className = `fas ${type === 'error' ? 'fa-times-circle text-rose-500' : 'fa-info-circle text-blue-500'} text-5xl mb-4`;
-            document.getElementById('customAlertModal').style.display = 'flex';
+        function openJoinModal() { toggleFabMenu(); document.getElementById('joinClassModal').style.display = 'flex'; document.getElementById('joinCodeInput').value = ''; document.getElementById('joinCodeInput').focus(); }
+        function closeJoinModal() { document.getElementById('joinClassModal').style.display = 'none'; }
+
+        async function submitJoinClass() {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (code.length < 6) return showCustomAlert("กรุณากรอกรหัสให้ครบ 6 หลัก", "warning");
+
+            try {
+                const db = getDB();
+                // 1. ค้นหาห้องเรียนจากรหัส
+                const { data: cls, error: clsErr } = await db.from('classrooms').select('classroom_id, subject_name').eq('class_code', code).maybeSingle();
+                if (!cls) throw new Error("ไม่พบห้องเรียนที่ตรงกับรหัสนี้");
+
+                // 2. ตรวจสอบว่าเคยเข้าหรือยัง
+                const { data: exists } = await db.from('classroom_users').select('enrollment_id').eq('classroom_id', cls.classroom_id).eq('user_id', currentUser.id).maybeSingle();
+                if (exists) throw new Error("คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้ว");
+
+                // 3. บันทึกการเข้าเรียน (ใช้ user_id ตาม DDL)
+                const { error: insErr } = await db.from('classroom_users').insert([{
+                    classroom_id: cls.classroom_id,
+                    user_id: currentUser.id,
+                    student_number: 0 // แนะนำให้นักเรียนไปอัปเดตเลขที่ทีหลัง หรือรอครูจัดเลขที่ให้
+                }]);
+                if (insErr) throw insErr;
+
+                showCustomAlert(`เข้าร่วมวิชา ${cls.subject_name} สำเร็จ!`, "success", () => location.reload());
+            } catch (err) { showCustomAlert(err.message, "error"); }
         }
-        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
+
+        function showCustomAlert(msg, type='info', callback=null) {
+            document.getElementById('customAlertTitle').innerText = type === 'error' ? 'เกิดข้อผิดพลาด' : (type === 'success' ? 'สำเร็จ' : 'แจ้งเตือน');
+            document.getElementById('customAlertMessage').innerText = msg;
+            document.getElementById('customAlertIcon').className = `fas ${type === 'error' ? 'fa-times-circle text-rose-500' : (type === 'success' ? 'fa-check-circle text-emerald-500' : 'fa-info-circle text-blue-500')} text-5xl mb-4`;
+            document.getElementById('customAlertModal').style.display = 'flex';
+            window.alertCallback = callback;
+        }
+        function closeCustomAlert() { 
+            document.getElementById('customAlertModal').style.display = 'none'; 
+            if (window.alertCallback) { window.alertCallback(); window.alertCallback = null; }
+        }
 
         async function handleLogout() {
             const db = getDB();
