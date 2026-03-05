@@ -273,7 +273,7 @@
         <button onclick="handleLogout()" class="mt-auto w-full p-4 bg-rose-50 text-rose-600 font-bold font-['Kanit'] rounded-2xl border-none cursor-pointer hover:bg-rose-100 transition-colors flex justify-center items-center gap-2"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
     </div>
 
-    <!-- 🌟 Modal ค้นหาและขอเข้าร่วมโรงเรียน (อัปเดตลอจิกแอดมิน) 🌟 -->
+    <!-- 🌟 Modal ค้นหาและขอเข้าร่วมโรงเรียน 🌟 -->
     <div id="joinSchoolModal" class="modal-overlay" style="z-index: 6500;">
         <div class="modal-box text-left max-w-md w-[95%] p-6">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
@@ -335,12 +335,10 @@
                         <div id="fileNameDisplay" class="text-sm text-slate-500 font-['Kanit'] font-semibold mb-4">ยังไม่ได้เลือกรูปภาพ</div>
                         
                         <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                            <!-- ปุ่มแนบไฟล์รูปภาพทั่วไป -->
                             <button type="button" onclick="document.getElementById('idCardFileInput').click()" class="bg-white border border-blue-200 text-[var(--primary)] hover:bg-blue-50 px-4 py-2.5 rounded-xl text-sm font-bold font-['Kanit'] transition-colors flex-1 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                                 <i class="fas fa-image text-lg"></i> แนบไฟล์รูป
                             </button>
                             
-                            <!-- ปุ่มเปิดกล้องหน้าสำหรับเซลฟี -->
                             <button type="button" onclick="document.getElementById('idCardCameraInput').click()" class="bg-[var(--primary)] text-white hover:bg-[var(--primary-light)] px-4 py-2.5 rounded-xl text-sm font-bold font-['Kanit'] transition-colors flex-1 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                                 <i class="fas fa-camera text-lg"></i> ถ่ายเซลฟี
                             </button>
@@ -348,10 +346,7 @@
                         
                         <p class="text-xs text-slate-400 mt-4 font-['Sarabun'] mb-0">รองรับ jpg, png (ขนาดไม่เกิน 5MB)</p>
                         
-                        <!-- Input แบบเลือกไฟล์ธรรมดา -->
                         <input type="file" id="idCardFileInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
-                        
-                        <!-- Input แบบบังคับเปิดกล้องหน้า (capture="user") สำหรับมือถือ -->
                         <input type="file" id="idCardCameraInput" accept="image/*" capture="user" class="hidden" onchange="handleFileSelect(this)">
                     </div>
                 </div>
@@ -403,7 +398,10 @@
             <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
             <h3 id="customAlertTitle" class="text-2xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-500 mb-6 font-['Sarabun']"></p>
-            <button onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer transition-all shadow-md">ตกลง</button>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer transition-all shadow-md" id="customAlertOkBtn">ตกลง</button>
+                <button onclick="closeCustomAlert(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer transition-all shadow-md hidden" id="customAlertCancelBtn">ยกเลิก</button>
+            </div>
         </div>
     </div>
 
@@ -439,8 +437,36 @@
             }
         }
 
-        function showCustomAlert(msg, type='info', cb=null) { document.getElementById('customAlertTitle').innerText = type==='error'?'เกิดข้อผิดพลาด':(type==='success'?'สำเร็จ!':'แจ้งเตือน'); document.getElementById('customAlertMessage').innerHTML = msg; document.getElementById('customAlertIcon').className = `fas ${type==='error'?'fa-times-circle text-rose-500':(type==='success'?'fa-check-circle text-emerald-500':'fa-exclamation-triangle text-amber-500')}`; document.getElementById('customAlertModal').style.display = 'flex'; window.alertCallback = cb; }
-        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; if(window.alertCallback) window.alertCallback(); }
+        let alertCallback = null;
+        let alertCancelCallback = null;
+
+        function showCustomAlert(msg, type='info', cb=null, cancelCb=null) { 
+            document.getElementById('customAlertTitle').innerText = type==='error'?'เกิดข้อผิดพลาด':(type==='success'?'สำเร็จ!':(type==='confirm'?'ยืนยันดำเนินการ':'แจ้งเตือน')); 
+            document.getElementById('customAlertMessage').innerHTML = msg; 
+            
+            const icon = document.getElementById('customAlertIcon');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+            
+            if(type==='error') { icon.className = 'fas fa-times-circle text-rose-500'; cancelBtn.classList.add('hidden'); }
+            else if(type==='success') { icon.className = 'fas fa-check-circle text-emerald-500'; cancelBtn.classList.add('hidden'); }
+            else if(type==='confirm') { icon.className = 'fas fa-question-circle text-amber-500'; cancelBtn.classList.remove('hidden'); cancelBtn.style.display = 'inline-block'; }
+            else { icon.className = 'fas fa-exclamation-triangle text-amber-500'; cancelBtn.classList.add('hidden'); }
+            
+            document.getElementById('customAlertModal').style.display = 'flex'; 
+            alertCallback = cb; 
+            alertCancelCallback = cancelCb;
+        }
+        
+        function closeCustomAlert(isCancel = false) { 
+            document.getElementById('customAlertModal').style.display = 'none'; 
+            if (isCancel && alertCancelCallback) {
+                alertCancelCallback();
+            } else if (!isCancel && alertCallback) {
+                alertCallback();
+            }
+            alertCallback = null;
+            alertCancelCallback = null;
+        }
 
         // --- 🌟 Global Variables & Cache Keys 🌟 ---
         let currentUser = null;
@@ -628,7 +654,6 @@
                 
                 try {
                     const db = getDB();
-                    // ลบคำขอทั้งหมดที่ยัง pending อยู่ (เพื่อความง่าย หรือจะระบุ school_id ก็ได้)
                     const { error } = await db.from('user_school').delete().eq('user_id', currentUser.id).eq('verification_status', 'pending');
                     if (error) throw error;
                     
@@ -772,7 +797,6 @@
             
             document.getElementById('selectedSchoolCard').classList.remove('hidden');
             
-            // ตรวจสอบว่ามี Admin หรือยัง
             checkSchoolAdminStatus(id);
         }
 
@@ -896,6 +920,32 @@
             }
         }
 
+        // ================= 🌟 ฟังก์ชันส่งอีเมลแจ้งเตือนด้วย Make.com 🌟 =================
+        async function sendAdminNotification(fName, lName, schoolName) {
+            // 👇 นำลิงก์ Webhook ของ Make.com มาวางที่นี่
+            const MAKE_WEBHOOK_URL = "https://us2.make.com/n14aob3aaxv4xovz9d4jtdo4z8l26e8q";
+            
+            const payload = {
+                teacher_name: `ครู${fName} ${lName || ''}`.trim(),
+                school_name: schoolName,
+                login_url: window.location.origin + "/super_admin.html" 
+            };
+
+            try {
+                fetch(MAKE_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(response => {
+                    console.log('Webhook Triggered Successfully:', response.status);
+                }).catch(err => {
+                    console.error('Webhook Trigger Failed:', err);
+                });
+            } catch (error) {
+                console.error('Error executing webhook:', error);
+            }
+        }
+
         async function submitJoinSchoolReq() {
             const btn = document.getElementById('btnSubmitJoinSchool');
             let targetSchoolId = document.getElementById('selectedSchoolId').value;
@@ -905,7 +955,6 @@
             let applyRole = 'teacher';
             let isUpdatingAbbr = false;
             
-            // 1. ตรวจสอบข้อมูลฟอร์ม
             if (isCreatingNewSchool) {
                 finalSchoolName = document.getElementById('newSchoolName').value.trim();
                 finalSchoolAbbr = document.getElementById('newSchoolAbbr').value.trim().toLowerCase();
@@ -920,19 +969,17 @@
                     isUpdatingAbbr = true;
                 }
                 
-                // ตรวจสอบว่าจะขอเป็น Admin ไหม
                 if (!reqSchoolHasAdmin) {
-                    applyRole = 'admin'; // คนแรก บังคับ admin
+                    applyRole = 'admin'; 
                 } else {
                     if (document.getElementById('requestAdminCb').checked) {
-                        applyRole = 'admin'; // คนถัดไป ขอ admin
+                        applyRole = 'admin'; 
                     } else {
-                        applyRole = 'teacher'; // คนถัดไป เข้าร่วมเฉยๆ
+                        applyRole = 'teacher'; 
                     }
                 }
             }
 
-            // ตรวจสอบการแนบไฟล์
             const needsUpload = applyRole === 'admin';
             if (needsUpload && !selectedImageFile) {
                 return showCustomAlert('กรุณาแนบภาพถ่ายเซลฟี่คู่กับบัตรประจำตัวครู/ข้าราชการ เพื่อขอสิทธิ์แอดมินกลุ่มครับ', 'warning');
@@ -944,23 +991,19 @@
             try {
                 const db = getDB();
                 
-                // 2. ตรวจสอบอักษรย่อซ้ำ (ถ้ามีการระบุใหม่)
                 if (isCreatingNewSchool || isUpdatingAbbr) {
                     const { data: existAbbr } = await db.from('schools').select('school_id').eq('school_abbr', finalSchoolAbbr).neq('school_id', targetSchoolId || '00000000-0000-0000-0000-000000000000').maybeSingle();
                     if (existAbbr) throw new Error(`อักษรย่อ "${finalSchoolAbbr}" มีผู้ใช้งานแล้ว กรุณาเปลี่ยนใหม่`);
                 }
 
-                // 3. ตรวจสอบว่าเคยส่งคำขอหรือยัง
                 if (!isCreatingNewSchool) {
                     const { data: existReq } = await db.from('user_school').select('verification_status').eq('user_id', currentUser.id).eq('school_id', targetSchoolId).maybeSingle();
                     if (existReq) {
                         if (existReq.verification_status === 'pending') throw new Error("คุณได้ส่งคำขอไปยังโรงเรียนนี้แล้ว กรุณารอการอนุมัติ");
                         if (existReq.verification_status === 'approved') throw new Error("คุณอยู่ในกลุ่มโรงเรียนนี้อยู่แล้ว");
-                        // ถ้าระบบเคย reject จะยอมให้ส่งใหม่ได้ (Upsert จะจัดการให้)
                     }
                 }
 
-                // 4. อัปโหลดรูปภาพ (ถ้ามี)
                 let uploadedCardUrl = null;
                 if (selectedImageFile) {
                     const fileExt = selectedImageFile.name.split('.').pop();
@@ -970,7 +1013,6 @@
                     uploadedCardUrl = fileName;
                 }
 
-                // 5. บันทึกข้อมูลโรงเรียน (ถ้าสร้างใหม่ หรือ อัปเดต)
                 if (isCreatingNewSchool) {
                     targetSchoolId = crypto.randomUUID();
                     const { error: insSch } = await db.from('schools').insert([{ school_id: targetSchoolId, school_name: finalSchoolName, school_abbr: finalSchoolAbbr }]);
@@ -979,7 +1021,6 @@
                     await db.from('schools').update({ school_abbr: finalSchoolAbbr }).eq('school_id', targetSchoolId);
                 }
 
-                // 6. บันทึกข้อมูลเข้า user_school (Upsert)
                 const payload = {
                     user_id: currentUser.id,
                     school_id: targetSchoolId,
@@ -992,9 +1033,11 @@
                 const { error: upsertErr } = await db.from('user_school').upsert([payload], { onConflict: 'user_id, school_id' });
                 if (upsertErr) throw upsertErr;
 
+                // 🌟 ยิง Webhook แจ้งเตือนแอดมิน (ทำเบื้องหลัง) 🌟
+                sendAdminNotification(userData.first_name, userData.last_name, finalSchoolName);
+
                 showCustomAlert("ส่งคำขอเข้าร่วมกลุ่มสำเร็จ! โปรดรอการอนุมัติ", "success", () => {
                     closeJoinSchoolModal();
-                    // อัปเดตข้อมูลบนหน้าจอเบื้องหลัง
                     document.getElementById('syncIndicator').classList.add('syncing');
                     fetchFreshData(currentUser.id, db);
                 });
@@ -1036,7 +1079,6 @@
             if (approvedSchoolIds.length === 0) return;
 
             try {
-                // ดึงเฉพาะคำขอที่เป็นครูหรือแอดมินที่กำลังรอการอนุมัติ ในโรงเรียนที่เราสังกัด
                 const { data: reqs, error: reqErr } = await sysDB.from('user_school')
                     .select('id, user_id, school_id, role, verification_card_url, created_at')
                     .eq('verification_status', 'pending')
@@ -1055,7 +1097,7 @@
                     const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name').in('school_id', schoolIds);
 
                     reqs.forEach(r => {
-                        if (r.user_id !== currentUser.id) { // ป้องกันไม่ให้เห็นคำขอของตัวเอง
+                        if (r.user_id !== currentUser.id) { 
                             const uData = usersData ? usersData.find(u => u.user_id === r.user_id) : {};
                             const sData = schoolsData ? schoolsData.find(s => s.school_id === r.school_id) : {};
                             pendingData.push({ ...r, users: uData || {}, schools: sData || {} });
@@ -1144,7 +1186,6 @@
                             <button class="btn-notif-action btn-notif-reject" onclick="showRejectBoxReq('${req.id}')">ปฏิเสธ</button>
                         </div>
 
-                        <!-- กล่องใส่เหตุผลปฏิเสธ -->
                         <div id="reject-box-${req.id}" style="display:none; margin-top: 10px; flex-direction: column; gap: 8px;">
                             <input type="text" id="reject-reason-${req.id}" class="form-input" style="font-size:13px; padding: 8px 12px; margin-bottom: 0; border-radius: 8px; border: 1px solid #ccd0d5; background: #f0f2f5; width: 100%;" placeholder="ระบุเหตุผลที่ปฏิเสธ (บังคับ)">
                             <div style="display:flex; gap:8px;">
@@ -1288,7 +1329,7 @@
         function openJoinModal() { toggleFabMenu(); document.getElementById('joinClassModal').style.display = 'flex'; }
         function closeJoinModal() { document.getElementById('joinClassModal').style.display = 'none'; }
         
-        async function handleLogout() { await getDB().auth.signOut(); localStorage.clear(); location.href = 'login.html'; }
+        async function handleLogout() { showCustomAlert("ต้องการออกจากระบบใช่หรือไม่?", "confirm", async () => { await getDB().auth.signOut(); localStorage.clear(); location.href = 'login.html'; }); }
 
         // PWA Script
         let deferredPrompt;
