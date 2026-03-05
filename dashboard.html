@@ -184,7 +184,7 @@
             </div>
             <div class="flex items-center gap-4 relative">
                 
-                <!-- ปุ่มติดตั้ง PWA บน Navbar (กรณีใช้งานครั้งแรกสุด) -->
+                <!-- ปุ่มติดตั้ง PWA บน Navbar -->
                 <button id="btnInstallPwaNav" onclick="installPWA()" style="display: none;" class="bg-[var(--accent)] hover:bg-orange-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold font-['Kanit'] text-xs md:text-sm shadow-sm transition cursor-pointer border-none flex items-center justify-center gap-1.5 md:gap-2">
                     <i class="fas fa-download"></i> <span class="hidden sm:inline">ติดตั้งแอป</span>
                 </button>
@@ -221,7 +221,6 @@
                 <span style="font-family: 'Sarabun'; font-size: 13px; color: #65676b; line-height: 1.2;">ใช้งานได้ลื่นไหลกว่าในแอป</span>
             </div>
         </div>
-        <!-- 🌟 แก้ไข: เพิ่ม onclick="handleOpenInAppClick(event)" เข้าไปที่ปุ่ม 🌟 -->
         <a id="btnOpenInApp" href="#" target="_blank" rel="noopener noreferrer" onclick="handleOpenInAppClick(event)" style="background: #e7f3ff; color: #1877f2; border: none; padding: 8px 18px; border-radius: 50px; font-family: 'Kanit'; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-block; transition: 0.2s;">
             เปิดแอป
         </a>
@@ -443,14 +442,12 @@
         // ================= 🌟 PWA Smart App Banner (Facebook Style) 🌟 =================
         let deferredPrompt;
 
-        // 1. เช็คว่ากำลังถูกเปิดในโหมดแอป (Standalone) หรือไม่
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         
         if (isStandalone) {
             localStorage.setItem('is_pwa_installed', 'yes');
         }
 
-        // 2. ดักจับเหตุการณ์ก่อนติดตั้งจากเบราว์เซอร์
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -459,7 +456,6 @@
             if (installBtn && !isStandalone) installBtn.style.display = 'flex';
         });
 
-        // 3. ฟังก์ชันคลิกติดตั้ง PWA จากปุ่มบน Navbar
         async function installPWA() {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             
@@ -473,19 +469,16 @@
                 const installBtn = document.getElementById('btnInstallPwaNav');
                 if (installBtn) installBtn.style.display = 'none';
             } else if (isIos && !isStandalone) {
-                // 🌟 สำหรับ iOS จะขึ้นคำแนะนำการติดตั้งให้
                 showCustomAlert('<b>วิธีติดตั้งแอปบน iOS (iPhone/iPad)</b><br><br>1. กดปุ่ม <b>"แชร์"</b> <i class="fas fa-share-square"></i> ที่แถบเครื่องมือของ Safari<br>2. เลื่อนลงและเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b><br>3. กด <b>"เพิ่ม" (Add)</b> มุมขวาบน', 'info');
             }
         }
 
-        // 4. เหตุการณ์หลังติดตั้งเสร็จสมบูรณ์
         window.addEventListener('appinstalled', (evt) => {
             localStorage.setItem('is_pwa_installed', 'yes');
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
         });
 
-        // 5. ลอจิกการแสดงแบนเนอร์เชิญชวน (ถ้าเคยติดตั้งไปแล้วแต่ยังมาเปิดในเบราว์เซอร์)
         if (!isStandalone && localStorage.getItem('is_pwa_installed') === 'yes') {
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
@@ -494,12 +487,10 @@
                 const banner = document.getElementById('smartAppBanner');
                 if (banner) {
                     banner.style.display = 'flex';
-                    // อัปเดตลิงก์ให้เป็นหน้าปัจจุบัน
                     document.getElementById('btnOpenInApp').href = window.location.href;
                 }
             }
         } else if (!isStandalone) {
-            // กรณี iOS ที่อาจจะยังไม่ติดตั้ง 
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             const isInstalled = localStorage.getItem('is_pwa_installed') === 'yes';
             
@@ -515,14 +506,12 @@
             if (installBtn) installBtn.style.display = 'none';
         }
 
-        // 🌟 6. ฟังก์ชันเมื่อกดปุ่ม "เปิดแอป" ในแถบ Smart Banner 🌟
         function handleOpenInAppClick(e) {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
-                e.preventDefault(); // บล็อกไม่ให้โหลดหน้าซ้ำบน iOS
+                e.preventDefault();
                 showCustomAlert('ระบบความปลอดภัยของ iOS ไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen) ของคุณ<br>แล้วกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ครับ</b>', 'info');
             }
-            // ถ้าเป็น Android ปล่อยให้คลิก href ไปตามปกติเพื่อกระตุ้น Intent เรียกเปิดแอป
         }
 
         function closeSmartBanner() {
@@ -898,60 +887,54 @@
             }
         }
 
+        // ================= 🌟 ฟังก์ชันดึงข้อมูลห้องเรียนแบบทะลุข้อจำกัด (Bulletproof) 🌟 =================
         async function fetchAllClasses(db) {
             try {
+                // 1. ตรวจสอบชื่อคอลัมน์ของตาราง classrooms (owner_id หรือ teacher_id)
+                let ownerCol = 'owner_id';
+                const { error: testOwner } = await db.from('classrooms').select('owner_id').limit(1);
+                if (testOwner && String(testOwner.code).includes('42703')) ownerCol = 'teacher_id';
+
+                // 2. ตรวจสอบชื่อคอลัมน์ของตาราง classroom_users (user_id หรือ student_id)
+                let userCol = 'user_id';
+                const { error: testUser } = await db.from('classroom_users').select('user_id').limit(1);
+                if (testUser && String(testUser.code).includes('42703')) userCol = 'student_id';
+
+                // --- ส่วนที่ 1: ดึงห้องเรียนที่ครูสร้าง ---
                 let teachData = [];
-                let resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
-                if (resTeach.error || !resTeach.data || resTeach.data.length === 0) {
-                    let resTeach2 = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
-                    if (!resTeach2.error && resTeach2.data && resTeach2.data.length > 0) {
-                        resTeach = resTeach2;
-                    }
-                }
-                
-                if (resTeach.data) {
-                    teachData = resTeach.data;
-                }
+                const { data: resTeach } = await db.from('classrooms').select('*').eq(ownerCol, currentUser.id);
+                if (resTeach) teachData = resTeach;
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
+                // --- ส่วนที่ 2: ดึงห้องเรียนที่นักเรียนมีชื่ออยู่ ---
                 let learnData = [];
-                let enrollments = [];
-                
-                let resLearn = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
-                if (resLearn.error || !resLearn.data || resLearn.data.length === 0) {
-                    let resLearn2 = await db.from('classroom_users').select('classroom_id').eq('student_id', currentUser.id);
-                    if (!resLearn2.error && resLearn2.data && resLearn2.data.length > 0) {
-                        resLearn = resLearn2;
-                    }
-                }
-                
-                if (resLearn.data) {
-                    enrollments = resLearn.data;
-                }
+                // ใช้ select('*') เพื่อกวาดมาทั้งหมด ป้องกันระบุชื่อคอลัมน์ผิดพลาด
+                const { data: enrollments } = await db.from('classroom_users').select('*').eq(userCol, currentUser.id);
 
-                if (enrollments.length > 0) {
-                    const classIds = enrollments.map(e => e.classroom_id);
-                    const { data: classData, error: classErr } = await db.from('classrooms')
-                        .select('*')
-                        .in('classroom_id', classIds);
-                        
-                    if (!classErr && classData) {
-                        learnData = classData;
-                    }
+                if (enrollments && enrollments.length > 0) {
+                    const classIds = [...new Set(enrollments.map(e => e.classroom_id))];
+                    
+                    // ดึงรายละเอียดห้องเรียนทีละห้อง (ปลอดภัยกว่า .in() กรณีที่ติดปัญหา RLS)
+                    const classPromises = classIds.map(id => db.from('classrooms').select('*').eq('classroom_id', id).maybeSingle());
+                    const classResults = await Promise.all(classPromises);
+                    
+                    learnData = classResults.map(res => res.data).filter(c => c !== null && c !== undefined);
                 }
-                
                 const mappedLearn = learnData.map(c => ({ ...c, userRole: 'student' }));
 
+                // --- ส่วนที่ 3: รวมข้อมูล ---
                 allClasses = [...mappedTeach, ...mappedLearn];
+                
+                // กรองห้องที่ซ้ำกันออก (เผื่อกรณีเป็นทั้งคนสร้างและมีชื่อเรียนในห้องเดียวกัน)
+                allClasses = Array.from(new Map(allClasses.map(item => [item.classroom_id, item])).values());
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+                // --- ส่วนที่ 4: ดึงชื่อโรงเรียน ---
                 const uniqueSchoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
                 let schoolDict = {};
                 if (uniqueSchoolIds.length > 0) {
                     const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', uniqueSchoolIds);
-                    if (sData) {
-                        sData.forEach(s => schoolDict[s.school_id] = s.school_name);
-                    }
+                    if (sData) sData.forEach(s => schoolDict[s.school_id] = s.school_name);
                 }
                 
                 allClasses = allClasses.map(c => ({
@@ -961,7 +944,10 @@
 
                 renderFilteredGrids();
 
-            } catch (e) { console.error("Fetch Classes Error:", e); }
+            } catch (e) { 
+                console.error("Fetch Classes Error:", e); 
+                showCustomAlert("มีปัญหาในการโหลดข้อมูลห้องเรียน กรุณารีเฟรชหน้าเว็บอีกครั้ง", "error");
+            }
         }
 
         function renderFilteredGrids() {
