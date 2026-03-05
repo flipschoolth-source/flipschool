@@ -125,6 +125,16 @@
         .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
         .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
 
+        /* 🌟 สไตล์ Smart App Banner (Facebook Style) 🌟 */
+        #smartAppBanner {
+            display: none; background: #ffffff; padding: 12px 16px; align-items: center; 
+            justify-content: space-between; border-bottom: 1px solid #e4e6eb; 
+            position: sticky; top: 70px; z-index: 900; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            animation: slideDown 0.3s ease-out forwards;
+        }
+        @media (max-width: 768px) { #smartAppBanner { top: 80px; } }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
     </style>
 </head>
 <body>
@@ -174,7 +184,7 @@
             </div>
             <div class="flex items-center gap-4 relative">
                 
-                <!-- 🌟 เพิ่มปุ่ม PWA บน Title bar (Navbar) 🌟 -->
+                <!-- ปุ่มติดตั้ง PWA บน Navbar (กรณีใช้งานครั้งแรกสุด) -->
                 <button id="btnInstallPwaNav" onclick="installPWA()" style="display: none;" class="bg-[var(--accent)] hover:bg-orange-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold font-['Kanit'] text-xs md:text-sm shadow-sm transition cursor-pointer border-none flex items-center justify-center gap-1.5 md:gap-2">
                     <i class="fas fa-download"></i> <span class="hidden sm:inline">ติดตั้งแอป</span>
                 </button>
@@ -200,6 +210,22 @@
             </div>
         </div>
     </nav>
+
+    <!-- ================= 🌟 Smart App Banner (Facebook Style) 🌟 ================= -->
+    <div id="smartAppBanner">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button onclick="closeSmartBanner()" style="background: none; border: none; font-size: 22px; color: #a4b0be; cursor: pointer; padding: 0 5px; line-height: 1;">&times;</button>
+            <div style="width: 42px; height: 42px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; box-shadow: 0 2px 8px rgba(0,0,139,0.2);">🎓</div>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-family: 'Kanit'; font-weight: 700; font-size: 15px; color: #1c1e21; line-height: 1.2;">FlipSchool</span>
+                <span style="font-family: 'Sarabun'; font-size: 13px; color: #65676b; line-height: 1.2;">ใช้งานได้ลื่นไหลกว่าในแอป</span>
+            </div>
+        </div>
+        <!-- ปุ่มเตะเข้าแอปพลิเคชัน (ทำงานร่วมกับ Android Intent) -->
+        <a id="btnOpenInApp" href="#" target="_blank" rel="noopener noreferrer" style="background: #e7f3ff; color: #1877f2; border: none; padding: 8px 18px; border-radius: 50px; font-family: 'Kanit'; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-block; transition: 0.2s;">
+            เปิดแอป
+        </a>
+    </div>
 
     <!-- Main Content Area -->
     <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 md:px-8 xl:px-12 py-6 relative">
@@ -414,10 +440,10 @@
     </div>
 
     <script>
-        // ================= 🌟 PWA Install (Clean & Safe) 🌟 =================
+        // ================= 🌟 PWA Smart App Banner (Facebook Style) 🌟 =================
         let deferredPrompt;
 
-        // 1. ตรวจสอบว่าเปิดผ่าน PWA (Standalone) หรือไม่
+        // 1. เช็คว่ากำลังถูกเปิดในโหมดแอป (Standalone) หรือไม่
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         
         if (isStandalone) {
@@ -435,12 +461,11 @@
             if (installBtn && !isStandalone) installBtn.style.display = 'flex';
         });
 
-        // 3. ฟังก์ชันคลิกติดตั้ง PWA
+        // 3. ฟังก์ชันคลิกติดตั้ง PWA จากปุ่มบน Navbar
         async function installPWA() {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             
             if (deferredPrompt) {
-                // สำหรับ Android / Chrome PC
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
@@ -450,7 +475,6 @@
                 const installBtn = document.getElementById('btnInstallPwaNav');
                 if (installBtn) installBtn.style.display = 'none';
             } else if (isIos && !isStandalone) {
-                // สำหรับ iOS
                 showCustomAlert('สำหรับ iOS (iPhone/iPad):<br><br>1. กดปุ่ม <b>"แชร์"</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบเมนูด้านล่าง<br>2. เลื่อนลงแล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)', 'info');
             }
         }
@@ -460,23 +484,22 @@
             localStorage.setItem('is_pwa_installed', 'yes');
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
-            
-            // แสดงหน้าต่างบอกให้ผู้ใช้ไปเข้าที่หน้าจอหลักอย่างสุภาพ
-            showCustomAlert('<div style="text-align:center;"><i class="fas fa-home" style="font-size:40px; color:var(--primary); margin-bottom:15px;"></i><br><b style="font-size:20px; font-family:\'Kanit\';">ติดตั้งแอปเรียบร้อย!</b><br><br><span style="font-size:15px; color:#666; font-family:\'Sarabun\';">ระบบรักษาความปลอดภัยของมือถือไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen)<br>และกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ครับ</b></span></div>', 'success');
         });
 
-        // 5. ลอจิกการแสดงปุ่มติดตั้งบน Navbar ให้ถูกต้อง
+        // 5. ลอจิกการแสดงแบนเนอร์เชิญชวน (ถ้าเคยติดตั้งไปแล้วแต่ยังมาเปิดในเบราว์เซอร์)
         if (!isStandalone && localStorage.getItem('is_pwa_installed') === 'yes') {
-            // ถ้าเคยติดตั้งแล้วแต่มาเปิดผ่านเบราว์เซอร์ ให้ซ่อนปุ่ม
+            // ซ่อนปุ่มติดตั้งด้านบน
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
 
-            // ถ้าเพิ่งเปิดเข้ามาในเบราว์เซอร์ครั้งแรกของเซสชันนี้ ให้แจ้งเตือนเบาๆ 1 ครั้ง
-            if (!sessionStorage.getItem('notified_to_use_app')) {
-                sessionStorage.setItem('notified_to_use_app', 'true');
-                setTimeout(() => {
-                    showCustomAlert('<b>คุณติดตั้งแอปไว้ในเครื่องแล้ว!</b><br><br>เพื่อประสบการณ์การใช้งานที่ลื่นไหล แนะนำให้ออกไปกดใช้งานผ่านไอคอนแอป <b>FlipSchool</b> บนหน้าจอโฮมของคุณครับ', 'info');
-                }, 1000);
+            // ถ้าใน Session นี้ยังไม่ได้กดปิดแบนเนอร์ ให้โชว์แถบแบบ Facebook
+            if (!sessionStorage.getItem('dismiss_smart_banner')) {
+                const banner = document.getElementById('smartAppBanner');
+                if (banner) {
+                    banner.style.display = 'flex';
+                    // เปลี่ยน URL ของปุ่มให้ชี้ไปที่หน้าปัจจุบัน เผื่อ OS จะดักจับ Intent ได้
+                    document.getElementById('btnOpenInApp').href = window.location.href;
+                }
             }
         } else if (!isStandalone) {
             // กรณี iOS ที่อาจจะยังไม่ติดตั้ง 
@@ -491,9 +514,16 @@
                 }
             }
         } else {
-            // หากเปิดผ่านแอป (Standalone) อยู่แล้ว ให้ซ่อนปุ่มชัวร์ๆ
+            // หากเปิดผ่านแอป (Standalone) อยู่แล้ว ให้ซ่อนให้หมด
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
+        }
+
+        // ฟังก์ชันปิดแถบ Smart Banner
+        function closeSmartBanner() {
+            sessionStorage.setItem('dismiss_smart_banner', 'true');
+            const banner = document.getElementById('smartAppBanner');
+            if (banner) banner.style.display = 'none';
         }
 
         // Register Service Worker
