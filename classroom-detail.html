@@ -735,6 +735,7 @@
                     return;
                 }
 
+                // 5. เปิดหน้าต่างพริ้นท์ (เพิ่มปุ่มปิดเฉพาะบนหน้าจอ PWA)
                 const printWindow = window.open('', '_blank');
                 printWindow.document.write(`
                     <html><head><title>QR Code รายบุคคล - ${subject}</title>
@@ -743,8 +744,9 @@
                         @media print { 
                             @page { margin: 1cm; size: A4; } 
                             body { -webkit-print-color-adjust: exact; }
+                            .no-print { display: none !important; } /* ซ่อนส่วนนี้ตอนปริ้นท์ */
                         }
-                        body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 20px; }
+                        body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 0 20px 20px 20px; }
                         h2 { font-family: 'Kanit'; color: #00008B; margin-bottom: 5px; }
                         p { color: #666; margin-top: 0; margin-bottom: 30px; }
                         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 21cm; margin: 0 auto; }
@@ -753,8 +755,19 @@
                         .sub-header { font-size: 12px; color: #00008B; font-weight: 600; margin-bottom: 10px; }
                         img { width: 130px; height: 130px; margin-bottom: 10px; border-radius: 8px; }
                         .text { font-size: 11px; color: #fff; background: #FF8C00; padding: 4px 8px; border-radius: 20px; display: inline-block; font-weight: 600;}
+                        
+                        /* สไตล์ปุ่มปิด/ย้อนกลับ */
+                        .btn-back-app { background: #ff4757; color: white; border: none; padding: 12px 25px; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3); margin-bottom: 20px; transition: 0.2s; }
+                        .btn-back-app:hover { background: #ff6b81; transform: translateY(-2px); }
+                        .no-print-header { background: #fff5f5; border-bottom: 2px dashed #ffcccc; padding: 15px; margin-bottom: 20px; }
                     </style></head>
                     <body>
+                        <!-- กล่องปุ่มย้อนกลับ (แสดงเฉพาะบนจอ ไม่ปริ้นท์ลงกระดาษ) -->
+                        <div class="no-print no-print-header">
+                            <button class="btn-back-app" onclick="window.close(); window.location.href='classroom-detail.html?id=${currentClassId}';">❌ ปิดหน้าต่างนี้ / กลับไปแอปพลิเคชัน</button>
+                            <p style="margin: 10px 0 0 0; color: #ff4757; font-size: 13px;">*หลังจากสั่งพิมพ์หรือเซฟเสร็จแล้ว ให้กดปุ่มนี้เพื่อย้อนกลับเข้าสู่ระบบ</p>
+                        </div>
+
                         <h2>QR Code ล็อกอินอัตโนมัติ (รายบุคคล)</h2>
                         <p>วิชา ${subject} ห้อง ${room} (ให้นักเรียนสแกนเพื่อเข้าเครื่องตัวเองเท่านั้น)</p>
                         <div class="grid">${cardsHtml}</div>
@@ -783,14 +796,26 @@
                 <html><head><title>QR Code - ${subject}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&display=swap" rel="stylesheet">
                 <style>
-                    body { font-family: 'Kanit', sans-serif; text-align: center; padding: 40px; color: #333; }
-                    .box { border: 4px dashed #00008B; padding: 40px; border-radius: 30px; display: inline-block; }
+                    @media print { .no-print { display: none !important; } }
+                    body { font-family: 'Kanit', sans-serif; text-align: center; padding: 0; color: #333; margin: 0; }
+                    .box { border: 4px dashed #00008B; padding: 40px; border-radius: 30px; display: inline-block; margin-top: 20px; }
                     h1 { font-size: 40px; margin-bottom: 10px; color: #00008B; }
                     h3 { font-size: 24px; color: #666; margin-top: 0; }
                     img { width: 350px; height: 350px; margin: 30px 0; border-radius: 10px; }
                     .code { font-size: 70px; font-weight: 900; letter-spacing: 10px; margin: 0; color: #FF8C00; }
+                    
+                    /* สไตล์ปุ่มปิด/ย้อนกลับ */
+                    .btn-back-app { background: #ff4757; color: white; border: none; padding: 12px 25px; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3); transition: 0.2s; }
+                    .btn-back-app:hover { background: #ff6b81; transform: translateY(-2px); }
+                    .no-print-header { background: #fff5f5; border-bottom: 2px dashed #ffcccc; padding: 15px; margin-bottom: 20px; }
                 </style></head>
                 <body>
+                    <!-- กล่องปุ่มย้อนกลับ (แสดงเฉพาะบนจอ ไม่ปริ้นท์ลงกระดาษ) -->
+                    <div class="no-print no-print-header">
+                        <button class="btn-back-app" onclick="window.close(); window.location.href='classroom-detail.html?id=${currentClassId}';">❌ ปิดหน้าต่างนี้ / กลับไปแอปพลิเคชัน</button>
+                        <p style="margin: 10px 0 0 0; color: #ff4757; font-size: 13px;">*หลังจากสั่งพิมพ์หรือเซฟรูปเสร็จแล้ว ให้กดปุ่มนี้เพื่อย้อนกลับเข้าสู่ระบบ</p>
+                    </div>
+
                     <div class="box">
                         <h1>วิชา ${subject}</h1>
                         <h3>ห้อง ${room}</h3>
@@ -829,8 +854,9 @@
                     @media print { 
                         @page { margin: 1cm; size: A4; } 
                         body { -webkit-print-color-adjust: exact; }
+                        .no-print { display: none !important; }
                     }
-                    body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 20px; }
+                    body { font-family: 'Sarabun', sans-serif; text-align: center; background: white; margin: 0; padding: 0 20px 20px 20px; }
                     h2 { font-family: 'Kanit'; color: #00008B; margin-bottom: 30px; }
                     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 21cm; margin: 0 auto; }
                     .card { border: 2px dashed #a4b0be; padding: 15px 10px; border-radius: 15px; text-align: center; break-inside: avoid; }
@@ -838,8 +864,19 @@
                     img { width: 120px; height: 120px; margin-bottom: 10px; }
                     .text { font-size: 12px; color: #636e72; margin-bottom: 5px; }
                     .code { font-family: 'Kanit'; font-size: 24px; font-weight: bold; letter-spacing: 3px; color: #FF8C00; }
+                    
+                    /* สไตล์ปุ่มปิด/ย้อนกลับ */
+                    .btn-back-app { background: #ff4757; color: white; border: none; padding: 12px 25px; border-radius: 12px; font-family: 'Kanit'; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3); transition: 0.2s; }
+                    .btn-back-app:hover { background: #ff6b81; transform: translateY(-2px); }
+                    .no-print-header { background: #fff5f5; border-bottom: 2px dashed #ffcccc; padding: 15px; margin-bottom: 20px; }
                 </style></head>
                 <body>
+                    <!-- กล่องปุ่มย้อนกลับ (แสดงเฉพาะบนจอ ไม่ปริ้นท์ลงกระดาษ) -->
+                    <div class="no-print no-print-header">
+                        <button class="btn-back-app" onclick="window.close(); window.location.href='classroom-detail.html?id=${currentClassId}';">❌ ปิดหน้าต่างนี้ / กลับไปแอปพลิเคชัน</button>
+                        <p style="margin: 10px 0 0 0; color: #ff4757; font-size: 13px;">*หลังจากสั่งพิมพ์หรือเซฟเสร็จแล้ว ให้กดปุ่มนี้เพื่อย้อนกลับเข้าสู่ระบบ</p>
+                    </div>
+
                     <h2>แจกนักเรียนเพื่อสแกนเข้าร่วมห้องเรียน (รหัสเดียวใช้ทั้งห้อง)</h2>
                     <div class="grid">${cardsHtml}</div>
                     <script>setTimeout(()=>window.print(), 1000);<\/script>
