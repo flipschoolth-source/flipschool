@@ -923,7 +923,7 @@
         // ================= 🌟 ฟังก์ชันส่งอีเมลแจ้งเตือนด้วย Make.com 🌟 =================
         async function sendAdminNotification(fName, lName, schoolName) {
             // 👇 นำลิงก์ Webhook ของ Make.com มาวางที่นี่
-            const MAKE_WEBHOOK_URL = "https://hook.us2.make.com/95q8rjx0i9p9r74m4a6pq4wrx3ygfcx8";
+            const MAKE_WEBHOOK_URL = "https://us2.make.com/n14aob3aaxv4xovz9d4jtdo4z8l26e8q";
             
             const payload = {
                 teacher_name: `ครู${fName} ${lName || ''}`.trim(),
@@ -1301,7 +1301,14 @@
 
             try {
                 const db = getDB();
-                const { data: cls } = await db.from('classrooms').select('classroom_id, subject_name').or(`class_code.eq.${code},join_code.eq.${code}`).maybeSingle();
+                
+                // 🌟 แก้ไข: ค้นหาด้วย class_code เพียงอย่างเดียว ป้องกัน Error จากคอลัมน์ที่ไม่มีอยู่จริง
+                const { data: cls, error: searchErr } = await db.from('classrooms')
+                    .select('classroom_id, subject_name')
+                    .eq('class_code', code)
+                    .maybeSingle();
+
+                if (searchErr) console.error("Search Error:", searchErr);
                 if (!cls) throw new Error("รหัสห้องเรียนไม่ถูกต้อง หรือไม่มีในระบบ");
 
                 let targetUserCol = 'user_id';
