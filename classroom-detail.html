@@ -624,15 +624,34 @@
 
         // ================= 🚀 ระบบพิมพ์ QR แบบรายบุคคล (Auto-Login พร้อมการเข้ารหัส) 🚀 =================
         async function printIndividualAutoLoginQr(event) {
-            try {
-                const btn = event ? event.currentTarget : null;
-                let originalText = '';
-                if (btn) {
-                    originalText = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...';
-                    btn.disabled = true;
-                }
+            // 1. เก็บสถานะปุ่ม
+            const btn = event ? event.currentTarget : null;
+            let originalText = '';
+            if (btn) {
+                originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...';
+                btn.disabled = true;
+            }
 
+            // 🌟 2. เปิดหน้าต่างใหม่ "ทันที" เพื่อป้องกัน Mobile Pop-up Blocker ใน Safari/Chrome
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+                showCustomAlert("เบราว์เซอร์ของคุณบล็อกป๊อปอัป! กรุณาอนุญาตให้แสดง Pop-up ก่อนครับ", "warning");
+                return;
+            }
+            
+            // 3. แสดงหน้าจอโหลดรอในแท็บใหม่
+            printWindow.document.write(`
+                <html><head><title>กำลังสร้าง QR Code</title>
+                <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
+                </head><body style="font-family: 'Kanit', sans-serif; text-align: center; margin-top: 20vh; color: #00008B;">
+                <h2><i class="fas fa-spinner fa-spin"></i> กำลังสร้าง QR Code รายบุคคล...</h2>
+                <p style="color: #666;">กรุณารอสักครู่ ระบบกำลังดึงข้อมูลนักเรียน</p>
+                </body></html>
+            `);
+
+            try {
                 const db = getDB();
                 
                 let userColName = 'user_id';
@@ -651,6 +670,7 @@
 
                 if (!enrollments || enrollments.length === 0) {
                     if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+                    printWindow.close();
                     showCustomAlert("ยังไม่มีนักเรียนในห้องนี้ กรุณาเพิ่มรายชื่อนักเรียนก่อนครับ", "warning");
                     return;
                 }
@@ -666,7 +686,7 @@
                     usersData.forEach(u => usersDict[u.user_id] = u);
                 } 
                 
-                // 🌟 แก้ไข: ตรวจสอบรายชื่อที่เหลือที่ยังไม่พบในตาราง users ให้ไปหาใน user_school
+                // ตรวจสอบรายชื่อที่เหลือที่ยังไม่พบในตาราง users ให้ไปหาใน user_school
                 const missingUserIds = userIds.filter(id => !usersDict[id]);
                 
                 if (missingUserIds.length > 0) {
@@ -713,7 +733,7 @@
                         const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
                         const code = u.student_code || '';
 
-                        // 🌟 ใช้งานฟังก์ชันเข้ารหัส Token ใหม่ล่าสุด (2-Layer Security)
+                        // 🌟 ใช้งานฟังก์ชันเข้ารหัส Token (2-Layer Security)
                         const secureToken = encodeMagicToken(currentClassCode, studentUserId, enrollId);
                         const magicLink = `${basePath}?magic=${secureToken}`;
                         
@@ -731,12 +751,13 @@
                 });
 
                 if (validCount === 0) {
+                    printWindow.close();
                     showCustomAlert("ไม่สามารถดึงข้อมูลชื่อนักเรียนได้ (ข้อมูลในฐานข้อมูลอาจไม่สมบูรณ์)", "warning");
                     return;
                 }
 
-                // 5. เปิดหน้าต่างพริ้นท์ (เพิ่มปุ่มปิดเฉพาะบนหน้าจอ PWA)
-                const printWindow = window.open('', '_blank');
+                // 4. วาดหน้า QR Code ลงในหน้าต่างที่เปิดรอไว้
+                printWindow.document.open();
                 printWindow.document.write(`
                     <html><head><title>QR Code รายบุคคล - ${subject}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Kanit:wght@600;700&display=swap" rel="stylesheet">
