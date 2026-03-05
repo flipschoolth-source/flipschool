@@ -552,20 +552,23 @@
                     const { data: schData, error: schErr } = await db.from('schools').select('school_id').eq('school_abbr', schoolAbbr.toLowerCase()).maybeSingle();
                     if (schErr || !schData) throw new Error("ไม่พบอักษรย่อโรงเรียนนี้ในระบบ");
 
-                    const { data: usersData, error: usrErr } = await db.from('users').select('user_id, birth_date, email').eq('student_code', studentCode);
-                    if (usrErr || !usersData || usersData.length === 0) throw new Error("ไม่พบรหัสนักเรียนนี้");
+                    // 🌟 ค้นหานักเรียนจาก user_school ตรงๆ เพราะนักเรียนที่เพิ่งนำเข้าผ่าน Excel ยังไม่มีใน users
+                    const { data: matchedUser, error: usrErr } = await db.from('user_school')
+                        .select('user_id, birth_date')
+                        .eq('school_id', schData.school_id)
+                        .eq('student_code', studentCode)
+                        .maybeSingle();
 
-                    let matchedUser = null;
-                    for (let usr of usersData) {
-                        const { data: linkData } = await db.from('user_school').select('id').eq('user_id', usr.user_id).eq('school_id', schData.school_id).maybeSingle();
-                        if (linkData) { matchedUser = usr; break; }
-                    }
-
-                    if (!matchedUser) throw new Error(`พบรหัสนักเรียน ${studentCode} แต่ไม่ได้สังกัดอยู่ในโรงเรียน ${schoolAbbr}`);
+                    if (usrErr || !matchedUser) throw new Error(`ไม่พบรหัสนักเรียน ${studentCode} ในโรงเรียน ${schoolAbbr}`);
 
                     if (matchedUser.birth_date) {
                         let [y, m, d] = matchedUser.birth_date.split('-');
                         let possibleDates = [ matchedUser.birth_date, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${d}${m}${y}` ];
+                        
+                        let by = parseInt(y) + 543;
+                        possibleDates.push(`${d}/${m}/${by}`);
+                        possibleDates.push(`${d}-${m}-${by}`);
+                        possibleDates.push(`${d}${m}${by}`);
                         
                         if (possibleDates.includes(password)) {
                             localStorage.setItem('flip_student_session_id', matchedUser.user_id);
