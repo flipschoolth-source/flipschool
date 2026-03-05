@@ -447,7 +447,6 @@
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         
         if (isStandalone) {
-            // ถ้าใช่ ให้จดจำไว้เลยว่าเคยติดตั้งแล้ว
             localStorage.setItem('is_pwa_installed', 'yes');
         }
 
@@ -456,7 +455,6 @@
             e.preventDefault();
             deferredPrompt = e;
             
-            // แสดงปุ่มติดตั้งบน Navbar ถ้ายังไม่ได้เปิดในรูปแบบแอป
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn && !isStandalone) installBtn.style.display = 'flex';
         });
@@ -475,7 +473,8 @@
                 const installBtn = document.getElementById('btnInstallPwaNav');
                 if (installBtn) installBtn.style.display = 'none';
             } else if (isIos && !isStandalone) {
-                showCustomAlert('สำหรับ iOS (iPhone/iPad):<br><br>1. กดปุ่ม <b>"แชร์"</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบเมนูด้านล่าง<br>2. เลื่อนลงแล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)', 'info');
+                // 🌟 สำหรับ iOS จะขึ้นคำแนะนำการติดตั้งให้
+                showCustomAlert('<b>วิธีติดตั้งแอปบน iOS (iPhone/iPad)</b><br><br>1. กดปุ่ม <b>"แชร์"</b> <i class="fas fa-share-square"></i> ที่แถบเครื่องมือของ Safari<br>2. เลื่อนลงและเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b><br>3. กด <b>"เพิ่ม" (Add)</b> มุมขวาบน', 'info');
             }
         }
 
@@ -488,16 +487,14 @@
 
         // 5. ลอจิกการแสดงแบนเนอร์เชิญชวน (ถ้าเคยติดตั้งไปแล้วแต่ยังมาเปิดในเบราว์เซอร์)
         if (!isStandalone && localStorage.getItem('is_pwa_installed') === 'yes') {
-            // ซ่อนปุ่มติดตั้งด้านบน
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
 
-            // ถ้าใน Session นี้ยังไม่ได้กดปิดแบนเนอร์ ให้โชว์แถบแบบ Facebook
             if (!sessionStorage.getItem('dismiss_smart_banner')) {
                 const banner = document.getElementById('smartAppBanner');
                 if (banner) {
                     banner.style.display = 'flex';
-                    // เปลี่ยน URL ของปุ่มให้ชี้ไปที่หน้าปัจจุบัน เผื่อ OS จะดักจับ Intent ได้
+                    // อัปเดตลิงก์ให้เป็นหน้าปัจจุบัน
                     document.getElementById('btnOpenInApp').href = window.location.href;
                 }
             }
@@ -514,12 +511,20 @@
                 }
             }
         } else {
-            // หากเปิดผ่านแอป (Standalone) อยู่แล้ว ให้ซ่อนให้หมด
             const installBtn = document.getElementById('btnInstallPwaNav');
             if (installBtn) installBtn.style.display = 'none';
         }
 
-        // ฟังก์ชันปิดแถบ Smart Banner
+        // 🌟 6. ฟังก์ชันเมื่อกดปุ่ม "เปิดแอป" ในแถบ Smart Banner 🌟
+        function handleOpenInAppClick(e) {
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            if (isIos) {
+                e.preventDefault(); // บล็อกไม่ให้โหลดหน้าซ้ำบน iOS
+                showCustomAlert('ระบบความปลอดภัยของ iOS ไม่อนุญาตให้เปิดแอปอัตโนมัติ<br><br><b>กรุณากลับไปที่หน้าจอหลัก (Home Screen) ของคุณ<br>แล้วกดเข้าใช้งานผ่านไอคอนแอป FlipSchool ครับ</b>', 'info');
+            }
+            // ถ้าเป็น Android ปล่อยให้คลิก href ไปตามปกติเพื่อกระตุ้น Intent เรียกเปิดแอป
+        }
+
         function closeSmartBanner() {
             sessionStorage.setItem('dismiss_smart_banner', 'true');
             const banner = document.getElementById('smartAppBanner');
@@ -742,6 +747,50 @@
                     </div>
                 `}).join('');
             }
+        }
+
+        // 🌟 แก้ไข: จัดการปุ่มตกลง/ยกเลิกใน Custom Alert ให้ทำงานได้สมบูรณ์กับข้อมูล type='info'
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const titleEl = document.getElementById('customAlertTitle');
+            const msgEl = document.getElementById('customAlertMessage');
+            const iconEl = document.getElementById('customAlertIcon');
+            const okBtn = document.getElementById('customAlertOkBtn');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+
+            msgEl.innerHTML = message;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'info') {
+                iconEl.className = 'fas fa-info-circle'; iconEl.style.color = '#3498db';
+                titleEl.innerText = 'ข้อมูลคำแนะนำ'; okBtn.style.background = '#3498db'; okBtn.innerText = 'รับทราบ';
+                cancelBtn.style.display = 'none';
+            } else if (type === 'confirm') {
+                iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#FF8C00';
+                titleEl.innerText = 'ยืนยันการดำเนินการ'; okBtn.style.background = '#FF8C00'; okBtn.innerText = 'ใช่, ดำเนินการ';
+                cancelBtn.style.display = 'inline-block'; cancelBtn.innerText = 'ไม่, ยกเลิก';
+            } else {
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757'; okBtn.innerText = 'ตกลง';
+                cancelBtn.style.display = 'none';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeCustomAlert(isCancel = false) { 
+            document.getElementById('customAlertModal').classList.remove('show'); 
+            if (!isCancel && alertCallback) { setTimeout(alertCallback, 300); alertCallback = null; alertCancelCallback = null; }
+            else if (isCancel && alertCancelCallback) { setTimeout(alertCancelCallback, 300); alertCancelCallback = null; alertCallback = null; }
         }
 
         function handleVerificationStatus() {
