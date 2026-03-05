@@ -49,18 +49,8 @@
                               radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
 
-        /* --- หน้าจอ Loading --- */
-        #authLoader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #ffffff; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease;
-        }
-        .loader-icon { font-size: 50px; color: var(--primary); margin-bottom: 20px; animation: pulse 1.5s infinite; }
-        .loader-text { font-family: 'Kanit', sans-serif; font-size: 18px; color: var(--text-muted); animation: pulse 1.5s infinite; font-weight: 500; }
-
-        /* --- ซ่อนเนื้อหาหลักจนกว่าจะเช็คเสร็จ --- */
-        #mainContent { display: none; flex-direction: column; min-height: 100vh; }
+        /* --- โครงสร้างหลักให้แสดงผลทันที --- */
+        #mainContent { display: flex; flex-direction: column; min-height: 100vh; animation: fadeIn 0.5s ease-in-out; }
 
         /* --- Navbar --- */
         nav { 
@@ -83,7 +73,7 @@
         .nav-btn-outline {
             text-decoration: none; color: white; border: 2px solid rgba(255,255,255,0.8);
             padding: 10px 28px; border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: 16px; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 140px;
         }
         .nav-btn-outline:hover { background: white; color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); border-color: white; }
 
@@ -149,6 +139,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 70% { transform: scale(1.03); } 100% { transform: scale(1); } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         @media (max-width: 992px) {
             .hero-card { flex-direction: column; max-width: 750px; } 
@@ -163,7 +154,7 @@
             .logo-emoji { width: 38px; height: 38px; font-size: 20px; border-radius: 10px; }
             .brand-name { font-size: 20px; }
             .slogan { display: none; }
-            .nav-btn-outline { padding: 8px 18px; font-size: 14px; }
+            .nav-btn-outline { padding: 8px 18px; font-size: 14px; min-width: auto; }
             .hero-container { padding: 20px 15px; align-items: flex-start; } 
             .hero-card { border-radius: 25px; min-height: auto; }
             .hero-image-side { height: 220px; }
@@ -179,11 +170,6 @@
 </head>
 
 <body>
-    
-    <div id="authLoader">
-        <div class="loader-icon"><i class="fas fa-spinner fa-spin"></i></div>
-        <div class="loader-text">กำลังตรวจสอบการเข้าสู่ระบบ...</div>
-    </div>
 
     <div id="mainContent">
         <nav>
@@ -194,7 +180,7 @@
                     <div class="slogan">นวัตกรรมการศึกษา</div>
                 </div>
             </a>
-            <a href="login.html" class="nav-btn-outline"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
+            <a href="login.html" id="topLoginBtn" class="nav-btn-outline"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
         </nav>
 
         <section class="hero-container">
@@ -251,24 +237,25 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // โหลด UI จาก config.js
+            // โหลด UI จาก config.js ทันทีที่เปิดหน้า
             if (typeof initAppUI === 'function') initAppUI();
             
             renderGloryDetails();
             checkPWAStatus(); 
             
-            // --- 🚀 ระบบ Auto Redirect (Unified Logic) ---
-            const loader = document.getElementById('authLoader');
-            const mainContent = document.getElementById('mainContent');
-
-            function showMainContent() {
-                if (loader) loader.style.opacity = '0';
-                setTimeout(() => {
-                    if (loader) loader.style.display = 'none';
-                    if (mainContent) mainContent.style.display = 'flex';
-                }, 500);
+            // --- 🚀 ระบบ Auto Redirect แบบเบื้องหลัง (Background Check) ---
+            
+            // 1. ตรวจสอบ LocalStorage ก่อน (ทำงานได้ทันที ไม่ต้องรอเน็ต)
+            if (localStorage.getItem('flip_student_session_id') || localStorage.getItem('flip_student_session')) {
+                // เปลี่ยนปุ่มให้เป็นสถานะโหลด
+                const loginBtn = document.getElementById('topLoginBtn');
+                if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบแล้ว...';
+                
+                window.location.replace('dashboard.html');
+                return;
             }
 
+            // 2. ถ้าไม่มี Session ในเครื่อง ให้ตรวจสอบแบบเงียบๆ ผ่าน Supabase Auth
             let checkCount = 0;
             const checkDB = setInterval(async () => {
                 checkCount++;
@@ -278,34 +265,29 @@
                         const { data: { session } } = await window.sysDB.auth.getSession();
                         
                         if (session && session.user) {
+                            // มี Session ค้างอยู่ ให้ทำการ Redirect
+                            const loginBtn = document.getElementById('topLoginBtn');
+                            if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบแล้ว...';
+
                             const userId = session.user.id;
                             const { data: profileData } = await window.sysDB.from('users')
                                 .select('role, is_super_admin')
                                 .eq('user_id', userId)
                                 .maybeSingle();
                                 
-                            if (profileData) {
-                                if (profileData.is_super_admin || profileData.role === 'super_admin') {
-                                    window.location.replace('super_admin.html');
-                                } else {
-                                    window.location.replace('dashboard.html');
-                                }
-                                return;
-                            }
-                            showMainContent();
-                        } else {
-                            if (localStorage.getItem('flip_student_session_id')) {
+                            if (profileData && (profileData.is_super_admin || profileData.role === 'super_admin')) {
+                                window.location.replace('super_admin.html');
+                            } else {
                                 window.location.replace('dashboard.html');
-                                return;
                             }
-                            showMainContent();
                         }
+                        // ถ้าไม่มี Session ปล่อยให้ผู้ใช้อ่านเนื้อหาหน้าเว็บต่อไปได้เลยอย่างสบายใจ
                     } catch (err) {
-                        console.error("Auto Login Check Error:", err);
-                        showMainContent();
+                        console.error("Background Login Check Error:", err);
                     }
                 } else if (checkCount > 10) { 
-                    clearInterval(checkDB); showMainContent();
+                    // หากเน็ตช้าเกิน 5 วินาที ให้เลิกเช็คเพื่อประหยัดทรัพยากร
+                    clearInterval(checkDB);
                 }
             }, 500);
         });
@@ -330,7 +312,7 @@
         function openGloryModal() { document.getElementById('gloryModal').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
         function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
 
-        /* --- 🌟 PWA Logic (อัปเดตให้ iOS แสดงปุ่มทันที) 🌟 --- */
+        /* --- 🌟 PWA Logic --- */
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const installAlert = document.getElementById('installAlert');
@@ -343,7 +325,6 @@
                 installBtn.style.display = 'none';
                 installAlert.style.display = 'none';
             } else if (isIOS) {
-                // สำหรับ iOS ให้แสดงปุ่มเลยโดยไม่ต้องรอ Event
                 installBtn.style.display = 'inline-flex';
                 installAlert.style.display = 'block';
             }
