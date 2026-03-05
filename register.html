@@ -25,10 +25,9 @@
         :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-color: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        /* บังคับให้มีแถบเลื่อนแนวตั้งเสมอ ป้องกันหน้าจอกระตุก */
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: scroll; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
         
-        /* ================= NAVBAR (เป๊ะตาม index.html & login.html 100%) ================= */
+        /* ================= NAVBAR ================= */
         #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
@@ -51,7 +50,6 @@
         .nav-link:hover::after { width: 100%; }
         
         .nav-right { display: flex; align-items: center; gap: 15px; }
-        
         .nav-btn-primary { background: var(--primary); color: white; border: none; padding: clamp(8px, 2vw, 10px) clamp(16px, 3vw, 24px); border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: clamp(13px, 1.5vw, 15px); transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,139,0.2); cursor: pointer; min-width: 150px; }
         .nav-btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 139, 0.3); }
 
@@ -64,7 +62,7 @@
         .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
         .mobile-dropdown a i { width: 20px; text-align: center; color: var(--primary-light); }
 
-        /* ================= MAIN CONTAINER & FORM ================= */
+        /* ================= MAIN CONTAINER ================= */
         .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 15px; width: 100%; box-sizing: border-box; }
         
         .login-card { background: white; width: 100%; max-width: 480px; border-radius: 30px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); text-align: center; border-top: 6px solid var(--accent); position: relative; }
@@ -94,7 +92,10 @@
         .register-link { margin-top: 25px; font-size: 14px; color: #636e72; }
         .register-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
         .register-link a:hover { text-decoration: underline; }
-        .google-btn-container { min-height: 44px; display: flex; justify-content: center; margin-bottom: 15px; border-radius: 15px; overflow: hidden; }
+        .google-btn-container { min-height: 44px; display: flex; justify-content: center; margin-bottom: 15px; border-radius: 15px; overflow: hidden; position: relative;}
+        
+        /* สร้างตัวดักคลิกเพื่อให้เช็คฟอร์มก่อน Google ทำงาน */
+        .google-btn-guard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; cursor: pointer; }
         
         /* ================= MODALS & ALERTS ================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: clamp(15px, 4vw, 30px); backdrop-filter: blur(8px); overflow-y: auto; }
@@ -150,7 +151,7 @@
         </div>
 
         <div class="nav-right">
-            <!-- เนื่องจากอยู่ในหน้าสมัคร ปุ่มขวาบนจึงเชื่อมไปหน้าเข้าสู่ระบบ -->
+            <!-- ปุ่มเชื่อมไปหน้าเข้าสู่ระบบ -->
             <a href="login.html" class="nav-btn-primary" style="background: white; color: var(--primary); border: 2px solid var(--primary); box-shadow: none;"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
@@ -190,9 +191,10 @@
                     </label>
                 </div>
 
-                <!-- ปุ่ม Google -->
-                <div style="display: flex; justify-content: center; width: 100%; margin-top: 15px;" onclick="checkFormFieldsBeforeGoogle()">
-                    <div id="googleSignInBtn" class="google-btn-container"></div>
+                <!-- กล่องปุ่ม Google (มีแผ่นใสบังเพื่อตรวจฟอร์มก่อนคลิก) -->
+                <div style="display: flex; justify-content: center; width: 100%; margin-top: 15px;" class="google-btn-container">
+                    <div id="googleGuard" class="google-btn-guard" onclick="checkFormFieldsBeforeGoogle()"></div>
+                    <div id="googleSignInBtn" style="width: 100%; overflow: hidden; display: flex; justify-content: center; border-radius: 12px;"></div>
                 </div>
 
                 <!-- เส้นคั่นที่กดเปิดฟอร์มอีเมลได้ -->
@@ -228,7 +230,7 @@
         </div>
     </main>
 
-    <!-- ================= Glory Innovation Modal (Responsive 2 Columns) ================= -->
+    <!-- ================= Glory Innovation Modal ================= -->
     <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
@@ -236,7 +238,7 @@
             <div style="height: 4px; width: 60px; background: var(--accent); margin: 0 auto 30px; border-radius: 2px;"></div>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: clamp(15px, 3vw, 25px);">
-                <!-- คอลัมน์ 1: บ้าน (สีส้ม Accent) -->
+                <!-- คอลัมน์ 1: บ้าน (สีส้ม) -->
                 <div style="background: #fffcf0; border: 1px solid #ffe0b2; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--accent); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #ffe0b2; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-home text-xl"></i> เรียนรู้ที่บ้าน
@@ -244,7 +246,7 @@
                     <div id="homeDetail" style="display: flex; flex-direction: column; gap: 20px;"></div>
                 </div>
                 
-                <!-- คอลัมน์ 2: โรงเรียน (สีน้ำเงิน Primary) -->
+                <!-- คอลัมน์ 2: โรงเรียน (สีน้ำเงิน) -->
                 <div style="background: #f8faff; border: 1px solid #dbeafe; padding: clamp(15px, 4vw, 25px); border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 139, 0.05);">
                     <h3 style="font-family:'Kanit'; color:var(--primary); font-size:clamp(18px, 4vw, 22px); margin-bottom:20px; border-bottom: 2px dashed #dbeafe; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-school text-xl"></i> ประสบการณ์ที่โรงเรียน
@@ -269,7 +271,7 @@
     <footer class="footer footer-display-text"></footer>
 
     <script>
-        // ================= ค้นหาฐานข้อมูล (Supabase) =================
+        // ================= ค้นหาฐานข้อมูล =================
         function getDB() {
             if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
             try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
@@ -308,7 +310,6 @@
             
             document.getElementById('customAlertModal').style.display = 'flex';
             
-            // Handle callback when OK is clicked
             const okBtn = document.getElementById('customAlertModal').querySelector('button');
             okBtn.onclick = () => {
                 closeCustomAlert();
@@ -318,7 +319,6 @@
         
         function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
 
-        // ================= เรนเดอร์ GLORY Modal =================
         function renderGloryDetails() {
             if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS) {
                 const generateHtml = (item, bgColor, textColor) => `
@@ -337,9 +337,7 @@
             }
         }
 
-        // ================= เช็ค Session ตอนโหลดหน้า =================
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลดค่า UI จาก config
             if (typeof initAppUI === 'function') {
                 try { initAppUI(); } catch (e) { console.warn("initAppUI error:", e); }
             }
@@ -359,6 +357,31 @@
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
         });
+
+        // ================= เช็คฟอร์มก่อน Google Sign In =================
+        function checkFormFieldsBeforeGoogle() {
+            const fullname = document.getElementById('fullname').value.trim();
+            const pdpaCheck = document.getElementById('pdpaCheck').checked;
+
+            if (!fullname || !pdpaCheck) {
+                // ถ้ากรอกไม่ครบ ให้แสดงแจ้งเตือน และกระพริบช่องที่ต้องกรอก
+                showCustomAlert("กรุณากรอกชื่อ-นามสกุล และยอมรับเงื่อนไขให้ครบถ้วนก่อนครับ", "warning");
+                if (!fullname) document.getElementById('fullname').style.borderColor = '#ff4757';
+                if (!pdpaCheck) document.getElementById('pdpaCheck').parentElement.style.color = '#ff4757';
+                
+                setTimeout(() => {
+                    document.getElementById('fullname').style.borderColor = '#edf2f7';
+                    document.getElementById('pdpaCheck').parentElement.style.color = '';
+                }, 2000);
+            } else {
+                // ถ้าครบแล้ว ให้ซ่อนแผ่นใส (Guard) เพื่อให้คลิกโดนปุ่ม Google ของจริงได้
+                document.getElementById('googleGuard').style.display = 'none';
+            }
+        }
+
+        // จับ Event ตอนผู้ใช้แก้ไขข้อมูลเพื่อเอากลับมาเช็คใหม่
+        document.getElementById('fullname').addEventListener('input', () => { document.getElementById('googleGuard').style.display = 'block'; });
+        document.getElementById('pdpaCheck').addEventListener('change', () => { document.getElementById('googleGuard').style.display = 'block'; });
 
         // ================= ตั้งค่าปุ่ม Google Sign In =================
         window.onload = function () {
@@ -383,7 +406,6 @@
             }
         };
 
-        // สลับแบบฟอร์มอีเมล
         function toggleEmailForm() {
             const section = document.getElementById('emailAuthSection');
             const icon = document.getElementById('emailToggleIcon');
@@ -399,23 +421,16 @@
             }
         }
 
-        // เช็คฟอร์มพื้นฐานก่อนกดปุ่ม Google
-        function checkFormFieldsBeforeGoogle() {
-            const fullname = document.getElementById('fullname').value.trim();
-            const pdpaCheck = document.getElementById('pdpaCheck').checked;
-
-            if (!fullname || !pdpaCheck) {
-                showCustomAlert("กรุณากรอกชื่อ-นามสกุล และยอมรับเงื่อนไขก่อนครับ", "warning");
-            }
-        }
-
-        // ================= สมัครด้วย Google =================
+        // ================= สมัคร/อัปเดตด้วย Google (Upsert & Seamless Login) =================
         async function handleGoogleRegister(response) {
             const fullname = document.getElementById('fullname').value.trim();
             const pdpaCheck = document.getElementById('pdpaCheck').checked;
 
-            if (!fullname || !pdpaCheck) {
-                showCustomAlert("กรุณากรอกชื่อ-นามสกุล และยอมรับเงื่อนไขก่อนครับ", "warning"); return;
+            // ตรวจสอบขั้นสุดท้าย ป้องกันหลุดรอด
+            if (!pdpaCheck) {
+                showCustomAlert("กรุณากดยอมรับเงื่อนไข (PDPA) ก่อนลงทะเบียนครับ", "warning"); 
+                document.getElementById('googleGuard').style.display = 'block'; // นำตัวดักกลับมา
+                return;
             }
 
             try {
@@ -426,29 +441,47 @@
                 const { data, error } = await db.auth.signInWithIdToken({ provider: 'google', token: response.credential });
                 if (error) throw error;
 
-                // ตรวจสอบว่าเคยสมัครหรือยัง
-                const { data: existingUser } = await db.from('users').select('user_id').eq('user_id', data.user.id).maybeSingle();
+                // 1. แยกชื่อ-นามสกุล โดยยึดเอาที่พิมพ์ในฟอร์มเป็นหลัก
+                let fName = '';
+                let lName = '';
                 
-                if (!existingUser) {
+                if (fullname) {
                     const parts = fullname.split(' ');
-                    const fName = parts[0] || data.user.email.split('@')[0];
-                    const lName = parts.slice(1).join(' ') || '';
-
-                    await db.from('users').insert([{
-                        user_id: data.user.id,
-                        first_name: fName,
-                        last_name: lName,
-                        email: data.user.email,
-                        profile_pic: data.user.user_metadata?.avatar_url
-                    }]);
+                    fName = parts[0];
+                    lName = parts.slice(1).join(' ');
+                } else {
+                    // ถ้าหลุดเข้ามาได้โดยฟอร์มว่างเปล่า ให้ดึงจาก Google แทน
+                    const googleName = data.user.user_metadata?.full_name || '';
+                    if (googleName.includes(' ')) {
+                        const parts = googleName.split(' ');
+                        fName = parts[0];
+                        lName = parts.slice(1).join(' ');
+                    } else {
+                        fName = googleName || data.user.email.split('@')[0];
+                    }
                 }
+
+                // 2. ใช้คำสั่ง Upsert (Unified Approach): 
+                // หากไม่มีบัญชีจะสร้างใหม่ (Insert) หากมีอยู่แล้วจะอัปเดตข้อมูลให้ (Update) แล้วจับล็อกอินเลย
+                const { error: dbError } = await db.from('users').upsert([{
+                    user_id: data.user.id,
+                    first_name: fName,
+                    last_name: lName,
+                    email: data.user.email,
+                    profile_pic: data.user.user_metadata?.avatar_url
+                }]);
                 
-                showCustomAlert("สร้างบัญชีและเข้าสู่ระบบสำเร็จ! ระบบกำลังพาท่านไปหน้าหลัก", "success", () => {
+                if (dbError) throw dbError;
+                
+                // 3. เข้าสู่ระบบสำเร็จ พาไปหน้าแดชบอร์ดอย่างลื่นไหล
+                showCustomAlert("เข้าสู่ระบบและอัปเดตข้อมูลสำเร็จ! ระบบกำลังพาท่านไปหน้าหลัก", "success", () => {
                     window.location.replace('dashboard.html');
                 });
+
             } catch (err) { 
                 showCustomAlert("เกิดข้อผิดพลาด: " + err.message, "error"); 
                 document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('googleGuard').style.display = 'block'; // นำตัวดักกลับมา
             }
         }
 
@@ -456,7 +489,7 @@
         async function handleEmailRegister(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSubmit'); 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังสร้างบัญชี...'; 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดำเนินการ...'; 
             btn.disabled = true;
             
             try {
@@ -491,7 +524,10 @@
                 });
             } catch (err) {
                 if (err.message.toLowerCase().includes('already registered')) {
-                    showCustomAlert("อีเมลนี้มีผู้ใช้งานในระบบแล้ว กรุณาเข้าสู่ระบบแทนครับ", "warning", () => window.location.replace('login.html'));
+                    // หากอีเมลมีในระบบอยู่แล้ว ให้แสดงแจ้งเตือนพร้อมออปชั่นให้กดตกลงแล้วไปหน้า Login ทันที
+                    showCustomAlert("อีเมลนี้มีผู้ใช้งานในระบบแล้ว ระบบจะพาท่านไปยังหน้าเข้าสู่ระบบ", "warning", () => {
+                        window.location.replace('login.html');
+                    });
                 } else {
                     showCustomAlert(err.message, "error");
                 }
