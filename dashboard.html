@@ -106,6 +106,18 @@
         @keyframes ring { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } 50% { transform: rotate(0); } }
         .ringing i { animation: ring 2s ease infinite; color: #ff4757 !important; }
 
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s; z-index: 9999; }
+        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
+        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .custom-modal-overlay.show .custom-modal-box { transform: translateY(0); }
+        .custom-modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .custom-modal-title { font-family: 'Kanit', sans-serif; font-size: 24px; font-weight: 600; color: #2d3436; margin: 0 0 10px 0; }
+        .custom-modal-message { font-size: 15px; color: #636e72; margin: 0 0 25px 0; line-height: 1.6; font-family: 'Sarabun', sans-serif; }
+        .custom-modal-btn { background: var(--primary); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.3s; min-width: 120px; }
+        .custom-modal-btn:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 139, 0.1); }
+        .custom-modal-btn-cancel { background: #f1f2f6; color: #2d3436; margin-left: 10px; }
+        .custom-modal-btn-cancel:hover { background: #dfe4ea; transform: translateY(-2px); }
+
     </style>
 </head>
 <body>
@@ -154,8 +166,8 @@
                 </div>
             </div>
             <div class="flex items-center gap-4 relative">
-                <!-- กระดิ่งแจ้งเตือน -->
-                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" onclick="toggleNotifDropdown()" style="display: none;">
+                <!-- กระดิ่งแจ้งเตือน (ซ่อน/แสดง อัตโนมัติด้วย JS) -->
+                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
                     <i class="fas fa-bell text-xl text-slate-600"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
                 </div>
@@ -264,14 +276,16 @@
     </div>
 
     <!-- ================= 🌟 Custom Alert Modal (Tailwind Upgrade 100%) 🌟 ================= -->
-    <div id="customAlertModal" class="fixed inset-0 z-[6000] bg-black/50 backdrop-blur-sm hidden items-center justify-center transition-opacity duration-300 opacity-0">
-        <div id="customAlertBox" class="bg-white p-8 rounded-3xl w-[90%] max-w-[400px] text-center shadow-2xl transform scale-95 transition-transform duration-300">
-            <div id="customAlertIcon" class="text-6xl mb-4 text-rose-500"><i class="fas fa-exclamation-circle"></i></div>
-            <h3 id="customAlertTitle" class="text-2xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
-            <p id="customAlertMessage" class="text-slate-600 mb-6 text-sm leading-relaxed"></p>
-            <div class="flex justify-center gap-3">
-                <button id="customAlertOkBtn" onclick="closeCustomAlert(false)" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-8 py-3 rounded-xl font-['Kanit'] font-semibold transition-all w-full max-w-[140px] shadow-md border-none cursor-pointer">ตกลง</button>
-                <button id="customAlertCancelBtn" style="display:none;" onclick="closeCustomAlert(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-8 py-3 rounded-xl font-['Kanit'] font-semibold transition-all w-full max-w-[140px] border-none cursor-pointer">ยกเลิก</button>
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon">
+                <i class="fas fa-exclamation-circle" id="customAlertIcon" style="color: #ff4757;"></i>
+            </div>
+            <h3 class="custom-modal-title" id="customAlertTitle">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="custom-modal-message"></p>
+            <div style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+                <button class="custom-modal-btn" id="customAlertOkBtn" onclick="closeCustomAlert(false)">ตกลง</button>
+                <button class="custom-modal-btn custom-modal-btn-cancel" id="customAlertCancelBtn" style="display: none; background: #f1f2f6; color: #2d3436;" onclick="closeCustomAlert(true)">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -422,74 +436,6 @@
             ov.classList.toggle('hidden');
         }
 
-        let alertCallback = null;
-        let alertCancelCallback = null;
-        
-        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
-            if (typeof message === 'object' && message !== null) {
-                message = message.message || JSON.stringify(message);
-            }
-
-            const modal = document.getElementById('customAlertModal');
-            const box = document.getElementById('customAlertBox');
-            const titleEl = document.getElementById('customAlertTitle');
-            const msgEl = document.getElementById('customAlertMessage');
-            const iconEl = document.getElementById('customAlertIcon');
-            const okBtn = document.getElementById('customAlertOkBtn');
-            const cancelBtn = document.getElementById('customAlertCancelBtn');
-
-            msgEl.innerHTML = message;
-            alertCallback = callback;
-            alertCancelCallback = cancelCallback;
-
-            cancelBtn.style.display = 'none';
-            okBtn.className = "text-white px-8 py-3 rounded-xl font-['Kanit'] font-semibold transition-all w-full max-w-[140px] shadow-md border-none cursor-pointer";
-
-            if (type === 'success') {
-                iconEl.innerHTML = '<i class="fas fa-check-circle"></i>'; iconEl.className = 'text-6xl mb-4 text-emerald-500';
-                titleEl.innerText = 'สำเร็จ!'; okBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
-            } else if (type === 'warning') {
-                iconEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; iconEl.className = 'text-6xl mb-4 text-amber-500';
-                titleEl.innerText = 'แจ้งเตือน'; okBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
-            } else if (type === 'confirm') {
-                iconEl.innerHTML = '<i class="fas fa-question-circle"></i>'; iconEl.className = 'text-6xl mb-4 text-rose-500';
-                titleEl.innerText = 'ยืนยัน'; okBtn.classList.add('bg-rose-500', 'hover:bg-rose-600');
-                cancelBtn.style.display = 'block';
-            } else {
-                iconEl.innerHTML = '<i class="fas fa-times-circle"></i>'; iconEl.className = 'text-6xl mb-4 text-rose-500';
-                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.classList.add('bg-rose-500', 'hover:bg-rose-600');
-            }
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                box.classList.remove('scale-95');
-                box.classList.add('scale-100');
-            }, 10);
-        }
-        
-        function closeCustomAlert(isCancel = false) {
-            const modal = document.getElementById('customAlertModal');
-            const box = document.getElementById('customAlertBox');
-            
-            modal.classList.add('opacity-0');
-            box.classList.remove('scale-100');
-            box.classList.add('scale-95');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                
-                if (isCancel && alertCancelCallback) {
-                    alertCancelCallback();
-                } else if (!isCancel && alertCallback) { 
-                    alertCallback(); 
-                }
-                alertCallback = null; alertCancelCallback = null;
-            }, 300);
-        }
-
         // Init
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof APP_CONFIG !== 'undefined') {
@@ -554,11 +500,15 @@
                             profile_pic: null
                         };
                     } else {
-                        let ssCol = 'student_id';
-                        const { error: ssErr } = await db.from('school_students').select('student_id').limit(1);
-                        if (ssErr && String(ssErr.code).includes('42703')) ssCol = 'user_id';
-                        
-                        const { data: ssRecord } = await db.from('school_students').select('first_name, last_name, student_code').eq(ssCol, userId).limit(1).maybeSingle();
+                        // 🌟 Fallback ท้ายสุด (ปรับให้แข็งแกร่ง ไม่ให้พังเพราะชื่อคอลัมน์เปลี่ยน)
+                        let ssRecord = null;
+                        let resSS = await db.from('school_students').select('first_name, last_name, student_code').eq('student_id', userId).limit(1).maybeSingle();
+                        if (resSS.error) {
+                            resSS = await db.from('school_students').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
+                        }
+                        if (resSS.data) {
+                            ssRecord = resSS.data;
+                        }
                         
                         if (ssRecord) {
                             userRecord = {
@@ -770,16 +720,21 @@
             }
         }
 
-        // 🌟 แก้ไข: ดึงข้อมูลห้องเรียนแบบทะลุข้อจำกัด (Bulletproof Fetching)
+        // 🌟 แก้ไข: ดึงข้อมูลห้องเรียนแบบทะลุข้อจำกัดชื่อคอลัมน์ (Bulletproof Fetching)
         async function fetchAllClasses(db) {
             try {
                 // 1. ห้องเรียนที่สอน (Teacher)
                 let teachData = [];
                 let resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
-                if (resTeach.error && String(resTeach.error.code).includes('42703')) {
-                    resTeach = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
+                // ถ้าค้นหาด้วย owner_id ล้มเหลว หรือได้ค่าว่าง ให้ลองเปลี่ยนไปค้นหาด้วย teacher_id (รองรับทั้งระบบเก่า-ใหม่)
+                if (resTeach.error || !resTeach.data || resTeach.data.length === 0) {
+                    let resTeach2 = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
+                    if (!resTeach2.error && resTeach2.data && resTeach2.data.length > 0) {
+                        resTeach = resTeach2;
+                    }
                 }
-                if (!resTeach.error && resTeach.data) {
+                
+                if (resTeach.data) {
                     teachData = resTeach.data;
                 }
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
@@ -788,12 +743,17 @@
                 let learnData = [];
                 let enrollments = [];
                 
-                let resLearn1 = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
-                if (resLearn1.error && String(resLearn1.error.code).includes('42703')) {
+                // 🌟 แก้บั๊ก: ลองดึงรายชื่อด้วย user_id ก่อน ถ้า Error หรือ ค่าว่าง ให้ลอง student_id
+                let resLearn = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
+                if (resLearn.error || !resLearn.data || resLearn.data.length === 0) {
                     let resLearn2 = await db.from('classroom_users').select('classroom_id').eq('student_id', currentUser.id);
-                    if (!resLearn2.error && resLearn2.data) enrollments = resLearn2.data;
-                } else if (!resLearn1.error && resLearn1.data) {
-                    enrollments = resLearn1.data;
+                    if (!resLearn2.error && resLearn2.data && resLearn2.data.length > 0) {
+                        resLearn = resLearn2;
+                    }
+                }
+                
+                if (resLearn.data) {
+                    enrollments = resLearn.data;
                 }
 
                 // ถ้ามีห้องที่เข้าร่วม ให้ไปดึงชื่อห้องจากตาราง classrooms ทีละไอดี
@@ -969,17 +929,28 @@
                 
                 if (!targetClass) throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
 
-                let userColName = 'user_id';
-                const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
-                if (testColErr && String(testColErr.code).includes('42703')) {
-                    userColName = 'student_id';
-                }
+                // ลองค้นหาโดยใช้ student_id แทน user_id ก่อน 
+                let userColName = 'student_id';
+                let existEnroll = null;
 
-                const { data: existEnroll } = await db.from('classroom_users')
+                let resTest = await db.from('classroom_users')
                     .select('enrollment_id')
                     .eq('classroom_id', targetClass.classroom_id)
-                    .eq(userColName, currentUser.id)
+                    .eq('student_id', currentUser.id)
                     .maybeSingle();
+
+                if (resTest.error) {
+                    // ถ้า error ให้ลองใช้ user_id
+                    userColName = 'user_id';
+                    let resTest2 = await db.from('classroom_users')
+                        .select('enrollment_id')
+                        .eq('classroom_id', targetClass.classroom_id)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    if (resTest2.data) existEnroll = resTest2.data;
+                } else {
+                    if (resTest.data) existEnroll = resTest.data;
+                }
                 
                 if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
 
@@ -1574,7 +1545,7 @@
                 const db = getDB();
                 await db.auth.signOut();
                 localStorage.removeItem('flip_active_view');
-                localStorage.removeItem('flip_student_session_id'); // 🌟 เคลียร์ Session นักเรียนด้วย
+                localStorage.removeItem('flip_student_session_id');
                 window.location.replace('login.html');
             });
         }
