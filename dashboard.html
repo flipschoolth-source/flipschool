@@ -131,7 +131,7 @@
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
+        <div id="loadingText" style="font-family: 'Kanit'; color: var(--primary); font-weight: 600; text-align: center;">กำลังโหลดข้อมูล...</div>
     </div>
 
     <!-- Drawer Overlay & Sidebar -->
@@ -564,29 +564,23 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {
-                    const swCode = `
-                        self.addEventListener('install', e => self.skipWaiting());
-                        self.addEventListener('activate', e => self.clients.claim());
-                        self.addEventListener('fetch', e => {});
-                    `;
-                    const blob = new Blob([swCode], { type: 'application/javascript' });
-                    navigator.serviceWorker.register(URL.createObjectURL(blob)).then(reg => {
-                        console.log('PWA Service Worker Registered');
-                    });
+                navigator.serviceWorker.register('./sw.js').catch(() => {
+                    console.log('PWA SW Register fallback activated');
                 });
             });
         }
 
-        // ================= ฟังก์ชันค้นหาฐานข้อมูล =================
+        // ================= ฟังก์ชันค้นหาฐานข้อมูล (Bulletproof) =================
         function getDB() {
             if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
-            try { if (typeof sysDB !== 'undefined' && sysDB && sysDB.auth) return sysDB; } catch(e){}
-            if (typeof window.initSupabase === 'function') {
-                window.initSupabase();
-                if (window.sysDB && window.sysDB.auth) return window.sysDB;
+            if (typeof supabase !== 'undefined' && typeof APP_CONFIG !== 'undefined') {
+                const key = APP_CONFIG.SUPABASE_KEY || APP_CONFIG.SUPABASE_ANON_KEY || APP_CONFIG.ANON_KEY;
+                if (APP_CONFIG.SUPABASE_URL && key) {
+                    window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, key);
+                    return window.sysDB;
+                }
             }
-            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ โปรดตรวจสอบไฟล์ config.js");
         }
 
         let currentUser = null;
@@ -613,7 +607,24 @@
             ov.classList.toggle('hidden');
         }
 
-        // ================= การจัดการข้อมูลหลัก (ลอจิกเดิม) =================
+        // ================= การจัดการข้อมูลหลัก =================
+        let checkCount = 0;
+        const checkDB = setInterval(async () => {
+            checkCount++;
+            try {
+                const db = getDB();
+                clearInterval(checkDB);
+                await initDashboard(db);
+            } catch(e) {
+                if (checkCount > 15) { // ประมาณ 4.5 วินาที
+                    clearInterval(checkDB);
+                    document.getElementById('loadingText').innerText = "เชื่อมต่อฐานข้อมูลล้มเหลว โปรดตรวจสอบอินเทอร์เน็ต";
+                    document.getElementById('loadingText').style.color = "#ff4757";
+                    console.error("DB Connection Error:", e);
+                }
+            }
+        }, 300);
+
         async function initDashboard(db) {
             try {
                 let userId = null;
@@ -722,13 +733,21 @@
             const lName = userData.last_name || '';
             const fullName = `${fName} ${lName}`.trim();
             
-            document.getElementById('welcomeText').innerText = fName;
-            document.getElementById('sidebarName').innerText = fullName;
-            document.getElementById('sidebarEmail').innerText = userData.email || '';
+            const welcomeText = document.getElementById('welcomeText');
+            if (welcomeText) welcomeText.innerText = fName;
+            
+            const sidebarName = document.getElementById('sidebarName');
+            if (sidebarName) sidebarName.innerText = fullName;
+            
+            const sidebarEmail = document.getElementById('sidebarEmail');
+            if (sidebarEmail) sidebarEmail.innerText = currentUser.email || '';
             
             const picUrl = userData.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fName}`;
-            document.getElementById('navProfileImg').src = picUrl;
-            document.getElementById('sidebarProfileImg').src = picUrl;
+            const navProfileImg = document.getElementById('navProfileImg');
+            if (navProfileImg) navProfileImg.src = picUrl;
+            
+            const sidebarProfileImg = document.getElementById('sidebarProfileImg');
+            if (sidebarProfileImg) sidebarProfileImg.src = picUrl;
 
             const sbContainer = document.getElementById('sidebarSchoolsList');
             if (userSchools.length === 0) {
@@ -1523,13 +1542,14 @@
         });
 
         function setupRealtimePendingRequests() {
-            if (pendingRequestsSubscription) { sysDB.removeChannel(pendingRequestsSubscription); pendingRequestsSubscription = null; }
+            const db = getDB();
+            if (pendingRequestsSubscription) { db.removeChannel(pendingRequestsSubscription); pendingRequestsSubscription = null; }
             
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             
             if (approvedSchoolIds.length > 0) {
                 checkPendingRequests(); 
-                pendingRequestsSubscription = sysDB.channel('custom-update-channel')
+                pendingRequestsSubscription = db.channel('custom-update-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'user_school' }, (payload) => {
                         const record = payload.new || payload.old;
                         if (record && approvedSchoolIds.includes(record.school_id)) checkPendingRequests(); 
@@ -1545,15 +1565,16 @@
             if (approvedSchoolIds.length === 0) { document.getElementById('notifBadge').style.display = 'none'; window.pendingRequests = []; return; }
 
             try {
-                const { data: reqs, error: reqErr } = await sysDB.from('user_school')
+                const db = getDB();
+                const { data: reqs, error: reqErr } = await db.from('user_school')
                     .select('*').eq('verification_status', 'pending').in('school_id', approvedSchoolIds).order('created_at', { ascending: false });
                 if (reqErr) throw reqErr;
 
                 let pendingData = [];
                 if (reqs && reqs.length > 0) {
                     const userIds = reqs.map(r => r.user_id); const schoolIds = reqs.map(r => r.school_id);
-                    const { data: usersData } = await sysDB.from('users').select('user_id, first_name, last_name, email, profile_pic').in('user_id', userIds);
-                    const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
+                    const { data: usersData } = await db.from('users').select('user_id, first_name, last_name, email, profile_pic').in('user_id', userIds);
+                    const { data: schoolsData } = await db.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
 
                     reqs.forEach(r => {
                         if (r.user_id !== currentUser.id) {
@@ -1597,7 +1618,8 @@
                 
                 let viewCardBtn = '';
                 if (req.verification_card_url && req.verification_card_url !== 'null') {
-                    const publicUrl = sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
+                    const db = getDB();
+                    const publicUrl = db.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
                     viewCardBtn = `<span onclick="viewImage('${publicUrl}')" class="text-blue-500 hover:text-blue-700 cursor-pointer underline ml-1 font-normal text-[12px]"><i class="fas fa-id-card"></i> ดูเอกสาร</span>`;
                 }
                 
@@ -1626,7 +1648,8 @@
 
         async function approveUserFB(tsId, requestRole, userId, schoolId, cardUrl) {
             try {
-                const { error } = await sysDB.from('user_school').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
+                const db = getDB();
+                const { error } = await db.from('user_school').update({ verification_status: 'approved', role: requestRole, approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', tsId);
                 if (error) throw error;
                 
                 if (cardUrl && cardUrl !== 'null') await deleteCardFromStorage(cardUrl);
@@ -1648,8 +1671,9 @@
         async function deleteCardFromStorage(fileName) {
             if (!fileName || fileName === 'null') return;
             try {
-                await sysDB.storage.from('teacher-verifications').remove([fileName]);
-                await sysDB.from('user_school').update({ verification_card_url: null }).eq('verification_card_url', fileName);
+                const db = getDB();
+                await db.storage.from('teacher-verifications').remove([fileName]);
+                await db.from('user_school').update({ verification_card_url: null }).eq('verification_card_url', fileName);
             } catch (e) { console.error("ไม่สามารถลบไฟล์ได้:", e); }
         }
 
