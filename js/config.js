@@ -1,3 +1,4 @@
+// ไฟล์: js/config.js
 /* =========================================
    1. การตั้งค่าระบบ (Configuration)
    ========================================= */
@@ -69,10 +70,24 @@ function initAppUI() {
         el.innerText = APP_CONFIG.APP_SLOGAN;
     });
 
-    // อัปเดต Footer
-    const footerElements = document.querySelectorAll('.footer');
+    // อัปเดต Footer ทั่วทั้งระบบ
+    const footerElements = document.querySelectorAll('.footer-display-text');
     footerElements.forEach(el => {
-        el.innerHTML = `&copy; ${APP_CONFIG.YEAR} ${APP_CONFIG.APP_NAME}. ${APP_CONFIG.FOOTER_TEXT}`;
+        const year = APP_CONFIG.YEAR || new Date().getFullYear();
+        const appName = APP_CONFIG.APP_NAME || 'FlipSchool';
+        const slogan = APP_CONFIG.APP_SLOGAN || '';
+        const fText = APP_CONFIG.FOOTER_TEXT || '';
+        const owner = APP_CONFIG.OWNER || {};
+        
+        // จัดรูปแบบข้อความให้ดูสวยงาม
+        let html = `&copy; ${year} ${appName} - ${slogan}`;
+        if (fText) html += `<br><span style="opacity: 0.85;">${fText}</span>`;
+        if (owner.NAME) {
+            html += `<br><span style="font-size: 0.85em; opacity: 0.7; display: inline-block; margin-top: 5px;">
+                     ลิขสิทธิ์ / ผู้พัฒนา: ${owner.NAME} ${owner.POSITION} ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
+                     </span>`;
+        }
+        el.innerHTML = html;
     });
 }
 
@@ -82,7 +97,6 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
 // ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือทุกหน้า
 // ==============================================================
 (function() {
-    // 1. ตรวจสอบให้ทำงานเฉพาะบนมือถือและแท็บเล็ตเท่านั้น
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) return;
 
@@ -91,7 +105,6 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
     let isPulling = false;
     let ptrIndicator = null;
 
-    // 2. ฟังก์ชันสร้างไอคอนโหลดกลมๆ (เหมือนแอปทั่วไป)
     function createIndicator() {
         if (document.getElementById('ptr-indicator')) return;
         ptrIndicator = document.createElement('div');
@@ -108,14 +121,12 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
         document.body.appendChild(ptrIndicator);
     }
 
-    // 3. ฟังก์ชันเช็คว่าหน้าจออยู่ตำแหน่ง "บนสุด" หรือยัง (เพื่อไม่ให้ขัดจังหวะตอนเลื่อนอ่านปกติ)
     function getScrollTop() {
         const windowScroll = window.scrollY || document.documentElement.scrollTop;
         const containerScroll = document.querySelector('.container') ? document.querySelector('.container').scrollTop : 0;
         return Math.max(windowScroll, containerScroll);
     }
 
-    // เริ่มแตะหน้าจอ
     window.addEventListener('touchstart', function(e) {
         if (getScrollTop() <= 0) {
             startY = e.touches[0].clientY;
@@ -126,48 +137,34 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
         }
     }, { passive: true });
 
-    // กำลังลากนิ้วลง
     window.addEventListener('touchmove', function(e) {
         if (!isPulling) return;
         currentY = e.touches[0].clientY;
         let diffY = currentY - startY;
 
-        // ถ้าดึงลงมามากกว่า 0 (ดึงลง) และหน้าจออยู่บนสุด
         if (diffY > 0 && getScrollTop() <= 0) {
-            // คำนวณระยะการดึง (ให้หนืดๆ นิดหน่อยเพื่อให้ความรู้สึกเหมือนสปริง)
             let pullDistance = Math.min(diffY * 0.4, 90); 
-            
             if (ptrIndicator) {
-                ptrIndicator.style.transition = 'none'; // ปิดแอนิเมชันเพื่อให้ตามนิ้วทันที
+                ptrIndicator.style.transition = 'none'; 
                 ptrIndicator.style.top = (pullDistance - 50) + 'px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(${pullDistance * 4}deg)`;
             }
-            
-            // ถ้าเบราว์เซอร์ยอม ให้ระงับการเลื่อนหน้าจอกลางคันเพื่อดึงปุ่มนี้ลงมาแทน
             if (e.cancelable && diffY > 10) e.preventDefault();
         }
     }, { passive: false });
 
-    // ปล่อยนิ้ว
     window.addEventListener('touchend', function(e) {
         if (!isPulling) return;
         isPulling = false;
         let diffY = currentY - startY;
 
         if (ptrIndicator) {
-            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; // เปิดแอนิเมชันตอนเด้งกลับ
-            
-            // ถ้าดึงลงมาลึกเกิน 120px ให้ทำการ "รีโหลดหน้าจอ"
+            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; 
             if (diffY > 120 && getScrollTop() <= 0) {
-                ptrIndicator.style.top = '25px'; // ค้างไอคอนไว้บนจอ
-                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // เปลี่ยนเป็นไอคอนโหลด
-                
-                // สั่งรีโหลดหน้าเว็บ (ดีเลย์ 0.3 วิ ให้เห็นแอนิเมชันหมุนก่อน)
-                setTimeout(() => {
-                    window.location.reload();
-                }, 300);
+                ptrIndicator.style.top = '25px'; 
+                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+                setTimeout(() => { window.location.reload(); }, 300);
             } else {
-                // ถ้าดึงลงมานิดเดียว เปลี่ยนใจปล่อยนิ้ว ให้เด้งกลับซ่อนไปเหมือนเดิม
                 ptrIndicator.style.top = '-60px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(0deg)`;
             }
@@ -175,7 +172,6 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
     });
 })();
 
-// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = APP_CONFIG;
 }
