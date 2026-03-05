@@ -393,8 +393,8 @@
                     <p class="text-xs md:text-sm text-slate-500 mt-1">ลากย้ายสลับที่ได้อิสระ หรือกดเปลี่ยนชื่อ/ลบหมวดหมู่</p>
                 </div>
                 <div class="flex gap-2 self-start md:self-center w-full md:w-auto flex-wrap">
-                    <button onclick="cancelManageMode()" title="ยกเลิกการแก้ไข" class="flex-1 md:flex-none justify-center bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer border-none">
-                        <i class="fas fa-undo text-lg md:text-base"></i> <span class="hidden md:inline">ยกเลิก</span>
+                    <button onclick="exitManageMode()" title="ย้อนกลับหน้าเดิม" class="flex-1 md:flex-none justify-center bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer border-none">
+                        <i class="fas fa-arrow-left text-lg md:text-base"></i> <span class="hidden md:inline">ย้อนกลับ</span>
                     </button>
                     <button onclick="handleAddFolderPrompt()" title="เพิ่มหมวดหมู่" class="flex-1 md:flex-none justify-center bg-white border border-blue-200 text-[var(--primary-light)] hover:bg-[var(--primary-light)] hover:text-white px-3 py-2.5 md:px-4 md:py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer border-none">
                         <i class="fas fa-folder-plus text-lg md:text-base"></i> <span class="hidden md:inline">เพิ่มหมวดหมู่</span>
@@ -1382,22 +1382,66 @@
         function toggleManageMode() {
             if (!isManageMode) {
                 isManageMode = true;
+                const btn = document.getElementById('manageModeBtn');
+                const btnMob = document.getElementById('manageModeMobileBtn');
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-save text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">บันทึกข้อมูล</span>';
+                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-emerald-500 border-2 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600 px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-md cursor-pointer text-sm";
+                }
+                if(btnMob) {
+                    btnMob.innerHTML = '<i class="fas fa-save text-emerald-500"></i> <span class="text-emerald-500 font-bold">บันทึกข้อมูล</span>';
+                }
                 renderAdminManageView();
             } else {
                 saveNewOrderAndFolders(); 
             }
         }
 
-        function cancelManageMode() {
-            openCustomConfirm('ยกเลิกการแก้ไข', 'คุณต้องการยกเลิกการเปลี่ยนแปลงทั้งหมด และคืนค่าเดิมใช่หรือไม่?', false, async () => {
-                isManageMode = false; deletedAssignments = []; 
-                document.getElementById('loadingText').innerText = "กำลังคืนค่าเดิม...";
-                document.getElementById('loadingOverlay').classList.remove('hidden');
-                document.getElementById('loadingOverlay').style.opacity = '1';
-                try { await fetchFreshData(getDB()); } catch(e) {}
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingOverlay').classList.add('hidden'), 500);
-            });
+        // แทนที่ฟังก์ชัน Cancel เดิมด้วยปุ่มย้อนกลับที่ฉลาดขึ้น
+        function exitManageMode() {
+            if (deletedAssignments.length > 0) {
+                // หากมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ให้แจ้งเตือนก่อน
+                openCustomConfirm('ย้อนกลับ', 'มีการลบข้อมูลที่ยังไม่ได้บันทึก ต้องการย้อนกลับและคืนค่าเดิมใช่หรือไม่?', false, async () => {
+                    await forceExitManageMode();
+                });
+            } else {
+                // หากไม่มีอะไรเปลี่ยนแปลง ให้ย้อนกลับได้เลย
+                forceExitManageMode();
+            }
+        }
+
+        async function forceExitManageMode() {
+            isManageMode = false; 
+            deletedAssignments = []; 
+            
+            // คืนค่าปุ่มจัดการเนื้อหาที่ Navbar
+            const btn = document.getElementById('manageModeBtn');
+            const btnMob = document.getElementById('manageModeMobileBtn');
+            if(btn) {
+                btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
+                btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
+            }
+            if(btnMob) {
+                btnMob.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+            }
+
+            document.getElementById('loadingText').innerText = "กำลังกลับหน้าเดิม...";
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').style.opacity = '1';
+            
+            try { 
+                await fetchFreshData(getDB()); 
+                
+                // ฉลาดขึ้น: ถ้าเปิดมาจากโฟลเดอร์ไหน ก็กลับไปโฟลเดอร์นั้น
+                if (currentOpenedFolder && folders.includes(currentOpenedFolder)) {
+                    openFolder(currentOpenedFolder);
+                } else {
+                    showFolderGrid();
+                }
+            } catch(e) {}
+            
+            document.getElementById('loadingOverlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loadingOverlay').classList.add('hidden'), 500);
         }
 
         function renderAdminManageView() {
@@ -1584,9 +1628,27 @@
                 try { await db.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId); } catch(e) {}
 
                 isManageMode = false;
+                
+                // คืนค่าปุ่มจัดการเนื้อหาที่ Navbar กลับสู่สภาพเดิม
+                const btn = document.getElementById('manageModeBtn');
+                const btnMob = document.getElementById('manageModeMobileBtn');
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
+                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
+                }
+                if(btnMob) {
+                    btnMob.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+                }
 
                 await fetchFreshData(db);
-                showFolderGrid();
+                
+                // ฉลาดขึ้น: ถ้าเปิดมาจากโฟลเดอร์ไหน ก็ให้แสดงโฟลเดอร์นั้นทันที (ยกเว้นถูกลบไปแล้ว)
+                if (currentOpenedFolder && folders.includes(currentOpenedFolder)) {
+                    openFolder(currentOpenedFolder);
+                } else {
+                    showFolderGrid();
+                }
+                
                 showCustomAlert("บันทึกโครงสร้างห้องเรียนสำเร็จ!", "success");
             } catch (err) { showCustomAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error'); }
             finally { 
