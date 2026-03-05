@@ -664,16 +664,21 @@
                 
                 if (!uErr && usersData && usersData.length > 0) {
                     usersData.forEach(u => usersDict[u.user_id] = u);
-                } else {
+                } 
+                
+                // 🌟 แก้ไข: ตรวจสอบรายชื่อที่เหลือที่ยังไม่พบในตาราง users ให้ไปหาใน user_school
+                const missingUserIds = userIds.filter(id => !usersDict[id]);
+                
+                if (missingUserIds.length > 0) {
                     const { data: usData } = await db.from('user_school')
                         .select('user_id, first_name, last_name, student_code')
-                        .in('user_id', userIds);
+                        .in('user_id', missingUserIds);
                     if (usData) {
                         usData.forEach(u => usersDict[u.user_id] = u);
                     } else {
                         const { data: profData } = await db.from('profiles')
                             .select('id, first_name, last_name, student_code')
-                            .in('id', userIds);
+                            .in('id', missingUserIds);
                         if (profData) {
                             profData.forEach(u => usersDict[u.id] = u);
                         }
