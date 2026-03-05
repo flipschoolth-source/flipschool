@@ -18,7 +18,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
-    <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -36,20 +35,15 @@
         .filter-tab { padding: 10px 20px; background: white; border-radius: 50px; font-family: 'Kanit'; font-size: 14px; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 2px solid transparent; }
         .filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
         
-        /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 20px; }
         .modal-box { background: white; border-radius: 25px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        
-        .search-results { background: white; border: 1px solid #eef2f7; border-radius: 12px; margin-top: 5px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .search-item { padding: 12px 15px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid #f8faff; font-size: 14px; }
-        .search-item:hover { background: #f0f4ff; color: var(--primary); }
-
         .form-input { width: 100%; padding: 12px 15px; border: 2px solid #edf2f7; border-radius: 12px; font-family: 'Sarabun'; margin-bottom: 15px; outline: none; transition: 0.3s; }
         .form-input:focus { border-color: var(--accent); background: #fff; }
 
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #smartAppBanner { display: none; background: white; padding: 12px 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e4e6eb; position: sticky; top: 70px; z-index: 900; }
     </style>
 </head>
 <body>
@@ -59,7 +53,6 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
     </div>
 
-    <!-- Navbar -->
     <nav class="nav-clean h-[70px] flex items-center justify-center sticky top-0 z-50">
         <div class="w-full px-4 md:px-8 flex items-center justify-between">
             <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
@@ -77,8 +70,16 @@
         </div>
     </nav>
 
+    <div id="smartAppBanner">
+        <div class="flex items-center gap-3">
+            <button onclick="closeSmartBanner()" class="text-slate-400 text-xl">&times;</button>
+            <div class="w-10 h-10 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white">🎓</div>
+            <div><div class="font-bold text-sm font-['Kanit']">FlipSchool</div><div class="text-xs text-slate-500">ใช้งานแอปเพื่อความรวดเร็ว</div></div>
+        </div>
+        <a id="btnOpenInApp" href="#" onclick="handleOpenInAppClick(event)" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-bold text-sm no-underline">เปิดแอป</a>
+    </div>
+
     <main class="flex-grow w-full max-w-[1400px] mx-auto px-4 py-6">
-        <!-- Profile Header -->
         <div class="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4 w-full">
                 <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center text-2xl">👋</div>
@@ -97,7 +98,6 @@
         <div id="gridAllClasses" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </main>
 
-    <!-- FAB -->
     <button id="fabMainBtn" onclick="toggleFabMenu()" class="fixed bottom-8 right-8 w-16 h-16 bg-[var(--accent)] text-white rounded-full shadow-2xl flex items-center justify-center text-2xl z-[998] transition-all">
         <i class="fas fa-plus"></i>
     </button>
@@ -118,73 +118,25 @@
         </div>
         <div class="font-bold text-xs text-slate-400 uppercase tracking-widest mb-3">กลุ่มสถานศึกษา</div>
         <div id="sidebarSchoolsList" class="flex-grow overflow-y-auto space-y-2"></div>
-        <button onclick="openJoinSchoolModal()" class="w-full mt-4 p-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border-none cursor-pointer">
-            <i class="fas fa-plus-circle"></i> ค้นหา / สร้างกลุ่มโรงเรียน
-        </button>
         <button onclick="handleLogout()" class="mt-4 w-full p-4 bg-rose-50 text-rose-600 font-bold rounded-2xl border-none cursor-pointer hover:bg-rose-100 transition-colors">ออกจากระบบ</button>
     </div>
 
-    <!-- Modal: Join/Create School -->
-    <div id="joinSchoolModal" class="modal-overlay" onclick="closeJoinSchoolModal()">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold font-['Kanit'] text-[var(--primary)] mb-4 border-b pb-3"><i class="fas fa-school mr-2"></i> ค้นหากลุ่มโรงเรียน</h3>
-            
-            <form id="joinSchoolForm" onsubmit="submitSchoolJoin(event)">
-                <div id="searchSchoolGroup">
-                    <label class="block text-sm font-bold text-slate-700 mb-2">ชื่อโรงเรียน</label>
-                    <input type="text" id="reqSchoolSearch" class="form-input" placeholder="พิมพ์ชื่อโรงเรียนเพื่อค้นหา..." oninput="searchSchools(this.value)" autocomplete="off">
-                    <div id="reqSchoolResults" class="search-results hidden"></div>
-                </div>
-
-                <div id="selectedSchoolCard" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 relative">
-                    <h4 id="selSchoolName" class="font-bold text-slate-800"></h4>
-                    <p id="selSchoolAbbr" class="text-xs text-blue-600 font-bold uppercase"></p>
-                    <button type="button" onclick="resetSchoolSelection()" class="absolute top-2 right-2 text-rose-500 bg-transparent border-none cursor-pointer"><i class="fas fa-times-circle"></i></button>
-                    <input type="hidden" id="reqSchoolId">
-                </div>
-
-                <div id="newSchoolGroup" class="hidden bg-slate-50 border rounded-xl p-4 mb-4">
-                    <h4 class="font-bold text-primary mb-3">สร้างกลุ่มโรงเรียนใหม่</h4>
-                    <input type="text" id="newSchoolName" class="form-input" placeholder="ระบุชื่อโรงเรียนเต็ม">
-                    <input type="text" id="newSchoolAbbr" class="form-input" placeholder="อักษรย่อภาษาอังกฤษ (เช่น t1sk)">
-                    <button type="button" onclick="cancelNewSchool()" class="text-xs text-rose-500 underline border-none bg-transparent cursor-pointer">ยกเลิกสร้างใหม่</button>
-                </div>
-
-                <div id="reqIdCardGroup" class="hidden">
-                    <p class="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg mb-3">คุณจะได้รับสิทธิ์ Admin กลุ่มนี้ กรุณาแนบภาพถ่ายคู่บัตรประจำตัว</p>
-                    <button type="button" onclick="openCameraModal()" class="w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 mb-4 hover:border-primary hover:text-primary transition-all">
-                        <i class="fas fa-camera text-2xl mb-2"></i><br>ถ่ายภาพคู่บัตรยืนยันตัวตน
-                    </button>
-                    <div id="reqFileNameDisplay" class="text-center text-xs text-emerald-500 font-bold mb-3"></div>
-                </div>
-
-                <button type="submit" id="btnSubmitSchool" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg">ยืนยันส่งคำขอ</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Camera -->
-    <div id="cameraModal" class="modal-overlay">
-        <div class="modal-box text-center">
-            <h3 class="font-bold mb-4">ถ่ายภาพยืนยันตัวตน</h3>
-            <video id="cameraVideo" autoplay playsinline class="w-full rounded-xl bg-black mb-4 h-[300px] object-cover"></video>
-            <canvas id="cameraCanvas" class="hidden"></canvas>
-            <img id="cameraPreview" class="hidden w-full rounded-xl mb-4 h-[300px] object-cover">
-            <div class="flex gap-3">
-                <button id="btnCapture" onclick="takeSnapshot()" class="flex-1 p-3 bg-blue-600 text-white rounded-xl font-bold">ถ่ายภาพ</button>
-                <button id="btnConfirmPhoto" onclick="confirmSnapshot()" class="hidden flex-1 p-3 bg-emerald-600 text-white rounded-xl font-bold">ใช้รูปนี้</button>
-                <button onclick="closeCameraModal()" class="flex-1 p-3 bg-slate-200 rounded-xl font-bold">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Join Classroom -->
+    <!-- Join Classroom Modal -->
     <div id="joinClassModal" class="modal-overlay">
         <div class="modal-box text-center">
             <h3 class="text-xl font-bold mb-6">เข้าร่วมห้องเรียน</h3>
             <input type="text" id="joinCodeInput" maxlength="6" class="w-full p-4 text-center text-3xl font-mono font-bold tracking-widest border-2 rounded-2xl mb-6 uppercase" placeholder="------">
-            <button onclick="submitJoinClass()" class="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg">เข้าร่วมวิชาเรียน</button>
+            <button onclick="submitJoinClass()" id="btnConfirmJoin" class="w-full bg-[var(--primary)] text-white py-4 rounded-2xl font-bold text-lg">เข้าร่วมวิชาเรียน</button>
             <button onclick="closeJoinModal()" class="mt-4 text-slate-400 border-none bg-transparent cursor-pointer">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 9999;">
+        <div class="modal-box">
+            <div class="text-5xl mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-blue-500"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-500 mb-6"></p>
+            <button onclick="closeCustomAlert()" class="bg-[var(--primary)] text-white px-8 py-3 rounded-full font-bold">ตกลง</button>
         </div>
     </div>
 
@@ -192,22 +144,29 @@
         let currentUser = null;
         let userData = null;
         let userSchools = [];
-        let allClasses = [];
         let activeViewMode = 'all';
-        let activeImageFile = null;
-        let cameraStream = null;
+        let allClasses = [];
 
-        // ================= 🌟 ฟังก์ชันหลัก (Core Logic) 🌟 =================
+        // ================= 🌟 ฟังก์ชันดึงข้อมูลฐานข้อมูล (เสถียร 100%) 🌟 =================
+        function getDB() {
+            if (window.sysDB) return window.sysDB;
+            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
+            return window.sysDB;
+        }
 
         async function initDashboard() {
             try {
                 const db = getDB();
                 const { data: { session } } = await db.auth.getSession();
                 
-                let userId = session?.user?.id || localStorage.getItem('flip_student_session_id');
+                // รองรับทั้ง Auth ปกติ และ QR Login แบบ Local Session
+                let userId = session?.user?.id || localStorage.getItem('flip_student_session_id') || localStorage.getItem('flip_student_session');
                 if (!userId) return window.location.replace('login.html');
 
-                let { data: user } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
+                // ดึงข้อมูลจาก Unified Table: users
+                let { data: user, error } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
+                
+                // หากไม่เจอ ให้ค้นหาใน user_school (กรณีนำเข้าจาก Excel แล้วยังไม่สร้างโปรไฟล์สมบูรณ์)
                 if (!user) {
                     const { data: us } = await db.from('user_school').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
                     if (us) user = { user_id: userId, first_name: us.first_name, last_name: us.last_name, student_code: us.student_code };
@@ -218,28 +177,31 @@
                 currentUser = { id: userId, email: session?.user?.email || '' };
                 userData = user;
 
-                // ดึงข้อมูลสถานะโรงเรียน
+                // ดึงโรงเรียนที่สังกัด
                 const { data: schools } = await db.from('user_school').select('*, schools(*)').eq('user_id', userId);
                 userSchools = schools || [];
 
-                // อัปเดต UI
-                document.getElementById('welcomeText').innerText = user.first_name;
-                const pic = user.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name}`;
+                document.getElementById('welcomeText').innerText = user.first_name || 'ผู้ใช้งาน';
+                document.getElementById('sidebarName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
+                document.getElementById('sidebarEmail').innerText = currentUser.email || `รหัส: ${user.student_code || '-'}`;
+                const pic = user.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name || 'User'}`;
                 document.getElementById('navProfileImg').src = pic;
                 document.getElementById('sidebarProfileImg').src = pic;
-                document.getElementById('sidebarName').innerText = `${user.first_name} ${user.last_name || ''}`;
-                document.getElementById('sidebarEmail').innerText = currentUser.email || `ID: ${user.student_code || '-'}`;
 
                 await fetchAllClasses(db);
                 renderFilterTabs();
                 renderSidebarSchools();
                 
                 document.getElementById('loadingOverlay').style.display = 'none';
-            } catch (err) { console.error(err); window.location.replace('login.html'); }
+            } catch (err) {
+                console.error(err);
+                window.location.replace('login.html');
+            }
         }
 
         async function fetchAllClasses(db) {
             try {
+                // ไม่ต้องเดาคอลัมน์ ใช้ owner_id และ user_id ตาม DDL ล่าสุดของคุณ
                 const { data: teachData } = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
                 const { data: enrollments } = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
 
@@ -250,10 +212,18 @@
                     if (classDetails) learnData = classDetails;
                 }
 
-                allClasses = [...(teachData || []).map(c => ({...c, userRole: 'teacher'})), ...(learnData || []).map(c => ({...c, userRole: 'student'}))];
+                const mappedTeach = (teachData || []).map(c => ({ ...c, userRole: 'teacher' }));
+                const mappedLearn = (learnData || []).map(c => ({ ...c, userRole: 'student' }));
+
+                allClasses = [...mappedTeach, ...mappedLearn];
                 const uniqueMap = new Map();
-                allClasses.forEach(item => { if (!uniqueMap.has(item.classroom_id) || item.userRole === 'teacher') uniqueMap.set(item.classroom_id, item); });
+                allClasses.forEach(item => {
+                    if (!uniqueMap.has(item.classroom_id) || item.userRole === 'teacher') {
+                        uniqueMap.set(item.classroom_id, item);
+                    }
+                });
                 allClasses = Array.from(uniqueMap.values());
+                allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 // ดึงชื่อโรงเรียน
                 const schoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
@@ -262,196 +232,107 @@
                     const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s.school_name]));
                     allClasses = allClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
                 }
+
                 renderFilteredGrids();
-            } catch (e) { console.error(e); }
-        }
-
-        // ================= 🌟 ฟังก์ชันจัดการโรงเรียน (Fixed Search) 🌟 =================
-
-        function openJoinSchoolModal() { document.getElementById('joinSchoolModal').style.display = 'flex'; }
-        function closeJoinSchoolModal() { document.getElementById('joinSchoolModal').style.display = 'none'; }
-
-        async function searchSchools(query) {
-            const resultBox = document.getElementById('reqSchoolResults');
-            if (query.trim().length < 2) { resultBox.classList.add('hidden'); return; }
-            
-            const db = getDB();
-            const { data, error } = await db.from('schools').select('school_id, school_name, school_abbr').ilike('school_name', `%${query}%`).limit(10);
-            
-            let html = '';
-            if (data && data.length > 0) {
-                html = data.map(s => `<div class="search-item" onclick="selectSchoolReq('${s.school_id}', '${s.school_name}', '${s.school_abbr || ''}')"><i class="fas fa-school mr-2"></i> ${s.school_name}</div>`).join('');
-            } else {
-                html = `<div class="search-item text-center text-primary font-bold" onclick="showNewSchoolForm()">+ ไม่พบชื่อโรงเรียน? สร้างกลุ่มใหม่</div>`;
-            }
-            resultBox.innerHTML = html;
-            resultBox.classList.remove('hidden');
-        }
-
-        async function selectSchoolReq(id, name, abbr) {
-            document.getElementById('searchSchoolGroup').classList.add('hidden');
-            document.getElementById('reqSchoolId').value = id;
-            document.getElementById('selSchoolName').innerText = name;
-            document.getElementById('selSchoolAbbr').innerText = abbr ? `@${abbr}` : 'ไม่มีอักษรย่อ';
-            document.getElementById('selectedSchoolCard').classList.remove('hidden');
-            
-            // เช็คว่าโรงเรียนนี้มี Admin หรือยัง
-            const db = getDB();
-            const { data: admins } = await db.from('user_school').select('id').eq('school_id', id).eq('role', 'admin').eq('verification_status', 'approved').limit(1);
-            if (!admins || admins.length === 0) {
-                document.getElementById('reqIdCardGroup').classList.remove('hidden');
-            } else {
-                document.getElementById('reqIdCardGroup').classList.add('hidden');
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        function showNewSchoolForm() {
-            document.getElementById('searchSchoolGroup').classList.add('hidden');
-            document.getElementById('newSchoolGroup').classList.remove('hidden');
-            document.getElementById('reqIdCardGroup').classList.remove('hidden');
-            document.getElementById('newSchoolName').value = document.getElementById('reqSchoolSearch').value;
-        }
-
-        function resetSchoolSelection() {
-            document.getElementById('selectedSchoolCard').classList.add('hidden');
-            document.getElementById('searchSchoolGroup').classList.remove('hidden');
-            document.getElementById('reqIdCardGroup').classList.add('hidden');
-        }
-
-        function cancelNewSchool() {
-            document.getElementById('newSchoolGroup').classList.add('hidden');
-            document.getElementById('searchSchoolGroup').classList.remove('hidden');
-            document.getElementById('reqIdCardGroup').classList.add('hidden');
-        }
-
-        async function submitSchoolJoin(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSubmitSchool');
-            btn.disabled = true; btn.innerText = "กำลังดำเนินการ...";
-            
-            try {
-                const db = getDB();
-                let schoolId = document.getElementById('reqSchoolId').value;
-                let isNew = !document.getElementById('newSchoolGroup').classList.contains('hidden');
-                let role = 'student'; // Default role
-                
-                if (isNew) {
-                    const name = document.getElementById('newSchoolName').value.trim();
-                    const abbr = document.getElementById('newSchoolAbbr').value.trim().toLowerCase();
-                    if (!name || !abbr) throw new Error("กรุณากรอกข้อมูลโรงเรียนใหม่ให้ครบ");
-                    
-                    schoolId = 'SCH-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    const { error: sErr } = await db.from('schools').insert([{ school_id: schoolId, school_name: name, school_abbr: abbr }]);
-                    if (sErr) throw sErr;
-                    role = 'admin';
-                }
-
-                // อัปโหลดรูปบัตร (ถ้ามี)
-                let cardUrl = null;
-                if (activeImageFile) {
-                    const fileName = `${currentUser.id}_${Date.now()}.jpg`;
-                    const { error: upErr } = await db.storage.from('teacher-verifications').upload(fileName, activeImageFile);
-                    if (upErr) throw upErr;
-                    cardUrl = fileName;
-                }
-
-                const { error: insErr } = await db.from('user_school').insert([{
-                    user_id: currentUser.id,
-                    school_id: schoolId,
-                    role: role,
-                    verification_card_url: cardUrl,
-                    verification_status: 'pending'
-                }]);
-                if (insErr) throw insErr;
-
-                showCustomAlert("ส่งคำขอเรียบร้อยแล้ว!", "success", () => location.reload());
-            } catch (err) { showCustomAlert(err.message, "error"); btn.disabled = false; btn.innerText = "ยืนยันส่งคำขอ"; }
-        }
-
-        // ================= 🌟 ฟังก์ชันกล้อง (Camera) 🌟 =================
-
-        async function openCameraModal() {
-            document.getElementById('cameraModal').style.display = 'flex';
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                document.getElementById('cameraVideo').srcObject = cameraStream;
-            } catch (e) { showCustomAlert("ไม่สามารถเปิดกล้องได้", "error"); }
-        }
-
-        function takeSnapshot() {
-            const video = document.getElementById('cameraVideo');
-            const canvas = document.getElementById('cameraCanvas');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            document.getElementById('cameraPreview').src = canvas.toDataURL('image/jpeg');
-            document.getElementById('cameraVideo').classList.add('hidden');
-            document.getElementById('cameraPreview').classList.remove('hidden');
-            document.getElementById('btnCapture').classList.add('hidden');
-            document.getElementById('btnConfirmPhoto').classList.remove('hidden');
-        }
-
-        function confirmSnapshot() {
-            const canvas = document.getElementById('cameraCanvas');
-            canvas.toBlob(blob => {
-                activeImageFile = new File([blob], "id_card.jpg", { type: "image/jpeg" });
-                document.getElementById('reqFileNameDisplay').innerText = "✅ บันทึกรูปภาพแล้ว";
-                closeCameraModal();
-            }, 'image/jpeg');
-        }
-
-        function closeCameraModal() {
-            document.getElementById('cameraModal').style.display = 'none';
-            if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
-            document.getElementById('cameraVideo').classList.remove('hidden');
-            document.getElementById('cameraPreview').classList.add('hidden');
-            document.getElementById('btnCapture').classList.remove('hidden');
-            document.getElementById('btnConfirmPhoto').classList.add('hidden');
-        }
-
-        // ================= 🌟 Helpers & UI 🌟 =================
-
+        // ================= UI Renderers =================
         function renderFilterTabs() {
             const container = document.getElementById('viewFilterTabs');
+            const savedView = localStorage.getItem('flip_view_pref') || 'all';
+            activeViewMode = savedView;
             let html = `<button class="filter-tab ${activeViewMode === 'all' ? 'active' : ''}" onclick="switchView('all')">ทั้งหมด</button>`;
             html += `<button class="filter-tab ${activeViewMode === 'private' ? 'active' : ''}" onclick="switchView('private')">ส่วนตัว</button>`;
-            userSchools.forEach(s => { if (s.schools && s.verification_status === 'approved') html += `<button class="filter-tab ${activeViewMode === s.school_id ? 'active' : ''}" onclick="switchView('${s.school_id}')">${s.schools.school_name}</button>`; });
+            userSchools.forEach(s => { 
+                if (s.schools && s.verification_status === 'approved') {
+                    html += `<button class="filter-tab ${activeViewMode === s.school_id ? 'active' : ''}" onclick="switchView('${s.school_id}')">${s.schools.school_name}</button>`; 
+                }
+            });
             container.innerHTML = html;
         }
 
         function renderSidebarSchools() {
             const container = document.getElementById('sidebarSchoolsList');
-            if (userSchools.length === 0) { container.innerHTML = '<div class="text-slate-400 text-xs text-center py-4">ยังไม่มีสังกัด</div>'; return; }
-            container.innerHTML = userSchools.map(s => `<div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold"><span>${s.schools?.school_name || 'รร.'}</span><span class="text-[10px] bg-white px-2 py-0.5 rounded border uppercase">${s.role}</span></div>`).join('');
+            if (userSchools.length === 0) { container.innerHTML = '<div class="text-slate-400 text-xs text-center py-4">ไม่มีข้อมูลสังกัด</div>'; return; }
+            container.innerHTML = userSchools.map(s => {
+                const status = s.verification_status === 'approved' ? '<i class="fas fa-check-circle text-emerald-500"></i>' : '<i class="fas fa-clock text-amber-500"></i>';
+                return `<div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold"><span>${status} ${s.schools?.school_name || 'รร.'}</span><span class="text-[10px] bg-white px-2 py-0.5 rounded border uppercase">${s.role}</span></div>`;
+            }).join('');
         }
 
-        function switchView(mode) { activeViewMode = mode; renderFilterTabs(); renderFilteredGrids(); }
+        function switchView(mode) { activeViewMode = mode; localStorage.setItem('flip_view_pref', mode); renderFilterTabs(); renderFilteredGrids(); }
 
         function renderFilteredGrids() {
-            let filtered = activeViewMode === 'all' ? allClasses : (activeViewMode === 'private' ? allClasses.filter(c => !c.school_id) : allClasses.filter(c => c.school_id === activeViewMode));
+            let filtered = [];
+            if (activeViewMode === 'all') filtered = allClasses;
+            else if (activeViewMode === 'private') {
+                const joinedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
+                filtered = allClasses.filter(c => !c.school_id || !joinedSchoolIds.includes(c.school_id));
+            } else filtered = allClasses.filter(c => c.school_id === activeViewMode);
+
             document.getElementById('countTeach').innerText = filtered.filter(c => c.userRole === 'teacher').length;
             document.getElementById('countLearn').innerText = filtered.filter(c => c.userRole === 'student').length;
+
             const grid = document.getElementById('gridAllClasses');
-            if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full py-24 text-center text-slate-300">ไม่มีห้องเรียน</div>'; return; }
+            if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full py-24 text-center text-slate-300"><i class="fas fa-folder-open text-4xl mb-3 block"></i> ยังไม่มีห้องเรียน</div>'; return; }
             grid.innerHTML = filtered.map(c => `
                 <div class="class-card" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
                     <div class="card-banner" style="background: ${c.color_code || 'var(--primary)'};"><i class="fas fa-graduation-cap"></i></div>
                     <div class="card-body">
                         <div class="flex justify-between items-center mb-1"><span class="room-badge">${c.room_name}</span><span class="text-[10px] font-bold ${c.userRole === 'teacher' ? 'text-blue-500' : 'text-emerald-500'} uppercase">${c.userRole === 'teacher' ? 'สอน' : 'เรียน'}</span></div>
                         <h3 class="subject-title truncate">${c.subject_name}</h3>
-                        <p class="text-[11px] text-slate-400 mt-auto"><i class="fas fa-school mr-1"></i> ${c.school_name || 'ส่วนตัว'}</p>
+                        <p class="text-[11px] text-slate-400 mt-auto"><i class="fas fa-school mr-1"></i> ${c.school_name || 'พื้นที่ส่วนตัว'}</p>
                     </div>
-                </div>`).join('');
+                </div>
+            `).join('');
         }
 
-        function getDB() { if (window.sysDB) return window.sysDB; window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY); return window.sysDB; }
+        // ================= Action Functions =================
+        async function submitJoinClass() {
+            const input = document.getElementById('joinCodeInput');
+            const code = input.value.trim().toUpperCase();
+            if (code.length < 6) return showCustomAlert("กรุณากรอกรหัสให้ครบ", "warning");
+
+            const btn = document.getElementById('btnConfirmJoin');
+            btn.disabled = true; btn.innerText = "ตรวจสอบ...";
+
+            try {
+                const db = getDB();
+                // ค้นหาห้องเรียนแบบรวมศูนย์ (ใช้ class_code หรือ join_code ได้ทั้งคู่)
+                const { data: cls } = await db.from('classrooms').select('classroom_id, subject_name').or(`class_code.eq.${code},join_code.eq.${code}`).maybeSingle();
+                if (!cls) throw new Error("รหัสห้องเรียนไม่ถูกต้อง");
+
+                const { data: exists } = await db.from('classroom_users').select('enrollment_id').eq('classroom_id', cls.classroom_id).eq('user_id', currentUser.id).maybeSingle();
+                if (exists) throw new Error("คุณอยู่ในห้องเรียนนี้แล้ว");
+
+                const { error: insErr } = await db.from('classroom_users').insert([{ classroom_id: cls.classroom_id, user_id: currentUser.id, student_number: 0 }]);
+                if (insErr) throw insErr;
+
+                showCustomAlert(`เข้าร่วมสำเร็จ!`, "success", () => location.reload());
+            } catch (err) { 
+                showCustomAlert(err.message, "error"); 
+                btn.disabled = false; btn.innerText = "เข้าร่วมวิชาเรียน";
+            }
+        }
+
         function toggleDrawer() { document.getElementById('sideDrawer').classList.toggle('translate-x-full'); document.getElementById('drawerOverlay').classList.toggle('hidden'); }
         function toggleFabMenu() { const btn = document.getElementById('fabMainBtn'); const menu = document.getElementById('fabMenu'); btn.classList.toggle('rotate-45'); menu.classList.toggle('opacity-0'); menu.classList.toggle('translate-y-4'); menu.style.pointerEvents = menu.classList.contains('opacity-0') ? 'none' : 'auto'; }
         function openJoinModal() { toggleFabMenu(); document.getElementById('joinClassModal').style.display = 'flex'; }
         function closeJoinModal() { document.getElementById('joinClassModal').style.display = 'none'; }
-        function showCustomAlert(msg, type='info', callback=null) { document.getElementById('customAlertTitle').innerText = type==='error'?'ผิดพลาด':'แจ้งเตือน'; document.getElementById('customAlertMessage').innerText=msg; document.getElementById('customAlertModal').style.display='flex'; window.alertCallback = callback; }
-        function closeCustomAlert() { document.getElementById('customAlertModal').style.display='none'; if(window.alertCallback) window.alertCallback(); }
-        async function handleLogout() { localStorage.clear(); await getDB().auth.signOut(); location.href='login.html'; }
+        function showCustomAlert(msg, type='info', cb=null) { document.getElementById('customAlertTitle').innerText = type==='error'?'แจ้งเตือน':(type==='success'?'สำเร็จ!':'ข้อมูล'); document.getElementById('customAlertMessage').innerText = msg; document.getElementById('customAlertIcon').className = `fas ${type==='error'?'fa-times-circle text-rose-500':(type==='success'?'fa-check-circle text-emerald-500':'fa-info-circle text-blue-500')}`; document.getElementById('customAlertModal').style.display = 'flex'; window.alertCallback = cb; }
+        function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; if(window.alertCallback) window.alertCallback(); }
+        async function handleLogout() { await getDB().auth.signOut(); localStorage.clear(); location.href = 'login.html'; }
+
+        // PWA Script
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('btnInstallPwaNav').style.display = 'block'; });
+        function installPWA() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; document.getElementById('btnInstallPwaNav').style.display = 'none'; } }
+        function closeSmartBanner() { document.getElementById('smartAppBanner').style.display = 'none'; }
+        function handleOpenInAppClick(e) { if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) { e.preventDefault(); showCustomAlert('กรุณากด "แชร์" และเลือก "เพิ่มไปยังหน้าจอโฮม"'); } }
+
         document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
