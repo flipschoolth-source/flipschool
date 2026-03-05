@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>แดชบอร์ด - FlipSchool</title>
     
+    <!-- 🌟 เชื่อมโยงไฟล์ Manifest เพื่อให้รองรับ PWA 🌟 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00008B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FlipSchool">
+    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='white'/><text x='50%' y='52%' dominant-baseline='central' text-anchor='middle' font-size='55'>🎓</text></svg>">
     
@@ -166,8 +173,8 @@
                 </div>
             </div>
             <div class="flex items-center gap-4 relative">
-                <!-- กระดิ่งแจ้งเตือน (ซ่อน/แสดง อัตโนมัติด้วย JS) -->
-                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" style="display: none;" onclick="toggleNotifDropdown()">
+                <!-- กระดิ่งแจ้งเตือน -->
+                <div class="relative flex items-center justify-center cursor-pointer hover:bg-slate-100 p-2 rounded-full transition-colors" id="notificationBtn" onclick="toggleNotifDropdown()" style="display: none;">
                     <i class="fas fa-bell text-xl text-slate-600"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white" style="display: none;">0</span>
                 </div>
@@ -187,6 +194,21 @@
             </div>
         </div>
     </nav>
+
+    <!-- 🌟 แบนเนอร์ติดตั้งแอปพลิเคชัน (PWA) 🌟 -->
+    <div id="pwaInstallBanner" style="display: none; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);" class="w-full text-white px-4 md:px-8 py-3 justify-between items-center shadow-md z-[40]">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-xl flex justify-center items-center text-xl shrink-0"><i class="fas fa-mobile-alt"></i></div>
+            <div>
+                <h4 class="font-bold font-['Kanit'] text-sm md:text-base m-0 leading-tight">ใช้งานผ่านแอป FlipSchool</h4>
+                <p class="text-[11px] md:text-xs opacity-90 m-0 font-['Sarabun']">ติดตั้งลงเครื่องเพื่อการเข้าถึงที่รวดเร็วกว่า</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button onclick="installPWA()" id="btnInstallPwa" class="bg-[var(--accent)] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold font-['Kanit'] text-xs md:text-sm shadow-sm hover:bg-orange-500 transition cursor-pointer border-none">ติดตั้งแอป</button>
+            <button onclick="dismissPwaBanner()" class="w-8 h-8 flex justify-center items-center text-white/70 hover:text-white transition cursor-pointer border-none bg-transparent text-lg"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
 
     <!-- Main Content Area -->
     <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 md:px-8 xl:px-12 py-6 relative">
@@ -275,7 +297,7 @@
         </button>
     </div>
 
-    <!-- ================= 🌟 Custom Alert Modal (Tailwind Upgrade 100%) 🌟 ================= -->
+    <!-- ================= 🌟 Custom Alert Modal 🌟 ================= -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
             <div class="custom-modal-icon">
@@ -401,6 +423,89 @@
     </div>
 
     <script>
+        // ================= 🌟 PWA & Web App Install 🌟 =================
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // ป้องกันไม่ให้ Chrome แสดง Prompt แจ้งเตือนแบบอัตโนมัติ
+            e.preventDefault();
+            // เก็บ event ไว้เรียกใช้เมื่อกดปุ่ม
+            deferredPrompt = e;
+            
+            // แสดงแบนเนอร์ถ้าผู้ใช้ยังไม่เคยกดปิด
+            if (!localStorage.getItem('dismissed_pwa_banner')) {
+                document.getElementById('pwaInstallBanner').style.display = 'flex';
+            }
+        });
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                // แสดง Prompt ติดตั้ง
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('ผู้ใช้ยอมรับการติดตั้ง Web App');
+                } else {
+                    console.log('ผู้ใช้ยกเลิกการติดตั้ง');
+                }
+                deferredPrompt = null;
+                document.getElementById('pwaInstallBanner').style.display = 'none';
+            }
+        }
+
+        function dismissPwaBanner() {
+            document.getElementById('pwaInstallBanner').style.display = 'none';
+            localStorage.setItem('dismissed_pwa_banner', 'true');
+        }
+
+        window.addEventListener('appinstalled', (evt) => {
+            document.getElementById('pwaInstallBanner').style.display = 'none';
+            console.log('ติดตั้ง PWA สำเร็จแล้ว');
+        });
+
+        // สำหรับ iOS (iPhone/iPad) ที่ไม่รองรับ beforeinstallprompt
+        function checkIOSPrompt() {
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+            
+            if (isIos && !isInStandaloneMode) {
+                if (!localStorage.getItem('dismissed_pwa_banner')) {
+                    document.getElementById('pwaInstallBanner').style.display = 'flex';
+                    const btn = document.getElementById('btnInstallPwa');
+                    btn.innerText = 'วิธีติดตั้ง';
+                    btn.onclick = () => {
+                        showCustomAlert('สำหรับ iOS (iPhone/iPad):<br><br>1. กดปุ่ม <b>"แชร์"</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบด้านล่างของ Safari<br>2. เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)', 'info');
+                    };
+                }
+            }
+        }
+
+        // ซ่อนแบนเนอร์ถ้าผู้ใช้เปิดจาก PWA อยู่แล้ว (Standalone mode)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+            document.getElementById('pwaInstallBanner').style.display = 'none';
+        } else {
+            checkIOSPrompt();
+        }
+
+        // Register Service Worker พื้นฐาน (จำเป็นสำหรับการทำงานของ PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // สร้าง Dummy Service Worker แบบ On-the-fly หากยังไม่มีไฟล์ sw.js ของจริง
+                // เพื่อหลอกให้เบราว์เซอร์ยอมรับว่าเป็น PWA และขึ้นปุ่ม Install
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    const swCode = `
+                        self.addEventListener('install', e => self.skipWaiting());
+                        self.addEventListener('activate', e => self.clients.claim());
+                        self.addEventListener('fetch', e => {});
+                    `;
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    navigator.serviceWorker.register(URL.createObjectURL(blob)).then(reg => {
+                        console.log('PWA Service Worker Registered');
+                    });
+                });
+            });
+        }
+
         // ================= ฟังก์ชันค้นหาฐานข้อมูล =================
         function getDB() {
             if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
@@ -434,6 +539,63 @@
             const ov = document.getElementById('drawerOverlay');
             dr.classList.toggle('translate-x-full');
             ov.classList.toggle('hidden');
+        }
+
+        let alertCallback = null;
+        let alertCancelCallback = null;
+        
+        function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
+            if (typeof message === 'object' && message !== null) {
+                message = message.message || JSON.stringify(message);
+            }
+
+            const modal = document.getElementById('customAlertModal');
+            const titleEl = document.getElementById('customAlertTitle');
+            const msgEl = document.getElementById('customAlertMessage');
+            const iconEl = document.getElementById('customAlertIcon');
+            const okBtn = document.getElementById('customAlertOkBtn');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+
+            msgEl.innerHTML = message;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            cancelBtn.style.display = 'none';
+            okBtn.className = "custom-modal-btn"; 
+
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle'; iconEl.style.color = '#2ed573';
+                titleEl.innerText = 'สำเร็จ!'; okBtn.style.background = '#2ed573';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle'; iconEl.style.color = '#ffa502';
+                titleEl.innerText = 'แจ้งเตือน'; okBtn.style.background = '#ffa502';
+            } else if (type === 'info') {
+                iconEl.className = 'fas fa-info-circle'; iconEl.style.color = '#3498db';
+                titleEl.innerText = 'ข้อมูล'; okBtn.style.background = '#3498db';
+            } else if (type === 'confirm') {
+                iconEl.className = 'fas fa-question-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'ยืนยัน'; okBtn.style.background = '#ff4757';
+                cancelBtn.style.display = 'inline-block';
+            } else {
+                iconEl.className = 'fas fa-times-circle'; iconEl.style.color = '#ff4757';
+                titleEl.innerText = 'เกิดข้อผิดพลาด'; okBtn.style.background = '#ff4757';
+            }
+
+            modal.classList.add('show');
+        }
+        
+        function closeCustomAlert(isCancel = false) {
+            const modal = document.getElementById('customAlertModal');
+            modal.classList.remove('show');
+            
+            setTimeout(() => {
+                if (isCancel && alertCancelCallback) {
+                    alertCancelCallback();
+                } else if (!isCancel && alertCallback) { 
+                    alertCallback(); 
+                }
+                alertCallback = null; alertCancelCallback = null;
+            }, 300);
         }
 
         // Init
@@ -500,15 +662,11 @@
                             profile_pic: null
                         };
                     } else {
-                        // 🌟 Fallback ท้ายสุด (ปรับให้แข็งแกร่ง ไม่ให้พังเพราะชื่อคอลัมน์เปลี่ยน)
-                        let ssRecord = null;
-                        let resSS = await db.from('school_students').select('first_name, last_name, student_code').eq('student_id', userId).limit(1).maybeSingle();
-                        if (resSS.error) {
-                            resSS = await db.from('school_students').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
-                        }
-                        if (resSS.data) {
-                            ssRecord = resSS.data;
-                        }
+                        let ssCol = 'student_id';
+                        const { error: ssErr } = await db.from('school_students').select('student_id').limit(1);
+                        if (ssErr && String(ssErr.code).includes('42703')) ssCol = 'user_id';
+                        
+                        const { data: ssRecord } = await db.from('school_students').select('first_name, last_name, student_code').eq(ssCol, userId).limit(1).maybeSingle();
                         
                         if (ssRecord) {
                             userRecord = {
@@ -720,13 +878,10 @@
             }
         }
 
-        // 🌟 แก้ไข: ดึงข้อมูลห้องเรียนแบบทะลุข้อจำกัดชื่อคอลัมน์ (Bulletproof Fetching)
         async function fetchAllClasses(db) {
             try {
-                // 1. ห้องเรียนที่สอน (Teacher)
                 let teachData = [];
                 let resTeach = await db.from('classrooms').select('*').eq('owner_id', currentUser.id);
-                // ถ้าค้นหาด้วย owner_id ล้มเหลว หรือได้ค่าว่าง ให้ลองเปลี่ยนไปค้นหาด้วย teacher_id (รองรับทั้งระบบเก่า-ใหม่)
                 if (resTeach.error || !resTeach.data || resTeach.data.length === 0) {
                     let resTeach2 = await db.from('classrooms').select('*').eq('teacher_id', currentUser.id);
                     if (!resTeach2.error && resTeach2.data && resTeach2.data.length > 0) {
@@ -739,11 +894,9 @@
                 }
                 const mappedTeach = teachData.map(c => ({ ...c, userRole: 'teacher' }));
 
-                // 2. ห้องเรียนที่เรียน (Student)
                 let learnData = [];
                 let enrollments = [];
                 
-                // 🌟 แก้บั๊ก: ลองดึงรายชื่อด้วย user_id ก่อน ถ้า Error หรือ ค่าว่าง ให้ลอง student_id
                 let resLearn = await db.from('classroom_users').select('classroom_id').eq('user_id', currentUser.id);
                 if (resLearn.error || !resLearn.data || resLearn.data.length === 0) {
                     let resLearn2 = await db.from('classroom_users').select('classroom_id').eq('student_id', currentUser.id);
@@ -756,7 +909,6 @@
                     enrollments = resLearn.data;
                 }
 
-                // ถ้ามีห้องที่เข้าร่วม ให้ไปดึงชื่อห้องจากตาราง classrooms ทีละไอดี
                 if (enrollments.length > 0) {
                     const classIds = enrollments.map(e => e.classroom_id);
                     const { data: classData, error: classErr } = await db.from('classrooms')
@@ -770,11 +922,9 @@
                 
                 const mappedLearn = learnData.map(c => ({ ...c, userRole: 'student' }));
 
-                // 3. รวมและเรียงข้อมูล
                 allClasses = [...mappedTeach, ...mappedLearn];
                 allClasses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                // 4. ดึงชื่อโรงเรียน
                 const uniqueSchoolIds = [...new Set(allClasses.map(c => c.school_id).filter(id => id))];
                 let schoolDict = {};
                 if (uniqueSchoolIds.length > 0) {
@@ -929,28 +1079,17 @@
                 
                 if (!targetClass) throw new Error('ไม่พบห้องเรียนที่ตรงกับรหัสนี้ โปรดตรวจสอบความถูกต้องครับ');
 
-                // ลองค้นหาโดยใช้ student_id แทน user_id ก่อน 
-                let userColName = 'student_id';
-                let existEnroll = null;
+                let userColName = 'user_id';
+                const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
+                if (testColErr && String(testColErr.code).includes('42703')) {
+                    userColName = 'student_id';
+                }
 
-                let resTest = await db.from('classroom_users')
+                const { data: existEnroll } = await db.from('classroom_users')
                     .select('enrollment_id')
                     .eq('classroom_id', targetClass.classroom_id)
-                    .eq('student_id', currentUser.id)
+                    .eq(userColName, currentUser.id)
                     .maybeSingle();
-
-                if (resTest.error) {
-                    // ถ้า error ให้ลองใช้ user_id
-                    userColName = 'user_id';
-                    let resTest2 = await db.from('classroom_users')
-                        .select('enrollment_id')
-                        .eq('classroom_id', targetClass.classroom_id)
-                        .eq('user_id', currentUser.id)
-                        .maybeSingle();
-                    if (resTest2.data) existEnroll = resTest2.data;
-                } else {
-                    if (resTest.data) existEnroll = resTest.data;
-                }
                 
                 if (existEnroll) throw new Error('คุณอยู่ในห้องเรียนนี้เรียบร้อยแล้วครับ');
 
@@ -1304,6 +1443,7 @@
 
                 let reqError = null;
 
+                // 🌟 อัปเดตตารางด้วยวิธีการ UPDATE 
                 if (isResubmitting) {
                     const { error: updateErr } = await db.from('user_school').update({ 
                         role: applyRole, 
