@@ -1,7 +1,6 @@
 /* =========================================
    1. การตั้งค่าระบบ (Configuration)
    ========================================= */
-
 const APP_CONFIG = {
     // 1. Supabase Settings
     SUPABASE_URL: 'https://hznmvaxjlgjnrvtjosdt.supabase.co',
@@ -17,7 +16,7 @@ const APP_CONFIG = {
     // 3. ข้อมูลผู้พัฒนา / เจ้าของลิขสิทธิ์
     OWNER: {
         NAME: 'ครูไพรัช อินควรชุม',
-        POSITION: 'ครูชำนาญการพิเศษ',
+        POSITION: 'ครูชำนาญการ',
         SCHOOL: 'โรงเรียนเทศบาล 1 (ถนนนครนอก)',
         AFFILIATION: 'เทศบาลนครสงขลา',
         PROVINCE: 'สงขลา'
@@ -49,26 +48,77 @@ const APP_CONFIG = {
 // ล็อกค่าไว้ห้ามแก้ไข
 Object.freeze(APP_CONFIG);
 
-// ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐาน (Logo, Slogan, Footer) ทั่วทั้งระบบ
+/* ==============================================================
+   🌟 2. ระบบ Transition ความลื่นไหล (Native SPA Feel) 🌟
+   ทำให้เปลี่ยนหน้าได้โดย Navbar และ Footer ไม่กระพริบ
+   ============================================================== */
+(function enableSmoothTransitions() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* 1. เปิดใช้งาน Cross-Document View Transitions (รองรับ Chrome/Edge) */
+        @view-transition { navigation: auto; }
+        
+        /* 2. ล็อก Navbar และ Footer ให้อยู่กับที่ (ไม่กระพริบตอนโหลด) */
+        nav, #mainNav, .nav-clean, .nav-gradient { view-transition-name: main-navbar; }
+        .footer, footer { view-transition-name: main-footer; }
+        
+        /* 3. ทำให้เนื้อหาตรงกลางสไลด์เปลี่ยนไปมาเหมือนแอปพลิเคชัน */
+        main, .main-container { view-transition-name: main-content; }
+        
+        ::view-transition-old(main-content) {
+            animation: fade-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+        ::view-transition-new(main-content) {
+            animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-15px); }
+        }
+
+        /* Fallback Animation สำหรับเบราว์เซอร์รุ่นเก่า */
+        body { animation: globalFadeIn 0.4s ease-out forwards; }
+        @keyframes globalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    `;
+    document.head.appendChild(style);
+})();
+
+/* ==============================================================
+   3. ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐานให้เหมือนกันทุกหน้า
+   ============================================================== */
 function initAppUI() {
     // อัปเดต Title ของแท็บเว็บ
-    if (document.title.includes("FlipSchool")) {
-        document.title = `${APP_CONFIG.APP_NAME} - GLORY Model`;
+    if (document.title.includes("FlipSchool") || document.title === "") {
+        document.title = `${APP_CONFIG.APP_NAME} - ${APP_CONFIG.APP_SLOGAN}`;
     }
     
-    // อัปเดตชื่อแบรนด์ใน Navbar
-    const brandElements = document.querySelectorAll('.brand-name');
+    // --- 🌟 ยูนิฟาย Navbar ให้โลโก้เป็นมาตรฐานเดียวกัน 🌟 ---
+    const brandElements = document.querySelectorAll('.brand-name, .nav-brand');
     brandElements.forEach(el => {
-        el.innerHTML = `Flip<span>School</span>`;
+        // ใช้ inline style ผสมเพื่อให้โครงสร้างดูแข็งแรงและไม่เพี้ยนไม่ว่าไฟล์นั้นจะใช้ CSS/Tailwind แบบไหน
+        el.innerHTML = `Flip<span style="color: var(--accent, #FF8C00);">School</span>`;
+        el.style.fontFamily = "'Kanit', sans-serif";
     });
     
-    // อัปเดตสโลแกน
-    const sloganElements = document.querySelectorAll('.slogan');
+    const sloganElements = document.querySelectorAll('.slogan, .nav-slogan, .brand-slogan, .app-slogan-label');
     sloganElements.forEach(el => {
         el.innerText = APP_CONFIG.APP_SLOGAN;
     });
 
-    // 🌟 อัปเดต Footer (ปรับให้เหลือ 2 บรรทัดตามความต้องการ)
+    // ปรับ Navbar เป็น Theme สว่าง(ขาว) อัตโนมัติในหน้าที่เรียกใช้
+    const navs = document.querySelectorAll('nav.nav-clean, nav#mainNav');
+    navs.forEach(nav => {
+        nav.style.backgroundColor = 'white';
+        nav.style.borderBottom = '1px solid #f1f5f9';
+        nav.style.boxShadow = '0 4px 20px rgba(0,0,80,0.04)';
+    });
+
+    // --- 🌟 ยูนิฟาย Footer ให้เป็น 2 บรรทัด (สวยงามและขนาดเท่ากันทุกหน้า) 🌟 ---
     const footerElements = document.querySelectorAll('.footer, .footer-display-text');
     footerElements.forEach(el => {
         const year = APP_CONFIG.YEAR || new Date().getFullYear();
@@ -76,28 +126,36 @@ function initAppUI() {
         const slogan = APP_CONFIG.APP_SLOGAN || '';
         const fText = APP_CONFIG.FOOTER_TEXT || '';
         const owner = APP_CONFIG.OWNER || {};
-
-        // บรรทัดที่ 1: ลิขสิทธิ์ ชื่อแอป สโลแกน และข้อความนวัตกรรม
+        
         let html = `&copy; ${year} ${appName} - ${slogan} | ${fText}`;
-
-        // บรรทัดที่ 2: ข้อมูลผู้พัฒนา นำ <br> ตรงกลางออกเพื่อเชื่อมให้เป็นบรรทัดเดียวกัน
         if (owner.NAME) {
-            html += `<br><span style="font-size: 0.85em; opacity: 0.75; display: inline-block; margin-top: 4px;">
+            html += `<br><span style="font-size: 0.9em; opacity: 0.75; display: inline-block; margin-top: 5px;">
                      ผู้พัฒนา / เจ้าของลิขสิทธิ์: ${owner.NAME} ${owner.POSITION} ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
                      </span>`;
         }
-
+        
         el.innerHTML = html;
+        
+        // บังคับการจัดรูปแบบ Footer ให้มาตรฐานเป๊ะๆ
+        el.style.backgroundColor = 'white';
+        el.style.borderTop = '1px solid #f1f5f9';
+        el.style.padding = '25px 20px';
+        el.style.marginTop = 'auto';
+        el.style.color = '#a4b0be';
+        el.style.textAlign = 'center';
+        el.style.fontSize = '13px';
+        el.style.fontFamily = "'Sarabun', sans-serif";
+        el.style.lineHeight = '1.6';
+        el.style.width = '100%';
     });
 }
 
-console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #fff; border-radius: 3px;');
+console.log(`%c ${APP_CONFIG.APP_NAME} Config & Smooth Transition Loaded `, `background: ${APP_CONFIG.THEME.PRIMARY}; color: #fff; border-radius: 3px; padding: 2px 5px;`);
 
-// ==============================================================
-// ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือทุกหน้า
-// ==============================================================
+/* ==============================================================
+   4. ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือ
+   ============================================================== */
 (function() {
-    // 1. ตรวจสอบให้ทำงานเฉพาะบนมือถือและแท็บเล็ตเท่านั้น
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) return;
 
@@ -106,7 +164,6 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
     let isPulling = false;
     let ptrIndicator = null;
 
-    // 2. ฟังก์ชันสร้างไอคอนโหลดกลมๆ (เหมือนแอปทั่วไป)
     function createIndicator() {
         if (document.getElementById('ptr-indicator')) return;
         ptrIndicator = document.createElement('div');
@@ -117,20 +174,14 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
             width: 40px; height: 40px; background: white; border-radius: 50%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex;
             align-items: center; justify-content: center; z-index: 99999;
-            color: var(--primary-light, #0052D4); font-size: 18px; 
+            color: ${APP_CONFIG.THEME.PRIMARY}; font-size: 18px; 
             transition: top 0.2s ease, transform 0.2s ease-out;
         `;
         document.body.appendChild(ptrIndicator);
     }
 
-    // 3. ฟังก์ชันเช็คว่าหน้าจออยู่ตำแหน่ง "บนสุด" หรือยัง
-    function getScrollTop() {
-        const windowScroll = window.scrollY || document.documentElement.scrollTop;
-        const containerScroll = document.querySelector('.container') ? document.querySelector('.container').scrollTop : 0;
-        return Math.max(windowScroll, containerScroll);
-    }
+    function getScrollTop() { return window.scrollY || document.documentElement.scrollTop; }
 
-    // เริ่มแตะหน้าจอ
     window.addEventListener('touchstart', function(e) {
         if (getScrollTop() <= 0) {
             startY = e.touches[0].clientY;
@@ -141,7 +192,6 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
         }
     }, { passive: true });
 
-    // กำลังลากนิ้วลง
     window.addEventListener('touchmove', function(e) {
         if (!isPulling) return;
         currentY = e.touches[0].clientY;
@@ -149,33 +199,26 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
 
         if (diffY > 0 && getScrollTop() <= 0) {
             let pullDistance = Math.min(diffY * 0.4, 90); 
-            
             if (ptrIndicator) {
-                ptrIndicator.style.transition = 'none'; 
+                ptrIndicator.style.transition = 'none';
                 ptrIndicator.style.top = (pullDistance - 50) + 'px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(${pullDistance * 4}deg)`;
             }
-            
             if (e.cancelable && diffY > 10) e.preventDefault();
         }
     }, { passive: false });
 
-    // ปล่อยนิ้ว
     window.addEventListener('touchend', function(e) {
         if (!isPulling) return;
         isPulling = false;
         let diffY = currentY - startY;
 
         if (ptrIndicator) {
-            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; 
-            
+            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease';
             if (diffY > 120 && getScrollTop() <= 0) {
-                ptrIndicator.style.top = '25px'; 
-                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 300);
+                ptrIndicator.style.top = '25px';
+                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                setTimeout(() => { window.location.reload(); }, 300);
             } else {
                 ptrIndicator.style.top = '-60px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(0deg)`;
