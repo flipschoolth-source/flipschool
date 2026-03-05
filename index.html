@@ -6,86 +6,244 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>FlipSchool - นวัตกรรมเพื่อการจัดการเรียนรู้</title>
     
+    <!-- 🌟 PWA Setup & Icons 🌟 -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="img/favicon.png">
     <link rel="apple-touch-icon" href="img/favicon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#00008B">
+    <meta name="apple-mobile-web-app-title" content="FlipSchool">
+    <meta name="theme-color" content="#ffffff">
 
+    <!-- Supabase & System Scripts -->
+    <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-body: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
+        /* --- ธีมหลัก --- */
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd;
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%), radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%); }
+        
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
 
-        /* Navbar */
-        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 5%; height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s ease; }
-        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); }
-        .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--primary); }
-        .nav-logo-icon { font-size: 28px; background: white; width: 50px; height: 50px; border-radius: 14px; border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); }
-        .nav-brand { font-size: 26px; font-weight: 700; font-family: 'Kanit'; }
+        #mainContent { display: flex; flex-direction: column; min-height: 100vh; animation: fadeIn 0.5s ease-in-out; }
+
+        /* ================= NAVBAR (Smart Sticky & Shrink) ================= */
+        #mainNav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+            border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
+        
+        .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; transition: 0.3s; }
+        .nav-logo-icon { 
+            font-size: 28px; background: white; width: 50px; height: 50px; 
+            border-radius: 14px; border: 2.5px solid var(--primary); 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease;
+        }
+        #mainNav.scrolled .nav-logo-icon { width: 42px; height: 42px; font-size: 22px; border-width: 2px; border-radius: 10px; }
+        
+        .nav-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .nav-brand { font-size: 26px; font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
         .nav-brand span { color: var(--accent); }
+        #mainNav.scrolled .nav-brand { font-size: 22px; }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.3s; }
+        #mainNav.scrolled .nav-slogan { font-size: 11px; opacity: 0; display: none; }
+        
+        .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: 16px; text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; position: relative; }
+        .nav-link i { font-size: 14px; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
+        .nav-link:hover::after { width: 100%; }
+        
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        .nav-btn-primary { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 50px; font-family: 'Kanit'; font-weight: 500; font-size: 15px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,139,0.2); cursor: pointer;}
+        .nav-btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 139, 0.3); }
 
-        /* Hero */
-        .hero-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 5%; }
-        .hero-card { display: flex; flex-direction: row; background: white; width: 100%; max-width: 1150px; border-radius: 35px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.08); }
-        .hero-image-side { flex: 1.2; background: url('img/cover01.jpg') center/cover no-repeat; min-height: 400px; }
-        .hero-text-side { flex: 1; padding: 50px; display: flex; flex-direction: column; justify-content: center; }
-        .hero-title { font-family: 'Kanit'; font-size: 36px; font-weight: 700; color: var(--primary); margin-bottom: 15px; }
+        .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 45px; height: 45px; border-radius: 12px; transition: 0.3s; }
+        .mobile-menu-btn:hover { background: #eef2f7; }
+        
+        .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
+        .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 18px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
+        .mobile-dropdown a i { width: 20px; text-align: center; color: var(--primary-light); }
+
+        /* ================= HERO SECTION ================= */
+        .hero-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: clamp(20px, 4vw, 60px) clamp(15px, 5vw, 5%); }
+        .hero-card { display: flex; flex-direction: row; background: white; width: 100%; max-width: 1150px; min-height: clamp(400px, 60vh, 550px); border-radius: 35px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.03); }
+        .hero-image-side { flex: 1.2; background: url('img/cover01.jpg') center/cover no-repeat; position: relative; }
+        .hero-text-side { flex: 1; padding: clamp(30px, 5vw, 60px); display: flex; flex-direction: column; justify-content: center; }
+        .hero-badge { background: #f0f4ff; padding: 10px 22px; border-radius: 50px; margin-bottom: 25px; color: var(--primary-light); font-family: 'Kanit'; font-weight: 500; font-size: 15px; border: 1px solid #dbeafe; width: fit-content; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .hero-badge:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,139,0.15); }
+        .hero-title { font-family: 'Kanit'; font-size: clamp(24px, 4vw, 40px); font-weight: 700; line-height: 1.2; color: var(--primary); margin-bottom: 15px; }
         .hero-title span { color: var(--accent); }
+        .hero-description { font-size: clamp(14px, 1.8vw, 17px); color: var(--text-muted); margin-bottom: 30px; line-height: 1.6; }
 
-        /* Install Button */
-        .btn-install-modern { display: none; background: var(--primary); color: white; padding: 14px 32px; border-radius: 50px; font-family: 'Kanit'; font-size: 18px; font-weight: 600; align-items: center; justify-content: center; gap: 10px; border: none; cursor: pointer; box-shadow: 0 10px 20px rgba(0, 0, 139, 0.2); transition: 0.3s; width: fit-content; margin-top: 20px; }
+        /* PWA Install Button */
+        .btn-install-modern { display: none; background: var(--primary); color: white; padding: 14px 32px; border-radius: 50px; font-family: 'Kanit'; font-size: clamp(16px, 2vw, 18px); font-weight: 600; align-items: center; justify-content: center; gap: 10px; border: none; cursor: pointer; box-shadow: 0 10px 20px rgba(0, 0, 139, 0.2); transition: 0.3s; width: fit-content; margin-top: 20px; }
         .btn-install-modern:hover { transform: translateY(-2px); background: var(--primary-light); }
         .pulse-anim { animation: pulse 2s infinite; }
 
-        /* Custom Modal */
+        /* ================= MODALS & ALERTS ================= */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 950px; border-radius: 30px; padding: 30px; position: relative; margin: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .close-modal { position: absolute; top: 15px; right: 15px; background: #f0f2f5; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10; transition: 0.2s; }
+        .close-modal:hover { background: #ff4757; color: white; transform: rotate(90deg); }
+
+        /* iOS Instruction Prompt */
+        .ios-prompt-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 9999; align-items: flex-end; justify-content: center; }
+        .ios-prompt-card { background: white; width: 100%; max-width: 400px; border-radius: 24px 24px 0 0; padding: 30px 20px; text-align: center; position: relative; animation: slideUp 0.3s ease-out; padding-bottom: 40px; }
+        .ios-step { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; text-align: left; font-size: 0.95rem; color: #333; }
+        .ios-step i { font-size: 1.2rem; color: #007aff; width: 30px; text-align: center; }
+
+        /* Custom Alert */
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: none; justify-content: center; align-items: center; }
         .custom-modal-box { background: white; padding: 35px; border-radius: 25px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
 
+        /* ================= FOOTER ================= */
+        .footer { padding: 30px 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
+
         @keyframes pulse { 0% { transform: scale(1); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        @media (max-width: 768px) { .hero-card { flex-direction: column; } .hero-image-side { min-height: 250px; } .hero-text-side { padding: 30px; text-align: center; align-items: center; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        @media (max-width: 1100px) {
+            .nav-center { gap: 15px; }
+            .nav-link { font-size: 14px; }
+        }
+
+        @media (max-width: 992px) {
+            .nav-center { display: none; }
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+            .hero-card { flex-direction: column; }
+            .hero-image-side { min-height: 300px; }
+        }
+        @media (max-width: 768px) {
+            #mainNav { padding: 0 15px; height: 75px; }
+            .hero-text-side { padding: 30px 20px; text-align: center; align-items: center; }
+            .hero-image-side { min-height: 220px; }
+            .nav-btn-primary { display: none; }
+        }
     </style>
 </head>
+
 <body>
 
-    <nav id="mainNav">
-        <a href="index.html" class="nav-left">
-            <div class="nav-logo-icon">🎓</div>
-            <div class="nav-brand">Flip<span>School</span></div>
-        </a>
-        <a href="login.html" style="text-decoration:none; background:var(--primary); color:white; padding:8px 20px; border-radius:20px; font-family:'Kanit';">เข้าสู่ระบบ</a>
-    </nav>
+    <div id="mainContent">
+        <!-- 🌟 Navbar พร้อมเมนูนำทาง (Desktop & Mobile) 🌟 -->
+        <nav id="mainNav">
+            <a href="index.html" class="nav-left">
+                <div class="nav-logo-icon">🎓</div>
+                <div class="nav-text-group">
+                    <div class="nav-brand">Flip<span>School</span></div>
+                    <div class="nav-slogan slogan">...</div>
+                </div>
+            </a>
+            
+            <!-- เมนูนำทางตรงกลาง (แสดงบนจอคอมพิวเตอร์) -->
+            <div class="nav-center">
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+                <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+                <a href="#" class="nav-link" onclick="openGloryModal()"><i class="fas fa-star"></i> นวัตกรรม</a>
+                <a href="#" class="nav-link" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info')"><i class="fas fa-book"></i> คู่มือ</a>
+            </div>
 
-    <section class="hero-container">
-        <div class="hero-card">
-            <div class="hero-image-side"></div>
-            <div class="hero-text-side">
-                <h1 class="hero-title">เรียนรู้ที่บ้าน<br><span>เสริมสร้างประสบการณ์</span><br>ที่โรงเรียน</h1>
-                <p style="color:var(--text-muted);">นวัตกรรมเพื่อการจัดการเรียนรู้ GLORY Model</p>
-                
-                <!-- ปุ่มสลับสถานะ ติดตั้ง / เปิดแอป -->
-                <button id="installBtn" class="btn-install-modern" onclick="handleAppAction()">
-                    <i class="fas fa-download" id="installBtnIcon"></i> <span id="installBtnText">ติดตั้งแอปพลิเคชัน</span>
-                </button>
+            <div class="nav-right">
+                <a href="login.html" id="topLoginBtn" class="nav-btn-primary"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ</a>
+                <!-- ปุ่มเมนูสำหรับมือถือ -->
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            </div>
+
+            <!-- เมนู Dropdown สำหรับมือถือ (Hamburger Menu) -->
+            <div id="mobileMenu" class="mobile-dropdown">
+                <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
+                <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจการเรียนรู้</a>
+                <a href="#" onclick="openGloryModal(); toggleMobileMenu();"><i class="fas fa-star"></i> นวัตกรรม GLORY Model</a>
+                <a href="#" onclick="showCustomAlert('คู่มือยังไม่พร้อมใช้งานครับ'); toggleMobileMenu();"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
+                <a href="login.html" style="color: var(--primary); background: #f0f4ff;"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ / สมัครสมาชิก</a>
+            </div>
+        </nav>
+
+        <section class="hero-container">
+            <div class="hero-card">
+                <div class="hero-image-side"></div>
+                <div class="hero-text-side">
+                    <div class="hero-badge" onclick="openGloryModal()">
+                        <i class="fas fa-star"></i> นวัตกรรม GLORY Model <i class="fas fa-chevron-right" style="font-size: 10px; margin-left: 5px;"></i>
+                    </div>
+                    <h1 class="hero-title">เรียนรู้ที่บ้าน<br><span>เสริมสร้างประสบการณ์</span><br>ที่โรงเรียน</h1>
+                    <p class="hero-description">เปลี่ยนการบ้านเป็นการเรียนรู้ผ่านเกม เปลี่ยนห้องเรียนเป็นพื้นที่ปฏิบัติจริง ด้วยนวัตกรรม GLORY Model</p>
+                    
+                    <!-- ปุ่ม ติดตั้ง/เปิดแอป -->
+                    <button id="installBtn" class="btn-install-modern" onclick="handleAppAction()">
+                        <i class="fas fa-download" id="installBtnIcon"></i> <span id="installBtnText">ติดตั้งแอปพลิเคชัน</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Glory Innovation Modal -->
+        <div id="gloryModal" class="modal-overlay" onclick="closeGloryModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <button class="close-modal" onclick="closeGloryModal()"><i class="fas fa-times"></i></button>
+                <h2 style="font-family:'Kanit'; color:var(--primary); text-align:center; font-size:30px; margin-bottom:5px;">GLORY Model</h2>
+                <div style="height: 3px; width: 50px; background: var(--accent); margin: 0 auto 20px;"></div>
+                <div id="gloryDetailsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    <!-- ข้อมูลดึงจาก config.js -->
+                </div>
             </div>
         </div>
-    </section>
 
-    <!-- Custom Modal -->
+        <!-- iOS Manual Install Modal -->
+        <div id="iosPrompt" class="ios-prompt-overlay" onclick="closeIosPrompt()">
+            <div class="ios-prompt-card" onclick="event.stopPropagation()">
+                <button class="close-modal" onclick="closeIosPrompt()">&times;</button>
+                <h3 style="margin-top:0; font-family:'Kanit'; color:var(--primary);">ติดตั้ง FlipSchool บน iPhone/iPad</h3>
+                <p style="color:#6b7280; font-size:0.9rem; margin-bottom:20px;">เพิ่มแอปลงหน้าจอโฮมเพื่อเข้าใช้งานระบบที่รวดเร็วขึ้น</p>
+                <div class="ios-step"><i class="fas fa-share-square"></i><span>1. กดปุ่ม <b>"แชร์"</b> (ไอคอนสี่เหลี่ยมลูกศรชี้ขึ้น)</span></div>
+                <div class="ios-step"><i class="fas fa-plus-square"></i><span>2. เลื่อนลงและเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b></span></div>
+                <div class="ios-step"><i class="fas fa-plus"></i><span style="color:#007aff; font-weight:bold; margin-right:5px;">เพิ่ม</span><span>3. กดปุ่ม <b>"เพิ่ม"</b> ที่มุมขวาบน</span></div>
+            </div>
+        </div>
+
+        <footer class="footer footer-display-text"></footer>
+    </div> 
+
+    <!-- Custom Alert Modal -->
     <div id="customAlertModal" class="custom-modal-overlay">
         <div class="custom-modal-box">
-            <div style="font-size: 50px; color: var(--primary); margin-bottom: 20px;"><i class="fas fa-info-circle"></i></div>
-            <h3 style="font-family:'Kanit'; font-size:22px; margin-bottom:10px;">คำแนะนำการติดตั้ง</h3>
-            <p id="customAlertMessage" style="margin-bottom:25px; line-height:1.6;"></p>
+            <div style="font-size: 50px; color: var(--primary); margin-bottom: 20px;" id="customAlertIcon"><i class="fas fa-info-circle"></i></div>
+            <h3 style="font-family:'Kanit'; font-size:22px; margin-bottom:10px;" id="customAlertTitle">แจ้งเตือน</h3>
+            <p id="customAlertMessage" style="margin-bottom:25px; line-height:1.6; color:var(--text-muted);"></p>
             <button onclick="closeCustomAlert()" style="background:var(--primary); color:white; border:none; padding:12px 40px; border-radius:50px; font-family:'Kanit'; cursor:pointer; font-size:16px;">ตกลง</button>
         </div>
     </div>
@@ -96,29 +254,72 @@
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-        function showCustomAlert(msg) {
+        // --- 🌟 ระบบการทำงานพื้นฐาน 🌟 ---
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        });
+
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+        function openGloryModal() { renderGloryDetails(); document.getElementById('gloryModal').style.display = 'flex'; }
+        function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; }
+        function closeIosPrompt() { document.getElementById('iosPrompt').style.display = 'none'; }
+        
+        function showCustomAlert(msg, type='info') {
             document.getElementById('customAlertMessage').innerHTML = msg;
+            const icon = document.getElementById('customAlertIcon').querySelector('i');
+            if(type === 'success') { icon.className = 'fas fa-check-circle'; icon.style.color = '#2ed573'; }
+            else { icon.className = 'fas fa-info-circle'; icon.style.color = 'var(--primary)'; }
             document.getElementById('customAlertModal').style.display = 'flex';
         }
         function closeCustomAlert() { document.getElementById('customAlertModal').style.display = 'none'; }
 
-        // ตรวจสอบสถานะและแสดงปุ่ม
+        // --- 🚀 ระบบ PWA Logic & Auto-Redirect 🚀 ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof initAppUI === 'function') initAppUI();
+            checkPWAStatus();
+
+            const savedSession = localStorage.getItem('flip_student_session_id') || localStorage.getItem('flip_student_session');
+            if (savedSession) {
+                const loginBtn = document.getElementById('topLoginBtn');
+                if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบ...';
+                window.location.replace('dashboard.html');
+                return;
+            }
+
+            if (window.sysDB) {
+                const { data: { session } } = await window.sysDB.auth.getSession();
+                if (session && session.user) {
+                    const loginBtn = document.getElementById('topLoginBtn');
+                    if (loginBtn) loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> เข้าสู่ระบบ...';
+                    
+                    const { data: profile } = await window.sysDB.from('users').select('role, is_super_admin').eq('user_id', session.user.id).maybeSingle();
+                    if (profile && (profile.is_super_admin || profile.role === 'super_admin')) {
+                        window.location.replace('super_admin.html');
+                    } else {
+                        window.location.replace('dashboard.html');
+                    }
+                }
+            }
+        });
+
+        // --- 📱 PWA Functions 📱 ---
         function checkPWAStatus() {
-            const isInstalled = localStorage.getItem('pwa_installed') === 'yes' || isStandalone;
-            
+            const isInstalled = localStorage.getItem('pwa_installed') === 'yes';
             if (isStandalone) {
-                installBtn.style.display = 'none'; // อยู่ในแอปแล้วไม่ต้องโชว์
+                installBtn.style.display = 'none';
             } else if (isInstalled) {
                 installBtn.style.display = 'inline-flex';
+                installBtn.classList.remove('pulse-anim');
                 document.getElementById('installBtnIcon').className = 'fas fa-external-link-alt';
-                document.getElementById('installBtnText').innerText = 'เปิดใช้งานแอป';
+                document.getElementById('installBtnText').innerText = 'เปิดใช้งานแอปพลิเคชัน';
             } else {
                 installBtn.style.display = 'inline-flex';
                 installBtn.classList.add('pulse-anim');
             }
         }
 
-        // ดักจับ Event ติดตั้ง (สำหรับ Android / PC)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -132,34 +333,46 @@
 
         function handleAppAction() {
             if (isStandalone) return;
+            const isInstalled = localStorage.getItem('pwa_installed') === 'yes';
 
-            // ถ้าติดตั้งแล้ว -> พยายามเปิดแอป (หรือรีโหลดเพื่อให้ระบบจัดการ)
-            if (localStorage.getItem('pwa_installed') === 'yes') {
-                showCustomAlert("หากคุณติดตั้งแอปแล้ว <br>กรุณากดเปิดที่ไอคอน 🎓 บนหน้าจอโฮมครับ");
-                return;
-            }
-
-            // ถ้ายังไม่ติดตั้ง
-            if (isIOS) {
-                showCustomAlert("<b>สำหรับ iPhone/iPad:</b><br>1. กดปุ่ม <b>'แชร์'</b> (สี่เหลี่ยมลูกศรชี้ขึ้น)<br>2. เลือก <b>'เพิ่มไปยังหน้าจอโฮม'</b> (Add to Home Screen)");
-            } else if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(choice => {
-                    if (choice.outcome === 'accepted') localStorage.setItem('pwa_installed', 'yes');
-                });
-            } else {
-                // กรณีเปิดผ่าน LINE หรือเบราว์เซอร์ไม่รองรับ
-                const isLine = /Line/i.test(navigator.userAgent);
-                if (isLine) {
-                    showCustomAlert("<b>คุณกำลังเปิดผ่านแอป LINE:</b><br>กรุณากดจุด 3 จุดมุมขวาบน <br>แล้วเลือก <b>'เปิดด้วยเบราว์เซอร์อื่น'</b> (Open in Default Browser) เพื่อติดตั้งครับ");
+            if (isInstalled) {
+                if (isIOS) {
+                    showCustomAlert("<b>ระบบเปิดแอปอัตโนมัติถูกจำกัดโดย iOS</b><br><br>กรุณากลับไปที่หน้าจอโฮมของคุณ <br>แล้วกดเข้าใช้งานผ่านไอคอน 🎓 <b>FlipSchool</b> ครับ");
                 } else {
-                    showCustomAlert("กรุณากด <b>'เพิ่มลงในหน้าจอหลัก'</b> <br>จากเมนูของเบราว์เซอร์ (จุด 3 จุดมุมขวาบน) ครับ");
+                    window.location.reload(); 
+                }
+            } else {
+                if (isIOS) {
+                    document.getElementById('iosPrompt').style.display = 'flex';
+                } else if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(res => {
+                        if (res.outcome === 'accepted') localStorage.setItem('pwa_installed', 'yes');
+                    });
+                } else {
+                    const isLine = /Line/i.test(navigator.userAgent);
+                    if (isLine) {
+                        showCustomAlert("<b>ตรวจพบว่าคุณกำลังใช้งานในแอป LINE</b><br><br>กรุณากดจุด 3 จุดมุมขวาบน <br>แล้วเลือก <b>'เปิดด้วยเบราว์เซอร์อื่น'</b> เพื่อทำการติดตั้งครับ");
+                    } else {
+                        showCustomAlert("<b>ระบบไม่สามารถเปิดหน้าต่างติดตั้งอัตโนมัติได้</b><br><br>กรุณากดจุด 3 จุดที่มุมเบราว์เซอร์ <br>แล้วเลือก <b>'เพิ่มลงในหน้าจอหลัก'</b> (Add to Home screen)");
+                    }
                 }
             }
         }
 
-        // เรียกตรวจสอบทันทีที่โหลดหน้า
-        window.addEventListener('load', checkPWAStatus);
+        function renderGloryDetails() {
+            const container = document.getElementById('gloryDetailsContainer');
+            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS) {
+                const combined = [...APP_CONFIG.GLORY_DETAILS.HOME, ...APP_CONFIG.GLORY_DETAILS.SCHOOL];
+                container.innerHTML = combined.map(item => `
+                    <div style="background:#f8faff; padding:20px; border-radius:15px; border-left:5px solid ${item.letter === 'G' ? 'var(--accent)' : 'var(--primary)'};">
+                        <div style="font-family:'Kanit'; font-weight:800; font-size:24px; color:${item.letter === 'G' ? 'var(--accent)' : 'var(--primary)'}; margin-bottom:5px;">${item.letter}</div>
+                        <h4 style="font-family:'Kanit'; margin-bottom:5px;">${item.title}</h4>
+                        <p style="font-size:14px; color:var(--text-muted); line-height:1.4;">${item.desc}</p>
+                    </div>
+                `).join('');
+            }
+        }
     </script>
 </body>
 </html>
