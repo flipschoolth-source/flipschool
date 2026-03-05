@@ -1,4 +1,3 @@
-// ไฟล์: js/config.js
 /* =========================================
    1. การตั้งค่าระบบ (Configuration)
    ========================================= */
@@ -18,7 +17,7 @@ const APP_CONFIG = {
     // 3. ข้อมูลผู้พัฒนา / เจ้าของลิขสิทธิ์
     OWNER: {
         NAME: 'ครูไพรัช อินควรชุม',
-        POSITION: 'ครูชำนาญการพิเศษ',
+        POSITION: 'ครูชำนาญการ',
         SCHOOL: 'โรงเรียนเทศบาล 1 (ถนนนครนอก)',
         AFFILIATION: 'เทศบาลนครสงขลา',
         PROVINCE: 'สงขลา'
@@ -50,28 +49,26 @@ const APP_CONFIG = {
 // ล็อกค่าไว้ห้ามแก้ไข
 Object.freeze(APP_CONFIG);
 
-/**
- * ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐาน (Logo, Slogan, Footer) ทั่วทั้งระบบ
- */
+// ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐาน (Logo, Slogan, Footer) ทั่วทั้งระบบ
 function initAppUI() {
     // อัปเดต Title ของแท็บเว็บ
-    if (document.title.includes("FlipSchool") || document.title === "") {
-        document.title = `${APP_CONFIG.APP_NAME} - ${APP_CONFIG.APP_SLOGAN}`;
+    if (document.title.includes("FlipSchool")) {
+        document.title = `${APP_CONFIG.APP_NAME} - GLORY Model`;
     }
     
-    // อัปเดตชื่อแบรนด์ใน Navbar (.brand-name)
-    const brandElements = document.querySelectorAll('.brand-name, .nav-brand');
+    // อัปเดตชื่อแบรนด์ใน Navbar
+    const brandElements = document.querySelectorAll('.brand-name');
     brandElements.forEach(el => {
         el.innerHTML = `Flip<span>School</span>`;
     });
     
-    // อัปเดตสโลแกน (.slogan)
-    const sloganElements = document.querySelectorAll('.slogan, .nav-slogan');
+    // อัปเดตสโลแกน
+    const sloganElements = document.querySelectorAll('.slogan');
     sloganElements.forEach(el => {
         el.innerText = APP_CONFIG.APP_SLOGAN;
     });
 
-    // อัปเดต Footer ทั่วทั้งระบบ (.footer หรือ .footer-display-text)
+    // 🌟 อัปเดต Footer (ปรับให้เหลือ 2 บรรทัดตามความต้องการ)
     const footerElements = document.querySelectorAll('.footer, .footer-display-text');
     footerElements.forEach(el => {
         const year = APP_CONFIG.YEAR || new Date().getFullYear();
@@ -79,30 +76,28 @@ function initAppUI() {
         const slogan = APP_CONFIG.APP_SLOGAN || '';
         const fText = APP_CONFIG.FOOTER_TEXT || '';
         const owner = APP_CONFIG.OWNER || {};
-        
-        let html = `&copy; ${year} ${appName} - ${slogan}`;
-        
-        if (fText) {
-            html += `<br><span style="opacity: 0.85;">${fText}</span>`;
-        }
-        
+
+        // บรรทัดที่ 1: ลิขสิทธิ์ ชื่อแอป สโลแกน และข้อความนวัตกรรม
+        let html = `&copy; ${year} ${appName} - ${slogan} | ${fText}`;
+
+        // บรรทัดที่ 2: ข้อมูลผู้พัฒนา นำ <br> ตรงกลางออกเพื่อเชื่อมให้เป็นบรรทัดเดียวกัน
         if (owner.NAME) {
-            html += `<br><span style="font-size: 0.85em; opacity: 0.7; display: inline-block; margin-top: 5px; line-height: 1.6;">
-                     ผู้พัฒนา / เจ้าของลิขสิทธิ์: ${owner.NAME} ${owner.POSITION}<br>
-                     ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
+            html += `<br><span style="font-size: 0.85em; opacity: 0.75; display: inline-block; margin-top: 4px;">
+                     ผู้พัฒนา / เจ้าของลิขสิทธิ์: ${owner.NAME} ${owner.POSITION} ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
                      </span>`;
         }
-        
+
         el.innerHTML = html;
     });
 }
 
-console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFIG.THEME.PRIMARY}; color: #fff; border-radius: 3px; padding: 2px 5px;`);
+console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #fff; border-radius: 3px;');
 
-/* ==============================================================
-   2. ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือ
-   ============================================================== */
+// ==============================================================
+// ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือทุกหน้า
+// ==============================================================
 (function() {
+    // 1. ตรวจสอบให้ทำงานเฉพาะบนมือถือและแท็บเล็ตเท่านั้น
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) return;
 
@@ -111,6 +106,7 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
     let isPulling = false;
     let ptrIndicator = null;
 
+    // 2. ฟังก์ชันสร้างไอคอนโหลดกลมๆ (เหมือนแอปทั่วไป)
     function createIndicator() {
         if (document.getElementById('ptr-indicator')) return;
         ptrIndicator = document.createElement('div');
@@ -121,16 +117,20 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
             width: 40px; height: 40px; background: white; border-radius: 50%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex;
             align-items: center; justify-content: center; z-index: 99999;
-            color: ${APP_CONFIG.THEME.PRIMARY}; font-size: 18px; 
+            color: var(--primary-light, #0052D4); font-size: 18px; 
             transition: top 0.2s ease, transform 0.2s ease-out;
         `;
         document.body.appendChild(ptrIndicator);
     }
 
+    // 3. ฟังก์ชันเช็คว่าหน้าจออยู่ตำแหน่ง "บนสุด" หรือยัง
     function getScrollTop() {
-        return window.scrollY || document.documentElement.scrollTop;
+        const windowScroll = window.scrollY || document.documentElement.scrollTop;
+        const containerScroll = document.querySelector('.container') ? document.querySelector('.container').scrollTop : 0;
+        return Math.max(windowScroll, containerScroll);
     }
 
+    // เริ่มแตะหน้าจอ
     window.addEventListener('touchstart', function(e) {
         if (getScrollTop() <= 0) {
             startY = e.touches[0].clientY;
@@ -141,6 +141,7 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
         }
     }, { passive: true });
 
+    // กำลังลากนิ้วลง
     window.addEventListener('touchmove', function(e) {
         if (!isPulling) return;
         currentY = e.touches[0].clientY;
@@ -150,7 +151,7 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
             let pullDistance = Math.min(diffY * 0.4, 90); 
             
             if (ptrIndicator) {
-                ptrIndicator.style.transition = 'none';
+                ptrIndicator.style.transition = 'none'; 
                 ptrIndicator.style.top = (pullDistance - 50) + 'px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(${pullDistance * 4}deg)`;
             }
@@ -159,18 +160,22 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
         }
     }, { passive: false });
 
+    // ปล่อยนิ้ว
     window.addEventListener('touchend', function(e) {
         if (!isPulling) return;
         isPulling = false;
         let diffY = currentY - startY;
 
         if (ptrIndicator) {
-            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease';
+            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; 
             
             if (diffY > 120 && getScrollTop() <= 0) {
-                ptrIndicator.style.top = '25px';
-                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                setTimeout(() => { window.location.reload(); }, 300);
+                ptrIndicator.style.top = '25px'; 
+                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 300);
             } else {
                 ptrIndicator.style.top = '-60px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(0deg)`;
@@ -179,28 +184,7 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFI
     });
 })();
 
-/* ==============================================================
-   3. ลงทะเบียน Service Worker สำหรับ PWA
-   ============================================================== */
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => {
-                // ตรวจสอบการอัปเดต Service Worker
-                reg.onupdatefound = () => {
-                    const installingWorker = reg.installing;
-                    installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            console.log('พบเวอร์ชันใหม่! กำลังอัปเดต...');
-                        }
-                    };
-                };
-            })
-            .catch(err => console.error('Service Worker Register Error:', err));
-    });
-}
-
-// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้ (ถ้ามีการใช้โมดูล)
+// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = APP_CONFIG;
 }
