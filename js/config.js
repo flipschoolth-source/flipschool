@@ -50,26 +50,28 @@ const APP_CONFIG = {
 // ล็อกค่าไว้ห้ามแก้ไข
 Object.freeze(APP_CONFIG);
 
-// ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐาน (Logo, Slogan, Footer) ทั่วทั้งระบบ
+/**
+ * ฟังก์ชันสำหรับอัปเดตข้อมูล UI พื้นฐาน (Logo, Slogan, Footer) ทั่วทั้งระบบ
+ */
 function initAppUI() {
     // อัปเดต Title ของแท็บเว็บ
-    if (document.title.includes("FlipSchool")) {
-        document.title = `${APP_CONFIG.APP_NAME} - GLORY Model`;
+    if (document.title.includes("FlipSchool") || document.title === "") {
+        document.title = `${APP_CONFIG.APP_NAME} - ${APP_CONFIG.APP_SLOGAN}`;
     }
     
-    // อัปเดตชื่อแบรนด์ใน Navbar
-    const brandElements = document.querySelectorAll('.brand-name');
+    // อัปเดตชื่อแบรนด์ใน Navbar (.brand-name)
+    const brandElements = document.querySelectorAll('.brand-name, .nav-brand');
     brandElements.forEach(el => {
         el.innerHTML = `Flip<span>School</span>`;
     });
     
-    // อัปเดตสโลแกน
-    const sloganElements = document.querySelectorAll('.slogan');
+    // อัปเดตสโลแกน (.slogan)
+    const sloganElements = document.querySelectorAll('.slogan, .nav-slogan');
     sloganElements.forEach(el => {
         el.innerText = APP_CONFIG.APP_SLOGAN;
     });
 
-    // อัปเดต Footer ทั่วทั้งระบบให้สวยงามและเป็นระเบียบ
+    // อัปเดต Footer ทั่วทั้งระบบ (.footer หรือ .footer-display-text)
     const footerElements = document.querySelectorAll('.footer, .footer-display-text');
     footerElements.forEach(el => {
         const year = APP_CONFIG.YEAR || new Date().getFullYear();
@@ -95,11 +97,11 @@ function initAppUI() {
     });
 }
 
-console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #fff; border-radius: 3px;');
+console.log(`%c ${APP_CONFIG.APP_NAME} Config Loaded `, `background: ${APP_CONFIG.THEME.PRIMARY}; color: #fff; border-radius: 3px; padding: 2px 5px;`);
 
-// ==============================================================
-// ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือทุกหน้า
-// ==============================================================
+/* ==============================================================
+   2. ระบบ Pull-to-Refresh (ดึงจอลงเพื่อรีโหลด) สำหรับมือถือ
+   ============================================================== */
 (function() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) return;
@@ -119,16 +121,14 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
             width: 40px; height: 40px; background: white; border-radius: 50%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex;
             align-items: center; justify-content: center; z-index: 99999;
-            color: var(--primary-light, #0052D4); font-size: 18px; 
+            color: ${APP_CONFIG.THEME.PRIMARY}; font-size: 18px; 
             transition: top 0.2s ease, transform 0.2s ease-out;
         `;
         document.body.appendChild(ptrIndicator);
     }
 
     function getScrollTop() {
-        const windowScroll = window.scrollY || document.documentElement.scrollTop;
-        const containerScroll = document.querySelector('.container') ? document.querySelector('.container').scrollTop : 0;
-        return Math.max(windowScroll, containerScroll);
+        return window.scrollY || document.documentElement.scrollTop;
     }
 
     window.addEventListener('touchstart', function(e) {
@@ -179,18 +179,28 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
     });
 })();
 
-// ==============================================================
-// 🌟 ลงทะเบียน Service Worker เพื่อให้แอปทำงานแบบ PWA ได้สมบูรณ์
-// ==============================================================
+/* ==============================================================
+   3. ลงทะเบียน Service Worker สำหรับ PWA
+   ============================================================== */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker ลงทะเบียนสำเร็จ'))
-            .catch(err => console.log('Service Worker ลงทะเบียนไม่สำเร็จ: ', err));
+            .then(reg => {
+                // ตรวจสอบการอัปเดต Service Worker
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('พบเวอร์ชันใหม่! กำลังอัปเดต...');
+                        }
+                    };
+                };
+            })
+            .catch(err => console.error('Service Worker Register Error:', err));
     });
 }
 
-// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้
+// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้ (ถ้ามีการใช้โมดูล)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = APP_CONFIG;
 }
