@@ -5,7 +5,6 @@
 
 const APP_CONFIG = {
     // 1. Supabase Settings
-    // ใส่ค่า URL และ Key โดยตรงแทนการใช้ window._env_ เพื่อแก้ปัญหาโหลดไม่ขึ้น
     SUPABASE_URL: 'https://hznmvaxjlgjnrvtjosdt.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bm12YXhqbGdqbnJ2dGpvc2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQwMzMsImV4cCI6MjA4MjU0MDAzM30.o5W0oP8mnMOs9DWcvGgZ9F7E1EdysBuUu807UKdbqnE',
 
@@ -70,8 +69,8 @@ function initAppUI() {
         el.innerText = APP_CONFIG.APP_SLOGAN;
     });
 
-    // อัปเดต Footer ทั่วทั้งระบบ
-    const footerElements = document.querySelectorAll('.footer-display-text');
+    // อัปเดต Footer ทั่วทั้งระบบให้สวยงามและเป็นระเบียบ
+    const footerElements = document.querySelectorAll('.footer, .footer-display-text');
     footerElements.forEach(el => {
         const year = APP_CONFIG.YEAR || new Date().getFullYear();
         const appName = APP_CONFIG.APP_NAME || 'FlipSchool';
@@ -79,14 +78,19 @@ function initAppUI() {
         const fText = APP_CONFIG.FOOTER_TEXT || '';
         const owner = APP_CONFIG.OWNER || {};
         
-        // จัดรูปแบบข้อความให้ดูสวยงาม
         let html = `&copy; ${year} ${appName} - ${slogan}`;
-        if (fText) html += `<br><span style="opacity: 0.85;">${fText}</span>`;
+        
+        if (fText) {
+            html += `<br><span style="opacity: 0.85;">${fText}</span>`;
+        }
+        
         if (owner.NAME) {
-            html += `<br><span style="font-size: 0.85em; opacity: 0.7; display: inline-block; margin-top: 5px;">
-                     ลิขสิทธิ์ / ผู้พัฒนา: ${owner.NAME} ${owner.POSITION} ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
+            html += `<br><span style="font-size: 0.85em; opacity: 0.7; display: inline-block; margin-top: 5px; line-height: 1.6;">
+                     ผู้พัฒนา / เจ้าของลิขสิทธิ์: ${owner.NAME} ${owner.POSITION}<br>
+                     ${owner.SCHOOL} สังกัด${owner.AFFILIATION} จ.${owner.PROVINCE}
                      </span>`;
         }
+        
         el.innerHTML = html;
     });
 }
@@ -144,11 +148,13 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
 
         if (diffY > 0 && getScrollTop() <= 0) {
             let pullDistance = Math.min(diffY * 0.4, 90); 
+            
             if (ptrIndicator) {
-                ptrIndicator.style.transition = 'none'; 
+                ptrIndicator.style.transition = 'none';
                 ptrIndicator.style.top = (pullDistance - 50) + 'px';
                 ptrIndicator.style.transform = `translateX(-50%) rotate(${pullDistance * 4}deg)`;
             }
+            
             if (e.cancelable && diffY > 10) e.preventDefault();
         }
     }, { passive: false });
@@ -159,10 +165,11 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
         let diffY = currentY - startY;
 
         if (ptrIndicator) {
-            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease'; 
+            ptrIndicator.style.transition = 'top 0.3s ease, transform 0.3s ease';
+            
             if (diffY > 120 && getScrollTop() <= 0) {
-                ptrIndicator.style.top = '25px'; 
-                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+                ptrIndicator.style.top = '25px';
+                ptrIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 setTimeout(() => { window.location.reload(); }, 300);
             } else {
                 ptrIndicator.style.top = '-60px';
@@ -172,6 +179,18 @@ console.log(`%c ${APP_CONFIG.APP_NAME} Ready `, 'background: #00008B; color: #ff
     });
 })();
 
+// ==============================================================
+// 🌟 ลงทะเบียน Service Worker เพื่อให้แอปทำงานแบบ PWA ได้สมบูรณ์
+// ==============================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker ลงทะเบียนสำเร็จ'))
+            .catch(err => console.log('Service Worker ลงทะเบียนไม่สำเร็จ: ', err));
+    });
+}
+
+// อนุญาตให้ไฟล์อื่นเรียกใช้งานได้
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = APP_CONFIG;
 }
