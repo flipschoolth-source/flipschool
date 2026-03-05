@@ -1,6 +1,6 @@
 // ไฟล์: sw.js
-// อัปเดตเป็น v1.5 เพื่อบังคับเบราว์เซอร์ให้โหลด Manifest และไอคอนใหม่
-const CACHE_NAME = 'flipschool-v1.5'; 
+// อัปเดตเป็น v1.6 เพื่อล้าง Cache รูปภาพที่ขนาดผิดพลาด
+const CACHE_NAME = 'flipschool-v1.6'; 
 
 const ASSETS = [
     './',
