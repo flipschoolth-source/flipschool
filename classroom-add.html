@@ -143,14 +143,17 @@
         
         <div class="nav-center">
             <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
             <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
             <a href="#" class="nav-link" onclick="openGloryModal()"><i class="fas fa-star"></i> นวัตกรรม</a>
             <a href="#" class="nav-link" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info')"><i class="fas fa-book"></i> คู่มือ</a>
         </div>
 
         <div class="nav-right">
+            <!-- เพิ่มรูปโปรไฟล์ที่มุมขวาบน -->
+            <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-slate-200 object-cover shadow-sm hidden md:block">
             <!-- ปุ่มเชื่อมไปหน้าแดชบอร์ด -->
-            <a href="dashboard.html" class="nav-btn-primary hidden md:flex"><i class="fas fa-arrow-left"></i> กลับแดชบอร์ด</a>
+            <a href="dashboard.html" class="nav-btn-primary hidden md:flex ml-2"><i class="fas fa-arrow-left"></i> กลับแดชบอร์ด</a>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
 
@@ -350,6 +353,26 @@
             }, 300);
         }
 
+        // ================= 🌟 อัปเดต Profile แบบ SWR 🌟 =================
+        function updateProfileUI(profile) {
+            if (!profile) return;
+            const pic = profile.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.first_name || 'User'}`;
+            const navImg = document.getElementById('navProfileImg');
+            if (navImg) navImg.src = pic;
+        }
+
+        async function fetchProfileData(db, userId) {
+            try {
+                const { data: userProfile } = await db.from('users').select('first_name, profile_pic').eq('user_id', userId).maybeSingle();
+                if (userProfile) {
+                    localStorage.setItem(`flip_cache_profile_${userId}`, JSON.stringify(userProfile));
+                    updateProfileUI(userProfile);
+                }
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
 
@@ -365,6 +388,15 @@
                     return;
                 }
                 currentUser = session.user;
+
+                // 1. โหลดโปรไฟล์จาก Cache ทันที (Progressive Rendering)
+                const cacheProfile = localStorage.getItem(`flip_cache_profile_${currentUser.id}`);
+                if (cacheProfile) {
+                    updateProfileUI(JSON.parse(cacheProfile));
+                }
+                
+                // 2. ดึงข้อมูลใหม่เบื้องหลัง (Revalidate)
+                fetchProfileData(db, currentUser.id);
 
                 // ตรวจสอบพื้นที่ (Context) ที่ครูเลือกไว้ก่อนกดปุ่มเข้ามา
                 const activeView = localStorage.getItem('flip_active_view') || 'independent';
