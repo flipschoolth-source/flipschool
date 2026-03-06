@@ -1,505 +1,386 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>คลังสื่อการสอน | FlipSchool</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>คลังภารกิจ - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
+    
     <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
-        
-        .mission-card {
-            transition: all 0.3s ease;
-            background: white; border: 1px solid #e2e8f0;
-            border-radius: 1.5rem; overflow: hidden;
-            display: flex; flex-direction: column;
-            position: relative;
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
         }
-        .mission-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border-color: #3b82f6;
+
+        body { 
+            font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main);
+            margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
         }
+
+        /* ================= NAVBAR ================= */
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
-        .tag-badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; }
-        .tag-subject { background: #eff6ff; color: #1d4ed8; }
-        .tag-grade { background: #f0fdf4; color: #15803d; }
+        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.3s; }
+        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease; }
+        #mainNav.scrolled .nav-logo-icon { width: 40px; height: 40px; font-size: 20px; border-width: 2px; border-radius: 10px; }
         
-        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        .hidden-el { display: none !important; }
+        .nav-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand span { color: var(--accent); }
+        #mainNav.scrolled .nav-brand { font-size: 22px; }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.3s; }
+        #mainNav.scrolled .nav-slogan { font-size: 11px; opacity: 0; display: none; }
+        
+        .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: clamp(14px, 1.5vw, 16px); text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; position: relative; }
+        .nav-link i { font-size: 14px; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
+        .nav-link:hover::after { width: 100%; }
+        
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+
+        .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
+        .mobile-menu-btn:hover { background: #eef2f7; }
+        
+        .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
+        .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
+
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+        
+        /* Mission Card */
+        .mission-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #edf2f7; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .mission-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,139,0.08); border-color: #dbeafe; }
+        .mission-icon-box { width: 50px; height: 50px; border-radius: 14px; background: #f0f4ff; color: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 15px; flex-shrink: 0; }
+        .mission-title { font-family: 'Kanit'; font-weight: 700; font-size: 18px; color: var(--text-main); margin-bottom: 5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        /* FAB */
+        .fab-add { position: fixed; bottom: 40px; right: 40px; width: 65px; height: 65px; background: var(--accent); color: white; border-radius: 50%; border:none; font-size: 28px; cursor: pointer; z-index: 998; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4); transition: 0.3s; }
+        .fab-add:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 35px rgba(255, 140, 0, 0.5); }
+
+        /* Custom Alert */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 15px; transition: opacity 0.3s; opacity: 0; }
+        .custom-modal-box { background: white; padding: clamp(25px, 5vw, 35px) clamp(20px, 5vw, 30px); border-radius: 25px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: scale(0.95); transition: transform 0.3s; }
+
+        .footer { padding: 25px 20px; font-size: 13px; color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
+
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .spinner { border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 12px; }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: translateY(20px) scale(0.9); }
+        @keyframes popIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        @media (max-width: 992px) {
+            .nav-center { display: none; }
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+        }
+        @media (max-width: 768px) {
+            #mainNav { padding: 0 15px; height: 75px; }
+            .fab-add { bottom: 25px; right: 25px; width: 55px; height: 55px; font-size: 24px; }
+            .mission-card { padding: 20px; }
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
 
-    <!-- Modal เลือกห้องเรียน (แสดงเฉพาะกรณีที่ไม่ได้ลิงก์มาจากหน้าห้องเรียนโดยตรง) -->
-    <div id="importModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border border-slate-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-blue-900"><i class="fas fa-school"></i> เลือกห้องเรียน</h3>
-                <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
-            </div>
-            <p class="text-sm text-slate-500 mb-4">เลือกห้องเรียนที่ต้องการนำภารกิจนี้ไปใช้:</p>
-            
-            <div id="classroomList" class="space-y-2 max-h-60 overflow-y-auto pr-2 mb-6">
-                <p class="text-center text-slate-400 text-sm py-4">กำลังโหลดห้องเรียน...</p>
-            </div>
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังโหลดข้อมูล...</div>
+    </div>
 
-            <button id="confirmImportBtn" onclick="executeImport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed">
-                ยืนยันการนำเข้า
+    <!-- 🌟 Navbar 🌟 -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand">Flip<span>School</span></div>
+                <div class="nav-slogan slogan">...</div>
+            </div>
+        </a>
+        
+        <div class="nav-center">
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html" class="nav-link text-[var(--primary)] font-bold"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="#" class="nav-link" onclick="showCustomAlert('ระบบนวัตกรรมกำลังจัดทำครับ', 'info')"><i class="fas fa-star"></i> นวัตกรรม</a>
+        </div>
+
+        <div class="nav-right">
+            <button onclick="handleLogout()" class="hidden md:flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-colors border-none cursor-pointer text-sm">
+                <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
             </button>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
-    </div>
 
-    <!-- 🌟 Modal ยืนยันการนำเข้าแบบด่วนที่สวยงาม (แทนที่ confirm ปกติ) 🌟 -->
-    <div id="directImportConfirmModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100 transform transition-all scale-95 opacity-0 text-center" id="directImportConfirmCard">
-            <div class="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner border-4 border-white ring-2 ring-blue-100">
-                <i class="fas fa-file-import"></i>
-            </div>
-            <h3 class="text-xl font-bold text-slate-800 mb-2 font-sans">ยืนยันการนำเข้า</h3>
-            <p class="text-sm text-slate-500 mb-6 font-sans">
-                คุณต้องการนำเข้าภารกิจนี้ไปยังหมวดหมู่<br>
-                <span id="confirmFolderNameDisplay" class="font-bold text-blue-700 text-base mt-2 inline-block bg-blue-50 px-4 py-1.5 rounded-xl border border-blue-100 shadow-sm"></span><br>
-                ใช่หรือไม่?
-            </p>
-            <div class="flex gap-3">
-                <button onclick="closeDirectImportConfirm()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all font-sans">ยกเลิก</button>
-                <button id="btnConfirmDirectImport" onclick="proceedDirectImport()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95 font-sans flex justify-center items-center gap-2">
-                    <i class="fas fa-check-circle"></i> นำเข้าทันที
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- กล่องข้อความแจ้งเตือน -->
-    <div id="msgBox" class="fixed top-20 right-5 z-[110] hidden bg-white border-l-4 border-orange-500 shadow-lg rounded-xl p-4 transition-all">
-        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
-    </div>
-
-    <!-- Navbar -->
-    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border-2 border-white/20">
-                    <span class="text-2xl text-blue-900">🎓</span>
-                </div>
-                <div class="flex flex-col">
-                    <div class="text-xl font-bold tracking-tight leading-none">
-                        <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
-                    </div>
-                    <span class="text-[10px] text-blue-100 font-medium opacity-90">คลังสื่อการสอนสาธารณะ</span>
-                </div>
-            </div>
-            <div class="flex gap-4">
-                <button onclick="goBackOrHome()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
-                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
-                </button>
-            </div>
+        <div id="mobileMenu" class="mobile-dropdown">
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ดหลัก</a>
+            <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt text-rose-500"></i> ออกจากระบบ</a>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
-        
-        <!-- แถบแจ้งเตือนโหมดนำเข้าด่วน (ถ้ามาจากหน้าห้องเรียน) -->
-        <div id="importContextBanner" class="hidden-el bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-500 shadow-sm rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center animate-pulse">
-                    <i class="fas fa-bullseye"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800">โหมดนำเข้าด่วน</h3>
-                    <p class="text-xs text-slate-500">เลือกภารกิจเพื่อส่งตรงไปยังหมวดหมู่ <span id="targetFolderBadge" class="bg-orange-500 text-white px-2 py-0.5 rounded-md font-bold mx-1"></span> ทันที</p>
-                </div>
+    <!-- Header Section -->
+    <header class="header-gradient text-white py-8 px-5 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-8">
+        <div class="container mx-auto max-w-[1200px] relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-5">
+            <div class="flex-1">
+                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] leading-snug flex items-center flex-wrap gap-3">
+                    คลังภารกิจการเรียนรู้
+                    <span id="syncIndicator" class="opacity-0 transition-opacity text-xs md:text-sm font-normal text-white/80 bg-white/10 px-3 py-1 rounded-full border border-white/20 font-sans">
+                        <i class="fas fa-sync-alt animate-spin mr-1"></i> ซิงค์ข้อมูล...
+                    </span>
+                </h1>
+                <p class="text-blue-100 font-medium text-sm md:text-lg mt-2 font-sans opacity-90">จัดการเนื้อหาและข้อสอบทั้งหมดของคุณ (Missions Library)</p>
             </div>
-            <button onclick="cancelDirectImport()" class="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg transition-all font-bold shadow-sm whitespace-nowrap">
-                <i class="fas fa-times mr-1"></i> ยกเลิก
-            </button>
-        </div>
-
-        <!-- ส่วนค้นหาและตัวกรอง -->
-        <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 mb-8">
-            <h1 class="text-2xl font-bold text-blue-900 mb-6 flex items-center gap-2">
-                <i class="fas fa-layer-group text-orange-500"></i> คลังภารกิจ (Mission Library)
-            </h1>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="md:col-span-2 relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" onkeyup="filterMissions()" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-bold" placeholder="ค้นหาชื่อภารกิจ, ภาษาไทย, คณิต...">
-                </div>
-                
-                <div>
-                    <select id="subjectFilter" onchange="filterMissions()" class="w-full py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-600 cursor-pointer">
-                        <option value="">ทุกกลุ่มสาระ</option>
-                        <option value="ภาษาไทย">ภาษาไทย</option>
-                        <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                        <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-                        <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
-                        <option value="สังคมศึกษา">สังคมศึกษา</option>
-                        <option value="การงานอาชีพ">การงานอาชีพ</option>
-                        <option value="ศิลปะ">ศิลปะ</option>
-                        <option value="สุขศึกษา">สุขศึกษา</option>
-                        <option value="อื่นๆ">อื่นๆ</option>
-                    </select>
-                </div>
-
-                <div>
-                    <select id="gradeFilter" onchange="filterMissions()" class="w-full py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-600 cursor-pointer">
-                        <option value="">ทุกระดับชั้น</option>
-                        <option value="อ.">อนุบาล (อ.)</option>
-                        <option value="ป.">ประถมศึกษา (ป.)</option>
-                        <option value="ม.">มัธยมศึกษา (ม.)</option>
-                    </select>
-                </div>
+            <div class="w-full md:w-auto mt-2 md:mt-0 relative">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50"></i>
+                <input type="text" id="searchInput" placeholder="พิมพ์ค้นหาภารกิจ..." oninput="filterMissions(this.value)" class="w-full md:w-[250px] bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-xl pl-11 pr-4 py-3 outline-none focus:bg-white/20 transition-all font-sans text-sm">
             </div>
         </div>
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    </header>
 
-        <!-- รายการภารกิจ -->
-        <div id="missionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div class="col-span-full text-center py-20">
-                <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-slate-400 font-bold">กำลังโหลดคลังสื่อ...</p>
-            </div>
-        </div>
-
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1200px] relative">
+        <div id="missionGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 py-8 mt-auto text-center font-sans">
-        <p class="text-blue-900 font-bold text-sm italic">© 2026 FlipSchool Library</p>
-    </footer>
+    <button onclick="window.location.href='mission-create.html'" class="fab-add" title="สร้างภารกิจใหม่">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box text-center" id="customAlertBox">
+            <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all border-none cursor-pointer">ตกลง</button>
+                <button id="customAlertCancelBtn" onclick="closeCustomAlert(true)" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all border-none cursor-pointer">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer footer-display-text"></footer>
 
     <script>
-        let allMissions = [];
         let currentUserId = null;
-        let selectedMissionIdForImport = null;
-        let isImporting = false;
-        
-        // อ่านค่าพารามิเตอร์เพื่อใช้โหมดนำเข้าด่วน
-        const urlParams = new URLSearchParams(window.location.search);
-        let directCid = urlParams.get('cid');
-        let directFolder = urlParams.get('folder');
+        let allMissions = [];
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        // UI Helpers
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        });
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+
+        let alertCallback = null;
+        let alertCancelCallback = null;
+        function showCustomAlert(msg, type='info', callback=null, cancelCallback=null) {
+            document.getElementById('customAlertMessage').innerHTML = msg;
+            const icon = document.getElementById('customAlertIcon');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+            const okBtn = document.getElementById('customAlertOkBtn');
             
-            // แสดงแถบนำเข้าด่วน ถ้ามี URL Params
-            if (directCid && directFolder) {
-                document.getElementById('importContextBanner').classList.remove('hidden-el');
-                document.getElementById('targetFolderBadge').innerText = directFolder;
-            }
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
 
-            const checkDB = setInterval(async () => {
-                if(window.sysDB) {
-                    clearInterval(checkDB);
-                    
-                    const { data: { user } } = await window.sysDB.auth.getUser();
-                    if(user) currentUserId = user.id;
+            if(type === 'success') { icon.className = 'fas fa-check-circle text-emerald-500'; cancelBtn.classList.add('hidden'); okBtn.style.background = '#10b981'; }
+            else if(type === 'warning') { icon.className = 'fas fa-exclamation-triangle text-amber-500'; cancelBtn.classList.add('hidden'); okBtn.style.background = '#f59e0b'; }
+            else if(type === 'confirm') { icon.className = 'fas fa-question-circle text-rose-500'; cancelBtn.classList.remove('hidden'); okBtn.style.background = '#ff4757'; }
+            else if(type === 'error') { icon.className = 'fas fa-times-circle text-rose-500'; cancelBtn.classList.add('hidden'); okBtn.style.background = '#ef4444'; }
+            else { icon.className = 'fas fa-info-circle text-[var(--primary)]'; cancelBtn.classList.add('hidden'); okBtn.style.background = 'var(--primary)'; }
+            
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; box.classList.remove('scale-95'); box.classList.add('scale-100'); okBtn.focus(); }, 10);
+        }
+        
+        function closeCustomAlert(isCancel = false) { 
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            modal.style.opacity = '0';
+            box.classList.remove('scale-100'); box.classList.add('scale-95');
+            setTimeout(() => { 
+                modal.style.display = 'none'; 
+                if (isCancel && alertCancelCallback) { alertCancelCallback(); }
+                else if (!isCancel && alertCallback) { alertCallback(); }
+                alertCallback = null; alertCancelCallback = null;
+            }, 300);
+        }
 
-                    await fetchMissions();
+        function getDB() {
+            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+        }
+
+        function getIconForType(type) {
+            return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[type] || 'fas fa-star';
+        }
+        function getLabelForType(type) {
+            return { quiz:'ควิซปรนัย', ai_generated:'สร้างด้วย AI', html_custom:'Custom HTML', match:'จับคู่', competition:'แข่งขัน' }[type] || 'ทั่วไป';
+        }
+
+        // ================= 🌟 SWR Initialization 🌟 =================
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof initAppUI === 'function') initAppUI();
+
+            try {
+                const db = getDB();
+                const { data: { session } } = await db.auth.getSession();
+                
+                if (!session) return window.location.replace('login.html');
+                currentUserId = session.user.id;
+
+                // 1. อ่านแคชมาแสดงก่อนทันที (SWR)
+                const cacheKey = `flip_cache_missions_lib_${currentUserId}`;
+                const cacheData = localStorage.getItem(cacheKey);
+                if (cacheData) {
+                    allMissions = JSON.parse(cacheData);
+                    renderMissions(allMissions);
+                    document.getElementById('loadingOverlay').style.display = 'none';
                 }
-            }, 500);
+
+                // 2. ดึงข้อมูลจริงเบื้องหลังแบบเงียบๆ
+                const syncInd = document.getElementById('syncIndicator');
+                if (syncInd) { syncInd.classList.remove('opacity-0'); syncInd.classList.add('opacity-100'); }
+
+                await fetchFreshMissions(db, cacheKey);
+
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                showCustomAlert("เกิดข้อผิดพลาด: " + err.message, "error");
+            }
         });
 
-        async function fetchMissions() {
+        async function fetchFreshMissions(db, cacheKey) {
             try {
-                const { data, error } = await window.sysDB
-                    .from('missions')
+                const { data, error } = await db.from('missions')
                     .select('*')
-                    .eq('is_public', true)
+                    .eq('created_by', currentUserId)
                     .order('created_at', { ascending: false });
-
+                
                 if (error) throw error;
-                allMissions = data || [];
-                renderMissions(allMissions);
+                
+                const freshMissions = data || [];
+                const freshString = JSON.stringify(freshMissions);
+
+                if (localStorage.getItem(cacheKey) !== freshString) {
+                    localStorage.setItem(cacheKey, freshString);
+                    allMissions = freshMissions;
+                    renderMissions(allMissions);
+                }
+
             } catch (err) {
-                console.error(err);
-                document.getElementById('missionGrid').innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">โหลดข้อมูลล้มเหลว: ${err.message}</div>`;
+                console.error("Fetch Error:", err);
+            } finally {
+                const loader = document.getElementById('loadingOverlay');
+                if (loader.style.display !== 'none') {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+                const syncInd = document.getElementById('syncIndicator');
+                if(syncInd) { syncInd.classList.remove('opacity-100'); syncInd.classList.add('opacity-0'); }
             }
         }
 
-        function renderMissions(missions) {
-            const grid = document.getElementById('missionGrid');
-            grid.innerHTML = '';
-
-            if (missions.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400 font-bold text-lg"><i class="fas fa-inbox text-4xl mb-4 block"></i>ไม่พบภารกิจที่ค้นหา</div>`;
+        function renderMissions(missionsToRender) {
+            const container = document.getElementById('missionGrid');
+            if (missionsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+                        <i class="fas fa-box-open text-6xl text-slate-200 mb-4"></i>
+                        <h3 class="text-xl font-bold font-['Kanit'] text-slate-500">คุณยังไม่มีภารกิจในคลัง</h3>
+                        <p class="text-sm mt-1">กดปุ่ม + มุมขวาล่างเพื่อสร้างภารกิจแรกของคุณได้เลยครับ</p>
+                    </div>`;
                 return;
             }
 
-            missions.forEach(m => {
-                const subject = m.subject_group || 'อื่นๆ';
-                const grade = m.grade_level || 'ไม่ระบุ';
-                const desc = m.description || 'ไม่มีคำอธิบาย';
-                
-                let icon = 'fas fa-cube';
-                let colorClass = 'text-blue-500 bg-blue-50';
-                if(subject.includes('ภาษาไทย')) { icon = 'fas fa-pen-nib'; colorClass = 'text-pink-500 bg-pink-50'; }
-                else if(subject.includes('คณิต')) { icon = 'fas fa-calculator'; colorClass = 'text-orange-500 bg-orange-50'; }
-                else if(subject.includes('วิทย์') || subject.includes('เทคโนโลยี')) { icon = 'fas fa-flask'; colorClass = 'text-purple-500 bg-purple-50'; }
-                else if(subject.includes('อังกฤษ') || subject.includes('ภาษาต่างประเทศ')) { icon = 'fas fa-language'; colorClass = 'text-teal-500 bg-teal-50'; }
-                else if(subject.includes('สังคม')) { icon = 'fas fa-globe-asia'; colorClass = 'text-indigo-500 bg-indigo-50'; }
-
-                const card = document.createElement('div');
-                card.className = 'mission-card group';
-                card.innerHTML = `
-                    <div class="p-6 flex flex-col h-full">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center text-xl shadow-sm">
-                                <i class="${icon}"></i>
-                            </div>
-                            <div class="flex flex-col items-end gap-1">
-                                <span class="tag-badge tag-subject">${subject}</span>
-                                <span class="tag-badge tag-grade">${grade}</span>
-                            </div>
-                        </div>
-                        
-                        <h3 class="text-lg font-bold text-slate-800 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">${m.title}</h3>
-                        <p class="text-xs text-slate-500 mb-6 line-clamp-2 flex-grow">${desc}</p>
-                        
-                        <div class="flex gap-2 mt-auto pt-4 border-t border-slate-100">
-                            <a href="play-mission.html?mid=${m.mission_id}" target="_blank" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 rounded-lg text-xs font-bold text-center transition-colors flex items-center justify-center gap-1 border border-slate-200">
-                                <i class="fas fa-play"></i> พรีวิว
-                            </a>
-                            
-                            ${currentUserId ? `
-                            <button onclick="openImportModal('${m.mission_id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1">
-                                <i class="fas fa-download"></i> นำเข้า
-                            </button>
-                            ` : ''}
-                        </div>
+            container.innerHTML = missionsToRender.map((m, index) => `
+                <div class="mission-card animate-pop-in" style="animation-delay: ${index * 0.05}s;">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="mission-icon-box"><i class="${getIconForType(m.mission_type)}"></i></div>
+                        <span class="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1"><i class="fas fa-star"></i> ${m.reward_points || 10}</span>
                     </div>
-                `;
-                grid.appendChild(card);
-            });
+                    <h3 class="mission-title" title="${m.title}">${m.title}</h3>
+                    <p class="text-xs text-slate-500 mb-4 flex-grow"><i class="fas fa-tag mr-1 opacity-70"></i> ${m.subject_group || 'ทั่วไป'} | ${getLabelForType(m.mission_type)}</p>
+                    
+                    <div class="flex gap-2 mt-auto border-t border-slate-100 pt-4">
+                        <button onclick="window.location.href='play-mission.html?mid=${m.mission_id}'" class="flex-1 bg-slate-50 hover:bg-[var(--primary)] text-[var(--primary)] hover:text-white font-bold py-2 rounded-xl transition text-xs border-none cursor-pointer flex justify-center items-center gap-1.5"><i class="fas fa-play"></i> ทดลองเล่น</button>
+                        <button onclick="deleteMission('${m.mission_id}', '${m.title.replace(/'/g, "\\'")}')" class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white w-9 h-9 rounded-xl flex items-center justify-center transition border-none cursor-pointer" title="ลบภารกิจ"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function filterMissions() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const subject = document.getElementById('subjectFilter').value;
-            const grade = document.getElementById('gradeFilter').value;
-
-            const filtered = allMissions.filter(m => {
-                const matchQuery = m.title.toLowerCase().includes(query) || 
-                                   (m.subject_group && m.subject_group.toLowerCase().includes(query));
-                
-                const matchSubject = subject === '' || m.subject_group === subject;
-                const matchGrade = grade === '' || (m.grade_level && m.grade_level.includes(grade));
-
-                return matchQuery && matchSubject && matchGrade;
-            });
-
+        function filterMissions(query) {
+            const lowerQuery = query.toLowerCase().trim();
+            if (!lowerQuery) {
+                renderMissions(allMissions);
+                return;
+            }
+            const filtered = allMissions.filter(m => 
+                m.title.toLowerCase().includes(lowerQuery) || 
+                (m.subject_group && m.subject_group.toLowerCase().includes(lowerQuery))
+            );
             renderMissions(filtered);
         }
 
-        // ==========================================
-        // 🚀 ระบบคัดกรองโหมดการนำเข้า (Direct vs Modal)
-        // ==========================================
-        async function openImportModal(mid) {
-            if (isImporting) return;
-            selectedMissionIdForImport = mid;
+        function deleteMission(id, title) {
+            showCustomAlert(`คุณต้องการลบภารกิจ <b>"${title}"</b> ออกจากคลังใช่หรือไม่?<br><span class="text-xs text-rose-500 mt-2 block">*หากลบแล้ว นักเรียนในห้องที่ถูกมอบหมายจะไม่สามารถเล่นได้อีกต่อไป</span>`, 'confirm', async () => {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingOverlay').style.opacity = '1';
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('missions').delete().eq('mission_id', id);
+                    if (error) throw error;
 
-            // 🌟 1. หากมี URL Params มาจากหน้าห้องเรียน ให้แสดง Custom Modal ยืนยันที่สวยงาม
-            if (directCid && directFolder) {
-                document.getElementById('confirmFolderNameDisplay').innerText = directFolder;
-                const confirmModal = document.getElementById('directImportConfirmModal');
-                const confirmCard = document.getElementById('directImportConfirmCard');
-                
-                confirmModal.classList.remove('hidden');
-                setTimeout(() => {
-                    confirmCard.classList.remove('scale-95', 'opacity-0');
-                    confirmCard.classList.add('scale-100', 'opacity-100');
-                }, 10);
-                return;
-            }
-            
-            // 🌟 2. หากไม่ได้มาจากหน้าห้องเรียน (เข้าคลังสื่อปกติ) ให้แสดง Modal เลือกห้องเรียนแบบเดิม
-            const modal = document.getElementById('importModal');
-            const list = document.getElementById('classroomList');
-            const btn = document.getElementById('confirmImportBtn');
-            
-            modal.classList.remove('hidden');
-            list.innerHTML = '<p class="text-center text-slate-400 py-4"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดห้องเรียน...</p>';
-            btn.disabled = true;
-
-            try {
-                const { data: classrooms } = await window.sysDB
-                    .from('classrooms')
-                    .select('classroom_id, room_name, subject_name')
-                    .eq('teacher_id', currentUserId)
-                    .order('created_at', { ascending: false });
-
-                if (!classrooms || classrooms.length === 0) {
-                    list.innerHTML = '<p class="text-center text-red-400 py-4 text-sm font-bold">ไม่พบห้องเรียนของคุณ กรุณาสร้างห้องเรียนก่อนครับ</p>';
-                    return;
+                    // อัปเดต State และ Cache ทันที
+                    allMissions = allMissions.filter(m => m.mission_id !== id);
+                    localStorage.setItem(`flip_cache_missions_lib_${currentUserId}`, JSON.stringify(allMissions));
+                    filterMissions(document.getElementById('searchInput').value);
+                    
+                    showCustomAlert("ลบภารกิจเรียบร้อยแล้ว", "success");
+                } catch (e) {
+                    showCustomAlert("เกิดข้อผิดพลาด ไม่สามารถลบได้", "error");
+                } finally {
+                    document.getElementById('loadingOverlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
                 }
-
-                list.innerHTML = classrooms.map(c => `
-                    <label class="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-blue-50 cursor-pointer transition-colors">
-                        <input type="radio" name="targetClassroom" value="${c.classroom_id}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" onchange="document.getElementById('confirmImportBtn').disabled = false">
-                        <div class="ml-3">
-                            <p class="text-sm font-bold text-slate-700">${c.subject_name}</p>
-                            <p class="text-xs text-slate-500">${c.room_name}</p>
-                        </div>
-                    </label>
-                `).join('');
-
-            } catch (err) {
-                list.innerHTML = '<p class="text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
-            }
+            });
         }
 
-        // ปิด Custom Modal นำเข้าด่วน
-        function closeDirectImportConfirm() {
-            const confirmModal = document.getElementById('directImportConfirmModal');
-            const confirmCard = document.getElementById('directImportConfirmCard');
-            confirmCard.classList.remove('scale-100', 'opacity-100');
-            confirmCard.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { confirmModal.classList.add('hidden'); }, 300);
-        }
-
-        // ปิด Modal เลือกห้องแบบปกติ
-        function closeImportModal() {
-            document.getElementById('importModal').classList.add('hidden');
-            selectedMissionIdForImport = null;
-        }
-
-        function cancelDirectImport() {
-            directCid = null;
-            directFolder = null;
-            document.getElementById('importContextBanner').classList.add('hidden-el');
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        function goBackOrHome() {
-            if (directCid) {
-                window.location.href = `classroom-detail.html?id=${directCid}`;
-            } else {
-                window.location.href = 'teacher-dashboard.html';
-            }
-        }
-
-        // ==========================================
-        // 🎯 ฟังก์ชันบันทึกข้อมูลเข้าฐานข้อมูล
-        // ==========================================
-        
-        // 1. นำเข้าผ่าน Modal เลือกห้องปกติ (เลือกลงหมวด "ทั่วไป")
-        async function executeImport() {
-            if (isImporting) return;
-            const radios = document.getElementsByName('targetClassroom');
-            let selectedClassId = null;
-            for (const r of radios) { if (r.checked) selectedClassId = r.value; }
-
-            if (!selectedClassId || !selectedMissionIdForImport) return;
-            
-            isImporting = true;
-            const btn = document.getElementById('confirmImportBtn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังนำเข้า...';
-            btn.disabled = true;
-
-            await processImportToDB(selectedClassId, 'ทั่วไป');
-        }
-
-        // 2. นำเข้าแบบด่วนจากปุ่ม Custom Modal
-        async function proceedDirectImport() {
-            if (isImporting) return;
-            isImporting = true;
-            const btn = document.getElementById('btnConfirmDirectImport');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังนำเข้า...';
-            btn.disabled = true;
-            
-            await processImportToDB(directCid, directFolder);
-        }
-
-        // Core Logic สำหรับการคัดลอกภารกิจและจับยัดห้องเรียน
-        async function processImportToDB(targetCid, targetFolder) {
-            try {
-                // 1. ดึงข้อมูลต้นฉบับ ระบุเฉพาะคอลัมน์ที่มีอยู่จริงเท่านั้น! (ตัด id ออกแต่แรกเลย)
-                const { data: sourceMission, error: fetchError } = await window.sysDB
-                    .from('missions')
-                    .select('title, description, subject_group, grade_level, mission_type, content_data, reward_points, can_replay')
-                    .eq('mission_id', selectedMissionIdForImport)
-                    .single();
-
-                if (fetchError || !sourceMission) throw new Error("ไม่พบข้อมูลต้นฉบับ");
-
-                // 2. จับคู่ข้อมูลสร้างแถวใหม่ (สะอาด 100% ป้องกัน Origin Error)
-                const newMissionData = {
-                    title: sourceMission.title,
-                    description: sourceMission.description,
-                    subject_group: sourceMission.subject_group,
-                    grade_level: sourceMission.grade_level,
-                    mission_type: sourceMission.mission_type,
-                    content_data: sourceMission.content_data,
-                    reward_points: sourceMission.reward_points || 10,
-                    can_replay: sourceMission.can_replay !== false,
-                    is_public: false, // นำเข้าให้เป็นส่วนตัวในห้องเรียน
-                    created_by: currentUserId,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-
-                // 3. Insert ข้อมูลลง missions
-                const { data: newMission, error: insertError } = await window.sysDB
-                    .from('missions')
-                    .insert([newMissionData])
-                    .select('mission_id') 
-                    .single();
-
-                if (insertError) throw insertError;
-
-                // 4. นำ mission_id ไปผูกกับ classroom_missions พร้อมระบุ folder_name 🎯
-                await window.sysDB.from('classroom_missions').insert([{
-                    classroom_id: targetCid,
-                    mission_id: newMission.mission_id,
-                    assigned_at: new Date().toISOString(),
-                    folder_name: targetFolder, // 👈 ระบุโฟลเดอร์ปลายทาง
-                    order_index: 99 // โยนไปไว้ท้ายสุดของโฟลเดอร์
-                }]);
-
-                showMessage(`✅ นำเข้าสู่หมวดหมู่ "${targetFolder}" สำเร็จ! กำลังพากลับห้องเรียน...`);
-                
-                // ปิด Modal (ถ้าเปิดอยู่) ก่อนพากลับ
-                closeDirectImportConfirm();
-                
-                setTimeout(() => {
-                    window.location.href = `classroom-detail.html?id=${targetCid}`;
-                }, 1500);
-
-            } catch (err) {
-                alert("เกิดข้อผิดพลาด: " + err.message);
-                
-                // Reset ปุ่มกดยืนยันปกติ
-                const btnNormal = document.getElementById('confirmImportBtn');
-                if(btnNormal) {
-                    btnNormal.innerText = "ยืนยันการนำเข้า";
-                    btnNormal.disabled = false;
-                }
-                
-                // Reset ปุ่มกดยืนยันด่วน
-                const btnDirect = document.getElementById('btnConfirmDirectImport');
-                if(btnDirect) {
-                    btnDirect.innerHTML = '<i class="fas fa-check-circle"></i> นำเข้าทันที';
-                    btnDirect.disabled = false;
-                }
-                
-                isImporting = false; // ปลดล็อกปุ่มให้กดใหม่ได้เมื่อเกิด Error
-            }
-        }
-
-        function showMessage(text) {
-            document.getElementById('msgText').innerText = text;
-            document.getElementById('msgBox').classList.remove('hidden');
-            setTimeout(() => document.getElementById('msgBox').classList.add('hidden'), 3000);
+        async function handleLogout() {
+            showCustomAlert('คุณต้องการออกจากระบบใช่หรือไม่?', 'confirm', async () => {
+                const db = getDB();
+                await db.auth.signOut();
+                window.location.replace('login.html');
+            });
         }
     </script>
 </body>
