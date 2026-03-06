@@ -1,16 +1,18 @@
 // ไฟล์: sw.js
-// อัปเดตเป็น v1.6 เพื่อล้าง Cache รูปภาพที่ขนาดผิดพลาด
-const CACHE_NAME = 'flipschool-v1.6'; 
+// อัปเดตเวอร์ชันเป็น v1.8 เพื่อล้าง Cache เก่าทั้งหมดและบังคับโหลด UI ใหม่
+const CACHE_NAME = 'flipschool-v1.8'; 
 
 const ASSETS = [
     './',
     './index.html',
     './login.html',
     './dashboard.html',
+    './mission-library.html',
     './manifest.json',
     './js/config.js',
     './js/supabase-db.js',
     './img/favicon.png',
+    './img/cover01.jpg',
     'https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
@@ -29,7 +31,6 @@ self.addEventListener('activate', (e) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('Cleaning old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
