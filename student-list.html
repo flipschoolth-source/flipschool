@@ -149,6 +149,13 @@
         .mapping-card select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Sarabun'; font-size: 14px; outline: none; background: #f8faff; }
         .mapping-card select:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(0,82,212,0.1); background: white; }
 
+        /* 🌟 เพิ่ม CSS สำหรับ Custom Dropdown ค้นหาห้องเรียน 🌟 */
+        .custom-dropdown-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s; font-family: 'Sarabun', sans-serif; text-align: left; }
+        .custom-dropdown-item:last-child { border-bottom: none; }
+        .custom-dropdown-item:hover { background-color: #f0f4ff; color: var(--primary); }
+        .custom-dropdown-item.empty { color: #94a3b8; cursor: default; text-align: center; padding: 20px; }
+        .custom-dropdown-item.empty:hover { background-color: transparent; color: #94a3b8; }
+
         @keyframes bounceIn { 0% { transform: translateY(-20px) scale(0.9); opacity: 0; } 50% { transform: translateY(5px) scale(1.02); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
         .animate-bounce-in { animation: bounceIn 0.4s ease-out forwards; }
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -343,9 +350,20 @@
             <!-- Step 4: คัดลอกรายชื่อจากห้องอื่น -->
             <div id="step4" class="step-container" style="display:none;">
                 <label class="block font-['Kanit'] font-semibold text-slate-700 mb-2">เลือกห้องเรียนต้นทาง</label>
-                <select id="sourceClassSelect" class="w-full border-2 border-slate-200 rounded-xl font-sans mb-4 p-3 outline-none focus:border-[var(--primary-light)]" onchange="previewStudentsToCopy()">
-                    <option value="">กำลังโหลดห้องเรียน...</option>
-                </select>
+                
+                <!-- 🌟 เปลี่ยนจาก select ธรรมดา เป็นช่องค้นหาแบบเรียลไทม์ 🌟 -->
+                <div id="sourceClassSearchContainer" class="relative mb-4">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="sourceClassSearchInput" class="w-full border-2 border-slate-200 rounded-xl font-sans p-3 pl-10 outline-none focus:border-[var(--primary-light)] transition-colors" placeholder="พิมพ์ค้นหาชื่อวิชา หรือ ห้อง..." oninput="filterSourceClasses(this.value)" onclick="showSourceClassList()" autocomplete="off">
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                    </div>
+                    <!-- กล่อง Dropdown แสดงผลการค้นหา -->
+                    <div id="sourceClassDropdownList" class="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto hidden">
+                    </div>
+                </div>
+                <!-- เก็บ ID ที่เลือกไว้ในนี้ -->
+                <input type="hidden" id="selectedSourceClassId" value="">
                 
                 <div class="import-final-preview mt-2">
                     <table class="final-table w-full text-left">
@@ -423,9 +441,11 @@
         let currentUserId = null;
         let currentClassId = new URLSearchParams(window.location.search).get('id') || new URLSearchParams(window.location.search).get('cid');
         let currentSchoolId = null;
+        let currentSchoolAbbr = '';
         let isClassOwner = false;
         let allSheetRows = [], finalImportList = [];
         let copyCandidates = [];
+        let availableSourceClasses = []; // 🌟 เก็บรายชื่อห้องเรียนทั้งหมดไว้สำหรับค้นหา
 
         const MAPPING_CONFIG = [
             { key: 'student_code', label: 'เลขประจำตัว*', keywords: ['รหัส', 'ID', 'code', 'เลขประจำตัว'] },
@@ -574,6 +594,7 @@
                         }
                         
                         currentSchoolId = cls.school_id;
+                        currentSchoolAbbr = cls.schools?.school_abbr || '';
                         document.getElementById('txtSubjectFull').innerText = `${cls.subject_name} (${cls.room_name})`;
                         document.getElementById('txtClassDetails').innerHTML = `<i class="fas fa-calendar-alt"></i> ภาคเรียนที่ ${cls.semester || '-'} | ปีการศึกษา ${cls.academic_year || '-'}`;
                         
@@ -655,12 +676,16 @@
                             </button>
                         ` : '';
 
+                        const displayLoginCode = (s.student_code && s.student_code !== '-') 
+                            ? `${s.student_code}${currentSchoolAbbr ? '@' + currentSchoolAbbr : ''}` 
+                            : 'ไม่ระบุ';
+
                         container.innerHTML += `
                             <div class="student-card group">
                                 <div class="st-num">${item.student_number}</div>
                                 <div class="st-info">
                                     <h3>${s.first_name} ${s.last_name}</h3>
-                                    <p><i class="fas fa-id-card"></i> รหัส: ${s.student_code || 'ไม่ระบุ'}</p>
+                                    <p><i class="fas fa-id-card"></i> เลขประจำตัว นร.: <span style="font-family: monospace; color: var(--primary-light); font-weight: 600; font-size: 13px;">${displayLoginCode}</span></p>
                                 </div>
                                 ${delBtn}
                             </div>
@@ -772,15 +797,21 @@
         }
         function formatVal(v) { if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v || "").trim(); }
 
-        // ================= โหมดคัดลอกจากห้องเรียนอื่น =================
+        // ================= โหมดคัดลอกจากห้องเรียนอื่น (ค้นหาเรียลไทม์) =================
         async function loadClassesForCopy() {
             goToStep('step4');
-            const selectEl = document.getElementById('sourceClassSelect');
+            const searchInput = document.getElementById('sourceClassSearchInput');
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+            const hiddenInput = document.getElementById('selectedSourceClassId');
             const btnConfirm = document.getElementById('btnConfirmCopy');
             const tbody = document.getElementById('copyPreviewBody');
             
-            selectEl.innerHTML = '<option value="">กำลังโหลดห้องเรียน...</option>';
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">กรุณาเลือกห้องเรียนต้นทาง</td></tr>';
+            searchInput.value = '';
+            hiddenInput.value = '';
+            dropdownList.innerHTML = '<div class="custom-dropdown-item empty"><i class="fas fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูลห้องเรียน...</div>';
+            dropdownList.classList.remove('hidden');
+            
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">กรุณาค้นหาและเลือกห้องเรียนต้นทาง</td></tr>';
             btnConfirm.disabled = true;
 
             try {
@@ -791,7 +822,8 @@
                 let query = sysDB.from('classrooms')
                     .select('classroom_id, subject_name, room_name, academic_year, semester')
                     .eq(targetCol, currentUserId)
-                    .neq('classroom_id', currentClassId);
+                    .neq('classroom_id', currentClassId)
+                    .order('created_at', { ascending: false });
                 
                 if (currentSchoolId) query = query.eq('school_id', currentSchoolId);
                 else query = query.is('school_id', null);
@@ -799,22 +831,86 @@
                 const { data, error } = await query;
                 if (error) throw error;
 
-                if (!data || data.length === 0) {
-                    selectEl.innerHTML = '<option value="">ไม่พบห้องเรียนอื่นในสังกัดนี้ให้คัดลอก</option>';
-                } else {
-                    selectEl.innerHTML = '<option value="">-- คลิกเพื่อเลือกห้องเรียนต้นทาง --</option>' + 
-                        data.map(c => `<option value="${c.classroom_id}">${c.subject_name} (${c.room_name}) - เทอม ${c.semester}/${c.academic_year}</option>`).join('');
-                }
-            } catch(e) { console.error(e); }
+                availableSourceClasses = data || [];
+                renderSourceClassDropdown(availableSourceClasses);
+                
+            } catch(e) { 
+                console.error(e); 
+                dropdownList.innerHTML = '<div class="custom-dropdown-item empty text-rose-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+            }
         }
 
+        // 🌟 ฟังก์ชันเรนเดอร์รายการห้องเรียนลงใน Dropdown
+        function renderSourceClassDropdown(classes) {
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+            if (classes.length === 0) {
+                dropdownList.innerHTML = '<div class="custom-dropdown-item empty">ไม่พบห้องเรียนที่ตรงกับการค้นหา</div>';
+                return;
+            }
+
+            dropdownList.innerHTML = classes.map(c => `
+                <div class="custom-dropdown-item" onclick="selectSourceClass('${c.classroom_id}', '${c.subject_name.replace(/'/g, "\\'")} (${c.room_name})')">
+                    <div class="font-bold text-slate-800">${c.subject_name}</div>
+                    <div class="text-xs text-slate-500 mt-1">ห้อง ${c.room_name} | เทอม ${c.semester}/${c.academic_year}</div>
+                </div>
+            `).join('');
+        }
+
+        // 🌟 ฟังก์ชันกรองห้องเรียนขณะพิมพ์ (Real-time Search)
+        function filterSourceClasses(query) {
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+            dropdownList.classList.remove('hidden');
+
+            if (!query.trim()) {
+                renderSourceClassDropdown(availableSourceClasses);
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = availableSourceClasses.filter(c =>
+                (c.subject_name && c.subject_name.toLowerCase().includes(lowerQuery)) ||
+                (c.room_name && c.room_name.toLowerCase().includes(lowerQuery))
+            );
+
+            renderSourceClassDropdown(filtered);
+        }
+
+        // 🌟 แสดงรายการเมื่อคลิกที่ช่อง
+        function showSourceClassList() {
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+            dropdownList.classList.remove('hidden');
+            filterSourceClasses(document.getElementById('sourceClassSearchInput').value);
+        }
+
+        // 🌟 เมื่อผู้ใช้คลิกเลือกห้องเรียนจาก Dropdown
+        function selectSourceClass(id, displayText) {
+            const searchInput = document.getElementById('sourceClassSearchInput');
+            const hiddenInput = document.getElementById('selectedSourceClassId');
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+
+            searchInput.value = displayText;
+            hiddenInput.value = id;
+            dropdownList.classList.add('hidden');
+
+            previewStudentsToCopy();
+        }
+
+        // 🌟 ปิด Dropdown เมื่อคลิกพื้นที่อื่น
+        document.addEventListener('click', function(event) {
+            const searchContainer = document.getElementById('sourceClassSearchContainer');
+            const dropdownList = document.getElementById('sourceClassDropdownList');
+            if (searchContainer && dropdownList && !searchContainer.contains(event.target)) {
+                dropdownList.classList.add('hidden');
+            }
+        });
+
         async function previewStudentsToCopy() {
-            const srcId = document.getElementById('sourceClassSelect').value;
+            const srcId = document.getElementById('selectedSourceClassId').value;
             const tbody = document.getElementById('copyPreviewBody');
             const btnConfirm = document.getElementById('btnConfirmCopy');
             
             if (!srcId) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">กรุณาเลือกห้องเรียนต้นทาง</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">กรุณาค้นหาและเลือกห้องเรียนต้นทาง</td></tr>';
                 btnConfirm.disabled = true;
                 return;
             }
@@ -861,7 +957,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="text-center py-3"><input type="checkbox" class="copy-cb w-4 h-4 accent-[var(--primary)] cursor-pointer" value="${i}" checked onchange="checkConfirmBtn()"></td>
                         <td class="py-3 font-bold">${item.student_number}</td>
-                        <td class="py-3">${item.users.student_code || '-'}</td>
+                        <td class="py-3 font-mono text-[var(--primary-light)] font-semibold">${item.users.student_code ? item.users.student_code + (currentSchoolAbbr ? '@' + currentSchoolAbbr : '') : '-'}</td>
                         <td class="py-3">${item.users.first_name} ${item.users.last_name}</td>
                     </tr>
                 `).join('');
