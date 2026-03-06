@@ -4,194 +4,475 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบส่วนกลาง - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
+    
     <script src="js/env-config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-db.js"></script>
 
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        :root { --primary-dark: #1e272e; --primary: #2f3542; --primary-light: #57606f; --accent: #ff4757; --bg-body: #f1f2f6; --white: #ffffff; }
-        html, body { height: 100%; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); display: flex; flex-direction: column; overflow-x: hidden; }
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
 
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 0 50px; height: 90px; background: var(--primary-dark); box-shadow: 0 2px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; }
-        .logo-container { display: flex; align-items: center; gap: 15px; text-decoration: none; color: white; }
-        .brand-name { font-size: 26px; font-weight: 700; color: white; font-family: 'Kanit'; }
-        .brand-name span { color: #f1c40f; }
-        .nav-profile { display: flex; align-items: center; gap: 15px; color: white; }
-        .logout-btn { background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-family: 'Kanit'; transition: 0.3s; }
-        .logout-btn:hover { background: #ff4757; }
+        body { 
+            font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main);
+            margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
 
-        .main-container { flex: 1; padding: 40px 50px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .hero-banner { background: linear-gradient(135deg, #2f3542 0%, #57606f 100%); color: white; padding: 40px 50px; border-radius: 25px; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .hero-title { font-family: 'Kanit'; font-size: 32px; font-weight: 700; margin: 0 0 10px 0; }
+        /* ================= NAVBAR (มาตรฐานเดียวกับทุกหน้า) ================= */
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
-        .request-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #dfe4ea; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .req-info { display: flex; align-items: center; gap: 20px; }
-        .req-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #f1f2f6; }
-        .req-details h3 { margin: 0; font-family: 'Kanit'; font-size: 18px; color: var(--primary-dark); }
-        .req-details p { margin: 5px 0 0 0; color: #636e72; font-size: 14px; }
+        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.3s; }
+        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease; }
+        #mainNav.scrolled .nav-logo-icon { width: 40px; height: 40px; font-size: 20px; border-width: 2px; border-radius: 10px; }
         
-        .req-actions { display: flex; gap: 10px; }
-        .btn-action { padding: 10px 20px; border-radius: 12px; font-family: 'Kanit'; font-weight: 500; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; }
-        .btn-view { background: #f1f2f6; color: #2f3542; }
-        .btn-approve { background: #2ed573; color: white; }
-        .btn-reject { background: #ff4757; color: white; }
+        .nav-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand span { color: var(--accent); }
+        #mainNav.scrolled .nav-brand { font-size: 22px; }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.3s; }
+        #mainNav.scrolled .nav-slogan { font-size: 11px; opacity: 0; display: none; }
+        
+        .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: clamp(14px, 1.5vw, 16px); text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; position: relative; }
+        .nav-link i { font-size: 14px; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
+        .nav-link:hover::after { width: 100%; }
+        
+        .nav-right { display: flex; align-items: center; gap: 15px; }
 
-        .empty-state { text-align: center; padding: 60px 20px; color: #a4b0be; }
-        .empty-state i { font-size: 50px; margin-bottom: 15px; color: #ced6e0; }
+        .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
+        .mobile-menu-btn:hover { background: #eef2f7; }
+        
+        .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
+        .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
 
-        /* Modal รูปภาพบัตร */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
-        .modal-box { background: white; border-radius: 20px; width: 100%; max-width: 600px; overflow: hidden; }
-        .modal-header { padding: 15px 25px; background: #f1f2f6; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 20px; text-align: center; background: #000; }
-        .modal-body img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; }
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+        
+        /* Request Card */
+        .req-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #edf2f7; transition: 0.3s; position: relative; overflow: hidden; }
+        .req-card:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0,0,139,0.08); border-color: #dbeafe; }
+        
+        /* Modals & Loaders */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 15px; transition: opacity 0.3s; opacity: 0; }
+        .modal-box { background: white; padding: clamp(25px, 5vw, 35px) clamp(20px, 5vw, 30px); border-radius: 25px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: scale(0.95); transition: transform 0.3s; }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .spinner { border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        
+        .footer { padding: clamp(20px, 4vw, 30px) 20px; font-size: clamp(12px, 1.5vw, 13px); color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 992px) {
+            .nav-center { display: none; }
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+        }
+        @media (max-width: 768px) {
+            #mainNav { padding: 0 15px; height: 75px; }
+            .req-card { padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
-    <nav>
-        <div class="logo-container">
-            <div style="font-size: 32px; background: white; width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary-dark);">🎓</div>
-            <div class="brand-name">Flip<span>School</span> <span style="font-size: 14px; background: #ff4757; padding: 2px 8px; border-radius: 10px; color: white;">ระบบส่วนกลาง</span></div>
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <!-- 🌟 Navbar 🌟 -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand">Flip<span>School</span></div>
+                <div class="nav-slogan slogan">...</div>
+            </div>
+        </a>
+        
+        <div class="nav-center">
+            <a href="super_admin.html" class="nav-link text-[var(--primary)] font-bold"><i class="fas fa-shield-alt"></i> แผงควบคุม (Super Admin)</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
         </div>
-        <div class="nav-profile">
-            <span id="adminName" style="font-family: 'Kanit';">ผู้ดูแลระบบสูงสุด</span>
-            <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
+
+        <div class="nav-right">
+            <button onclick="handleLogout()" class="hidden md:flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-colors border-none cursor-pointer text-sm">
+                <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+            </button>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+        </div>
+
+        <div id="mobileMenu" class="mobile-dropdown">
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> กลับหน้าแดชบอร์ดหลัก</a>
+            <a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt text-rose-500"></i> ออกจากระบบ</a>
         </div>
     </nav>
 
-    <main class="main-container">
-        <div class="hero-banner">
-            <h1 class="hero-title"><i class="fas fa-shield-alt" style="color: #f1c40f;"></i> แผงควบคุมสิทธิ์ส่วนกลาง</h1>
-            <p>จัดการอนุมัติคำขอเปิดกลุ่มโรงเรียนใหม่ในระบบ</p>
+    <!-- Header Section -->
+    <header class="header-gradient text-white py-8 px-5 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-8">
+        <div class="container mx-auto max-w-[1200px] relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-5">
+            <div>
+                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] leading-snug flex items-center gap-3">
+                    <i class="fas fa-shield-alt text-yellow-300"></i> แผงควบคุมสิทธิ์ส่วนกลาง
+                </h1>
+                <p class="text-blue-100 font-medium text-sm md:text-lg mt-2 font-sans opacity-90">ตรวจสอบและอนุมัติคำขอเปิดกลุ่มสถานศึกษาใหม่ในระบบ</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-5 border border-white/20 text-center min-w-[140px] shadow-lg">
+                <div class="text-[11px] font-bold uppercase tracking-widest opacity-80 mb-1">คำขอรออนุมัติ</div>
+                <h2 id="pendingCount" class="font-['Kanit'] text-3xl md:text-4xl font-black m-0 leading-none">0</h2>
+            </div>
         </div>
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    </header>
 
-        <h2 style="font-family: 'Kanit'; color: var(--primary-dark);"><i class="fas fa-inbox"></i> คำขอที่รอการอนุมัติ</h2>
-        
-        <div id="requestContainer">
-            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>กำลังโหลดข้อมูล...</h3></div>
-        </div>
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1200px] relative">
+        <div id="requestContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     </main>
 
-    <!-- Modal ดูรูปภาพบัตร -->
-    <div id="imageModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 style="margin: 0; font-family: 'Kanit';"><i class="fas fa-id-badge"></i> เอกสารยืนยันตัวตน</h3>
-                <i class="fas fa-times" style="cursor: pointer; color: #a4b0be;" onclick="closeImageModal()"></i>
-            </div>
-            <div class="modal-body">
-                <img id="modalImage" src="" alt="บัตรยืนยันตัวตน">
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box text-center" id="customAlertBox">
+            <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-600 mb-6 font-sans text-sm"></p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="customAlertOkBtn" onclick="closeCustomAlert()" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-['Kanit'] font-semibold transition-all border-none cursor-pointer">ตกลง</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let currentUser = null;
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal-overlay" style="z-index: 6000;" onclick="closeImageModal()">
+        <div class="bg-white rounded-2xl overflow-hidden shadow-2xl relative w-full max-w-[600px] transform scale-95 transition-transform" id="imageModalBox" onclick="event.stopPropagation()">
+            <div class="bg-[#f8faff] px-5 py-4 flex justify-between items-center border-b border-slate-100">
+                <h3 class="font-bold text-[var(--primary)] m-0 font-['Kanit']"><i class="fas fa-id-badge mr-2"></i> เอกสารยืนยันตัวตน</h3>
+                <i class="fas fa-times cursor-pointer text-slate-400 hover:text-rose-500 text-lg" onclick="closeImageModal()"></i>
+            </div>
+            <div class="p-5 bg-black flex justify-center items-center" style="min-height: 300px;">
+                <img id="modalImage" src="" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
 
-        function getDB() {
-            if (window.sysDB) return window.sysDB;
-            window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
-            return window.sysDB;
+    <footer class="footer footer-display-text"></footer>
+
+    <script>
+        let currentUserId = null;
+        let pendingRequests = [];
+
+        // UI Helpers
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        });
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+
+        function showCustomAlert(msg, type='info', callback=null) {
+            document.getElementById('customAlertMessage').innerHTML = msg;
+            const icon = document.getElementById('customAlertIcon');
+            if(type === 'success') { icon.className = 'fas fa-check-circle text-emerald-500'; }
+            else if(type === 'warning') { icon.className = 'fas fa-exclamation-triangle text-amber-500'; }
+            else if(type === 'error') { icon.className = 'fas fa-times-circle text-rose-500'; }
+            else { icon.className = 'fas fa-info-circle text-[var(--primary)]'; }
+            
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; box.classList.remove('scale-95'); box.classList.add('scale-100'); }, 10);
+            
+            const okBtn = document.getElementById('customAlertOkBtn');
+            okBtn.onclick = () => {
+                closeCustomAlert();
+                if (callback) setTimeout(callback, 300);
+            };
+        }
+        
+        function closeCustomAlert() { 
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            modal.style.opacity = '0';
+            box.classList.remove('scale-100'); box.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
         }
 
+        function getDB() {
+            if (typeof window !== 'undefined' && window.sysDB && window.sysDB.auth) return window.sysDB;
+            throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+        }
+
+        // ================= 🌟 SWR Initialization 🌟 =================
         document.addEventListener('DOMContentLoaded', async () => {
-            const db = getDB();
-            const { data: { user } } = await db.auth.getUser();
-            if (!user) { window.location.href = 'login.html'; return; }
-            currentUser = user;
+            if (typeof initAppUI === 'function') initAppUI();
 
-            // ตรวจสอบสิทธิ์ว่าเป็นแอดมินสูงสุดหรือไม่
-            const { data: userRecord } = await db.from('users').select('is_super_admin, role').eq('user_id', user.id).single();
-            if (!userRecord || (!userRecord.is_super_admin && userRecord.role !== 'super_admin')) {
-                alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-                window.location.href = 'dashboard.html';
-                return;
-            }
-
-            fetchPendingRequests();
-        });
-
-        async function fetchPendingRequests() {
-            const container = document.getElementById('requestContainer');
             try {
                 const db = getDB();
-                // 🌟 เปลี่ยนจาก teacher_schools เป็น user_school (ตาม Schema ใหม่)
-                const { data: reqData, error } = await db.from('user_school')
-                    .select('*, users(first_name, last_name, email, profile_pic), schools(school_name, school_abbr)')
-                    .eq('verification_status', 'pending')
-                    .not('verification_card_url', 'is', null)
-                    .order('created_at', { ascending: false });
+                const { data: { session } } = await db.auth.getSession();
+                
+                if (!session) return window.location.replace('login.html');
+                currentUserId = session.user.id;
 
-                if (error) throw error;
+                // ตรวจสอบสิทธิ์ (รองรับ Schema เก่าและใหม่)
+                let isSuper = false;
+                const { data: user } = await db.from('users').select('*').eq('user_id', currentUserId).maybeSingle();
+                if (user && (user.is_super_admin || user.role === 'super_admin')) isSuper = true;
+                
+                if (!isSuper) {
+                    const { data: teacher } = await db.from('teachers').select('role').eq('teacher_id', currentUserId).maybeSingle();
+                    if (teacher && teacher.role === 'super_admin') isSuper = true;
+                }
 
-                if (!reqData || reqData.length === 0) {
-                    container.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle" style="color: #2ed573;"></i><h3>ไม่มีคำขอค้างอยู่</h3></div>`;
+                if (!isSuper) {
+                    showCustomAlert("เฉพาะผู้ดูแลระบบส่วนกลางเท่านั้นที่สามารถเข้าถึงได้", "error", () => location.href = 'dashboard.html');
                     return;
                 }
 
-                container.innerHTML = reqData.map(req => {
-                    const avatar = req.users?.profile_pic || 'img/default_avatar.png';
-                    const cardUrl = req.verification_card_url ? `${APP_CONFIG.SUPABASE_URL}/storage/v1/object/public/teacher-verifications/${req.verification_card_url}` : null;
-                    const date = new Date(req.created_at).toLocaleDateString('th-TH');
+                // 1. อ่านแคช
+                const cacheData = localStorage.getItem('flip_cache_superadmin_pending');
+                if (cacheData) {
+                    pendingRequests = JSON.parse(cacheData);
+                    renderRequests();
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
 
-                    return `
-                        <div class="request-card" id="req-card-${req.id}">
-                            <div class="req-info">
-                                <img src="${avatar}" class="req-avatar">
-                                <div class="req-details">
-                                    <h3>${req.users?.first_name || ''} ${req.users?.last_name || ''}</h3>
-                                    <p><i class="fas fa-school"></i> ขอเปิด: ${req.schools?.school_name || '-'}</p>
-                                    <p><i class="fas fa-clock"></i> ส่งเมื่อ: ${date}</p>
-                                </div>
-                            </div>
-                            <div class="req-actions">
-                                <button class="btn-action btn-view" onclick="viewImage('${cardUrl}')"><i class="fas fa-id-card"></i> ดูบัตร</button>
-                                <button class="btn-action btn-approve" onclick="approveRequest('${req.id}', '${req.verification_card_url}')"><i class="fas fa-check"></i> อนุมัติ</button>
-                                <button class="btn-action btn-reject" onclick="rejectRequest('${req.id}', '${req.verification_card_url}')"><i class="fas fa-times"></i> ปฏิเสธ</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                // 2. ดึงข้อมูลใหม่
+                await fetchPendingRequests(db);
 
             } catch (err) {
-                container.innerHTML = `<div class="empty-state"><h3>เกิดข้อผิดพลาด: ${err.message}</h3></div>`;
+                document.getElementById('loadingOverlay').style.display = 'none';
+                showCustomAlert("เกิดข้อผิดพลาด: " + err.message, "error");
+            }
+        });
+
+        async function fetchPendingRequests(db) {
+            try {
+                // รองรับทั้งตารางเก่า (teacher_schools) และใหม่ (user_school)
+                let queryTable = 'user_school';
+                let joinQuery = '*, users!fk_user_school_user(first_name, last_name, email, profile_pic), schools(school_name, school_abbr)';
+                
+                const { error: testErr } = await db.from('user_school').select('id').limit(1);
+                if (testErr && String(testErr.code).includes('42')) { // Relation doesn't exist
+                    queryTable = 'teacher_schools';
+                    joinQuery = '*, teachers(first_name, last_name, email, profile_pic), schools(school_name, school_abbr)';
+                }
+
+                const { data, error } = await db.from(queryTable).select(joinQuery).eq('verification_status', 'pending').order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const formattedData = (data || []).map(r => {
+                    const userData = r.users || r.teachers || {};
+                    return { ...r, userData: userData };
+                });
+
+                const newDataString = JSON.stringify(formattedData);
+                if (localStorage.getItem('flip_cache_superadmin_pending') !== newDataString) {
+                    localStorage.setItem('flip_cache_superadmin_pending', newDataString);
+                    pendingRequests = formattedData;
+                    renderRequests();
+                } else {
+                    // Update count anyway
+                    document.getElementById('pendingCount').innerText = pendingRequests.length;
+                }
+
+            } catch (err) {
+                console.error("Fetch Error:", err);
+            } finally {
+                const loader = document.getElementById('loadingOverlay');
+                if (loader.style.display !== 'none') {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+            }
+        }
+
+        function renderRequests() {
+            const container = document.getElementById('requestContainer');
+            document.getElementById('pendingCount').innerText = pendingRequests.length;
+
+            if (pendingRequests.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                        <i class="fas fa-check-circle text-6xl text-emerald-100 mb-4"></i>
+                        <h3 class="text-xl font-bold font-['Kanit'] text-slate-500">ไม่มีคำขอที่ต้องดำเนินการ</h3>
+                        <p class="text-sm">ระบบตรวจสอบเรียบร้อยทุกรายการแล้วครับ</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = pendingRequests.map(req => {
+                const u = req.userData;
+                const s = req.schools || {};
+                const avatar = u.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.first_name || 'U'}`;
+                
+                let viewCardBtn = '';
+                if (req.verification_card_url) {
+                    const publicUrl = getDB().storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
+                    viewCardBtn = `<button onclick="viewImage('${publicUrl}')" class="text-[var(--primary-light)] hover:text-[var(--primary)] bg-[#f0f4ff] hover:bg-[#e0e8ff] px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border-none cursor-pointer mt-2"><i class="fas fa-id-card"></i> ดูภาพยืนยันตัวตน</button>`;
+                }
+
+                const dateStr = new Date(req.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                return `
+                <div class="req-card flex flex-col h-full" id="req-card-${req.id}">
+                    <div class="flex gap-4 items-start mb-4">
+                        <img src="${avatar}" class="w-14 h-14 rounded-full object-cover border border-slate-200 shadow-sm shrink-0">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-800 font-['Kanit'] text-lg m-0 leading-tight">${u.first_name} ${u.last_name}</h3>
+                            <p class="text-xs text-slate-500 m-0"><i class="fas fa-envelope mr-1"></i> ${u.email || '-'}</p>
+                            ${viewCardBtn}
+                        </div>
+                        <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap">รอตรวจสอบ</span>
+                    </div>
+                    
+                    <div class="bg-slate-50 rounded-xl p-3 mb-4 border border-slate-100 flex-1">
+                        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">ขอสร้าง/เข้าร่วมกลุ่มโรงเรียน</p>
+                        <h4 class="font-bold text-[var(--primary)] m-0 font-['Kanit']"><i class="fas fa-school mr-1 opacity-70"></i> ${s.school_name || 'ไม่ทราบชื่อ'}</h4>
+                        <p class="text-xs text-slate-500 mt-1 mb-0"><i class="far fa-clock mr-1"></i> ส่งเมื่อ: ${dateStr}</p>
+                        <p class="text-xs font-bold text-rose-500 mt-1 mb-0"><i class="fas fa-crown mr-1"></i> สิทธิ์ที่ขอ: ${req.role === 'admin' ? 'ผู้ดูแลกลุ่ม (Admin)' : 'ผู้สอน (Teacher)'}</p>
+                    </div>
+
+                    <div class="flex gap-2 mt-auto" id="action-box-${req.id}">
+                        <button onclick="showRejectInput('${req.id}')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition text-sm border-none cursor-pointer">ปฏิเสธ</button>
+                        <button id="btn-approve-${req.id}" onclick="approveRequest('${req.id}', '${req.user_id || req.teacher_id}', '${req.school_id}', '${req.role}', '${req.verification_card_url}')" class="flex-[2] bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition shadow-md text-sm border-none cursor-pointer flex justify-center items-center gap-2"><i class="fas fa-check-circle"></i> อนุมัติคำขอ</button>
+                    </div>
+
+                    <div id="reject-box-${req.id}" class="hidden flex-col gap-2 mt-auto">
+                        <input type="text" id="reject-reason-${req.id}" placeholder="ระบุเหตุผลที่ปฏิเสธ..." class="w-full bg-white border border-rose-200 focus:border-rose-500 rounded-xl px-3 py-2 text-sm outline-none transition">
+                        <div class="flex gap-2">
+                            <button onclick="hideRejectInput('${req.id}')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-xl text-sm border-none cursor-pointer">ยกเลิก</button>
+                            <button id="btn-reject-${req.id}" onclick="rejectRequest('${req.id}', '${req.user_id || req.teacher_id}', '${req.school_id}', '${req.verification_card_url}')" class="flex-1 bg-rose-500 text-white font-bold py-2 rounded-xl text-sm border-none cursor-pointer">ยืนยันปฏิเสธ</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function showRejectInput(id) {
+            document.getElementById(`action-box-${id}`).classList.add('hidden');
+            document.getElementById(`action-box-${id}`).classList.remove('flex');
+            document.getElementById(`reject-box-${id}`).classList.remove('hidden');
+            document.getElementById(`reject-box-${id}`).classList.add('flex');
+        }
+        function hideRejectInput(id) {
+            document.getElementById(`reject-box-${id}`).classList.add('hidden');
+            document.getElementById(`reject-box-${id}`).classList.remove('flex');
+            document.getElementById(`action-box-${id}`).classList.remove('hidden');
+            document.getElementById(`action-box-${id}`).classList.add('flex');
+        }
+
+        async function approveRequest(reqId, userId, schoolId, targetRole, cardUrl) {
+            const btn = document.getElementById(`btn-approve-${reqId}`);
+            const origTxt = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดำเนินการ...'; btn.disabled = true;
+
+            try {
+                const db = getDB();
+                
+                // ตรวจสอบชื่อตาราง (รองรับ Schema เก่าและใหม่)
+                let relTable = 'user_school';
+                let userTable = 'users';
+                let userCol = 'user_id';
+                const { error: testErr } = await db.from('user_school').select('id').limit(1);
+                if (testErr && String(testErr.code).includes('42')) {
+                    relTable = 'teacher_schools';
+                    userTable = 'teachers';
+                    userCol = 'teacher_id';
+                }
+
+                const { error: e1 } = await db.from(relTable).update({ verification_status: 'approved', role: targetRole, approved_by: currentUserId, approved_at: new Date().toISOString() }).eq('id', reqId);
+                if(e1) throw e1;
+
+                const { error: e2 } = await db.from(userTable).update({ verification_status: 'approved', role: targetRole, school_id: schoolId, approved_by: currentUserId, approved_at: new Date().toISOString() }).eq(userCol, userId);
+                if(e2) throw e2;
+
+                if (cardUrl && cardUrl !== 'null') {
+                    try { 
+                        await db.storage.from('teacher-verifications').remove([cardUrl]); 
+                        await db.from(relTable).update({ verification_card_url: null }).eq('id', reqId);
+                    } catch(e){}
+                }
+
+                showCustomAlert("อนุมัติสำเร็จ!", "success");
+                await fetchPendingRequests(db);
+            } catch (err) {
+                showCustomAlert(err.message, "error");
+                btn.innerHTML = origTxt; btn.disabled = false;
+            }
+        }
+
+        async function rejectRequest(reqId, userId, schoolId, cardUrl) {
+            const reason = document.getElementById(`reject-reason-${reqId}`).value.trim();
+            if(!reason) return document.getElementById(`reject-reason-${reqId}`).focus();
+
+            const btn = document.getElementById(`btn-reject-${reqId}`);
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+
+            try {
+                const db = getDB();
+                let relTable = 'user_school'; let userTable = 'users'; let userCol = 'user_id';
+                const { error: testErr } = await db.from('user_school').select('id').limit(1);
+                if (testErr) { relTable = 'teacher_schools'; userTable = 'teachers'; userCol = 'teacher_id'; }
+
+                const { error: e1 } = await db.from(relTable).update({ verification_status: 'rejected', reject_reason: reason }).eq('id', reqId);
+                if(e1) throw e1;
+                await db.from(userTable).update({ verification_status: 'rejected', reject_reason: reason }).eq(userCol, userId).eq('school_id', schoolId);
+
+                if (cardUrl && cardUrl !== 'null') {
+                    try { 
+                        await db.storage.from('teacher-verifications').remove([cardUrl]); 
+                        await db.from(relTable).update({ verification_card_url: null }).eq('id', reqId);
+                    } catch(e){}
+                }
+
+                showCustomAlert("บันทึกการปฏิเสธแล้ว", "success");
+                await fetchPendingRequests(db);
+            } catch (err) {
+                showCustomAlert(err.message, "error");
+                btn.innerHTML = 'ยืนยันปฏิเสธ'; btn.disabled = false;
             }
         }
 
         function viewImage(url) {
             document.getElementById('modalImage').src = url;
-            document.getElementById('imageModal').style.display = 'flex';
+            const modal = document.getElementById('imageModal');
+            const box = document.getElementById('imageModalBox');
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; box.classList.remove('scale-95'); box.classList.add('scale-100'); }, 10);
         }
-        function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
-
-        async function approveRequest(id, cardUrl) {
-            if (!confirm("ยืนยันให้สิทธิ์เข้ากลุ่มโรงเรียนนี้?")) return;
-            const db = getDB();
-            await db.from('user_school').update({ verification_status: 'approved', approved_by: currentUser.id }).eq('id', id);
-            if (cardUrl) await db.storage.from('teacher-verifications').remove([cardUrl]);
-            document.getElementById(`req-card-${id}`).remove();
-        }
-
-        async function rejectRequest(id, cardUrl) {
-            const reason = prompt("กรุณาระบุเหตุผลที่ปฏิเสธ (เช่น รูปไม่ชัดเจน):");
-            if (!reason) return;
-            const db = getDB();
-            await db.from('user_school').update({ verification_status: 'rejected', reject_reason: reason }).eq('id', id);
-            if (cardUrl) await db.storage.from('teacher-verifications').remove([cardUrl]);
-            document.getElementById(`req-card-${id}`).remove();
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            const box = document.getElementById('imageModalBox');
+            modal.style.opacity = '0';
+            box.classList.remove('scale-100'); box.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
         }
 
         async function handleLogout() {
-            if(confirm("ออกจากระบบ?")) {
-                await getDB().auth.signOut();
-                window.location.href = 'login.html';
-            }
+            const db = getDB();
+            await db.auth.signOut();
+            window.location.replace('login.html');
         }
     </script>
 </body>
