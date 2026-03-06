@@ -607,9 +607,14 @@
 
                 const schoolIds = [...new Set(newAllClasses.map(c => c.school_id).filter(id => id))];
                 if (schoolIds.length > 0) {
-                    const { data: sData } = await db.from('schools').select('school_id, school_name').in('school_id', schoolIds);
-                    const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s.school_name]));
-                    newAllClasses = newAllClasses.map(c => ({ ...c, school_name: sDict[c.school_id] || 'กลุ่มสถานศึกษา' }));
+                    // 🌟 เพิ่มการดึงข้อมูล school_abbr มาด้วย
+                    const { data: sData } = await db.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
+                    const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s]));
+                    newAllClasses = newAllClasses.map(c => ({ 
+                        ...c, 
+                        school_name: sDict[c.school_id]?.school_name || 'กลุ่มสถานศึกษา',
+                        school_abbr: sDict[c.school_id]?.school_abbr || ''
+                    }));
                 }
 
                 const oldClassesString = JSON.stringify(allClasses);
@@ -718,13 +723,14 @@
             const grid = document.getElementById('gridAllClasses');
             if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full py-24 text-center text-slate-300"><i class="fas fa-folder-open text-5xl mb-3 block"></i> <span class="font-[\'Kanit\'] text-lg font-bold">ยังไม่มีห้องเรียน</span></div>'; return; }
             
+            // 🌟 ปรับการแสดงผลชื่อโรงเรียนในการ์ด โดยเช็คว่ามี school_abbr หรือไม่
             grid.innerHTML = filtered.map(c => `
                 <div class="class-card group" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
                     <div class="card-banner" style="background: ${c.color_code || 'var(--primary)'};"><i class="fas fa-graduation-cap group-hover:scale-110 transition-transform"></i></div>
                     <div class="card-body">
                         <div class="flex justify-between items-center mb-1"><span class="room-badge">${c.room_name}</span><span class="text-[10px] font-bold ${c.userRole === 'teacher' ? 'text-[var(--primary)]' : 'text-emerald-600'} uppercase font-['Kanit'] px-2 py-1 bg-slate-50 rounded-lg">${c.userRole === 'teacher' ? 'ผู้สอน' : 'ผู้เรียน'}</span></div>
                         <h3 class="subject-title truncate">${c.subject_name}</h3>
-                        <p class="text-[11px] text-slate-400 mt-auto font-['Sarabun']"><i class="fas fa-school mr-1 text-slate-300"></i> ${c.school_name || 'พื้นที่ส่วนตัว'}</p>
+                        <p class="text-[11px] text-slate-400 mt-auto font-['Sarabun']"><i class="fas fa-school mr-1 text-slate-300"></i> ${c.school_id ? (c.school_name + (c.school_abbr ? ` (@${c.school_abbr})` : '')) : 'พื้นที่ส่วนตัว'}</p>
                     </div>
                 </div>
             `).join('');
