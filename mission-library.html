@@ -102,6 +102,7 @@
         @media (max-width: 768px) {
             #mainNav { padding: 0 15px; height: 75px; }
             .mission-card { padding: 20px; }
+            .fab-add { bottom: 20px; right: 20px; width: 55px; height: 55px; font-size: 24px; }
         }
     </style>
 </head>
@@ -177,7 +178,7 @@
     <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1200px] relative">
         <div id="missionGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         <div id="paginationContainer" class="mt-12 flex items-center justify-center gap-2">
-            <div id="pageNumbers" class="flex gap-1.5"></div>
+            <div id="pageNumbers" class="flex gap-1.5 flex-wrap justify-center"></div>
         </div>
     </main>
 
@@ -190,8 +191,8 @@
             <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-500 mb-6 font-['Sarabun']"></p>
             <div class="flex justify-center gap-3">
-                <button onclick="closeCustomAlert()" id="customAlertOkBtn" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer">ตกลง</button>
-                <button id="customAlertCancelBtn" onclick="closeCustomAlert(true)" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer">ยกเลิก</button>
+                <button onclick="closeCustomAlert()" id="customAlertOkBtn" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer shadow-sm">ตกลง</button>
+                <button id="customAlertCancelBtn" onclick="closeCustomAlert(true)" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer shadow-sm">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -243,14 +244,25 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
+            
             try {
                 const db = getDB();
                 const { data: { session } } = await db.auth.getSession();
-                if (session) {
+                
+                if (session && session.user) {
                     currentUserId = session.user.id;
                     document.getElementById('btnLoginLogout').innerText = 'ออกจากระบบ';
                     document.getElementById('fabAdd').classList.remove('hidden');
                 } else {
+                    const studentSession = localStorage.getItem('flip_student_session_id');
+                    if (studentSession) {
+                        currentUserId = studentSession; // นักเรียน หรือผู้ใช้งานที่ไม่ได้ผูกอีเมล
+                        document.getElementById('btnLoginLogout').innerText = 'ออกจากระบบ';
+                    } else {
+                        document.getElementById('btnLoginLogout').innerText = 'เข้าสู่ระบบ';
+                    }
+                    // ซ่อนปุ่มเพิ่มภารกิจสำหรับนักเรียนหรือ Guest
+                    document.getElementById('fabAdd').classList.add('hidden');
                     document.getElementById('filterSource').value = 'public';
                     document.getElementById('filterSource').disabled = true;
                 }
@@ -265,45 +277,84 @@
 
                 await fetchMissions(db);
             } catch (err) {
+                console.error("Initialization Error:", err);
                 document.getElementById('loadingOverlay').style.display = 'none';
+                showCustomAlert("ไม่สามารถเชื่อมต่อฐานข้อมูลได้", "error");
             }
         });
 
+        // 🌟 แก้ไขฟังก์ชันดึงข้อมูลให้ทนทานต่อ Foreign Key Missing 🌟
         async function fetchMissions(db) {
             document.getElementById('syncIndicator').classList.remove('opacity-0');
+            
             try {
-                let query = db.from('missions')
-                    // 🌟 ดึงข้อมูลจากตาราง users มาร่วมด้วยเพื่อแสดงชื่อผู้สร้าง 🌟
-                    .select('*, users(first_name, last_name, profile_pic)');
+                let dataToUse = [];
                 
-                if (currentUserId) query = query.or(`is_public.eq.true,created_by.eq.${currentUserId}`);
-                else query = query.eq('is_public', true);
-                
-                const { data, error } = await query.order('created_at', { ascending: false });
-                if (!error) {
-                    const stringData = JSON.stringify(data || []);
-                    if (localStorage.getItem('flip_cache_library_missions') !== stringData) {
-                        localStorage.setItem('flip_cache_library_missions', stringData);
-                        allMissions = data || [];
-                        applyFilters();
-                    }
+                // 1. ลองดึงข้อมูลพร้อมชื่อผู้สร้างแบบ Join ตาราง
+                let query = db.from('missions').select('*, users(first_name, last_name, profile_pic)');
+                if (currentUserId && !document.getElementById('filterSource').disabled) {
+                    query = query.or(`is_public.eq.true,created_by.eq.${currentUserId}`);
+                } else {
+                    query = query.eq('is_public', true);
                 }
+                
+                let { data, error } = await query.order('created_at', { ascending: false });
+
+                // 2. ถ้า Join ไม่สำเร็จ (error) ให้ดึงข้อมูลเฉพาะตาราง missions อย่างเดียว (Fallback)
+                if (error) {
+                    console.warn("ไม่สามารถ Join ตาราง Users ได้ ดึงข้อมูลเฉพาะภารกิจ...");
+                    
+                    let fallbackQuery = db.from('missions').select('*');
+                    if (currentUserId && !document.getElementById('filterSource').disabled) {
+                        fallbackQuery = fallbackQuery.or(`is_public.eq.true,created_by.eq.${currentUserId}`);
+                    } else {
+                        fallbackQuery = fallbackQuery.eq('is_public', true);
+                    }
+                    
+                    const fb = await fallbackQuery.order('created_at', { ascending: false });
+                    dataToUse = fb.data || [];
+                } else {
+                    dataToUse = data || [];
+                }
+
+                // 3. บันทึกข้อมูลและแจ้งให้แสดงผล
+                const stringData = JSON.stringify(dataToUse);
+                if (localStorage.getItem('flip_cache_library_missions') !== stringData) {
+                    localStorage.setItem('flip_cache_library_missions', stringData);
+                }
+                allMissions = dataToUse;
+
+            } catch (err) {
+                console.error("System Fetch Error:", err);
             } finally {
+                // บังคับเรนเดอร์ใหม่เสมอ ป้องกันปัญหาหน้าจอค้าง
+                applyFilters();
+                
                 document.getElementById('syncIndicator').classList.add('opacity-0');
-                document.getElementById('loadingOverlay').style.display = 'none';
+                const loader = document.getElementById('loadingOverlay');
+                if (loader && loader.style.display !== 'none') {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
             }
         }
 
+        // 🌟 ฟังก์ชันกรองข้อมูลแบบปลอดภัยจากการใช้ตัวแปร Null 🌟
         function applyFilters(reset = false) {
             if (reset) currentPage = 1;
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const source = document.getElementById('filterSource').value;
 
             filteredMissions = allMissions.filter(m => {
-                const matchQuery = m.title.toLowerCase().includes(query) || (m.subject_group && m.subject_group.toLowerCase().includes(query));
+                const titleStr = m.title || '';
+                const subjectStr = m.subject_group || '';
+                
+                const matchQuery = titleStr.toLowerCase().includes(query) || subjectStr.toLowerCase().includes(query);
+                
                 let matchSource = true;
                 if (source === 'mine') matchSource = (m.created_by === currentUserId);
                 else if (source === 'public') matchSource = (m.is_public === true && m.created_by !== currentUserId);
+                
                 return matchQuery && matchSource;
             });
 
@@ -332,7 +383,10 @@
                 const icon = icons[m.mission_type] || 'fas fa-star';
                 const playUrl = currentUserId ? `play-mission.html?mid=${m.mission_id}` : `play-mission.html?mid=${m.mission_id}&mode=guest`;
 
-                // 🌟 ข้อมูลผู้สร้าง (Creator Info) 🌟
+                const safeTitle = m.title || 'ไม่ระบุชื่อ';
+                const safeSubject = m.subject_group || 'ทั่วไป';
+
+                // 🌟 ข้อมูลผู้สร้าง (Creator Info) กรณี Join ไม่ติดให้มีค่าเริ่มต้น 🌟
                 const creator = m.users || {};
                 const creatorName = creator.first_name ? `ครู${creator.first_name} ${creator.last_name || ''}`.trim() : 'ไม่ระบุชื่อผู้สร้าง';
                 const creatorPic = creator.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorName}`;
@@ -351,10 +405,10 @@
                     </div>
                     
                     <div class="flex flex-col flex-1">
-                        <h3 class="mission-title" title="${m.title}">${m.title}</h3>
-                        <p class="text-[11px] text-slate-500 mb-3 font-['Sarabun'] flex items-center gap-1"><i class="fas fa-tag opacity-70"></i> ${m.subject_group || 'ทั่วไป'} | ${labels[m.mission_type] || 'ทั่วไป'}</p>
+                        <h3 class="mission-title" title="${safeTitle}">${safeTitle}</h3>
+                        <p class="text-[11px] text-slate-500 mb-3 font-['Sarabun'] flex items-center gap-1"><i class="fas fa-tag opacity-70"></i> ${safeSubject} | ${labels[m.mission_type] || 'ทั่วไป'}</p>
                         
-                        <!-- 🌟 แสดงโปรไฟล์ผู้สร้าง 🌟 -->
+                        <!-- แสดงโปรไฟล์ผู้สร้าง -->
                         <div class="flex items-center gap-2 mt-auto pt-3 border-t border-slate-50 mb-4">
                             <img src="${creatorPic}" class="w-6 h-6 rounded-full object-cover border border-slate-200">
                             <span class="text-[11px] text-slate-500 font-['Sarabun']">สร้างโดย: <b class="text-slate-700">${creatorName}</b></span>
@@ -364,14 +418,14 @@
                             <button onclick="location.href='${playUrl}'" class="flex-1 bg-[var(--primary)] text-white font-bold py-2 rounded-xl transition text-xs border-none cursor-pointer flex justify-center items-center gap-1.5 shadow-md hover:bg-[var(--primary-light)] active:scale-95">
                                 <i class="fas fa-play"></i> เล่น
                             </button>
-                            <!-- 🌟 ปุ่มแชร์ (แสดงให้ทุกคน) 🌟 -->
+                            <!-- ปุ่มแชร์ (แสดงให้ทุกคน) -->
                             <button onclick="quickShare('${m.mission_id}')" class="bg-indigo-50 hover:bg-indigo-500 text-indigo-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="คัดลอกลิงก์แชร์">
                                 <i class="fas fa-share-alt"></i>
                             </button>
-                            <!-- 🌟 ปุ่มจัดการ (แสดงเฉพาะเจ้าของ) 🌟 -->
-                            ${m.created_by === currentUserId ? `
+                            <!-- ปุ่มจัดการ (แสดงเฉพาะเจ้าของ) ป้องกันตัวแปร Single Quote -->
+                            ${(m.created_by === currentUserId && currentUserId !== null) ? `
                                 <button onclick="location.href='mission-create.html?mid=${m.mission_id}'" class="bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="แก้ไข"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteMission('${m.mission_id}', '${m.title.replace(/'/g, "\\'")}')" class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                                <button onclick="deleteMission('${m.mission_id}', '${safeTitle.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                             ` : ''}
                         </div>
                     </div>
@@ -395,13 +449,33 @@
 
         function quickShare(mid) {
             const url = `${window.location.origin}/play-mission.html?mid=${mid}&mode=guest`;
-            navigator.clipboard.writeText(url).then(() => showCustomAlert("คัดลอกลิงก์สำหรับแชร์เรียบร้อยแล้ว!", "success"));
+            
+            // เช็คว่าระบบอุปกรณ์รองรับ Clipboard API ไหม
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showCustomAlert("คัดลอกลิงก์สำหรับแชร์เรียบร้อยแล้ว!", "success");
+                });
+            } else {
+                // Fallback สำหรับอุปกรณ์เก่าหรือไอโฟน
+                const el = document.createElement('textarea');
+                el.value = url;
+                document.body.appendChild(el);
+                el.select();
+                try {
+                    document.execCommand('copy');
+                    showCustomAlert("คัดลอกลิงก์สำหรับแชร์เรียบร้อยแล้ว!", "success");
+                } catch (err) {
+                    showCustomAlert("ไม่สามารถคัดลอกลิงก์อัตโนมัติได้", "warning");
+                }
+                document.body.removeChild(el);
+            }
         }
 
         async function handleAuthAction() {
             if (currentUserId) {
                 showCustomAlert("คุณต้องการออกจากระบบใช่หรือไม่?", "confirm", async () => {
                     await window.sysDB.auth.signOut();
+                    localStorage.removeItem('flip_student_session_id');
                     location.reload();
                 });
             } else {
@@ -410,7 +484,9 @@
         }
 
         function checkAuthAndCreate() {
-            if (!currentUserId) return showCustomAlert("กรุณาเข้าสู่ระบบก่อนสร้างภารกิจครับ");
+            if (!currentUserId || document.getElementById('filterSource').disabled) {
+                return showCustomAlert("สิทธิ์นี้สงวนไว้เฉพาะคุณครูผู้สร้างสื่อเท่านั้นครับ", "warning");
+            }
             const params = new URLSearchParams(window.location.search);
             let targetUrl = 'mission-create.html';
             if (params.get('cid') || params.get('folder')) {
