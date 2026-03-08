@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เชื่อมต่อสื่อภายนอก - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main);
+            margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
+
+        /* ================= NAVBAR (Standard) ================= */
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand span { color: var(--accent); }
+        
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+        
+        /* 🌟 Form Style 🌟 */
+        .form-card { background: white; border-radius: 2rem; padding: clamp(1.5rem, 5vw, 3rem); box-shadow: 0 15px 45px rgba(0,0,0,0.05); border: 1px solid #edf2f7; }
+        .input-group { margin-bottom: 1.5rem; }
+        .input-label { display: block; margin-bottom: 0.5rem; font-family: 'Kanit'; font-weight: 600; color: var(--text-main); font-size: 15px; }
+        .form-input { width: 100%; padding: 12px 18px; border-radius: 12px; border: 2px solid #edf2f7; font-family: 'Sarabun'; font-size: 15px; transition: 0.3s; background: #f8faff; outline: none; }
+        .form-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1); }
+        
+        .guide-box { background: #fff8e1; border: 1px solid #ffecb3; padding: 1.5rem; border-radius: 1.5rem; margin-bottom: 2rem; position: relative; overflow: hidden; }
+        .guide-box::after { content: '\f05a'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: -10px; bottom: -15px; font-size: 80px; opacity: 0.05; color: #b08d00; transform: rotate(-15deg); }
+
+        .btn-submit { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-family: 'Kanit'; font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(0,0,139,0.2); }
+        .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,139,0.3); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .spinner { border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 12px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            #mainNav { height: 75px; }
+            .form-card { padding: 1.5rem; border-radius: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังเตรียมข้อมูล...</div>
+    </div>
+
+    <!-- 🌟 Navbar 🌟 -->
+    <nav id="mainNav">
+        <a href="dashboard.html" class="nav-left flex items-center gap-3 no-underline">
+            <div class="nav-logo-icon w-10 h-10 border-2 border-[var(--primary)] rounded-xl flex items-center justify-center text-xl">🎓</div>
+            <div class="nav-brand">Flip<span>School</span></div>
+        </a>
+        <div class="nav-right">
+            <button onclick="history.back()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-all border-none cursor-pointer text-sm flex items-center gap-2">
+                <i class="fas fa-times"></i> ยกเลิก
+            </button>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="header-gradient text-white py-10 px-5 md:px-12 relative overflow-hidden rounded-b-[2rem] md:rounded-b-[3.5rem] shadow-sm mb-8">
+        <div class="container mx-auto max-w-4xl relative z-10 text-center">
+            <div id="typeIcon" class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg backdrop-blur-md">
+                <i class="fas fa-link"></i>
+            </div>
+            <h1 id="headerTitle" class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] mb-2">เชื่อมต่อสื่อภายนอก</h1>
+            <p id="headerSubtitle" class="text-blue-100 font-medium text-sm md:text-lg opacity-90 font-['Sarabun']">นำเข้าสื่อการเรียนรู้จากภายนอกเข้าสู่ระบบ FlipSchool</p>
+        </div>
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 pb-20 max-w-3xl">
+        
+        <div class="guide-box">
+            <h4 class="font-bold text-amber-800 font-['Kanit'] mb-2 flex items-center gap-2">
+                <i class="fas fa-lightbulb"></i> วิธีการใช้งาน (How to use)
+            </h4>
+            <div id="guideContent" class="text-amber-700 text-sm font-['Sarabun'] leading-relaxed space-y-2">
+                กำลังเตรียมคำแนะนำ...
+            </div>
+        </div>
+
+        <form id="missionForm" onsubmit="handleSaveMission(event)" class="form-card">
+            
+            <div class="input-group">
+                <label class="input-label">หัวข้อภารกิจ (Mission Title) <span class="text-rose-500">*</span></label>
+                <input type="text" id="title" class="form-input" placeholder="เช่น ศึกษาใบความรู้ เรื่อง..." required>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="input-group">
+                    <label class="input-label">กลุ่มสาระ / หมวดหมู่</label>
+                    <input type="text" id="subject_group" class="form-input" placeholder="เช่น วิทยาศาสตร์">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">คะแนนรางวัล (Reward Points)</label>
+                    <input type="number" id="reward_points" class="form-input" value="10" min="0" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" id="linkLabel">ลิงก์สื่อ (URL) / โค้ดฝัง (Embed Code) <span class="text-rose-500">*</span></label>
+                <textarea id="external_link" class="form-input min-h-[120px] font-mono text-sm" placeholder="วางลิงก์ที่นี่..." required></textarea>
+                <p class="text-[11px] text-slate-400 mt-2 font-['Sarabun']" id="linkHint">
+                    <i class="fas fa-info-circle"></i> ปลายทางต้องเป็นลิงก์ที่อนุญาตให้แชร์แบบสาธารณะ
+                </p>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="is_public" checked class="w-5 h-5 accent-[var(--primary)]">
+                    <div>
+                        <span class="font-bold text-sm text-[var(--primary)] font-['Kanit']">อนุญาตให้เป็นสาธารณะ (Public Mission)</span>
+                        <p class="text-xs text-slate-500 m-0 font-['Sarabun']">ครูท่านอื่นสามารถค้นพบและนำภารกิจนี้ไปใช้ในคลังสื่อได้</p>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit" id="btnSave" class="btn-submit">
+                สร้างภารกิจเลย <i class="fas fa-magic"></i>
+            </button>
+
+        </form>
+    </main>
+
+    <footer class="footer footer-display-text"></footer>
+
+    <!-- Custom Alert -->
+    <div id="customAlertModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-[25px] w-full max-w-[400px] p-8 shadow-2xl text-center transform scale-95 transition-transform" id="customAlertBox">
+            <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
+            <p id="customAlertMessage" class="text-slate-500 mb-6 font-['Sarabun']"></p>
+            <button onclick="closeCustomAlert()" class="bg-[var(--primary)] text-white px-12 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+        let currentClassId = null;
+        let targetFolder = 'ทั่วไป';
+        let embedType = 'general';
+
+        const TYPE_MAP = {
+            'google_docs': { title: 'Google Docs', icon: 'fas fa-file-alt', color: '#2563eb', guide: 'เปิดเอกสาร > ไฟล์ > แชร์ > เผยแพร่ทางเว็บ > กด "ฝัง" (Embed) > คัดลอกลิงก์ใน src="..." หรือโค้ดทั้งหมดมาแปะที่นี่' },
+            'google_sheets': { title: 'Google Sheets', icon: 'fas fa-file-excel', color: '#10b981', guide: 'เปิดตาราง > ไฟล์ > แชร์ > เผยแพร่ทางเว็บ > เลือก Sheet > กด "ฝัง" > คัดลอกลิงก์หรือโค้ดมาแปะ' },
+            'google_slides': { title: 'Google Slides', icon: 'fas fa-file-powerpoint', color: '#f59e0b', guide: 'เปิดสไลด์ > ไฟล์ > แชร์ > เผยแพร่ทางเว็บ > กด "ฝัง" > ตั้งค่าขนาด > คัดลอกโค้ด iframe ทั้งหมดมาแปะที่นี่' },
+            'google_forms': { title: 'Google Forms', icon: 'fas fa-file-signature', color: '#9333ea', guide: 'เปิดฟอร์ม > กด "ส่ง" > เลือกไอคอน < > (Embed) > คัดลอกโค้ด iframe มาแปะ' },
+            'video': { title: 'Video Lesson', icon: 'fab fa-youtube', color: '#ef4444', guide: 'ไปที่วิดีโอ YouTube > กดแชร์ (Share) > เลือกฝัง (Embed) > คัดลอกโค้ด iframe มาแปะ หรือเอาลิงก์ URL มาแปะโดยตรงก็ได้ครับ' },
+            'interactive': { title: 'Interactive Content', icon: 'fas fa-gamepad', color: '#6366f1', guide: 'นำโค้ดสำหรับฝัง (Embed HTML) จาก Wordwall, Kahoot หรือ LearningApps มาวางเพื่อให้นักเรียนเล่นในหน้านี้ได้เลย' }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof initAppUI === 'function') initAppUI();
+
+            const params = new URLSearchParams(window.location.search);
+            currentClassId = params.get('cid');
+            targetFolder = params.get('folder') || 'ทั่วไป';
+            embedType = params.get('type') || 'general';
+
+            setupUIBasedOnType();
+
+            try {
+                const db = window.sysDB;
+                const { data: { session } } = await db.auth.getSession();
+                if (!session) return location.href = 'login.html';
+                currentUserId = session.user.id;
+            } catch (e) { console.error(e); }
+        });
+
+        function setupUIBasedOnType() {
+            const config = TYPE_MAP[embedType];
+            if (config) {
+                document.getElementById('headerTitle').innerText = `เชื่อมต่อ ${config.title}`;
+                document.getElementById('typeIcon').innerHTML = `<i class="${config.icon}"></i>`;
+                document.getElementById('typeIcon').style.color = config.color;
+                document.getElementById('guideContent').innerHTML = `<ul class="list-disc pl-5"><li>${config.guide}</li><li>นักเรียนจะสามารถดูสื่อได้โดยไม่ต้องออกจากแอป FlipSchool</li></ul>`;
+                document.getElementById('title').placeholder = `เช่น ศึกษา ${config.title} เรื่อง...`;
+            }
+        }
+
+        async function handleSaveMission(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            const title = document.getElementById('title').value.trim();
+            const rawLink = document.getElementById('external_link').value.trim();
+            const subject = document.getElementById('subject_group').value.trim();
+            const points = parseInt(document.getElementById('reward_points').value) || 10;
+            const isPublic = document.getElementById('is_public').checked;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกภารกิจ...';
+
+            try {
+                const db = window.sysDB;
+                const missionId = crypto.randomUUID();
+                
+                // 🛠️ ระบบฉลาด: แปลงลิงก์ปกติให้เป็น Embed Code อัตโนมัติ (สำหรับคนแปะแค่ URL)
+                let finalContent = rawLink;
+                if (!rawLink.includes('<iframe')) {
+                    // YouTube URL -> Embed
+                    if (rawLink.includes('youtube.com/watch?v=')) {
+                        const vid = rawLink.split('v=')[1].split('&')[0];
+                        finalContent = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${vid}" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>`;
+                    } else if (rawLink.includes('youtu.be/')) {
+                        const vid = rawLink.split('youtu.be/')[1];
+                        finalContent = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${vid}" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>`;
+                    } 
+                    // Google Workspace -> Iframe Wrapper
+                    else {
+                        finalContent = `<iframe src="${rawLink}" width="100%" height="600px" frameborder="0" style="border-radius:15px; border:1px solid #eee;"></iframe>`;
+                    }
+                }
+
+                // 1. บันทึกลงตาราง missions
+                const { error: mErr } = await db.from('missions').insert([{
+                    mission_id: missionId,
+                    title: title,
+                    mission_type: 'html_custom', // ใช้ประเภทนี้เพื่อให้ระบบเล่นผ่าน iframe
+                    subject_group: subject || 'ทั่วไป',
+                    reward_points: points,
+                    is_public: isPublic,
+                    created_by: currentUserId,
+                    content: finalContent 
+                }]);
+
+                if (mErr) throw mErr;
+
+                // 2. ถ้ามาจากห้องเรียน ให้มอบหมายงานทันที
+                if (currentClassId) {
+                    const { error: aErr } = await db.from('classroom_missions').insert([{
+                        classroom_id: currentClassId,
+                        mission_id: missionId,
+                        folder_name: targetFolder,
+                        order_index: 99 // ระบบ Dashboard จะเรียงให้อัตโนมัติภายหลัง
+                    }]);
+                    if (aErr) throw aErr;
+                }
+
+                showCustomAlert("บันทึกภารกิจเรียบร้อยแล้ว!", "success", () => {
+                    if (currentClassId) {
+                        location.href = `classroom-detail.html?id=${currentClassId}`;
+                    } else {
+                        location.href = 'mission-library.html';
+                    }
+                });
+
+            } catch (err) {
+                showCustomAlert(err.message, "error");
+                btn.disabled = false;
+                btn.innerHTML = 'สร้างภารกิจเลย <i class="fas fa-magic"></i>';
+            }
+        }
+
+        function showCustomAlert(msg, type='info', cb=null) { 
+            const modal = document.getElementById('customAlertModal');
+            document.getElementById('customAlertMessage').innerHTML = msg;
+            const icon = document.getElementById('customAlertIcon');
+            if(type==='success') icon.className='fas fa-check-circle text-emerald-500';
+            else icon.className='fas fa-exclamation-triangle text-amber-500';
+            modal.style.display = 'flex';
+            setTimeout(() => modal.style.opacity = '1', 10);
+            alertCallback = cb;
+        }
+        function closeCustomAlert() { 
+            document.getElementById('customAlertModal').style.display = 'none'; 
+            if (alertCallback) alertCallback();
+        }
+    </script>
+</body>
+</html>
