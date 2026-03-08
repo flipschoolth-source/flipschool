@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลิสต์เพลย์ของฉัน - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- SortableJS สำหรับระบบ Drag & Drop สลับลำดับภารกิจ -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <style>
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main);
+            margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
+
+        /* ================= NAVBAR ================= */
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
+        
+        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.3s; }
+        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease; }
+        #mainNav.scrolled .nav-logo-icon { width: 40px; height: 40px; font-size: 20px; border-width: 2px; border-radius: 10px; }
+        
+        .nav-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand span { color: var(--accent); }
+        #mainNav.scrolled .nav-brand { font-size: 22px; }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: all 0.3s ease; max-height: 20px; opacity: 1; overflow: hidden; }
+        #mainNav.scrolled .nav-slogan { max-height: 0; opacity: 0; margin-top: 0; }
+        
+        .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: clamp(14px, 1.5vw, 16px); text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; position: relative; }
+        .nav-link:hover { color: var(--primary); }
+        
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); border-bottom: 4px solid var(--accent); }
+        
+        .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
+        .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
+        .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        
+        /* 🌟 Playlist Cards 🌟 */
+        .playlist-card { 
+            background: white; border-radius: 20px; padding: 22px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #edf2f7; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            position: relative; overflow: hidden; display: flex; flex-direction: column; cursor: pointer;
+        }
+        .playlist-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,139,0.08); border-color: #dbeafe; }
+        
+        .playlist-icon-box { 
+            width: 50px; height: 50px; border-radius: 14px; display: flex; 
+            align-items: center; justify-content: center; font-size: 22px; 
+            flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); 
+            background-color: #e0e8ff; color: var(--primary-light);
+        }
+        
+        .playlist-title { font-family: 'Kanit'; font-weight: 700; font-size: 18px; color: var(--text-main); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 🌟 Mission Items in Playlist 🌟 */
+        .mission-item-card {
+            background: white; border-radius: 16px; padding: 15px 20px;
+            display: flex; align-items: center; gap: 15px; border: 1px solid #edf2f7;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: 0.2s; margin-bottom: 12px;
+        }
+        .mission-item-card:hover { border-color: var(--primary-light); box-shadow: 0 8px 25px rgba(0,0,139,0.05); }
+        .drag-handle { color: #cbd5e1; cursor: grab; font-size: 18px; padding: 10px; margin-left: -10px; }
+        .drag-handle:active { cursor: grabbing; }
+        .mission-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 18px; flex-shrink: 0; }
+        .sortable-ghost { opacity: 0.4; background: #f8faff; border: 2px dashed var(--primary-light); }
+
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .spinner { border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 12px; }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: translateY(20px) scale(0.95); }
+        @keyframes popIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Custom Alert Modal */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 15px; transition: opacity 0.3s; opacity: 0; }
+        .custom-modal-box { background: white; padding: 35px 30px; border-radius: 25px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: scale(0.95); transition: 0.3s; }
+
+        @media (max-width: 1024px) {
+            .nav-center { display: none; }
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+        }
+        @media (max-width: 768px) {
+            #mainNav { padding: 0 15px; height: 75px; }
+            .playlist-card { padding: 20px; }
+            .mission-item-card { flex-direction: column; align-items: flex-start; position: relative; }
+            .drag-handle { position: absolute; top: 15px; right: 15px; margin: 0; }
+            .mission-actions { width: 100%; display: flex; gap: 10px; margin-top: 10px; }
+            .mission-actions button { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <!-- 🌟 Navbar 🌟 -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand">Flip<span>School</span></div>
+                <div class="nav-slogan slogan">...</div>
+            </div>
+        </a>
+        <div class="nav-center">
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="mission-playlists.html" class="nav-link font-bold text-[var(--primary)]"><i class="fas fa-layer-group"></i> ลิสต์เพลย์ของฉัน</a>
+        </div>
+        <div class="nav-right">
+            <button id="btnLoginLogout" onclick="handleAuthAction()" class="bg-slate-50 text-slate-700 px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-all border-none cursor-pointer text-sm shadow-sm hover:bg-[var(--primary)] hover:text-white">ออกจากระบบ</button>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+        </div>
+        <div id="mobileMenu" class="mobile-dropdown">
+            <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="mission-playlists.html"><i class="fas fa-layer-group"></i> ลิสต์เพลย์ของฉัน</a>
+            <a href="#" onclick="handleAuthAction()" id="btnMobileAuth" class="text-rose-500 font-bold">ออกจากระบบ</a>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header class="header-gradient text-white py-8 px-5 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-8">
+        <div class="container mx-auto max-w-[1000px] relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-6">
+            <div class="flex-1">
+                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight font-['Kanit'] flex items-center gap-3">
+                    <i class="fas fa-layer-group text-[var(--accent)]"></i> <span id="headerTitle">ลิสต์เพลย์ของฉัน</span>
+                </h1>
+                <p class="text-blue-100 font-medium text-sm md:text-lg mt-2 opacity-90 font-sans" id="headerSubtitle">จัดการคอลเล็กชันภารกิจเพื่อเตรียมความพร้อมสำหรับการสอน</p>
+            </div>
+            
+            <!-- ปุ่มค้นหา (จะแสดงเฉพาะหน้าแรกของลิสต์เพลย์) -->
+            <div class="w-full md:w-auto" id="searchContainer">
+                <div class="relative w-full md:w-[250px]">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/50"></i>
+                    <input type="text" id="searchInput" placeholder="ค้นหาชื่อคอลเล็กชัน..." oninput="filterPlaylists(this.value)" class="w-full bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-xl pl-11 pr-4 py-3 outline-none text-sm font-sans focus:bg-white/20 transition-all">
+                </div>
+            </div>
+            
+            <!-- ปุ่มย้อนกลับ (จะแสดงเฉพาะตอนเข้าไปดูข้างในลิสต์เพลย์) -->
+            <button id="btnBack" onclick="viewAllPlaylists()" class="hidden bg-white/20 hover:bg-white/30 text-white border border-white/30 px-5 py-2.5 rounded-xl font-bold font-['Kanit'] transition-colors items-center gap-2 cursor-pointer shadow-sm">
+                <i class="fas fa-arrow-left"></i> กลับไปหน้าคอลเล็กชัน
+            </button>
+        </div>
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1000px] relative">
+        
+        <!-- 1. มุมมองแบบ Grid (แสดงแฟ้มทั้งหมด) -->
+        <div id="playlistsView">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg md:text-xl font-bold text-slate-700 font-['Kanit'] m-0" id="playlistCount">ทั้งหมด 0 รายการ</h2>
+                <button onclick="promptCreatePlaylist()" class="bg-blue-50 hover:bg-blue-100 text-[var(--primary)] px-4 py-2 rounded-xl text-sm font-bold font-['Kanit'] transition-colors border border-blue-100 cursor-pointer flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-plus-circle"></i> สร้างใหม่
+                </button>
+            </div>
+            <div id="playlistsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"></div>
+        </div>
+
+        <!-- 2. มุมมองแบบ List (แสดงภารกิจภายในแฟ้ม) -->
+        <div id="playlistDetailView" class="hidden">
+            <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold text-[var(--primary)] font-['Kanit'] m-0" id="detailTitle">ชื่อคอลเล็กชัน</h2>
+                    <p class="text-sm text-slate-500 mt-1 mb-0 font-['Sarabun']" id="detailDesc">อัปเดตล่าสุด: ...</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button onclick="promptRenamePlaylist()" class="flex-1 md:flex-none bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white px-4 py-2 rounded-xl text-sm font-bold font-['Kanit'] transition-colors border-none cursor-pointer flex justify-center items-center gap-2">
+                        <i class="fas fa-edit"></i> เปลี่ยนชื่อ
+                    </button>
+                    <button onclick="promptDeletePlaylist()" class="flex-1 md:flex-none bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold font-['Kanit'] transition-colors border-none cursor-pointer flex justify-center items-center gap-2">
+                        <i class="fas fa-trash-alt"></i> ลบแฟ้ม
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-sm text-slate-600 font-['Sarabun'] flex items-center gap-3">
+                <i class="fas fa-info-circle text-[var(--primary-light)] text-xl"></i>
+                <div>
+                    <b>เคล็ดลับ:</b> คุณสามารถคลิกค้างที่ไอคอน <i class="fas fa-grip-vertical mx-1"></i> แล้วลากขึ้นลงเพื่อ <b>สลับลำดับการนำเสนอภารกิจ</b> ได้ (ระบบจะบันทึกอัตโนมัติ)
+                </div>
+            </div>
+
+            <div id="missionListContainer" class="flex flex-col">
+                <!-- รายการภารกิจจะมาแทรกตรงนี้ -->
+            </div>
+            
+            <div class="mt-8 text-center">
+                <button onclick="location.href='mission-library.html'" class="bg-white border-2 border-dashed border-blue-200 text-blue-500 hover:bg-blue-50 px-6 py-4 rounded-2xl text-base font-bold font-['Kanit'] transition-colors cursor-pointer inline-flex items-center gap-2 shadow-sm w-full md:w-auto">
+                    <i class="fas fa-search-plus"></i> ค้นหาภารกิจเพิ่มเติมเพื่อใส่ในคอลเล็กชันนี้
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box" id="customAlertBox">
+            <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
+            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <p id="customAlertMessage" class="text-slate-500 mb-6 font-['Sarabun'] leading-relaxed"></p>
+            
+            <!-- Input สำหรับ Prompt -->
+            <input type="text" id="customAlertInput" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-6 outline-none focus:border-[var(--primary-light)] hidden text-center font-['Sarabun'] font-bold">
+
+            <div class="flex justify-center gap-3">
+                <button onclick="closeCustomAlert()" id="customAlertOkBtn" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-8 py-2.5 rounded-full font-bold font-['Kanit'] border-none cursor-pointer shadow-md transition-colors min-w-[100px]">ตกลง</button>
+                <button onclick="closeCustomAlert(true)" id="customAlertCancelBtn" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-600 px-8 py-2.5 rounded-full font-bold font-['Kanit'] border-none cursor-pointer shadow-sm transition-colors min-w-[100px]">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer footer-display-text"></footer>
+
+    <script>
+        let currentUserId = null;
+        let allPlaylists = [];
+        let activePlaylistId = null;
+        let activePlaylistMissions = [];
+        let sortableInstance = null;
+
+        // ================= UI Helpers =================
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        });
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+
+        let alertCallback = null;
+        let alertCancelCallback = null;
+
+        function showCustomAlert(msg, type='info', callback=null, cancelCallback=null, defaultInputValue=null) { 
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            const icon = document.getElementById('customAlertIcon');
+            const cancelBtn = document.getElementById('customAlertCancelBtn');
+            const inputField = document.getElementById('customAlertInput');
+            const okBtn = document.getElementById('customAlertOkBtn');
+            
+            document.getElementById('customAlertMessage').innerHTML = msg;
+            alertCallback = callback;
+            alertCancelCallback = cancelCallback;
+
+            // Reset UI
+            inputField.classList.add('hidden');
+            inputField.value = '';
+            
+            if(type==='success'){ icon.className='fas fa-check-circle text-emerald-500'; cancelBtn.classList.add('hidden'); document.getElementById('customAlertTitle').innerText='สำเร็จ!'; okBtn.style.background='#10b981';}
+            else if(type==='confirm'){ icon.className='fas fa-question-circle text-rose-500'; cancelBtn.classList.remove('hidden'); document.getElementById('customAlertTitle').innerText='ยืนยันดำเนินการ'; okBtn.style.background='#ff4757'; }
+            else if(type==='prompt'){ icon.className='fas fa-pen-square text-[var(--primary-light)]'; cancelBtn.classList.remove('hidden'); document.getElementById('customAlertTitle').innerText='กรอกข้อมูล'; inputField.classList.remove('hidden'); inputField.value = defaultInputValue || ''; okBtn.style.background='var(--primary)'; }
+            else { icon.className='fas fa-info-circle text-[var(--primary)]'; cancelBtn.classList.add('hidden'); document.getElementById('customAlertTitle').innerText='แจ้งเตือน'; okBtn.style.background='var(--primary)'; }
+
+            modal.style.display = 'flex';
+            setTimeout(() => { 
+                modal.style.opacity = '1'; 
+                box.style.transform = 'scale(1)'; 
+                if(type === 'prompt') inputField.focus(); 
+            }, 10);
+        }
+
+        function closeCustomAlert(isCancel = false) { 
+            const modal = document.getElementById('customAlertModal');
+            const box = document.getElementById('customAlertBox');
+            const inputVal = document.getElementById('customAlertInput').value;
+
+            modal.style.opacity = '0';
+            box.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => { 
+                modal.style.display = 'none'; 
+                if (isCancel && alertCancelCallback) alertCancelCallback();
+                else if (!isCancel && alertCallback) alertCallback(inputVal);
+                alertCallback = null; alertCancelCallback = null;
+            }, 300);
+        }
+
+        function getDB() { return window.sysDB; }
+
+        // ================= Initialization =================
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof initAppUI === 'function') initAppUI();
+            try {
+                const db = getDB();
+                const { data: { session } } = await db.auth.getSession();
+                
+                if (session && session.user) {
+                    currentUserId = session.user.id;
+                } else {
+                    return window.location.replace('login.html');
+                }
+                
+                await fetchPlaylists(db);
+
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                showCustomAlert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่", "error");
+            }
+        });
+
+        // ================= การดึงข้อมูล =================
+        async function fetchPlaylists(db) {
+            try {
+                // ดึงรายชื่อ Playlist
+                const { data: playlists, error } = await db.from('playlists')
+                    .select('*')
+                    .eq('created_by', currentUserId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allPlaylists = playlists || [];
+                
+                // ดึงจำนวน Item ในแต่ละ Playlist (เพื่อเอามาโชว์ในวงเล็บ)
+                if (allPlaylists.length > 0) {
+                    const plIds = allPlaylists.map(p => p.id);
+                    const { data: itemCounts } = await db.from('playlist_items')
+                        .select('playlist_id')
+                        .in('playlist_id', plIds);
+                    
+                    if (itemCounts) {
+                        const countMap = {};
+                        itemCounts.forEach(i => { countMap[i.playlist_id] = (countMap[i.playlist_id] || 0) + 1; });
+                        allPlaylists.forEach(p => p.item_count = countMap[p.id] || 0);
+                    }
+                }
+
+                renderPlaylistsGrid(allPlaylists);
+
+            } catch(e) {
+                console.error("Fetch playlists error:", e);
+            } finally {
+                document.getElementById('loadingOverlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+            }
+        }
+
+        function renderPlaylistsGrid(dataList) {
+            const grid = document.getElementById('playlistsGrid');
+            document.getElementById('playlistCount').innerText = `ทั้งหมด ${dataList.length} คอลเล็กชัน`;
+
+            if (dataList.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-20 text-center opacity-50 bg-white border-2 border-dashed border-slate-200 rounded-3xl">
+                        <i class="fas fa-folder-open text-6xl mb-4"></i>
+                        <h3 class="font-bold text-xl font-['Kanit']">ยังไม่มีคอลเล็กชัน</h3>
+                        <p class="text-sm">กดปุ่ม "สร้างใหม่" ด้านบนเพื่อจัดกลุ่มภารกิจที่คุณต้องการ</p>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = dataList.map((pl, idx) => {
+                const dateStr = new Date(pl.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                return `
+                <div class="playlist-card animate-pop-in" style="animation-delay: ${idx * 0.05}s;" onclick="openPlaylistDetail('${pl.id}', '${pl.title.replace(/'/g, "\\'")}')">
+                    <div class="flex gap-4 items-center">
+                        <div class="playlist-icon-box">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="playlist-title">${pl.title}</h3>
+                            <p class="text-xs text-slate-400 m-0 font-['Sarabun']"><i class="fas fa-list-ul mr-1"></i> มีภารกิจ ${pl.item_count || 0} รายการ</p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterPlaylists(query) {
+            const q = query.toLowerCase().trim();
+            const filtered = allPlaylists.filter(pl => pl.title.toLowerCase().includes(q));
+            renderPlaylistsGrid(filtered);
+        }
+
+        // ================= จัดการภารกิจใน Playlist =================
+        async function openPlaylistDetail(plId, title) {
+            activePlaylistId = plId;
+            
+            // สลับ View
+            document.getElementById('playlistsView').classList.add('hidden');
+            document.getElementById('searchContainer').classList.add('hidden');
+            document.getElementById('playlistDetailView').classList.remove('hidden');
+            document.getElementById('btnBack').classList.remove('hidden');
+            document.getElementById('btnBack').classList.add('flex');
+            
+            document.getElementById('headerTitle').innerText = title;
+            document.getElementById('headerSubtitle').innerText = "คลิกลากเพื่อสลับลำดับ หรือกดเล่นภารกิจได้เลย";
+            document.getElementById('detailTitle').innerText = title;
+            
+            const plData = allPlaylists.find(p => p.id === plId);
+            if (plData) {
+                const updatedDate = new Date(plData.updated_at || plData.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                document.getElementById('detailDesc').innerText = `อัปเดตล่าสุด: ${updatedDate} น.`;
+            }
+
+            // โหลดรายการภารกิจ
+            const container = document.getElementById('missionListContainer');
+            container.innerHTML = `<div class="text-center py-10 text-[var(--primary)]"><i class="fas fa-circle-notch fa-spin text-3xl mb-3"></i><br>กำลังดึงข้อมูลภารกิจ...</div>`;
+
+            try {
+                const db = getDB();
+                const { data, error } = await db.from('playlist_items')
+                    .select('*, missions(*)')
+                    .eq('playlist_id', plId)
+                    .order('order_index', { ascending: true }); // สำคัญ: ดึงตามลำดับที่เรียงไว้
+
+                if (error) throw error;
+                
+                activePlaylistMissions = data || [];
+                renderMissionItems();
+
+            } catch(e) {
+                console.error(e);
+                container.innerHTML = `<div class="text-center py-10 text-rose-500">ดึงข้อมูลล้มเหลว โปรดลองอีกครั้ง</div>`;
+            }
+        }
+
+        function viewAllPlaylists() {
+            activePlaylistId = null;
+            document.getElementById('playlistsView').classList.remove('hidden');
+            document.getElementById('searchContainer').classList.remove('hidden');
+            document.getElementById('playlistDetailView').classList.add('hidden');
+            document.getElementById('btnBack').classList.add('hidden');
+            document.getElementById('btnBack').classList.remove('flex');
+            
+            document.getElementById('headerTitle').innerText = "ลิสต์เพลย์ของฉัน";
+            document.getElementById('headerSubtitle').innerText = "จัดการคอลเล็กชันภารกิจเพื่อเตรียมความพร้อมสำหรับการสอน";
+            
+            // เคลียร์ Sortable
+            if (sortableInstance) sortableInstance.destroy();
+            
+            // อัปเดตตัวเลขหน้าแรกเผื่อมีการลบออกไป
+            fetchPlaylists(getDB()); 
+        }
+
+        function renderMissionItems() {
+            const container = document.getElementById('missionListContainer');
+            
+            if (activePlaylistMissions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 bg-white border-2 border-dashed border-slate-200 rounded-2xl opacity-60">
+                        <i class="fas fa-box-open text-4xl mb-3 text-slate-300"></i>
+                        <p class="font-['Kanit'] font-bold text-slate-500">คอลเล็กชันนี้ว่างเปล่า</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = activePlaylistMissions.map((item, idx) => {
+                const m = item.missions;
+                if (!m) return ''; // กรณีภารกิจต้นทางถูกลบไปแล้ว
+
+                const colors = { quiz:'#f43f5e', match:'#10b981', ai_generated:'#8b5cf6', competition:'#f59e0b', html_custom:'#3b82f6', default: 'var(--primary)' };
+                const bgColors = { quiz:'#fff1f2', match:'#ecfdf5', ai_generated:'#f5f3ff', competition:'#fffbeb', html_custom:'#eff6ff', default: '#f0f4ff' };
+                const icons = { quiz:'fas fa-tasks', match:'fas fa-clone', ai_generated:'fas fa-robot', competition:'fas fa-trophy', html_custom:'fas fa-code' };
+                
+                const tColor = colors[m.mission_type] || colors.default;
+                const bgColor = bgColors[m.mission_type] || bgColors.default;
+                const icon = icons[m.mission_type] || 'fas fa-star';
+
+                const safeTitle = m.title.replace(/'/g, "\\'");
+
+                return `
+                <div class="mission-item-card animate-pop-in" style="animation-delay: ${idx * 0.05}s;" data-id="${item.id}">
+                    <i class="fas fa-grip-vertical drag-handle"></i>
+                    
+                    <div class="mission-icon" style="background: ${bgColor}; color: ${tColor};">
+                        <i class="${icon}"></i>
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold font-['Kanit'] text-slate-800 m-0 truncate" title="${m.title}">${m.title}</h4>
+                        <p class="text-[11px] text-slate-400 m-0 mt-1 font-['Sarabun']"><i class="fas fa-tag"></i> ${m.subject_group || 'ทั่วไป'} &bull; <i class="fas fa-star text-amber-500"></i> ${m.reward_points || 10} แต้ม</p>
+                    </div>
+                    
+                    <div class="mission-actions flex gap-2">
+                        <button onclick="window.open('play-mission.html?mid=${m.mission_id}', '_blank')" class="bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors border-none cursor-pointer flex items-center gap-1 shadow-sm">
+                            <i class="fas fa-play"></i> เล่น
+                        </button>
+                        <button onclick="removeMissionFromPlaylist('${item.id}', '${safeTitle}')" class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white w-8 h-8 rounded-lg flex items-center justify-center transition-colors border-none cursor-pointer shadow-sm" title="นำออกจากลิสต์เพลย์">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Initialize Sortable (ลากสลับที่)
+            if (sortableInstance) sortableInstance.destroy();
+            sortableInstance = new Sortable(container, {
+                handle: '.drag-handle',
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                onEnd: function (evt) {
+                    if (evt.oldIndex !== evt.newIndex) {
+                        saveNewOrder(); // บันทึกลำดับใหม่ลง DB ทันที
+                    }
+                },
+            });
+        }
+
+        // ================= Action Functions =================
+        function promptCreatePlaylist() {
+            showCustomAlert("", "prompt", async (newTitle) => {
+                const title = newTitle.trim();
+                if (!title) return;
+                
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingOverlay').style.opacity = '1';
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('playlists').insert([{
+                        title: title,
+                        created_by: currentUserId
+                    }]);
+                    if (error) throw error;
+                    
+                    showCustomAlert("สร้างคอลเล็กชันใหม่สำเร็จ!", "success", () => fetchPlaylists(db));
+                } catch(e) {
+                    showCustomAlert("ไม่สามารถสร้างได้: " + e.message, "error");
+                    document.getElementById('loadingOverlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+                }
+            }, null, "ตั้งชื่อคอลเล็กชันใหม่ (เช่น ติวสอบปลายภาค)");
+        }
+
+        function promptRenamePlaylist() {
+            const currentTitle = document.getElementById('detailTitle').innerText;
+            showCustomAlert("", "prompt", async (newTitle) => {
+                const title = newTitle.trim();
+                if (!title || title === currentTitle) return;
+                
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingOverlay').style.opacity = '1';
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('playlists').update({
+                        title: title,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', activePlaylistId);
+                    
+                    if (error) throw error;
+                    
+                    document.getElementById('headerTitle').innerText = title;
+                    document.getElementById('detailTitle').innerText = title;
+                    
+                    // แอบอัปเดตตัวแปร Array เบื้องหลังเพื่อไม่ให้เวลาออกไปหน้าแรกแล้วชื่อเก่าเด้ง
+                    const pl = allPlaylists.find(p => p.id === activePlaylistId);
+                    if (pl) pl.title = title;
+
+                } catch(e) {
+                    showCustomAlert("ไม่สามารถเปลี่ยนชื่อได้: " + e.message, "error");
+                } finally {
+                    document.getElementById('loadingOverlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+                }
+            }, null, currentTitle); // ใส่ชื่อเดิมลงไปในช่องกรอก
+        }
+
+        function promptDeletePlaylist() {
+            showCustomAlert(`คุณต้องการลบแฟ้มคอลเล็กชันนี้ใช่หรือไม่?<br><span class="text-xs text-rose-500">*ภารกิจข้างในจะไม่หายไปจากระบบ แค่แฟ้มจัดกลุ่มนี้จะหายไปเท่านั้น</span>`, "confirm", async () => {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingOverlay').style.opacity = '1';
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('playlists').delete().eq('id', activePlaylistId);
+                    if (error) throw error;
+                    
+                    showCustomAlert("ลบแฟ้มคอลเล็กชันสำเร็จ", "success", () => viewAllPlaylists());
+                } catch(e) {
+                    showCustomAlert("เกิดข้อผิดพลาดในการลบ: " + e.message, "error");
+                    document.getElementById('loadingOverlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+                }
+            });
+        }
+
+        function removeMissionFromPlaylist(itemId, missionTitle) {
+            showCustomAlert(`ต้องการนำภารกิจ <b>"${missionTitle}"</b> ออกจากคอลเล็กชันนี้ใช่หรือไม่?`, "confirm", async () => {
+                try {
+                    const db = getDB();
+                    const { error } = await db.from('playlist_items').delete().eq('id', itemId);
+                    if (error) throw error;
+                    
+                    // ลบ Element ออกจากหน้าจอแบบเนียนๆ
+                    const el = document.querySelector(`[data-id="${itemId}"]`);
+                    if (el) {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(0.9)';
+                        setTimeout(() => { 
+                            el.remove(); 
+                            activePlaylistMissions = activePlaylistMissions.filter(m => m.id !== itemId);
+                            if (activePlaylistMissions.length === 0) renderMissionItems();
+                        }, 300);
+                    }
+                } catch(e) {
+                    showCustomAlert("ไม่สามารถนำออกได้: " + e.message, "error");
+                }
+            });
+        }
+
+        // บันทึกลำดับการเรียงใหม่แบบ Background Process (ไม่แสดงหน้าโหลดให้กวนใจ)
+        async function saveNewOrder() {
+            const container = document.getElementById('missionListContainer');
+            const items = container.querySelectorAll('.mission-item-card');
+            
+            const updates = [];
+            items.forEach((item, index) => {
+                const itemId = item.getAttribute('data-id');
+                // คิวรี่เพื่ออัปเดต order_index (ลำดับที่)
+                updates.push(getDB().from('playlist_items').update({ order_index: index }).eq('id', itemId));
+            });
+
+            try {
+                await Promise.all(updates);
+                // อัปเดตเวลาที่อัปเดตแฟ้ม
+                await getDB().from('playlists').update({ updated_at: new Date().toISOString() }).eq('id', activePlaylistId);
+            } catch (e) {
+                console.error("Failed to save new order:", e);
+                // แอบแสดง Toast เล็กๆ ถ้ามีปัญหา
+            }
+        }
+
+        async function handleAuthAction() {
+            showCustomAlert("คุณต้องการออกจากระบบใช่หรือไม่?", "confirm", async () => {
+                await window.sysDB.auth.signOut();
+                location.href = 'login.html';
+            });
+        }
+    </script>
+</body>
+</html>
