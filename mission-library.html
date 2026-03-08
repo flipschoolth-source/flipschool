@@ -103,10 +103,16 @@
 
         /* Playlist Modal */
         .playlist-modal { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); transform: scale(0.95); transition: 0.3s; }
-        .playlist-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #edf2f7; border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
+        .playlist-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border: 1px solid #edf2f7; border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; user-select: none; }
         .playlist-item:hover { background: #f8faff; border-color: var(--primary-light); }
+        
+        /* 🌟 ปรับปรุงดีไซน์ Checkbox ให้เป็นแบบวงกลมติ๊กถูกทันสมัย 🌟 */
+        .playlist-checkbox { appearance: none; background-color: #fff; margin: 0; font: inherit; color: currentColor; width: 22px; height: 22px; border: 2px solid #cbd5e1; border-radius: 50%; display: grid; place-content: center; cursor: pointer; transition: 0.2s; }
+        .playlist-checkbox::before { content: ""; width: 12px; height: 12px; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em white; background-color: white; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
+        .playlist-checkbox:checked { background-color: var(--primary); border-color: var(--primary); }
+        .playlist-checkbox:checked::before { transform: scale(1); }
 
-        /* 🌟 Toast Notification (ป๊อปอัปแจ้งเตือนแล้วหายไปเอง) 🌟 */
+        /* 🌟 Toast Notification 🌟 */
         #toastNotification {
             position: fixed;
             top: -100px;
@@ -114,11 +120,11 @@
             transform: translateX(-50%);
             background-color: #333;
             color: white;
-            padding: 12px 28px;
+            padding: 12px 24px;
             border-radius: 50px;
             font-family: 'Kanit', sans-serif;
-            font-size: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             z-index: 10500;
             transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
@@ -138,6 +144,7 @@
         @media (max-width: 768px) {
             #mainNav { padding: 0 15px; height: 75px; }
             .fab-add { bottom: 20px; right: 20px; width: 55px; height: 55px; font-size: 24px; }
+            #toastNotification.show { top: auto; bottom: 30px; } /* ขยับ Toast ลงล่างในมือถือ */
         }
     </style>
 </head>
@@ -148,9 +155,9 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังรวบรวมคลังข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Toast Notification (Popup ด้านบน) 🌟 -->
+    <!-- 🌟 Toast Notification (Popup) 🌟 -->
     <div id="toastNotification">
-        <i class="fas fa-check-circle"></i> <span>ทำรายการสำเร็จ</span>
+        <i class="fas fa-check-circle"></i> <span id="toastText">ทำรายการสำเร็จ</span>
     </div>
 
     <!-- 🌟 Navbar 🌟 -->
@@ -249,26 +256,31 @@
 
     <button onclick="checkAuthAndCreate()" id="fabAdd" class="fab-add hidden" title="สร้างภารกิจใหม่"><i class="fas fa-plus"></i></button>
 
-    <!-- 🌟 Modal สำหรับเพิ่มลงลิสต์เพลย์ (Playlist) 🌟 -->
-    <div id="playlistModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10000] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <!-- 🌟 Modal สำหรับเพิ่มลงลิสต์เพลย์ (Playlist) อัปเดต UX 🌟 -->
+    <div id="playlistModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10000] items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="closePlaylistModal()">
         <div class="playlist-modal" id="playlistModalBox" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
                 <h3 class="text-lg font-bold font-['Kanit'] text-[var(--primary)] m-0"><i class="fas fa-bookmark text-[var(--accent)] mr-2"></i> บันทึกในลิสต์เพลย์</h3>
-                <i class="fas fa-times text-slate-400 hover:text-rose-500 cursor-pointer" onclick="closePlaylistModal()"></i>
+                <i class="fas fa-times text-slate-400 hover:text-rose-500 cursor-pointer transition-colors" onclick="closePlaylistModal()"></i>
             </div>
             
-            <p class="text-xs text-slate-500 font-['Sarabun'] mb-3">เลือกคอลเล็กชันเพื่อจัดเก็บภารกิจนี้</p>
+            <p class="text-xs text-slate-500 font-['Sarabun'] mb-3">คลิกเลือกคอลเล็กชันเพื่อจัดเก็บภารกิจนี้ได้เลย</p>
             
             <!-- รายการ Playlist ของผู้ใช้ -->
-            <div class="max-h-[250px] overflow-y-auto mb-4" id="mockPlaylists">
+            <div class="max-h-[250px] overflow-y-auto mb-4 px-1" id="mockPlaylists">
                 <!-- โหลดข้อมูลจาก DB มาแสดงที่นี่ -->
             </div>
 
             <div class="border-t border-slate-100 pt-4 mt-2">
-                <div class="flex gap-2">
-                    <input type="text" id="newPlaylistName" placeholder="สร้างลิสต์เพลย์ใหม่..." class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm font-['Sarabun'] outline-none focus:border-[var(--primary)]" onkeypress="if(event.key==='Enter') createNewPlaylist()">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newPlaylistName" placeholder="สร้างลิสต์เพลย์ใหม่..." class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm font-['Sarabun'] outline-none focus:border-[var(--primary)] transition-colors" onkeypress="if(event.key==='Enter') createNewPlaylist()">
                     <button id="btnCreatePlaylist" onclick="createNewPlaylist()" class="bg-slate-100 hover:bg-slate-200 text-[var(--primary)] px-4 py-2 rounded-xl font-bold border-none cursor-pointer transition-colors"><i class="fas fa-plus"></i></button>
                 </div>
+                
+                <!-- 🌟 เพิ่มปุ่มเสร็จสิ้น 🌟 -->
+                <button onclick="closePlaylistModal()" class="w-full bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white py-3 rounded-xl font-bold font-['Kanit'] text-sm transition-colors border-none cursor-pointer shadow-sm">
+                    เสร็จสิ้น
+                </button>
             </div>
         </div>
     </div>
@@ -300,6 +312,7 @@
         // ตัวแปรสำหรับระบบ Playlist
         let userPlaylists = [];
         let activePlaylistMissionId = null;
+        let savedMissionIds = new Set(); // เก็บไอดีภารกิจที่อยู่ในลิสต์เพลย์แล้ว
 
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
@@ -312,11 +325,12 @@
         let toastTimeout;
         function showToast(msg, iconClass = 'fas fa-check-circle', bgColor = '#10b981') {
             const toast = document.getElementById('toastNotification');
-            toast.innerHTML = `<i class="${iconClass} text-lg"></i> <span>${msg}</span>`;
+            document.getElementById('toastText').innerText = msg;
+            toast.querySelector('i').className = iconClass + ' text-lg';
             toast.style.backgroundColor = bgColor;
             
             toast.classList.remove('show');
-            void toast.offsetWidth; // บังคับให้เบราว์เซอร์ล้างค่าแอนิเมชันเดิมก่อน
+            void toast.offsetWidth; 
             
             toast.classList.add('show');
             
@@ -380,6 +394,7 @@
                     
                     // โหลด Playlists ของผู้ใช้เก็บไว้
                     await fetchUserPlaylists(db);
+                    await fetchSavedMissions(db); 
                 } else {
                     const studentSession = localStorage.getItem('flip_student_session_id');
                     if (studentSession) {
@@ -407,7 +422,7 @@
             }
         });
 
-        // ================= 🌟 ฟังก์ชันจัดการ Playlist 🌟 =================
+        // ================= 🌟 ฟังก์ชันจัดการ Playlist (ปรับปรุง UX) 🌟 =================
         async function fetchUserPlaylists(db) {
             if (!currentUserId) return;
             try {
@@ -419,6 +434,34 @@
                     userPlaylists = data;
                 }
             } catch (e) { console.error('Error fetching playlists:', e); }
+        }
+
+        async function fetchSavedMissions(db) {
+            if (!currentUserId || userPlaylists.length === 0) return;
+            try {
+                const plIds = userPlaylists.map(p => p.id);
+                const { data, error } = await db.from('playlist_items')
+                    .select('mission_id')
+                    .in('playlist_id', plIds);
+                if (!error && data) {
+                    savedMissionIds = new Set(data.map(d => d.mission_id));
+                }
+            } catch (e) { console.error('Error fetching saved missions:', e); }
+        }
+
+        // อัปเดต UI ของปุ่ม Bookmark ด้านนอกแบบ Real-time
+        function updateBookmarkUI(missionId, isSaved) {
+            const btn = document.getElementById(`bookmark-btn-${missionId}`);
+            const icon = document.getElementById(`bookmark-icon-${missionId}`);
+            if (btn && icon) {
+                if (isSaved) {
+                    btn.className = "bg-blue-500 hover:bg-blue-600 text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-md";
+                    icon.className = "fas fa-bookmark";
+                } else {
+                    btn.className = "bg-blue-50 hover:bg-blue-500 text-blue-500 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm";
+                    icon.className = "far fa-bookmark";
+                }
+            }
         }
 
         async function openPlaylistModal(missionId) {
@@ -465,24 +508,27 @@
                 return;
             }
             
+            // ทำให้การคลิกที่กล่อง (div) ทั้งหมด เป็นการส่งค่าไปด้วย (Clickable Row)
             listContainer.innerHTML = userPlaylists.map(pl => {
                 const isChecked = savedPlaylistIds.includes(pl.id);
                 return `
-                <div class="playlist-item group" onclick="togglePlaylistCheckbox(this, '${pl.id}')">
-                    <span class="font-['Kanit'] text-sm text-slate-700 flex items-center"><i class="fas fa-folder text-blue-300 mr-2 group-hover:text-[var(--primary)] transition-colors"></i> ${pl.title}</span>
-                    <input type="checkbox" class="accent-[var(--primary)] w-4 h-4 cursor-pointer" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleMissionInPlaylist('${pl.id}', this.checked)">
+                <div class="playlist-item" onclick="togglePlaylistCheckbox(this, '${pl.id}', '${pl.title.replace(/'/g, "\\'")}')">
+                    <span class="font-['Kanit'] text-sm text-slate-700 flex items-center">
+                        <i class="fas fa-folder text-blue-300 mr-3 text-lg"></i> ${pl.title}
+                    </span>
+                    <input type="checkbox" class="playlist-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleMissionInPlaylist('${pl.id}', this.checked, '${pl.title.replace(/'/g, "\\'")}')">
                 </div>`;
             }).join('');
         }
 
-        function togglePlaylistCheckbox(divEl, playlistId) {
+        function togglePlaylistCheckbox(divEl, playlistId, playlistTitle) {
             const cb = divEl.querySelector('input[type="checkbox"]');
-            cb.checked = !cb.checked;
-            toggleMissionInPlaylist(playlistId, cb.checked);
+            cb.checked = !cb.checked; // สลับค่า Checkbox
+            toggleMissionInPlaylist(playlistId, cb.checked, playlistTitle);
         }
 
-        // 🌟 แก้ไข: บันทึกสำเร็จแล้วปิดอัตโนมัติ 🌟
-        async function toggleMissionInPlaylist(playlistId, isAdding) {
+        // 🌟 แก้ไข: ไม่ปิดหน้าต่างอัตโนมัติแล้ว ให้ติ๊กได้เรื่อยๆ 🌟
+        async function toggleMissionInPlaylist(playlistId, isAdding, playlistTitle) {
             if (!activePlaylistMissionId) return;
             const db = getDB();
             try {
@@ -491,18 +537,32 @@
                         playlist_id: playlistId,
                         mission_id: activePlaylistMissionId
                     }]);
-                    showToast('บันทึกลงลิสต์เพลย์เรียบร้อยแล้ว', 'fas fa-check-circle', '#10b981');
                     
-                    // ปิด Modal อัตโนมัติใน 0.5 วินาที
-                    setTimeout(() => { closePlaylistModal(); }, 500);
+                    savedMissionIds.add(activePlaylistMissionId);
+                    updateBookmarkUI(activePlaylistMissionId, true);
+                    
+                    // แจ้งเตือนสีเขียว บอกชื่อลิสต์
+                    showToast(`บันทึกลง "${playlistTitle}" แล้ว`, 'fas fa-check-circle', '#10b981');
+                    
                 } else {
                     await db.from('playlist_items')
                         .delete()
                         .eq('playlist_id', playlistId)
                         .eq('mission_id', activePlaylistMissionId);
                     
-                    // ลบออก แจ้งเตือนสีแดง และไม่ปิดหน้าต่าง (เผื่อติ๊กผิด)
-                    showToast('นำออกจากลิสต์เพลย์แล้ว', 'fas fa-info-circle', '#ff4757');
+                    const plIds = userPlaylists.map(p => p.id);
+                    const { count } = await db.from('playlist_items')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('mission_id', activePlaylistMissionId)
+                        .in('playlist_id', plIds);
+                    
+                    if (count === 0) {
+                        savedMissionIds.delete(activePlaylistMissionId);
+                        updateBookmarkUI(activePlaylistMissionId, false);
+                    }
+                    
+                    // แจ้งเตือนสีเทากลางๆ (Neutral) ว่ายกเลิกแล้ว
+                    showToast(`นำออกจาก "${playlistTitle}" แล้ว`, 'fas fa-info-circle', '#64748b');
                 }
             } catch(e) {
                 console.error('Error toggling playlist item:', e);
@@ -539,8 +599,10 @@
                         mission_id: activePlaylistMissionId
                     }]);
                     
-                    showToast('สร้างคอลเล็กชันและบันทึกแล้ว', 'fas fa-check-circle', '#10b981');
-                    setTimeout(() => { closePlaylistModal(); }, 500);
+                    savedMissionIds.add(activePlaylistMissionId);
+                    updateBookmarkUI(activePlaylistMissionId, true);
+                    
+                    showToast(`สร้างและบันทึกลง "${title}" แล้ว`, 'fas fa-check-circle', '#10b981');
 
                     const { data } = await db.from('playlist_items').select('playlist_id').eq('mission_id', activePlaylistMissionId);
                     const savedIds = data ? data.map(d => d.playlist_id) : [newId];
@@ -553,13 +615,6 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-plus"></i>';
             }
-        }
-
-        function openMyPlaylists() {
-            if (!currentUserId || document.getElementById('filterSource').disabled) {
-                return showCustomAlert("สิทธิ์นี้สงวนไว้เฉพาะคุณครูที่ลงทะเบียนเท่านั้นครับ", "warning");
-            }
-            showCustomAlert("หน้าต่างจัดการ Playlist ส่วนตัว (แก้ชื่อ ลบ จัดกลุ่ม) กำลังอยู่ในการพัฒนาครับ<br><br>แต่คุณครูสามารถสร้างและเพิ่มภารกิจลงใน Playlist ผ่านปุ่มไอคอนบุ๊กมาร์กที่การ์ดแต่ละใบได้เลยครับ!", "info");
         }
 
         // ================= สคริปต์จัดการภารกิจและค้นหา =================
@@ -706,6 +761,12 @@
 
             const delay = (index % ITEMS_PER_LOAD) * 0.05;
 
+            const isSaved = savedMissionIds.has(m.mission_id);
+            const bookmarkBtnClass = isSaved 
+                ? "bg-blue-500 hover:bg-blue-600 text-white shadow-md" 
+                : "bg-blue-50 hover:bg-blue-500 text-blue-500 hover:text-white shadow-sm";
+            const bookmarkIcon = isSaved ? "fas fa-bookmark" : "far fa-bookmark";
+
             return `
             <div class="mission-card animate-pop-in" style="animation-delay: ${delay}s; border-top-color: ${themeColor};">
                 <div class="preview-image-container">
@@ -734,8 +795,8 @@
                             <i class="fas fa-play"></i> เล่น
                         </button>
                         
-                        <button onclick="openPlaylistModal('${m.mission_id}')" class="bg-blue-50 hover:bg-blue-500 text-blue-500 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="เพิ่มลงลิสต์เพลย์">
-                            <i class="fas fa-bookmark"></i>
+                        <button id="bookmark-btn-${m.mission_id}" onclick="openPlaylistModal('${m.mission_id}')" class="${bookmarkBtnClass} px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer" title="เพิ่มลงลิสต์เพลย์">
+                            <i id="bookmark-icon-${m.mission_id}" class="${bookmarkIcon}"></i>
                         </button>
 
                         <button onclick="quickShare('${m.mission_id}')" class="bg-indigo-50 hover:bg-indigo-500 text-indigo-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="คัดลอกลิงก์แชร์">
