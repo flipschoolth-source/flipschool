@@ -56,8 +56,10 @@
         .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
         .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
         .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
         
-        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); border-bottom: 4px solid var(--accent); }
         
         /* 🌟 Form Style 🌟 */
         .form-card { background: white; border-radius: 2rem; padding: clamp(1.5rem, 5vw, 3rem); box-shadow: 0 15px 45px rgba(0,0,0,0.05); border: 1px solid #edf2f7; }
@@ -95,7 +97,7 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;" id="loadingText">กำลังเตรียมข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Navbar (เพิ่มเมนูกลับมาให้สมบูรณ์) 🌟 -->
+    <!-- 🌟 Navbar 🌟 -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -108,8 +110,8 @@
         <div class="nav-center">
             <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
-            <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
-            <a href="mission-create.html" class="nav-link"><i class="fas fa-plus-circle"></i> สร้างภารกิจ</a>
+            <a href="mission-library.html" class="nav-link library-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="mission-create.html" class="nav-link create-mission-link"><i class="fas fa-plus-circle"></i> สร้างภารกิจ</a>
         </div>
 
         <div class="nav-right">
@@ -122,8 +124,8 @@
         <div id="mobileMenu" class="mobile-dropdown">
             <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
-            <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
-            <a href="mission-create.html"><i class="fas fa-plus-circle"></i> สร้างภารกิจ</a>
+            <a href="mission-library.html" class="library-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="mission-create.html" class="create-mission-link"><i class="fas fa-plus-circle"></i> สร้างภารกิจ</a>
             <a href="#" onclick="history.back()"><i class="fas fa-times text-rose-500"></i> ยกเลิก / ย้อนกลับ</a>
         </div>
     </nav>
@@ -211,7 +213,6 @@
         let targetFolder = 'ทั่วไป';
         let embedType = 'general';
 
-        // ================= 🌟 ฟังก์ชันจัดการ Navbar และ Scroll 🌟 =================
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
             if (window.scrollY > 20) nav.classList.add('scrolled');
@@ -235,6 +236,15 @@
             currentClassId = params.get('cid');
             targetFolder = params.get('folder') || 'ทั่วไป';
             embedType = params.get('type') || 'general';
+
+            document.querySelectorAll('.create-mission-link, .library-link').forEach(link => {
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    if (currentClassId) url.searchParams.set('cid', currentClassId);
+                    if (targetFolder) url.searchParams.set('folder', targetFolder);
+                    link.href = url.href;
+                } catch (e) { console.error("URL Parsing Error", e); }
+            });
 
             setupUIBasedOnType();
 
@@ -324,6 +334,7 @@
             }
         }
 
+        let alertCallback = null;
         function showCustomAlert(msg, type='info', cb=null) { 
             const modal = document.getElementById('customAlertModal');
             document.getElementById('customAlertMessage').innerHTML = msg;
