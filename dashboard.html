@@ -1,4 +1,3 @@
-<!-- ไฟล์: dashboard.html -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -408,11 +407,22 @@
     <footer class="footer footer-display-text"></footer>
 
     <script>
-        // UI Helpers
-        window.addEventListener('scroll', () => {
-            const nav = document.getElementById('mainNav');
-            if (window.scrollY > 20) nav.classList.add('scrolled');
-            else nav.classList.remove('scrolled');
+        // ================= 🌟 นำเข้าและเซ็ตค่า UI ตอนโหลดเสร็จ 🌟 =================
+        document.addEventListener('DOMContentLoaded', () => {
+            // ระบบ Navbar scroll
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('mainNav');
+                if (window.scrollY > 20) nav.classList.add('scrolled');
+                else nav.classList.remove('scrolled');
+            });
+
+            // ดึงข้อความจาก APP_CONFIG มาแสดงผล (แก้ไขให้โหลดติด 100%)
+            if (typeof APP_CONFIG !== 'undefined') {
+                document.querySelectorAll('.footer-display-text').forEach(el => el.innerHTML = APP_CONFIG.FOOTER_TEXT || 'นวัตกรรมเพื่อการจัดการเรียนรู้');
+                document.querySelectorAll('.slogan').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้');
+            }
+
+            initDashboard();
         });
         
         function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
@@ -420,20 +430,23 @@
         function closeGloryModal() { document.getElementById('gloryModal').style.display = 'none'; }
         
         function renderGloryDetails() {
-            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS) {
+            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.GLORY_DETAILS && APP_CONFIG.GLORY_DETAILS.HOME) {
                 const generateHtml = (item, bgColor, textColor) => `
                     <div style="display: flex; gap: clamp(10px, 2vw, 15px); align-items: flex-start;">
                         <div style="width: clamp(45px, 10vw, 55px); height: clamp(45px, 10vw, 55px); background: ${bgColor}; color: white; border-radius: clamp(10px, 2vw, 14px); display: flex; align-items: center; justify-content: center; font-family: 'Kanit'; font-weight: 800; font-size: clamp(20px, 5vw, 26px); flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                            ${item.letter}
+                            ${item.letter || '-'}
                         </div>
                         <div>
-                            <h4 style="font-family: 'Kanit'; font-size: clamp(16px, 3vw, 18px); color: ${textColor}; margin: 0 0 5px 0; font-weight: 700;">${item.title}</h4>
-                            <p style="font-size: clamp(13px, 2.5vw, 14px); color: var(--text-muted); margin: 0; line-height: 1.5;">${item.desc}</p>
+                            <h4 style="font-family: 'Kanit'; font-size: clamp(16px, 3vw, 18px); color: ${textColor}; margin: 0 0 5px 0; font-weight: 700;">${item.title || ''}</h4>
+                            <p style="font-size: clamp(13px, 2.5vw, 14px); color: var(--text-muted); margin: 0; line-height: 1.5;">${item.desc || ''}</p>
                         </div>
                     </div>
                 `;
                 document.getElementById('homeDetail').innerHTML = APP_CONFIG.GLORY_DETAILS.HOME.map(item => generateHtml(item, 'var(--accent)', '#d35400')).join('');
                 document.getElementById('schoolDetail').innerHTML = APP_CONFIG.GLORY_DETAILS.SCHOOL.map(item => generateHtml(item, 'var(--primary)', 'var(--primary)')).join('');
+            } else {
+                document.getElementById('homeDetail').innerHTML = '<p class="text-sm text-slate-500">อยู่ระหว่างเตรียมข้อมูล</p>';
+                document.getElementById('schoolDetail').innerHTML = '<p class="text-sm text-slate-500">อยู่ระหว่างเตรียมข้อมูล</p>';
             }
         }
 
@@ -449,7 +462,7 @@
             
             if(type==='error') { icon.className = 'fas fa-times-circle text-rose-500'; cancelBtn.classList.add('hidden'); }
             else if(type==='success') { icon.className = 'fas fa-check-circle text-emerald-500'; cancelBtn.classList.add('hidden'); }
-            else if(type==='confirm') { icon.className = 'fas fa-question-circle text-amber-500'; cancelBtn.classList.remove('hidden'); cancelBtn.style.display = 'inline-block'; }
+            else if(type==='confirm') { icon.className = 'fas fa-question-circle text-amber-500'; cancelBtn.classList.remove('hidden'); }
             else { icon.className = 'fas fa-exclamation-triangle text-amber-500'; cancelBtn.classList.add('hidden'); }
             
             document.getElementById('customAlertModal').style.display = 'flex'; 
@@ -481,6 +494,7 @@
         let reqSchoolHasAdmin = false;
         let selectedImageFile = null;
 
+        // 🌟 แก้ไข: ใช้ฟังก์ชัน getDB เพื่อป้องกัน sysDB หายตอนโหลด 🌟
         function getDB() {
             if (window.sysDB) return window.sysDB;
             window.sysDB = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
@@ -527,11 +541,12 @@
 
             document.getElementById('syncIndicator').classList.add('syncing');
 
-            // 2. แอบไปโหลดข้อมูลล่าสุดจากฐานข้อมูล (Background Fetch)
+            // แอบไปโหลดข้อมูลล่าสุดจากฐานข้อมูล (Background Fetch)
             await fetchFreshData(userId, db);
         }
 
         function updateProfileUI(user) {
+            if(!user) return;
             document.getElementById('welcomeText').innerText = user.first_name || 'ผู้ใช้งาน';
             document.getElementById('sidebarName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
             document.getElementById('sidebarEmail').innerText = currentUser.email || `รหัส: ${user.student_code || '-'}`;
@@ -547,6 +562,7 @@
                 if (!user) {
                     const { data: us } = await db.from('user_school').select('first_name, last_name, student_code').eq('user_id', userId).limit(1).maybeSingle();
                     if (us) user = { user_id: userId, first_name: us.first_name, last_name: us.last_name, student_code: us.student_code };
+                    else user = { user_id: userId, first_name: 'ผู้ใช้งาน', last_name: 'ระบบ' }; // 🌟 แก้ไข: ใส่ Fallback กัน Error เผื่อไม่มีทั้งสองตาราง
                 }
                 
                 if (user) {
@@ -607,7 +623,6 @@
 
                 const schoolIds = [...new Set(newAllClasses.map(c => c.school_id).filter(id => id))];
                 if (schoolIds.length > 0) {
-                    // 🌟 เพิ่มการดึงข้อมูล school_abbr มาด้วย
                     const { data: sData } = await db.from('schools').select('school_id, school_name, school_abbr').in('school_id', schoolIds);
                     const sDict = Object.fromEntries((sData || []).map(s => [s.school_id, s]));
                     newAllClasses = newAllClasses.map(c => ({ 
@@ -723,7 +738,6 @@
             const grid = document.getElementById('gridAllClasses');
             if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full py-24 text-center text-slate-300"><i class="fas fa-folder-open text-5xl mb-3 block"></i> <span class="font-[\'Kanit\'] text-lg font-bold">ยังไม่มีห้องเรียน</span></div>'; return; }
             
-            // 🌟 ปรับการแสดงผลชื่อโรงเรียนในการ์ด โดยเช็คว่ามี school_abbr หรือไม่
             grid.innerHTML = filtered.map(c => `
                 <div class="class-card group" onclick="location.href='classroom-detail.html?id=${c.classroom_id}'">
                     <div class="card-banner" style="background: ${c.color_code || 'var(--primary)'};"><i class="fas fa-graduation-cap group-hover:scale-110 transition-transform"></i></div>
@@ -1057,8 +1071,9 @@
 
         // ================= 🔔 ระบบแจ้งเตือนอนุมัติครู 🔔 =================
         function setupRealtimeNotifications() {
+            const db = getDB(); // ใช้ตัวแปร Local ที่เซฟตี้กว่า
             if (pendingRequestsSubscription) {
-                sysDB.removeChannel(pendingRequestsSubscription);
+                db.removeChannel(pendingRequestsSubscription);
                 pendingRequestsSubscription = null;
             }
 
@@ -1066,7 +1081,7 @@
 
             if (approvedSchoolIds.length > 0) {
                 checkPendingTeachers(); 
-                pendingRequestsSubscription = sysDB.channel('custom-update-channel')
+                pendingRequestsSubscription = db.channel('custom-update-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'user_school' }, (payload) => {
                         const record = payload.new || payload.old;
                         if (record && approvedSchoolIds.includes(record.school_id)) {
@@ -1081,11 +1096,12 @@
         }
 
         async function checkPendingTeachers() {
+            const db = getDB();
             const approvedSchoolIds = userSchools.filter(s => s.verification_status === 'approved').map(s => s.school_id);
             if (approvedSchoolIds.length === 0) return;
 
             try {
-                const { data: reqs, error: reqErr } = await sysDB.from('user_school')
+                const { data: reqs, error: reqErr } = await db.from('user_school')
                     .select('id, user_id, school_id, role, verification_card_url, created_at')
                     .eq('verification_status', 'pending')
                     .in('role', ['teacher', 'admin']) 
@@ -1099,8 +1115,8 @@
                     const userIds = reqs.map(r => r.user_id);
                     const schoolIds = reqs.map(r => r.school_id);
 
-                    const { data: usersData } = await sysDB.from('users').select('user_id, first_name, last_name, profile_pic').in('user_id', userIds);
-                    const { data: schoolsData } = await sysDB.from('schools').select('school_id, school_name').in('school_id', schoolIds);
+                    const { data: usersData } = await db.from('users').select('user_id, first_name, last_name, profile_pic').in('user_id', userIds);
+                    const { data: schoolsData } = await db.from('schools').select('school_id, school_name').in('school_id', schoolIds);
 
                     reqs.forEach(r => {
                         if (r.user_id !== currentUser.id) { 
@@ -1172,7 +1188,7 @@
                 
                 let viewCardBtn = '';
                 if (req.verification_card_url) {
-                    const publicUrl = sysDB.storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
+                    const publicUrl = getDB().storage.from('teacher-verifications').getPublicUrl(req.verification_card_url).data.publicUrl;
                     viewCardBtn = `<span onclick="viewImage('${publicUrl}')" style="color: var(--primary-light); cursor: pointer; text-decoration: underline; margin-left: 5px; font-weight: normal; font-size: 13px;"><i class="fas fa-id-card"></i> ดูบัตร</span>`;
                 } else if (req.role === 'admin') {
                     viewCardBtn = `<span style="color: #ff4757; margin-left: 5px; font-size: 12px;"><i class="fas fa-exclamation-triangle"></i> ไม่ได้แนบบัตร</span>`;
@@ -1220,15 +1236,16 @@
             let origText = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             try {
-                await sysDB.from('user_school').update({ 
+                const db = getDB();
+                await db.from('user_school').update({ 
                     verification_status: 'approved', 
                     approved_by: currentUser.id, 
                     approved_at: new Date().toISOString() 
                 }).eq('id', tsId);
                 
                 if (cardUrl) {
-                    try { await sysDB.storage.from('teacher-verifications').remove([cardUrl]); } catch(e){}
-                    await sysDB.from('user_school').update({ verification_card_url: null }).eq('id', tsId);
+                    try { await db.storage.from('teacher-verifications').remove([cardUrl]); } catch(e){}
+                    await db.from('user_school').update({ verification_card_url: null }).eq('id', tsId);
                 }
                 
                 removePendingRequestCard(tsId);
@@ -1257,14 +1274,15 @@
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                await sysDB.from('user_school').update({ 
+                const db = getDB();
+                await db.from('user_school').update({ 
                     verification_status: 'rejected', 
                     reject_reason: reasonValue 
                 }).eq('id', tsId);
                 
                 if (cardUrl) {
-                    try { await sysDB.storage.from('teacher-verifications').remove([cardUrl]); } catch(e){}
-                    await sysDB.from('user_school').update({ verification_card_url: null }).eq('id', tsId);
+                    try { await db.storage.from('teacher-verifications').remove([cardUrl]); } catch(e){}
+                    await db.from('user_school').update({ verification_card_url: null }).eq('id', tsId);
                 }
                 removePendingRequestCard(tsId);
             } catch(err) {
@@ -1308,7 +1326,6 @@
             try {
                 const db = getDB();
                 
-                // 🌟 แก้ไข: ค้นหาด้วย class_code เพียงอย่างเดียว ป้องกัน Error จากคอลัมน์ที่ไม่มีอยู่จริง
                 const { data: cls, error: searchErr } = await db.from('classrooms')
                     .select('classroom_id, subject_name')
                     .eq('class_code', code)
@@ -1351,7 +1368,6 @@
         function closeSmartBanner() { document.getElementById('smartAppBanner').style.display = 'none'; }
         function handleOpenInAppClick(e) { if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) { e.preventDefault(); showCustomAlert('<b>ระบบ iOS ไม่รองรับการติดตั้งอัตโนมัติ</b><br><br>กรุณากดปุ่ม "แชร์" (สี่เหลี่ยมลูกศรชี้ขึ้น) และเลือก "เพิ่มไปยังหน้าจอโฮม" ครับ', 'info'); } }
 
-        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 </html>
