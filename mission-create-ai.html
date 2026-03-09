@@ -434,7 +434,7 @@
 
                     const { data: { session } } = await window.sysDB.auth.getSession();
                     if (!session) {
-                        window.location.href = 'teacher-login.html'; 
+                        window.location.href = 'login.html'; 
                         return;
                     }
 
@@ -944,19 +944,35 @@
             document.getElementById("apiKeyInput").value = cleanedKey;
 
             try {
-                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
+                // แก้ไขจากตาราง teachers เป็น users และเปลี่ยน teacher_id เป็น user_id
+                const { error } = await window.sysDB.from('users').update({ gemini_api_key: cleanedKey }).eq('user_id', currentUserId);
+                if (error) throw error;
+                
                 toggleKeyEdit(false);
                 showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้", true); }
+            } catch (e) { 
+                console.error("Save Key Error:", e);
+                showMessage("ไม่สามารถบันทึกได้", true); 
+            }
         }
 
         async function loadKeyFromDB() {
             if (!window.sysDB || !currentUserId) return;
-            const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', currentUserId).single();
-            if(data?.gemini_api_key) {
-                document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                toggleKeyEdit(false);
-            } else { toggleKeyEdit(true); }
+            try {
+                // แก้ไขจากตาราง teachers เป็น users และเปลี่ยน teacher_id เป็น user_id
+                const { data, error } = await window.sysDB.from('users').select('gemini_api_key').eq('user_id', currentUserId).single();
+                if (error && error.code !== 'PGRST116') throw error;
+                
+                if(data && data.gemini_api_key) {
+                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
+                    toggleKeyEdit(false);
+                } else { 
+                    toggleKeyEdit(true); 
+                }
+            } catch (err) {
+                console.error("Load Key Error:", err);
+                toggleKeyEdit(true);
+            }
         }
 
         async function loadExistingMission() {
