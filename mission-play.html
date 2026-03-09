@@ -85,10 +85,13 @@
         .teacher-fab:active { transform: scale(0.95); }
         .teacher-menu { position: absolute; bottom: 85px; right: 20px; background: white; padding: 10px; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 8px; z-index: 1000; border: 1px solid #f1f5f9; transform-origin: bottom right; transition: all 0.2s; }
         
-        /* ปุ่ม Fullscreen */
-        .fullscreen-fab { position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.9); color: var(--text-main); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 18px; backdrop-filter: blur(4px); }
-        .fullscreen-fab:hover { background: white; transform: scale(1.1); color: var(--primary); }
-        .fullscreen-fab:active { transform: scale(0.95); }
+        /* ปุ่ม Fullscreen & ปุ่มย้อนกลับแบบลอยตัว */
+        .floating-btn { position: absolute; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.9); color: var(--text-main); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 18px; backdrop-filter: blur(4px); }
+        .floating-btn:hover { background: white; transform: scale(1.1); color: var(--primary); }
+        .floating-btn:active { transform: scale(0.95); }
+        
+        .fullscreen-fab { top: 20px; right: 20px; }
+        .back-fab { top: 20px; left: 20px; }
 
         #loader { position: fixed; inset: 0; z-index: 9999; background-color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         
@@ -170,7 +173,7 @@
             <div class="text-5xl mb-4">🚫</div>
             <h3 class="text-xl font-bold text-slate-800 font-['Kanit']">ทำภารกิจสำเร็จแล้ว</h3>
             <p class="text-sm text-slate-500 mt-2 font-sans">คุณครูไม่อนุญาตให้นักเรียนทำภารกิจนี้ซ้ำครับ</p>
-            <button onclick="history.back()" class="mt-8 w-full bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white font-bold py-3.5 rounded-2xl shadow-lg border-none cursor-pointer transition-colors font-['Kanit']">กลับสู่ห้องเรียน</button>
+            <button onclick="goBack()" class="mt-8 w-full bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white font-bold py-3.5 rounded-2xl shadow-lg border-none cursor-pointer transition-colors font-['Kanit']">กลับสู่ห้องเรียน</button>
         </div>
     </div>
 
@@ -185,6 +188,26 @@
             <div class="mt-6 flex gap-2">
                 <a href="login.html" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center no-underline transition-colors font-['Kanit']">เข้าสู่ระบบ</a>
                 <button onclick="location.reload()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl text-sm border-none cursor-pointer transition-colors font-['Kanit']">เล่นอีกครั้ง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 SUCCESS MODAL (แสดงเมื่อเล่นจบและบันทึกคะแนนสำเร็จ) 🌟 -->
+    <div id="successModal" class="fixed inset-0 z-[1500] hidden items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center border border-slate-100 relative">
+            <div class="text-6xl mb-4">🎉</div>
+            <h3 class="text-2xl font-bold text-emerald-600 font-['Kanit']">ภารกิจสำเร็จ!</h3>
+            <div class="text-4xl font-black text-[var(--primary)] my-5 font-['Kanit']" id="successScoreDisplay">0 คะแนน</div>
+            
+            <div class="mt-8 flex flex-col gap-3">
+                <!-- ปุ่มถัดไปจะแสดงอัตโนมัติหากมีภารกิจคิวถัดไป -->
+                <button id="nextMissionBtn" class="w-full bg-[var(--accent)] hover:bg-orange-600 text-white font-bold py-4 rounded-xl text-base transition-colors font-['Kanit'] shadow-md border-none cursor-pointer hidden">
+                    เล่นภารกิจถัดไป <i class="fas fa-arrow-right ml-1"></i>
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="goBack()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm border-none cursor-pointer transition-colors font-['Kanit']">กลับห้องเรียน</button>
+                    <button onclick="location.reload()" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-3 rounded-xl text-sm border-none cursor-pointer transition-colors font-['Kanit']" id="successReplayBtn">เล่นอีกครั้ง</button>
+                </div>
             </div>
         </div>
     </div>
@@ -228,8 +251,13 @@
     <main id="mainContainer" class="flex-grow relative w-full overflow-hidden bg-white shadow-inner">
         <iframe id="missionIframe" class="absolute inset-0 w-full h-full border-none opacity-0 transition-opacity duration-500" sandbox="allow-scripts allow-forms allow-modals allow-same-origin allow-downloads" allow="camera; microphone; fullscreen; display-capture; autoplay" title="Mission Player"></iframe>
         
+        <!-- 🌟 ปุ่มย้อนกลับแบบลอยตัว (Back Button) 🌟 -->
+        <button onclick="goBack()" class="floating-btn back-fab" title="ย้อนกลับไปห้องเรียน">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+
         <!-- ปุ่มเต็มจอ (Fullscreen Button) -->
-        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="fullscreen-fab" title="เต็มจอ">
+        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="floating-btn fullscreen-fab" title="เต็มจอ">
             <i class="fas fa-expand"></i>
         </button>
 
@@ -267,6 +295,7 @@
         let assignmentData = null; 
         let isTeacher = false;
         let missionData = null; 
+        let nextMissionId = null; // ตัวแปรสำหรับเก็บรหัสภารกิจถัดไป
 
         document.addEventListener('DOMContentLoaded', () => {
             // 🌟 จำลองการ Scroll สำหรับหน้าจอล็อก (เพื่อให้ Navbar ย่อขนาดได้) 🌟
@@ -315,6 +344,15 @@
                 } 
             }, 300);
         });
+
+        // 🌟 ฟังก์ชันย้อนกลับไปหน้าห้องเรียน 🌟
+        function goBack() {
+            if (assignmentData && assignmentData.classroom_id) {
+                window.location.replace(`classroom-detail.html?id=${assignmentData.classroom_id}`);
+            } else {
+                window.location.replace('mission-library.html');
+            }
+        }
 
         // Toggle Functions
         function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
@@ -383,6 +421,22 @@
                     
                     const classData = assign.classrooms || {};
                     isTeacher = currentUserId && (classData.owner_id === currentUserId || classData.teacher_id === currentUserId);
+                    
+                    // 🌟 หาภารกิจถัดไปในห้องเรียน (ถ้ามี) 🌟
+                    if (assign.classroom_id) {
+                        const { data: allMissions } = await db.from('classroom_missions')
+                            .select('mission_id, order_index')
+                            .eq('classroom_id', assign.classroom_id)
+                            .order('order_index', { ascending: true });
+                            
+                        if (allMissions) {
+                            const currentIndex = allMissions.findIndex(m => m.mission_id === currentMissionId);
+                            if (currentIndex !== -1 && currentIndex + 1 < allMissions.length) {
+                                nextMissionId = allMissions[currentIndex + 1].mission_id;
+                            }
+                        }
+                    }
+
                 } else {
                     const { data: rawMission } = await db.from('missions')
                         .select('*')
@@ -460,7 +514,7 @@
                 
                 try {
                     const db = window.sysDB;
-                    // 🌟 ใช้ student_missions แบบเดียวแล้วบันทึกสถานะ is_completed เป็น true
+                    // 🌟 บันทึกสถานะ is_completed
                     const { data: existing } = await db.from('student_missions')
                         .select('id')
                         .eq('student_id', currentUserId)
@@ -480,6 +534,31 @@
                     if (existing) await db.from('student_missions').update(payload).eq('id', existing.id);
                     else await db.from('student_missions').insert([payload]);
                     
+                    // 🌟 แสดง Modal ปรบมือเมื่อจบเกมและบอกคะแนน
+                    document.getElementById('successScoreDisplay').innerText = score + " คะแนน";
+                    
+                    // เปิดปุ่มเล่นภารกิจถัดไป (ถ้ามี)
+                    const nextBtn = document.getElementById('nextMissionBtn');
+                    if (nextMissionId && !isTeacher) {
+                        nextBtn.style.display = 'block';
+                        nextBtn.onclick = () => { window.location.replace(`mission-play.html?mid=${nextMissionId}`); };
+                    } else {
+                        nextBtn.style.display = 'none';
+                    }
+                    
+                    // เช็คว่าอนุญาตให้เล่นซ้ำไหม (เพื่อซ่อนปุ่มเล่นอีกครั้ง)
+                    const replayBtn = document.getElementById('successReplayBtn');
+                    if (assignmentData && assignmentData.can_replay === false) {
+                        replayBtn.style.display = 'none';
+                    } else {
+                        replayBtn.style.display = 'block';
+                    }
+
+                    // ยกเลิก Fullscreen อัตโนมัติ (ถ้าเปิดอยู่) เพื่อให้ป๊อปอัปแสดงได้ชัดเจน
+                    if (document.fullscreenElement) { document.exitFullscreen(); }
+
+                    document.getElementById('successModal').style.display = 'flex';
+
                 } catch (err) { 
                     console.error("Error saving result:", err); 
                 }
@@ -509,7 +588,7 @@
         
         async function confirmRemove() { 
             await window.sysDB.from('classroom_missions').delete().eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id); 
-            window.location.href = `classroom-detail.html?id=${assignmentData.classroom_id}`; 
+            window.location.replace(`classroom-detail.html?id=${assignmentData.classroom_id}`); 
         }
 
         // ================= ระบบ Fullscreen =================
