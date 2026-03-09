@@ -83,6 +83,11 @@
         .teacher-fab:active { transform: scale(0.95); }
         .teacher-menu { position: absolute; bottom: 85px; right: 20px; background: white; padding: 10px; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 8px; z-index: 1000; border: 1px solid #f1f5f9; transform-origin: bottom right; transition: all 0.2s; }
         
+        /* ปุ่ม Fullscreen */
+        .fullscreen-fab { position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.9); color: var(--text-main); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 18px; backdrop-filter: blur(4px); }
+        .fullscreen-fab:hover { background: white; transform: scale(1.1); color: var(--primary); }
+        .fullscreen-fab:active { transform: scale(0.95); }
+
         #loader { position: fixed; inset: 0; z-index: 9999; background-color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         
         .spinner { width: 50px; height: 50px; border: 5px solid #f0f4ff; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
@@ -218,9 +223,14 @@
     </div>
 
     <!-- Container สำหรับแสดงผลภารกิจ (ดึงพื้นที่ที่เหลือทั้งหมด) -->
-    <main class="flex-grow relative w-full overflow-hidden bg-white shadow-inner">
+    <main id="mainContainer" class="flex-grow relative w-full overflow-hidden bg-white shadow-inner">
         <iframe id="missionIframe" class="absolute inset-0 w-full h-full border-none opacity-0 transition-opacity duration-500" sandbox="allow-scripts allow-forms allow-modals allow-same-origin allow-downloads" allow="camera; microphone; fullscreen; display-capture; autoplay" title="Mission Player"></iframe>
         
+        <!-- ปุ่มเต็มจอ (Fullscreen Button) -->
+        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="fullscreen-fab" title="เต็มจอ">
+            <i class="fas fa-expand"></i>
+        </button>
+
         <!-- ปุ่มและเมนูลอยสำหรับครูผู้สอน (ซ้อนบน Iframe) -->
         <div id="teacherTools" class="hidden">
             <div id="teacherMenu" class="teacher-menu hidden">
@@ -478,6 +488,52 @@
             await window.sysDB.from('classroom_missions').delete().eq('mission_id', currentMissionId).eq('classroom_id', assignmentData.classroom_id); 
             window.location.href = `classroom-detail.html?id=${assignmentData.classroom_id}`; 
         }
+
+        // ================= ระบบ Fullscreen =================
+        function toggleFullScreen() {
+            const elem = document.getElementById("mainContainer");
+            
+            if (!document.fullscreenElement && !document.mozFullScreenElement &&
+                !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                // ขยายเต็มจอ
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+                }
+            } else {
+                // ยกเลิกเต็มจอ
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        // ตรวจจับเมื่อมีการเปลี่ยนสถานะ Fullscreen เพื่อเปลี่ยนไอคอน
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(eventType => {
+            document.addEventListener(eventType, () => {
+                const icon = document.querySelector("#fullscreenBtn i");
+                if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                    document.getElementById('fullscreenBtn').title = "ยกเลิกเต็มจอ";
+                } else {
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                    document.getElementById('fullscreenBtn').title = "เต็มจอ";
+                }
+            });
+        });
     </script>
 </body>
 </html>
