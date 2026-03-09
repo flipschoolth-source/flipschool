@@ -746,12 +746,18 @@
                 actualCreatorId = m.content_data.creator_id;
             }
 
-            // 🌟 ดึงรูปโปรไฟล์ของจริง พร้อม Fallback ด้วย UI-Avatars (รองรับภาษาไทย) 🌟
+            // 🌟 ดึงรูปโปรไฟล์จาก profile_pic พร้อม Fallback 🌟
             let defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(creatorName.replace('ครู', ''))}&background=e0e8ff&color=00008B&rounded=true`;
             let creatorPic = defaultAvatar;
             
-            if (creatorUser.profile_pic && creatorUser.profile_pic.trim() !== '' && creatorUser.profile_pic !== 'default_avatar.png') {
-                creatorPic = creatorUser.profile_pic;
+            if (creatorUser.profile_pic && creatorUser.profile_pic.trim() !== '') {
+                if (creatorUser.profile_pic === 'default_avatar.png') {
+                    // หากค่าใน db คือรูป default ให้ชี้ไปที่ path ของระบบ
+                    creatorPic = 'img/default_avatar.png';
+                } else {
+                    // หากเป็น URL รูปภาพจริง (เช่น Google Profile หรือ Storage URL) ให้นำมาใช้ได้เลย
+                    creatorPic = creatorUser.profile_pic;
+                }
             }
 
             const delay = (index % ITEMS_PER_LOAD) * 0.05;
