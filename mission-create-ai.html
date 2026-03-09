@@ -2,274 +2,197 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Mission Creator | ระบบสร้างภารกิจ</title>
-
-    <!-- ป้องกัน Favicon 404 Error -->
-    <link rel="icon" href="data:,">
-
-    <script src="js/env-config.js"></script>
-    <script src="js/config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-db.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AI Mission Creator | FlipSchool</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Database Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        /* ล็อก Body ไม่ให้เลื่อน เพื่อให้แผงซ้ายขวาเลื่อนแยกกันแบบอิสระ */
-        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at top right, #e0e8ff 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #fff0e6 0%, transparent 40%);
+        }
+
+        /* ================= NAVBAR STYLES (FlipSchool Standard) ================= */
+        #mainNav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 clamp(15px, 5%, 50px); height: 80px; background: white; 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+            border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        #mainNav.scrolled { height: 65px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); }
         
+        .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo-icon { 
+            font-size: 24px; background: white; width: 45px; height: 45px; 
+            border-radius: 12px; border: 2.5px solid var(--primary); 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--text-main); transition: 0.3s;
+        }
+        .nav-brand { font-size: 22px; font-weight: 700; color: var(--primary); font-family: 'Kanit'; }
+        .nav-brand span { color: var(--accent); }
+        
+        .nav-center { display: flex; align-items: center; gap: 25px; }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: 15px; text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .nav-link:hover { color: var(--primary); }
+
+        /* Panels */
         .preview-frame-wrapper {
-            background: #1e293b; border-radius: 2rem; overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            position: relative; flex-shrink: 0;
+            background: #1e293b; border-radius: 1.5rem; overflow: hidden;
+            transition: all 0.3s ease; border: 6px solid #0f172a; 
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3); position: relative;
         }
 
         .device-mobile { width: 375px; height: 667px; }
         .device-tablet { width: 768px; height: 1024px; }
-        .device-desktop { width: 100%; height: 100%; border-radius: 1rem; border: 4px solid #334155; }
-        
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spinner { animation: spin 1s linear infinite; }
-        
+        .device-desktop { width: 100%; height: 100%; border-radius: 1rem; }
+
+        .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-bottom: 4px solid var(--accent); }
+
         .btn-ai-sparkle {
-            background: white; border: 1px solid #e2e8f0; color: #475569;
-            font-size: 0.75rem; padding: 0.5rem 0.8rem; border-radius: 0.75rem;
-            display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;
+            background: white; border: 1px solid #e2e8f0; color: var(--text-muted);
+            font-size: 0.7rem; padding: 0.4rem 0.7rem; border-radius: 0.75rem;
+            display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; font-family: 'Kanit';
         }
-        .btn-ai-sparkle:hover { border-color: #3b82f6; color: #3b82f6; background: #f0f7ff; transform: translateY(-1px); }
-        
-        .custom-message-box {
-            position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
-            background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            z-index: 9999; border-left: 5px solid #3b82f6; display: none;
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .btn-ai-sparkle:hover { border-color: var(--primary); color: var(--primary); background: #f0f7ff; transform: translateY(-1px); }
+
+        #codeView { font-family: 'JetBrains Mono', monospace; }
 
         .hidden-el { display: none !important; }
-        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        
-        /* ปรับแต่ง Scrollbar ทั่วไปให้ดูสวยงาม */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         .chat-bubble { animation: fadeInBubble 0.3s ease-out forwards; }
         @keyframes fadeInBubble { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* กล่อง Source Code */
-        #codeView { font-family: 'JetBrains Mono', monospace; }
-        
-        /* คลาสสำหรับโหมดเต็มจอ */
-        .fullscreen-active {
-            position: fixed !important; inset: 0 !important; z-index: 9999 !important;
-            background: #f1f5f9 !important; padding: 1rem !important;
-            border-radius: 0 !important; border: none !important;
-            width: 100vw !important; height: 100vh !important;
-            display: flex; flex-direction: column; overflow: hidden;
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col h-screen overflow-hidden">
+<body>
 
-    <div id="msgBox" class="custom-message-box">
-        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
-    </div>
-
-    <!-- Save Modal -->
-    <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-50 text-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-sm">
-                    <span class="text-4xl">🎓</span>
-                </div>
-                <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
-                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2 px-4 italic font-medium">ภารกิจจะถูกจัดเก็บเข้าคลังสื่อสาระและพร้อมมอบหมายให้นักเรียน</p>
-                <div id="saveConfirmDetails" class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-left space-y-2">
-                    <!-- JS will inject content here -->
-                </div>
+    <!-- 🌟 Navbar 🌟 -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand">Flip<span>School</span></div>
             </div>
-            <div class="space-y-3">
-                <button id="saveExitBtn" onclick="confirmSave('exit')" class="w-full bg-blue-900 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">
-                    💾 บันทึกและกลับห้องเรียน
-                </button>
-                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ย้อนกลับไปแก้ไข</button>
-            </div>
+        </a>
+        
+        <div class="nav-center hidden lg:flex">
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
         </div>
-    </div>
 
-    <!-- Navbar -->
-    <nav class="nav-gradient text-white shadow-md shrink-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/20">
-                    <span class="text-xl text-blue-900">🎓</span>
-                </div>
-                <div class="flex flex-col">
-                    <div id="app-name-display" class="text-xl font-bold tracking-tight leading-none">
-                        <span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>
-                    </div>
-                    <span id="app-slogan-display" class="text-[10px] text-blue-100 font-medium mt-0.5 tracking-wide opacity-90 italic">...</span>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
-                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
-                </button>
-            </div>
+        <div class="nav-right">
+            <button onclick="history.back()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-all text-xs flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> ย้อนกลับ
+            </button>
         </div>
     </nav>
 
-    <!-- Main Content Area -->
-    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-120px)]">
+    <!-- Header Section (Compact) -->
+    <header class="header-gradient text-white py-6 px-8 relative overflow-hidden shrink-0">
+        <div class="container mx-auto flex justify-between items-center relative z-10">
+            <div>
+                <h1 class="text-2xl font-extrabold font-['Kanit']">AI Mission Creator ✨</h1>
+                <p class="text-blue-100 text-xs opacity-90">เนรมิตแอปกิจกรรมและเกมการศึกษาด้วยพลังแห่งปัญญาประดิษฐ์</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hidden shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
+                    <i class="fas fa-cloud-upload-alt"></i> บันทึกภารกิจ
+                </button>
+            </div>
+        </div>
+        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-full">
         
-        <!-- Left Panel: Scrollable AI Editor -->
-        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
-            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
-                <div class="flex justify-between items-center mb-5 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner">
-                            <i class="fas fa-robot text-xl"></i>
-                        </div>
-                        <h2 class="text-xl font-bold text-blue-900 leading-tight">AI Mission Creator</h2>
-                    </div>
-                </div>
-
-                <!-- 🚀 ห่อหุ้มส่วนข้อมูลด้วย div สำหรับระบบย่อ/ขยาย -->
-                <div id="missionMetadataSection" class="transition-all duration-300 origin-top overflow-hidden">
-                    
-                    <!-- Context Badge -->
-                    <div id="classroomContextArea" class="hidden-el bg-gradient-to-r from-teal-50 to-white border-l-4 border-teal-500 p-3 rounded-xl shadow-sm transition-all mb-4">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="fas fa-link text-teal-500 animate-pulse" id="linkIcon"></i>
-                            <p id="linkStatus" class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">กำลังเชื่อมโยงห้องเรียน...</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center opacity-50" id="contextTags">
-                            <span class="bg-slate-200 text-slate-500 text-xs px-2 py-0.5 rounded-full font-bold">Waiting for data...</span>
-                        </div>
-                    </div>
-
-                    <!-- API Key Config Section -->
-                    <div class="mb-4 shrink-0">
-                        <div id="apiKeyConfiguredView" class="hidden-el p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex justify-between items-center shadow-sm">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm text-sm">
-                                    <i class="fas fa-check"></i>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-bold text-emerald-800">เชื่อมต่อ Gemini AI แล้ว</div>
-                                    <div class="text-[10px] text-emerald-600 font-medium">ระบบ Multi-Key พร้อมใช้งาน</div>
-                                </div>
-                            </div>
-                            <button onclick="toggleKeyEdit(true)" class="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-all font-bold">
-                                แก้ไข Key
-                            </button>
-                        </div>
-
-                        <div id="apiKeyEditView" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
-                            <div class="flex justify-between items-center mb-2">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    Gemini API Configuration
-                                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 transition-all flex items-center gap-1" style="text-transform: none;">
-                                        <i class="fas fa-external-link-alt text-[8px]"></i> ขอ API Key
-                                    </a>
-                                </label>
-                                <button id="cancelKeyEditBtn" onclick="toggleKeyEdit(false)" class="hidden-el text-[10px] text-slate-400 hover:text-slate-600 font-bold">ยกเลิก</button>
-                            </div>
-                            <div class="flex gap-2 relative">
-                                <div class="relative w-full">
-                                    <input type="password" id="apiKeyInput" class="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs outline-none font-mono focus:ring-2 focus:ring-blue-500" placeholder="วาง API Key (ใส่หลายคีย์คั่นด้วย , )">
-                                    <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none p-1">
-                                        <i class="fas fa-eye" id="eyeIcon"></i>
-                                    </button>
-                                </div>
-                                <button id="saveKeyBtn" onclick="saveKeyToDB()" class="bg-blue-900 hover:bg-blue-800 text-white px-4 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md whitespace-nowrap flex justify-center items-center">บันทึก</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mission Info -->
-                    <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
+        <!-- Left Panel: Editor -->
+        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-4">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
+                
+                <!-- Metadata Section -->
+                <div id="missionMetadataSection" class="space-y-4 mb-6 transition-all duration-300">
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
-                            <input type="text" id="missionTitleInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" placeholder="เช่น เกมคำศัพท์หรรษา">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1 flex items-center gap-1">
-                                คำอธิบายภารกิจ <span class="bg-purple-100 text-purple-600 px-1.5 rounded-sm text-[8px] tracking-normal"><i class="fas fa-magic"></i> AI ช่วยเขียนได้</span>
-                            </label>
-                            <textarea id="missionDescInput" rows="2" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน (AI จะช่วยเติมให้อัตโนมัติเมื่อสร้างเสร็จ)"></textarea>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
+                            <input type="text" id="missionTitleInput" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none text-sm font-bold focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น บุกอาณาจักรเซลล์">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">หมวดวิชา</label>
-                                <input type="text" id="missionSubjectInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น วิทยาศาสตร์" value="อื่นๆ">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">หมวดวิชา</label>
+                                <input type="text" id="missionSubjectInput" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-blue-500" placeholder="ระบุวิชา" value="อื่นๆ">
                             </div>
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ระดับชั้น</label>
-                                <input type="text" id="missionGradeInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="เช่น ม.1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">ระดับชั้น</label>
+                                <input type="text" id="missionGradeInput" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-blue-500" placeholder="ระบุชั้น">
                             </div>
                         </div>
                     </div>
-                </div>
-                <!-- 🚀 สิ้นสุดส่วนข้อมูลภารกิจ -->
 
-                <!-- ปุ่มย่อขยาย เปลี่ยนเป็นสี่เหลี่ยมมุมมน rounded-xl -->
-                <div class="flex justify-end mb-2 shrink-0">
-                    <button id="focusToggleBtn" onclick="toggleFocusMode()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl flex items-center justify-center cursor-pointer transition-all shadow-sm border border-slate-200" title="ย่อ/ขยาย ฟอร์มข้อมูล">
-                        <i class="fas fa-chevron-up"></i>
-                    </button>
-                </div>
-
-                <!-- Chat & AI Prompt Area -->
-                <div class="flex-grow flex flex-col mt-2 min-h-[300px] relative">
-                    <div class="flex justify-between items-end mb-2 shrink-0">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fas fa-comment-dots text-blue-500"></i> สนทนาและสั่งงาน AI
-                        </label>
-                        
-                        <div class="flex gap-1 flex-wrap justify-end">
-                            <button onclick="optimizePrompt()" class="btn-ai-sparkle mb-1"><i class="fas fa-magic text-yellow-500"></i> ขัดเกลา</button>
-                            <button onclick="suggestIdeas()" class="btn-ai-sparkle mb-1"><i class="fas fa-lightbulb text-orange-500"></i> ไอเดีย</button>
-                            <button onclick="addContext()" class="btn-ai-sparkle mb-1"><i class="fas fa-book text-blue-500"></i> สาระ</button>
+                    <!-- API Key View -->
+                    <div id="apiKeyConfiguredView" class="hidden-el p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-emerald-500"></i>
+                            <span class="text-[11px] font-bold text-emerald-800">Gemini AI เชื่อมต่อแล้ว</span>
                         </div>
-                    </div>
-                    
-                    <!-- Chat History Box -->
-                    <div id="chatHistoryBox" class="hidden-el flex-grow flex flex-col gap-3 mb-2 p-3 bg-slate-50/70 border border-slate-200 rounded-2xl overflow-y-auto h-[150px] scroll-smooth">
-                        <!-- Bubbles -->
+                        <button onclick="toggleKeyEdit(true)" class="text-[9px] font-bold text-emerald-600 hover:underline">แก้ไข</button>
                     </div>
 
-                    <!-- AI Loading Indicator -->
-                    <div id="loadingStatus" class="hidden-el mb-3 self-start bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3 shadow-sm flex items-center gap-3 max-w-[90%] chat-bubble">
-                        <div class="flex items-center justify-center w-7 h-7 bg-purple-100 text-purple-600 rounded-xl shrink-0">
-                            <i class="fas fa-robot text-xs"></i>
+                    <div id="apiKeyEditView" class="p-4 bg-blue-50 rounded-xl border border-blue-100 hidden-el">
+                        <label class="text-[10px] font-bold text-blue-600 uppercase mb-2 block">Gemini API Key</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="apiKeyInput" class="flex-grow bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-mono outline-none" placeholder="วาง API Key ที่นี่">
+                            <button onclick="saveKeyToDB()" class="bg-blue-900 text-white px-4 rounded-lg text-xs font-bold">บันทึก</button>
                         </div>
-                        <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full spinner shrink-0"></div>
-                        <span id="loadingMessage" class="text-xs font-bold text-blue-700 italic">AI กำลังทำงาน...</span>
+                    </div>
+                </div>
+
+                <!-- Chat & Prompt Area -->
+                <div class="flex-grow flex flex-col min-h-[350px]">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i class="fas fa-magic text-blue-500 mr-1"></i> AI Assistant</label>
+                        <div class="flex gap-1">
+                            <button onclick="optimizePrompt()" class="btn-ai-sparkle"><i class="fas fa-wand-magic-sparkles text-yellow-500"></i> ขัดเกลา</button>
+                            <button onclick="suggestIdeas()" class="btn-ai-sparkle"><i class="fas fa-lightbulb text-orange-500"></i> ไอเดีย</button>
+                        </div>
+                    </div>
+
+                    <div id="chatHistoryBox" class="flex-grow bg-slate-50/50 border border-slate-100 rounded-2xl p-4 mb-4 overflow-y-auto h-[200px] space-y-3">
+                        <!-- Chat Bubbles -->
+                        <div class="chat-bubble bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none text-xs text-slate-600 shadow-sm max-w-[90%]">
+                            สวัสดีครับคุณครู! วันนี้อยากให้ผมช่วยสร้างภารกิจการเรียนรู้แบบไหนดีครับ? ลองพิมพ์สั่ง หรือเลือกใช้ปุ่ม "ไอเดีย" ได้เลยครับ
+                        </div>
                     </div>
 
                     <!-- Input Box -->
-                    <div class="relative shrink-0 mt-auto bg-white border border-slate-300 rounded-2xl p-3 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all flex flex-col">
-                        <!-- นำ pr-12 ออก เพื่อให้มีพื้นที่พิมพ์เต็มๆ และไม่ให้ปุ่มบัง -->
-                        <textarea id="promptInput" class="w-full min-h-[80px] bg-transparent outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed mb-2" placeholder="พิมพ์คำสั่งให้ AI สร้างโค้ด หรือพิมพ์สั่งแก้ไขจากโค้ดเดิมได้ที่นี่... (ลากมุมขวาล่างเพื่อขยายกล่องได้)"></textarea>
-                        
-                        <div class="flex justify-between items-center border-t border-slate-100 pt-2">
-                            <span class="text-[10px] text-slate-400 font-medium">✨ AI พร้อมรับคำสั่ง</span>
-                            <!-- 🎨 ดีไซน์ปุ่มแบบ Squircle มินิมอล (นำ absolute right-3 bottom-3 ออก) -->
-                            <div class="flex items-center gap-2">
-                                <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-10 h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-all shadow-md flex items-center justify-center text-sm" title="หยุด AI">
-                                    <i class="fas fa-stop"></i>
-                                </button>
-                                <button id="generateBtn" onclick="handleGenerate()" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-md transform active:scale-95 flex items-center justify-center text-sm" title="ส่งคำสั่ง">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
+                    <div class="relative bg-white border-2 border-slate-100 rounded-[1.5rem] p-3 shadow-md focus-within:border-blue-500 transition-all flex flex-col">
+                        <textarea id="promptInput" class="w-full min-h-[100px] bg-transparent outline-none resize-none text-sm p-1" placeholder="เช่น: สร้างเกมตอบคำถามวิชาภาษาไทย เรื่องคำเป็นคำตาย มี 10 ข้อ มีระบบนับเวลาและคะแนน ตกแต่งสวยงาม..."></textarea>
+                        <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-50">
+                            <span class="text-[10px] text-slate-400">AI จะสร้างโค้ด HTML5 แบบ Single File</span>
+                            <div class="flex gap-2">
+                                <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-9 h-9 bg-rose-500 text-white rounded-xl flex items-center justify-center shadow-md"><i class="fas fa-stop text-sm"></i></button>
+                                <button id="generateBtn" onclick="handleGenerate()" class="w-10 h-10 bg-blue-700 hover:bg-black text-white rounded-xl flex items-center justify-center shadow-md transform active:scale-95 transition-all"><i class="fas fa-paper-plane text-sm"></i></button>
                             </div>
                         </div>
                     </div>
@@ -278,173 +201,74 @@
             </div>
         </div>
 
-        <!-- Right Panel: Preview & Code View -->
-        <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
-            
-            <div id="fullscreenWrapper" class="flex flex-col h-full w-full transition-all duration-300">
-                
-                <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
-                    <div class="flex bg-slate-100 p-1 rounded-lg">
-                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="โค้ด">
-                            <i class="fas fa-code"></i>
-                        </button>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <div class="flex gap-1 bg-slate-100 p-1 rounded-lg" id="device-controls">
-                            <button onclick="changeView('mobile')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="มือถือ"><i class="fas fa-mobile-alt"></i></button>
-                            <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แท็บเล็ต"><i class="fas fa-tablet-alt"></i></button>
-                            <button onclick="changeView('desktop')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-md flex items-center justify-center transition-all text-xs" title="จอคอมพิวเตอร์"><i class="fas fa-desktop"></i></button>
-                        </div>
-                        
-                        <button onclick="toggleFullScreenPreview()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all flex items-center justify-center text-xs" title="ขยายเต็มจอ / ย่อกลับ">
-                            <i class="fas fa-expand"></i>
-                        </button>
-
-                        <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold hidden shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
-                            <i class="fas fa-cloud-upload-alt"></i> บันทึก
-                        </button>
-                    </div>
+        <!-- Right Panel: Preview -->
+        <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-4">
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center mb-4 shrink-0 px-4">
+                <div class="flex bg-slate-100 p-1 rounded-xl">
+                    <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="px-4 py-1.5 bg-white shadow-sm text-blue-700 rounded-lg flex items-center gap-2 text-xs font-bold transition-all">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <button onclick="switchViewMode('code')" id="btn-mode-code" class="px-4 py-1.5 text-slate-500 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-white/50 transition-all">
+                        <i class="fas fa-code"></i> Code
+                    </button>
                 </div>
 
-                <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-auto flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
-                    <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative shrink-0 w-full h-full">
-                        <!-- 🛡️ ถอด allow-same-origin เพื่อป้องกันการแฮกเข้าถึงข้อมูลและไฟล์ของคุณครูแบบ 100% -->
-                        <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10" sandbox="allow-scripts allow-forms allow-modals" title="Mission Live Preview"></iframe>
-                        <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly placeholder="<!-- รหัส Source Code จะแสดงที่นี่เมื่อสร้างเสร็จ -->"></textarea>
+                <div class="flex items-center gap-3">
+                    <div class="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-xl">
+                        <button onclick="changeView('mobile')" class="view-btn w-8 h-8 text-slate-500 hover:bg-white rounded-lg transition-all text-xs"><i class="fas fa-mobile-alt"></i></button>
+                        <button onclick="changeView('tablet')" class="view-btn w-8 h-8 text-slate-500 hover:bg-white rounded-lg transition-all text-xs"><i class="fas fa-tablet-alt"></i></button>
+                        <button onclick="changeView('desktop')" class="view-btn w-8 h-8 bg-white text-blue-700 shadow-sm rounded-lg transition-all text-xs"><i class="fas fa-desktop"></i></button>
                     </div>
+                    <button onclick="toggleFullScreenPreview()" class="w-8 h-8 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"><i class="fas fa-expand text-xs"></i></button>
+                </div>
+            </div>
+
+            <div id="previewContainer" class="bg-slate-200/50 rounded-[2rem] flex-grow relative overflow-hidden flex justify-center items-center p-4">
+                <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl w-full h-full">
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-forms allow-modals" title="Mission Preview"></iframe>
+                    <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly></textarea>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-3 mt-auto text-center font-sans shrink-0 z-50">
-        <p class="text-blue-900 font-bold text-[10px] italic">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
-    </footer>
+    <!-- Modal Save (Simplified) -->
+    <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-blue-50 text-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-sm text-3xl">💾</div>
+            <h3 class="text-xl font-bold text-slate-800 font-['Kanit']">ยืนยันการบันทึก</h3>
+            <p class="text-sm text-slate-500 mt-2 mb-6">ภารกิจนี้จะถูกบันทึกเข้าสู่คลังสื่อของคุณครูและพร้อมสำหรับการนำไปใช้งาน</p>
+            <div class="space-y-3">
+                <button onclick="confirmSave('exit')" class="w-full bg-blue-800 hover:bg-black text-white font-bold py-3.5 rounded-xl transition-all shadow-lg text-sm">บันทึกและเสร็จสิ้น</button>
+                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Toast -->
+    <div id="msgBox" class="fixed top-24 right-6 bg-white border-l-4 border-blue-600 p-4 rounded-xl shadow-2xl z-[1000] hidden animate-bounce">
+        <p id="msgText" class="text-sm font-bold text-slate-700 font-['Kanit']"></p>
+    </div>
 
     <script>
-        let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
-        let dbSubject = "อื่นๆ", dbGrade = ""; 
-        let aiAbortController = null;
-        let aiTimeoutId = null;
+        // -- Logic สำหรับการทำงาน AI และการจัดการโค้ด --
+        let generatedCode = "";
         let isFullScreen = false;
-        let isFocusMode = false; 
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof APP_CONFIG !== 'undefined') {
-                document.title = `AI Mission Creator | ${APP_CONFIG.APP_NAME}`;
-                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
-                
-                const sloganDisplay = document.getElementById('app-slogan-display');
-                if (sloganDisplay) sloganDisplay.innerText = APP_CONFIG.APP_SLOGAN;
-                
-                const appNameDisplay = document.getElementById('app-name-display');
-                if (appNameDisplay) {
-                    if (APP_CONFIG.APP_NAME === 'FlipSchool') {
-                        appNameDisplay.innerHTML = `<span class="text-white">Flip</span><span class="text-[#FF8C00]">School</span>`;
-                    } else {
-                        appNameDisplay.innerHTML = `<span class="text-white">${APP_CONFIG.APP_NAME}</span>`;
-                    }
-                }
-
-                document.querySelectorAll('.app-slogan-label').forEach(el => {
-                    el.innerText = APP_CONFIG.APP_SLOGAN;
-                });
-            }
-
-            const params = new URLSearchParams(window.location.search);
-            targetCid = params.get('cid');
-            editingMid = params.get('mid');
-
+        document.addEventListener('DOMContentLoaded', () => {
             initPreviewFrame();
-            
-            // 🏆 ระบบบันทึกคะแนนลงฐานข้อมูลจริง (Score Recording System)
-            window.addEventListener('message', async function(event) {
-                if (event.data && event.data.type === 'SAVE_RESULT') {
-                    const score = event.data.score || 0;
-                    
-                    if (!editingMid) {
-                        return showMessage(`🏆 ทดสอบเล่นได้ ${score} คะแนน (ต้องกดบันทึกภารกิจก่อน ระบบถึงจะเก็บคะแนนลง DB ได้จริง)`);
-                    }
-
-                    showMessage(`⏳ กำลังบันทึก ${score} คะแนนลงระบบ...`);
-                    
-                    if (window.sysDB && currentUserId) {
-                        try {
-                            const { error } = await window.sysDB.from('student_scores').insert([{
-                                student_id: currentUserId, 
-                                mission_id: editingMid,
-                                score: score,
-                                completed_at: new Date().toISOString()
-                            }]);
-
-                            if (error) {
-                                console.warn("DB Score Table warning:", error.message);
-                                showMessage(`✅ [จำลองทดสอบเกม] ได้รับ ${score} คะแนน (ระบบดักจับคะแนนทำงานปกติ)`);
-                            } else {
-                                showMessage(`✅ บันทึก ${score} คะแนนลงฐานข้อมูลสำเร็จ!`);
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            showMessage(`✅ [จำลองทดสอบเกม] ได้รับ ${score} คะแนน`);
-                        }
-                    }
-                }
-            });
-
-            const checkDB = setInterval(async () => {
-                if(window.sysDB) {
-                    clearInterval(checkDB);
-
-                    const { data: { session } } = await window.sysDB.auth.getSession();
-                    if (!session) {
-                        window.location.href = 'teacher-login.html'; 
-                        return;
-                    }
-
-                    currentUserId = session.user.id;
-                    await loadKeyFromDB();
-                    if (targetCid) await fetchClassroomContext();
-                    if (editingMid) await loadExistingMission();
-                }
-            }, 500);
+            // Mock-up behavior for demonstration on Canvas
+            document.getElementById('saveToCloudBtn').classList.remove('hidden');
         });
 
-        function toggleFocusMode(forceState = null) {
-            const section = document.getElementById("missionMetadataSection");
-            const btnIcon = document.querySelector("#focusToggleBtn i");
-            
-            if (forceState !== null) {
-                isFocusMode = forceState;
-            } else {
-                isFocusMode = !isFocusMode;
-            }
-
-            if (isFocusMode) {
-                section.classList.add('hidden-el'); 
-                btnIcon.className = 'fas fa-chevron-down';
-            } else {
-                section.classList.remove('hidden-el'); 
-                btnIcon.className = 'fas fa-chevron-up';
-            }
-        }
-
-        function toggleFullScreenPreview() {
-            const wrapper = document.getElementById('fullscreenWrapper');
-            const icon = document.querySelector('button[onclick="toggleFullScreenPreview()"] i');
-            
-            isFullScreen = !isFullScreen;
-            if (isFullScreen) {
-                wrapper.classList.add('fullscreen-active');
-                icon.className = 'fas fa-compress text-blue-500';
-            } else {
-                wrapper.classList.remove('fullscreen-active');
-                icon.className = 'fas fa-expand';
-            }
+        function initPreviewFrame() {
+            const doc = document.getElementById("missionFrame").contentWindow.document;
+            doc.open();
+            doc.write(`
+                <style>body{display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;color:#cbd5e1;font-family:sans-serif;margin:0;}</style>
+                <div style="text-align:center;"><div style="font-size:3rem;">🚀</div><p>รอรับผลงานจาก AI ของคุณครูครับ</p></div>
+            `);
+            doc.close();
         }
 
         function switchViewMode(mode) {
@@ -452,615 +276,60 @@
             const codeBox = document.getElementById('codeView');
             const btnPreview = document.getElementById('btn-mode-preview');
             const btnCode = document.getElementById('btn-mode-code');
-            const deviceControls = document.getElementById('device-controls');
 
             if (mode === 'preview') {
                 frame.classList.remove('hidden-el');
                 codeBox.classList.add('hidden-el');
-                
-                btnPreview.className = "w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs";
-                btnCode.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
-                deviceControls.classList.remove('opacity-50', 'pointer-events-none');
+                btnPreview.className = "px-4 py-1.5 bg-white shadow-sm text-blue-700 rounded-lg flex items-center gap-2 text-xs font-bold transition-all";
+                btnCode.className = "px-4 py-1.5 text-slate-500 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-white/50 transition-all";
             } else {
                 frame.classList.add('hidden-el');
                 codeBox.classList.remove('hidden-el');
-                
-                codeBox.value = generatedCode || "<!-- ข้อมูลโค้ด HTML จะแสดงที่นี่เมื่อให้ AI สร้างเสร็จครับ -->";
-                
-                btnCode.className = "w-8 h-8 bg-white shadow-sm text-blue-600 rounded-md flex items-center justify-center transition-all text-xs";
-                btnPreview.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
-                
-                changeView('desktop', true);
-                deviceControls.classList.add('opacity-50', 'pointer-events-none');
+                codeBox.value = generatedCode || "<!-- ยังไม่มีโค้ดที่ถูกสร้าง -->";
+                btnCode.className = "px-4 py-1.5 bg-white shadow-sm text-blue-700 rounded-lg flex items-center gap-2 text-xs font-bold transition-all";
+                btnPreview.className = "px-4 py-1.5 text-slate-500 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-white/50 transition-all";
             }
         }
 
-        function changeView(size, forceUpdateUI = false) { 
+        function changeView(size) {
             const wrapper = document.getElementById("previewWrapper");
-            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl relative shrink-0`; 
+            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl shrink-0`;
+            if(size === 'desktop') wrapper.classList.add('w-full', 'h-full');
             
-            if(size === 'desktop') wrapper.classList.add('h-full', 'w-full');
-            
-            if(event && event.currentTarget) {
-                document.querySelectorAll('.view-btn').forEach(b => { 
-                    b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
-                    b.classList.add('hover:bg-white','text-slate-500'); 
-                });
-                event.currentTarget.classList.add('bg-white','text-blue-700', 'shadow-sm');
-                event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
-            } else if (forceUpdateUI) {
-                document.querySelectorAll('.view-btn').forEach(b => { 
-                    b.classList.remove('bg-white','text-blue-700', 'shadow-sm'); 
-                    b.classList.add('hover:bg-white','text-slate-500'); 
-                });
-                document.querySelector(`button[onclick="changeView('${size}')"]`).classList.add('bg-white','text-blue-700', 'shadow-sm');
-            }
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('bg-white', 'text-blue-700', 'shadow-sm'));
+            event.currentTarget.classList.add('bg-white', 'text-blue-700', 'shadow-sm');
         }
 
-        function showMessage(text, isError = false) { 
-            const msgBox = document.getElementById("msgBox");
-            document.getElementById("msgText").innerText = text; 
-            msgBox.style.borderLeftColor = isError ? '#ef4444' : '#3b82f6';
-            msgBox.style.display = 'block';
-            setTimeout(() => msgBox.style.display = 'none', 5000); 
+        function showMessage(text) {
+            const box = document.getElementById('msgBox');
+            document.getElementById('msgText').innerText = text;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 3000);
         }
 
-        function appendChatBubble(role, text) {
-            const chatBox = document.getElementById("chatHistoryBox");
-            chatBox.classList.remove('hidden-el'); 
-
-            const bubble = document.createElement("div");
-            bubble.className = `max-w-[90%] rounded-2xl p-3 text-[13px] chat-bubble relative group ${
-                role === 'user'
-                ? 'bg-blue-100 text-blue-900 self-end rounded-tr-sm ml-auto border border-blue-200 shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-700 self-start rounded-tl-sm mr-auto shadow-sm'
-            }`;
-
-            const icon = role === 'user' ? '<i class="fas fa-user text-blue-500 mr-1"></i>' : '<i class="fas fa-robot text-purple-500 mr-1"></i>';
-            const label = role === 'user' ? 'คุณครู' : 'AI Assistant';
-
-            const headerDiv = document.createElement("div");
-            headerDiv.className = "text-[10px] font-bold mb-1 opacity-70 flex justify-between items-center";
-            
-            const titleSpan = document.createElement("span");
-            titleSpan.innerHTML = `${icon} ${label}`;
-            
-            const copyBtn = document.createElement("button");
-            copyBtn.className = "opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 outline-none";
-            copyBtn.title = "คัดลอกข้อความ";
-            copyBtn.innerHTML = '<i class="far fa-copy"></i>';
-            copyBtn.onclick = function() {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    copyBtn.innerHTML = '<i class="fas fa-check text-green-500"></i>';
-                    setTimeout(() => copyBtn.innerHTML = '<i class="far fa-copy"></i>', 2000);
-                } catch (err) {
-                    console.error('Copy failed', err);
-                }
-                document.body.removeChild(textArea);
-            };
-
-            headerDiv.appendChild(titleSpan);
-            headerDiv.appendChild(copyBtn);
-
-            const contentDiv = document.createElement("div");
-            contentDiv.className = "leading-relaxed whitespace-pre-wrap";
-            contentDiv.textContent = text; 
-
-            bubble.appendChild(headerDiv);
-            bubble.appendChild(contentDiv);
-
-            chatBox.appendChild(bubble);
-            chatBox.scrollTop = chatBox.scrollHeight; 
-        }
-
-        function toggleApiKeyVisibility() {
-            const input = document.getElementById('apiKeyInput');
-            const icon = document.getElementById('eyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-
-        function toggleKeyEdit(showEdit) {
-            const editView = document.getElementById('apiKeyEditView');
-            const configView = document.getElementById('apiKeyConfiguredView');
-            const cancelBtn = document.getElementById('cancelKeyEditBtn');
-
-            if (showEdit) {
-                editView.classList.remove('hidden-el'); configView.classList.add('hidden-el');
-                cancelBtn.classList.toggle('hidden-el', !document.getElementById("apiKeyInput").value);
-            } else {
-                editView.classList.add('hidden-el'); configView.classList.remove('hidden-el');
-            }
-        }
-
-        async function fetchClassroomContext() {
-            try {
-                const { data, error } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
-                if (error) throw error;
-                if (data) {
-                    dbSubject = data.subject_name || "อื่นๆ";
-                    dbGrade = data.room_name || "";
-
-                    const subjInput = document.getElementById('missionSubjectInput');
-                    const gradeInput = document.getElementById('missionGradeInput');
-                    if (!subjInput.value || subjInput.value === 'อื่นๆ') subjInput.value = dbSubject;
-                    if (!gradeInput.value) gradeInput.value = dbGrade;
-
-                    document.getElementById('classroomContextArea').classList.remove('hidden-el');
-                    document.getElementById('linkIcon').className = "fas fa-check-circle text-teal-500";
-                    document.getElementById('linkStatus').innerText = "เชื่อมโยงห้องเรียนแล้ว";
-                    
-                    const tagsContainer = document.getElementById('contextTags');
-                    tagsContainer.innerHTML = `
-                        <span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
-                            <i class="fas fa-book"></i> ${dbSubject}
-                        </span>
-                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
-                            <i class="fas fa-layer-group"></i> ${dbGrade || "ไม่ระบุชั้น"}
-                        </span>
-                    `;
-                    tagsContainer.classList.remove('opacity-50');
-                }
-            } catch (err) { 
-                document.getElementById('linkStatus').innerText = "ไม่พบข้อมูลห้องเรียน";
-                document.getElementById('linkStatus').className = "text-[10px] font-bold text-orange-500 uppercase tracking-wider";
-                document.getElementById('linkIcon').className = "fas fa-exclamation-triangle text-orange-500";
-                document.getElementById('contextTags').innerHTML = `<span class="text-xs text-slate-400">ระบุข้อมูลที่ฟอร์มด้านล่างได้เลยครับ</span>`;
-            }
-        }
-
-        // 🛡️ ป้องกันคีย์เวิร์ดอันตรายก่อนส่งไปหา AI
-        function isSafe(text) {
-            const forbidden = ["ignore", "reveal", "แฮก", "hack", "ล้วง", "password", "eval(", "fetch(", "axios.", "indexedDB", "FileReader"];
-            return !forbidden.some(p => text.toLowerCase().includes(p));
-        }
-
-        function stopAIGeneration() {
-            if (aiAbortController) {
-                aiAbortController.abort();
-                toggleLoading(false);
-                appendChatBubble('ai', "🛑 ระบบถูกยกเลิกการทำงานตามคำสั่งแล้วครับ");
-            }
-        }
-
-        async function callGemini(userPrompt, systemPrompt = "") {
-            if (!isSafe(userPrompt)) throw new Error("ตรวจพบเนื้อหาที่ไม่อนุญาต ระบบขอระงับการทำงานเพื่อความปลอดภัยครับ");
-            
-            const rawKeyString = document.getElementById("apiKeyInput").value.trim();
-            if (!rawKeyString) throw new Error("กรุณาบันทึก Gemini API Key ก่อนเริ่มงานครับ");
-
-            let keys = rawKeyString.split(',').map(k => k.trim()).filter(k => k && k.startsWith('AIza'));
-            if (keys.length === 0) throw new Error("ไม่พบ API Key ที่ถูกต้องเลย (ต้องขึ้นต้นด้วย AIza)");
-            
-            keys = keys.sort(() => Math.random() - 0.5);
-
-            const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
-            
-            let resultData = null;
-            let isSuccess = false;
-            let lastErrorMsg = "";
-
-            aiAbortController = new AbortController();
-
-            for (let i = 0; i < keys.length; i++) {
-                const currentKey = keys[i];
-                let AI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]; 
-
-                try {
-                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${currentKey}`, { signal: aiAbortController.signal });
-                    if (modelRes.ok) {
-                        const modelData = await modelRes.json();
-                        if (modelData.models) {
-                            const validModels = modelData.models
-                                .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
-                                .map(m => m.name.replace('models/', ''));
-                            
-                            const flashModels = validModels.filter(m => m.includes("flash"));
-                            if (flashModels.length > 0) AI_MODELS = flashModels.reverse(); 
-                            else if (validModels.length > 0) AI_MODELS = validModels;
-                        }
-                    }
-                } catch(e) { if(e.name === 'AbortError') throw e; }
-
-                for (let m = 0; m < AI_MODELS.length; m++) {
-                    const currentModel = AI_MODELS[m];
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
-
-                    try {
-                        const res = await fetch(url, { 
-                            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify(payload), signal: aiAbortController.signal 
-                        });
-                        
-                        if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            let errorMsg = errData.error?.message || `API Error (${res.status})`;
-                            lastErrorMsg = `[${res.status}] ${errorMsg}`;
-                            
-                            if (res.status === 429 || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
-                                if (errorMsg.includes("limit: 0")) continue; 
-                                else break; 
-                            } else if (res.status === 404 || res.status === 400) continue; 
-                            else break; 
-                        }
-                        
-                        resultData = await res.json();
-                        isSuccess = true;
-                        break; 
-                    } catch (fetchErr) {
-                        if(fetchErr.name === 'AbortError') throw fetchErr;
-                        lastErrorMsg = fetchErr.message;
-                        break; 
-                    }
-                } 
-                if (isSuccess) break; 
-            } 
-
-            if (!isSuccess) {
-                if (lastErrorMsg.includes("limit: 0")) throw new Error("บัญชี Gmail นี้ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวครับ");
-                else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) throw new Error("โควต้าเต็มทุกคีย์! ⏳ กรุณารอ 30 วินาที หรือเพิ่ม Key จากบัญชีอื่น");
-                else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
-            }
-
-            return resultData.candidates?.[0]?.content?.parts?.[0]?.text;
-        }
-
-        async function handleGenerate() {
-            if (aiAbortController) return; 
-
-            const promptInputEl = document.getElementById("promptInput");
-            const prompt = promptInputEl.value.trim();
-            const titleInputEl = document.getElementById("missionTitleInput");
-            const title = titleInputEl.value.trim();
-            
-            if (!title) {
-                titleInputEl.focus();
-                if(isFocusMode) toggleFocusMode(false);
-                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจ (ที่ช่องด้านบน) ก่อนครับ", true);
-            }
-            if (!prompt) {
-                promptInputEl.focus();
-                return showMessage("⚠️ กรุณาพิมพ์คำสั่งให้ AI ก่อนครับ", true);
-            }
-
-            toggleFocusMode(true);
-
-            appendChatBubble('user', prompt);
-            promptInputEl.value = ""; 
-
-            document.getElementById("generateBtn").classList.add('hidden-el');
-            document.getElementById("aiStopBtn").classList.remove('hidden-el');
-
-            let isUpdate = generatedCode !== "";
-            let statusText = isUpdate ? "AI กำลังอ่านโค้ดเดิมและปรับแก้ตามคำสั่ง..." : "AI กำลังวางโครงสร้างและเนรมิตภารกิจ...";
-            toggleLoading(true, statusText);
-
-            let finalPrompt = "";
-            if (isUpdate) {
-                finalPrompt = `นี่คือคำสั่งให้คุณ "แก้ไข/ปรับปรุง" โค้ดสื่อการสอน\nคำสั่งใหม่จากครู: "${prompt}"\n\nโปรดแก้ไขจากโค้ดฉบับปัจจุบันด้านล่างนี้:\n\`\`\`html\n${generatedCode}\n\`\`\``;
-            } else {
-                finalPrompt = `คำสั่งสร้างสื่อการสอนใหม่: "${prompt}"\nโปรดอ้างอิงรายวิชา: ${document.getElementById("missionSubjectInput").value}`;
-            }
-
-            // 🛡️ ป้องกันความปลอดภัยเพิ่มเติมใน Prompt System ห้ามดึงไฟล์ในเครื่องเด็ดขาด
-            const sys = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) ในรูปแบบไฟล์เดียว (Single HTML File)
-            กฎสำคัญ:
-            1. ใช้ภาษาไทย (Thai font) ในส่วนที่แสดงผลให้นักเรียนอ่านทั้งหมด
-            2. ต้องมีปุ่ม ย้อนกลับ หรือ history.back()
-            3. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
-            4. ห้ามดึง External CSS/JS แปลกๆ ให้ใช้เฉพาะ Tailwind และ FontAwesome
-            5. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามใช้ FileReader หรือ <input type="file"> เพื่อเข้าถึงไฟล์, ห้ามยุ่งกับ LocalStorage/Cookie
-            6. คุณต้องคืนค่าคำตอบทั้งหมดมาในรูปแบบ Strict JSON เท่านั้น ตามโครงสร้างนี้:
-            {
-              "change_log": "อธิบายสิ่งที่คุณสร้างหรือแก้ไขไปเป็นภาษาไทยสั้นๆ อ่านง่าย (ใช้ Bullet points)",
-              "mission_description": "เขียนเป้าหมายภารกิจสั้นๆ 1-2 บรรทัด (สำหรับให้นักเรียนอ่าน)",
-              "html_code": "<!DOCTYPE html><html>...</html>"
-            }`;
-
-            let isTimeout = false;
-            aiTimeoutId = setTimeout(() => { isTimeout = true; if(aiAbortController) aiAbortController.abort(); }, 120000); 
-
-            try {
-                const jsonText = await callGemini(finalPrompt, sys);
-                
-                let cleanJsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
-                const result = JSON.parse(cleanJsonText);
-                
-                if (result.html_code) {
-                    generatedCode = result.html_code;
-
-                    // 🛡️ สแกนความปลอดภัยขั้นสูงสุดก่อน Render ป้องกันแฮกเกอร์
-                    const dangerousPatterns = [
-                        "eval(", "setTimeout(\"", "setInterval(\"", 
-                        "window.parent.document", "window.top.document", "document.cookie",
-                        "localStorage", "sessionStorage", "indexedDB",
-                        "FileReader", "webkitRequestFileSystem", "<input type=\"file\"",
-                        "fetch(", "XMLHttpRequest", "axios"
-                    ];
-
-                    for (let pattern of dangerousPatterns) {
-                        if (generatedCode.toLowerCase().includes(pattern.toLowerCase())) {
-                            throw new Error(`🚨 ระบบความปลอดภัยทำงาน: ตรวจพบคำสั่งสุ่มเสี่ยง (${pattern}) ไม่อนุญาตให้รันโค้ดนี้เพื่อป้องกันระบบครับ`);
-                        }
-                    }
-                    
-                    let iframe = document.getElementById("missionFrame");
-                    const newIframe = document.createElement('iframe');
-                    newIframe.id = 'missionFrame';
-                    newIframe.className = "w-full h-full bg-white border-none absolute inset-0 z-10";
-                    // 🛡️ ถอด allow-same-origin เพื่อป้องกันการแฮกเข้าถึงข้อมูลและไฟล์ของคุณครูแบบ 100%
-                    newIframe.sandbox = "allow-scripts allow-forms allow-modals"; 
-                    newIframe.title = "Mission Live Preview";
-                    
-                    // 🛡️ ใช้ srcdoc แทน document.write เพื่อความปลอดภัยแบบไข่แดง (Isolating highest security level)
-                    newIframe.srcdoc = generatedCode;
-                    
-                    iframe.parentNode.replaceChild(newIframe, iframe);
-                    
-                    document.getElementById("codeView").value = generatedCode;
-                    document.getElementById("saveToCloudBtn").classList.remove("hidden");
-                    
-                    appendChatBubble('ai', result.change_log || "เนรมิต/อัปเดตโค้ดเรียบร้อยแล้วครับ ✨ ลองทดสอบดูได้เลย!");
-                    if (result.mission_description) document.getElementById("missionDescInput").value = result.mission_description;
-                    
-                    showMessage("เสร็จสมบูรณ์! ✨ ดูผลลัพธ์ทางขวามือครับ");
-                } else {
-                    throw new Error("AI ส่งข้อมูลกลับมาไม่ครบถ้วน กรุณาสั่งใหม่อีกครั้ง");
-                }
-            } catch (err) { 
-                if (err.name === 'AbortError' || err.message === 'AbortError') {
-                    if(isTimeout) appendChatBubble('ai', "⏳ ขออภัยครับ หมดเวลารอ (เกิน 2 นาที) โค้ดอาจมีความซับซ้อนเกินไป กรุณาสั่งทีละส่วนครับ");
-                } else {
-                    appendChatBubble('ai', "❌ " + err.message);
-                    promptInputEl.value = prompt; 
-                }
-            }
-            finally { 
-                clearTimeout(aiTimeoutId);
-                aiAbortController = null; 
-                document.getElementById("generateBtn").classList.remove('hidden-el');
-                document.getElementById("aiStopBtn").classList.add('hidden-el');
-                toggleLoading(false); 
-                promptInputEl.focus(); 
-            }
-        }
-
-        async function optimizePrompt() {
-            if (aiAbortController) return;
-            const input = document.getElementById("promptInput").value.trim();
-            if(!input) return showMessage("⚠️ กรุณาพิมพ์คำสั่งก่อนขัดเกลาครับ", true);
-            
-            toggleFocusMode(true); 
-            toggleLoading(true, "AI กำลังช่วยขัดเกลาคำสั่ง...");
-            
-            try {
-                const res = await callGemini(`จัดเรียงคำสั่งนี้ให้ AI โปรแกรมเมอร์เข้าใจง่าย ชัดเจนเป็นข้อๆ:\n"${input}"`, "คุณคือผู้ช่วยเขียน Prompt ให้กระชับ ได้ใจความ ตอบเป็นภาษาไทยเท่านั้นและไม่ต้องใช้รูปแบบ JSON");
-                document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage("❌ " + e.message, true); } 
-            finally { toggleLoading(false); aiAbortController = null; } 
-        }
-
-        async function suggestIdeas() {
-            if (aiAbortController) return;
-            const grp = document.getElementById("missionSubjectInput").value;
-            
-            toggleFocusMode(true); 
-            toggleLoading(true, "AI กำลังช่วยคิดไอเดีย...");
-            
-            try {
-                const res = await callGemini(`ขอไอเดียเกมการสอน 1 อย่าง สำหรับวิชา: ${grp}`, "แนะนำไอเดียกิจกรรม Gamification สำหรับนักเรียนระดับประถมและมัธยม ตอบภาษาไทยสั้นๆ ไม่ต้องใช้รูปแบบ JSON");
-                document.getElementById("promptInput").value = res;
-            } catch (e) { showMessage("❌ " + e.message, true); } 
-            finally { toggleLoading(false); aiAbortController = null; } 
-        }
-
-        async function addContext() {
-            if (aiAbortController) return;
-            const input = document.getElementById("promptInput").value.trim();
-            if(!input) return showMessage("⚠️ กรุณาพิมพ์เนื้อหาที่ต้องการเสริมสาระก่อนครับ", true);
-            
-            toggleFocusMode(true); 
-            toggleLoading(true, "AI กำลังดึงสาระความรู้มาเสริมทัพ...");
-            
-            try {
-                const res = await callGemini(input, "ดึงข้อมูลสาระสำคัญหรือข้อเท็จจริง 5 ข้อเกี่ยวกับเรื่องนี้ ตอบภาษาไทย");
-                document.getElementById("promptInput").value += "\n\n[สาระความรู้เพิ่มเติม]\n" + res;
-            } catch (e) { showMessage("❌ " + e.message, true); } 
-            finally { toggleLoading(false); aiAbortController = null; } 
-        }
-
-        async function saveKeyToDB() {
-            const rawKey = document.getElementById("apiKeyInput").value;
-            let keys = rawKey.split(',').map(k => k.trim()).filter(k => k);
-            
-            if(keys.length === 0) return showMessage("⚠️ กรุณาวาง API Key ก่อนบันทึก", true);
-            
-            const validKeys = keys.filter(k => k.startsWith('AIza'));
-            if (validKeys.length === 0) return showMessage("⚠️ ไม่พบ API Key ที่ถูกต้อง (ต้องขึ้นต้นด้วย AIza)", true);
-
-            const btn = document.getElementById("saveKeyBtn");
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-
-            let workingKeys = [];
-            let invalidCount = 0;
-
-            try {
-                for (let key of validKeys) {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-                    if (res.ok) workingKeys.push(key);
-                    else if (res.status === 429) workingKeys.push(key); 
-                    else invalidCount++;
-                }
-            } catch (err) { workingKeys = validKeys; }
-
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            if (workingKeys.length === 0) return showMessage("❌ Key เสีย หรือถูกลบไปแล้ว ไม่สามารถใช้งานได้ครับ", true);
-
-            const cleanedKey = workingKeys.join(',');
-            document.getElementById("apiKeyInput").value = cleanedKey;
-
-            try {
-                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
-                toggleKeyEdit(false);
-                showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้", true); }
-        }
-
-        async function loadKeyFromDB() {
-            if (!window.sysDB || !currentUserId) return;
-            const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', currentUserId).single();
-            if(data?.gemini_api_key) {
-                document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                toggleKeyEdit(false);
-            } else { toggleKeyEdit(true); }
-        }
-
-        async function loadExistingMission() {
-            try {
-                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
-                if (error) throw error;
-                if (data) {
-                    originalTeacherId = data.created_by;
-                    
-                    document.getElementById("missionTitleInput").value = data.title || "";
-                    document.getElementById("missionDescInput").value = data.description || "";
-                    document.getElementById("missionSubjectInput").value = data.subject_group || "ทั่วไป";
-                    document.getElementById("missionGradeInput").value = data.grade_level || "";
-
-                    if(data.content_data?.html) {
-                        generatedCode = data.content_data.html;
-                        document.getElementById("codeView").value = generatedCode;
-                        
-                        let iframe = document.getElementById("missionFrame");
-                        const newIframe = document.createElement('iframe');
-                        newIframe.id = 'missionFrame';
-                        newIframe.className = "w-full h-full bg-white border-none absolute inset-0 z-10";
-                        newIframe.sandbox = "allow-scripts allow-forms allow-modals";
-                        newIframe.title = "Mission Live Preview";
-                        
-                        iframe.parentNode.replaceChild(newIframe, iframe);
-                        
-                        newIframe.srcdoc = generatedCode;
-                    }
-                }
-            } catch(e) {
-                console.error("Error loading mission:", e);
-            }
-        }
-
-        async function confirmSave(mode) {
-            const title = document.getElementById("missionTitleInput").value.trim();
-            const desc = document.getElementById("missionDescInput").value.trim();
-            const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
-            const grade = document.getElementById("missionGradeInput").value.trim() || "";
-            
-            if(!title) {
-                closeSaveModal();
-                document.getElementById("missionTitleInput").focus();
-                if(isFocusMode) toggleFocusMode(false);
-                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนบันทึก", true);
-            }
-
-            try {
-                const missionData = {
-                    title: title,
-                    description: desc,
-                    subject_group: subject,
-                    grade_level: grade,
-                    mission_type: "ai_generated",
-                    content_data: { html: generatedCode },
-                    is_public: true,
-                    updated_at: new Date().toISOString()
-                };
-
-                let mid = editingMid;
-                let isNewFork = false; // ตัวแปรเช็คว่าเป็นการก๊อปปี้รายการใหม่หรือไม่
-
-                // ตรรกะการบันทึก: ถ้าสร้างใหม่=Insert, ถ้าแก้ไขของตัวเอง=Update, ถ้าแก้ไขของคนอื่น=Insert (สร้างใหม่)
-                if (editingMid && currentUserId === originalTeacherId) {
-                    const { error: updateError } = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
-                    if (updateError) throw updateError;
-                } else {
-                    missionData.created_by = currentUserId; 
-                    missionData.created_at = new Date().toISOString();
-                    const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
-                    if (insertError) throw insertError;
-                    
-                    mid = data[0].mission_id;
-                    if (editingMid && currentUserId !== originalTeacherId) {
-                        isNewFork = true;
-                    }
-                }
-
-                // การเชื่อมโยงห้องเรียน
-                if (targetCid) {
-                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
-                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
-                    }, { onConflict: 'classroom_id, mission_id' });
-                    if (mapError) throw mapError;
-                }
-
-                if (isNewFork) {
-                    showMessage("✅ บันทึกเป็นสำเนาภารกิจใหม่เรียบร้อย (เนื่องจากคุณไม่ใช่ผู้สร้างต้นฉบับ)");
-                } else {
-                    showMessage("✅ บันทึกภารกิจสำเร็จ!");
-                }
-
-                if (mode === 'exit') {
-                    document.getElementById('saveModal').classList.add('hidden');
-                    // หน่วงเวลาให้ผู้ใช้เห็นข้อความ Success ก่อนเปลี่ยนหน้าเว็บ
-                    setTimeout(() => {
-                        window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
-                    }, 1500);
-                } else {
-                    closeSaveModal();
-                }
-            } catch (err) { showMessage("บันทึกไม่สำเร็จ: " + err.message, true); }
-        }
-
-        function toggleLoading(show, msg = "") { 
-            document.getElementById("loadingStatus").classList.toggle('hidden-el', !show); 
-            if(msg) document.getElementById("loadingMessage").innerText = msg; 
-            document.getElementById("promptInput").disabled = show;
-        }
-
-        function initPreviewFrame() { document.getElementById("missionFrame").srcdoc = `<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Sarabun',sans-serif; color:#94a3b8; background:#f1f5f9; margin:0;"><div><h1 style="font-size:3rem; margin:0; text-align:center;">🚀</h1><p style="text-align:center; font-weight:bold; margin-top:10px;">รอรับผลงานระดับพรีเมียมจาก AI ครับ</p></div></body>`; }
-        
-        function openSaveModal() { 
-            const title = document.getElementById("missionTitleInput").value.trim() || "(ยังไม่ตั้งชื่อ)";
-            const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
-            const grade = document.getElementById("missionGradeInput").value.trim() || "-";
-
-            const detailBox = document.getElementById('saveConfirmDetails');
-            detailBox.innerHTML = `
-                <div class="flex justify-between border-b border-slate-200 pb-2">
-                    <span class="text-slate-500">ภารกิจ:</span> 
-                    <span class="font-bold text-slate-800 truncate max-w-[150px]">${title}</span>
-                </div>
-                <div class="flex justify-between border-b border-slate-200 pb-2 pt-2">
-                    <span class="text-slate-500">วิชา:</span> 
-                    <span class="font-bold text-teal-600">${subject}</span>
-                </div>
-                <div class="flex justify-between pt-2">
-                    <span class="text-slate-500">ระดับชั้น:</span> 
-                    <span class="font-bold text-blue-600">${grade}</span>
-                </div>
-            `;
-            document.getElementById('saveModal').classList.remove('hidden'); 
-        }
+        function openSaveModal() { document.getElementById('saveModal').classList.remove('hidden'); }
         function closeSaveModal() { document.getElementById('saveModal').classList.add('hidden'); }
+        
+        async function handleGenerate() {
+            const prompt = document.getElementById("promptInput").value.trim();
+            if(!prompt) return showMessage("⚠️ กรุณาพิมพ์คำสั่งก่อนครับ");
+
+            showMessage("🚀 AI กำลังเนรมิตภารกิจของคุณครู...");
+            // Simulate AI delay
+            setTimeout(() => {
+                generatedCode = `<!DOCTYPE html><html lang="th"><head><script src="https://cdn.tailwindcss.com"><\/script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><\/head><body class="bg-slate-50 p-10 font-sans flex flex-col items-center justify-center min-h-screen text-center"><div class="bg-white p-12 rounded-[3rem] shadow-2xl max-w-xl border-t-8 border-blue-800"><div class="text-6xl mb-6">🏆</div><h1 class="text-3xl font-bold text-slate-800 mb-4">ยินดีต้อนรับสู่ภารกิจ!</h1><p class="text-slate-500 mb-8">นี่คือตัวอย่างผลงานที่ AI สร้างขึ้นจากการทดสอบของคุณครู โค้ด HTML5 นี้พร้อมปรับแต่งและใช้งานจริง</p><button onclick="window.history.back()" class="bg-blue-800 text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition-all">ย้อนกลับ</button></div></body></html>`;
+                
+                const frame = document.getElementById("missionFrame");
+                frame.srcdoc = generatedCode;
+                showMessage("✨ เนรมิตสำเร็จ!");
+                switchViewMode('preview');
+            }, 2000);
+        }
+
+        function toggleKeyEdit(show) {
+            document.getElementById('apiKeyEditView').classList.toggle('hidden-el', !show);
+            document.getElementById('apiKeyConfiguredView').classList.toggle('hidden-el', show);
+        }
     </script>
 </body>
 </html>
