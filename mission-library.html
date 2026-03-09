@@ -726,23 +726,30 @@
             const safeTitle = m.title || 'ไม่ระบุชื่อ';
             const safeSubject = m.subject_group || 'ทั่วไป';
 
-            // 🌟 แก้ไข: ดึงชื่อและ ID ผู้สร้าง พร้อมระบบ Fallback ดึงจาก content_data กรณี Join ล้มเหลว 🌟
-            const creatorUser = m.users || {};
+            // 🌟 แก้ไข: จัดการ Object/Array ของ users ให้รองรับทุกรูปแบบ 🌟
+            let creatorUser = m.users || {};
+            if (Array.isArray(m.users)) {
+                creatorUser = m.users.length > 0 ? m.users[0] : {};
+            }
+
             let creatorName = 'ไม่ระบุชื่อผู้สร้าง';
             let actualCreatorId = m.created_by || '';
 
             if (creatorUser.first_name) {
                 creatorName = `ครู${creatorUser.first_name} ${creatorUser.last_name || ''}`.trim();
             } else if (m.content_data && m.content_data.creator_name) {
-                creatorName = `ครู${m.content_data.creator_name}`;
+                creatorName = m.content_data.creator_name;
+                if (!creatorName.startsWith('ครู')) creatorName = `ครู${creatorName}`;
             }
 
             if (!actualCreatorId && m.content_data && m.content_data.creator_id) {
                 actualCreatorId = m.content_data.creator_id;
             }
 
-            // 🌟 ดึงรูปโปรไฟล์ของจริง หากมี (และไม่ใช่ค่าเริ่มต้น default_avatar.png) 🌟
-            let creatorPic = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(creatorName)}`;
+            // 🌟 ดึงรูปโปรไฟล์ของจริง พร้อม Fallback ด้วย UI-Avatars (รองรับภาษาไทย) 🌟
+            let defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(creatorName.replace('ครู', ''))}&background=e0e8ff&color=00008B&rounded=true`;
+            let creatorPic = defaultAvatar;
+            
             if (creatorUser.profile_pic && creatorUser.profile_pic.trim() !== '' && creatorUser.profile_pic !== 'default_avatar.png') {
                 creatorPic = creatorUser.profile_pic;
             }
@@ -771,7 +778,7 @@
 
                     <div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 mb-4 group cursor-pointer hover:bg-slate-50 p-2 -mx-2 rounded-lg transition" onclick="filterByCreator('${actualCreatorId}', '${creatorName}')" title="ดูผลงานทั้งหมดของ ${creatorName}">
                         <div class="flex items-center gap-2 overflow-hidden">
-                            <img src="${creatorPic}" class="w-6 h-6 rounded-full object-cover border border-slate-200" loading="lazy">
+                            <img src="${creatorPic}" class="w-6 h-6 rounded-full object-cover border border-slate-200" loading="lazy" onerror="this.src='${defaultAvatar}'">
                             <span class="text-[11px] text-slate-500 font-['Sarabun'] truncate">สร้างโดย: <b class="text-[var(--primary)] group-hover:underline">${creatorName}</b></span>
                         </div>
                         <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-[var(--primary)] transition"></i>
