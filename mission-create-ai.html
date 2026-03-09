@@ -359,6 +359,7 @@
 
     <script>
         let generatedCode = "", targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let currentUserName = "คุณครู"; // เพิ่มตัวแปรเก็บชื่อผู้สร้าง
         let dbSubject = "อื่นๆ", dbGrade = ""; 
         let aiAbortController = null;
         let aiTimeoutId = null;
@@ -439,6 +440,15 @@
                     }
 
                     currentUserId = session.user.id;
+
+                    // ดึงชื่อผู้ใช้จากตาราง users มาเก็บไว้
+                    try {
+                        const { data: userData } = await window.sysDB.from('users').select('first_name, last_name').eq('user_id', currentUserId).single();
+                        if(userData) {
+                            currentUserName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || "คุณครู";
+                        }
+                    } catch(err) { console.error("Fetch user name error:", err); }
+
                     await loadKeyFromDB();
                     if (targetCid) await fetchClassroomContext();
                     if (editingMid) await loadExistingMission();
@@ -549,7 +559,7 @@
             }`;
 
             const icon = role === 'user' ? '<i class="fas fa-user text-blue-500 mr-1"></i>' : '<i class="fas fa-robot text-purple-500 mr-1"></i>';
-            const label = role === 'user' ? 'คุณครู' : 'AI Assistant';
+            const label = role === 'user' ? currentUserName : 'AI Assistant'; // เปลี่ยนชื่อผู้ใช้ในแชทให้เป็นชื่อจริง
 
             const headerDiv = document.createElement("div");
             headerDiv.className = "text-[10px] font-bold mb-1 opacity-70 flex justify-between items-center";
@@ -1046,7 +1056,11 @@
                     subject_group: subject,
                     grade_level: grade,
                     mission_type: "ai_generated",
-                    content_data: { html: generatedCode },
+                    content_data: { 
+                        html: generatedCode,
+                        creator_id: currentUserId,   // บันทึก ID ผู้สร้างลงใน content_data (JSONB)
+                        creator_name: currentUserName // บันทึกชื่อผู้สร้างลงใน content_data (JSONB)
+                    },
                     is_public: true,
                     updated_at: new Date().toISOString()
                 };
