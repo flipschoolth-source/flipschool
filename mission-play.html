@@ -40,19 +40,19 @@
             margin: 0; padding: 0; overflow-x: hidden; 
         }
 
-        /* ================= NAVBAR ================= */
-        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
+        /* ================= NAVBAR (พร้อม Animation ย่อขนาด) ================= */
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 60px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
-        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.3s; }
-        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease; }
-        #mainNav.scrolled .nav-logo-icon { width: 40px; height: 40px; font-size: 20px; border-width: 2px; border-radius: 10px; }
+        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.4s; }
+        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.4s ease; }
+        #mainNav.scrolled .nav-logo-icon { width: 36px; height: 36px; font-size: 18px; border-width: 2px; border-radius: 10px; }
         
         .nav-text-group { display: flex; flex-direction: column; justify-content: center; }
-        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.4s;}
         .nav-brand span { color: var(--accent); }
-        #mainNav.scrolled .nav-brand { font-size: 22px; }
-        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.3s; }
+        #mainNav.scrolled .nav-brand { font-size: 20px; margin-bottom: 0px; }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.4s; }
         #mainNav.scrolled .nav-slogan { font-size: 11px; opacity: 0; display: none; }
         
         .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
@@ -66,6 +66,8 @@
 
         .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
         .mobile-menu-btn:hover { background: #eef2f7; }
+        #mainNav.scrolled .mobile-menu-btn { width: 36px; height: 36px; font-size: 16px; }
+        #mainNav.scrolled #navProfileImg { width: 36px; height: 36px; }
         
         .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
         .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
@@ -267,11 +269,32 @@
         let missionData = null; 
 
         document.addEventListener('DOMContentLoaded', () => {
-            // ระบบ Navbar scroll
-            window.addEventListener('scroll', () => {
+            // 🌟 จำลองการ Scroll สำหรับหน้าจอล็อก (เพื่อให้ Navbar ย่อขนาดได้) 🌟
+            document.addEventListener('wheel', (e) => {
                 const nav = document.getElementById('mainNav');
-                if (window.scrollY > 20) nav.classList.add('scrolled');
-                else nav.classList.remove('scrolled');
+                if (e.deltaY > 10) nav.classList.add('scrolled'); // ไถลง = ย่อ Navbar
+                else if (e.deltaY < -10) nav.classList.remove('scrolled'); // ไถขึ้น = ขยาย Navbar
+            });
+
+            let touchStartY = 0;
+            document.addEventListener('touchstart', e => {
+                touchStartY = e.touches[0].clientY;
+            }, {passive: true});
+            
+            document.addEventListener('touchmove', e => {
+                const touchEndY = e.touches[0].clientY;
+                const nav = document.getElementById('mainNav');
+                if (touchStartY - touchEndY > 30) nav.classList.add('scrolled'); // ปัดขึ้น = ย่อ Navbar
+                else if (touchEndY - touchStartY > 30) nav.classList.remove('scrolled'); // ปัดลง = ขยาย Navbar
+            }, {passive: true});
+
+            // 🌟 ย่อ Navbar อัตโนมัติเมื่อคลิกในบริเวณตัวเกม/Iframe 🌟
+            window.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement === document.getElementById('missionIframe')) {
+                        document.getElementById('mainNav').classList.add('scrolled');
+                    }
+                }, 100);
             });
 
             // ดึงข้อความจาก APP_CONFIG มาแสดงผล
