@@ -98,23 +98,44 @@
             background: #f0f4ff; color: var(--primary-light); flex-shrink: 0;
         }
 
-        .mission-path { position: relative; padding: 20px 0 60px 0; display: flex; flex-direction: column; align-items: center; min-height: 300px; }
-        .mission-path::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8px; background: #e2e8f0; transform: translateX(-50%); border-radius: 4px; z-index: 0; }
-        
-        .mission-node { position: relative; z-index: 10; margin-bottom: clamp(30px, 6vw, 50px); display: flex; flex-direction: column; align-items: center; width: 100%; transition: all 0.3s ease; }
-        .node-circle { 
-            width: clamp(65px, 15vw, 85px); height: clamp(65px, 15vw, 85px); background: white; border-radius: clamp(20px, 5vw, 28px); 
-            display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 6vw, 32px); 
-            color: var(--primary); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); 
-            border: 4px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            cursor: pointer; position: relative;
+        /* ================= 🌟 PROFESSIONAL APP MISSION CARDS (แทนที่ timeline แบบเดิม) 🌟 ================= */
+        .mission-list-container {
+            display: flex; flex-direction: column; gap: 1rem; width: 100%; padding-bottom: 2rem;
         }
-        .mission-node:hover .node-circle { transform: scale(1.1) rotate(5deg); border-color: var(--accent); color: var(--accent); }
-        
-        .node-content { 
-            background: white; padding: clamp(12px, 3vw, 18px) clamp(16px, 4vw, 25px); border-radius: clamp(16px, 4vw, 24px); 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03); margin-top: 15px; 
-            text-align: center; min-width: clamp(220px, 60vw, 260px); max-width: 320px; border: 1px solid rgba(0,0,0,0.02); 
+        .mission-card {
+            background: white; border-radius: 1.25rem; padding: 1rem 1.25rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05);
+            display: flex; align-items: center; gap: 1rem; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; position: relative; overflow: hidden;
+        }
+        .mission-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--primary); opacity: 0; transition: 0.3s;
+        }
+        .mission-card:hover {
+            transform: translateY(-4px); box-shadow: 0 12px 25px rgba(0,0,139,0.08); border-color: #dbeafe;
+        }
+        .mission-card:hover::before { opacity: 1; }
+
+        .mission-icon-box {
+            width: 3.5rem; height: 3.5rem; border-radius: 1rem;
+            background: linear-gradient(135deg, #f0f4ff, #e0e8ff); color: var(--primary-light);
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.5);
+        }
+        .mission-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .mission-title { font-family: 'Kanit'; font-weight: 700; font-size: 1.05rem; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mission-subtitle { font-size: 0.8rem; color: #64748b; font-family: 'Sarabun'; }
+
+        .mission-badge-group { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; flex-wrap: wrap; }
+        .badge-order { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-size: 0.65rem; padding: 2px 6px; border-radius: 6px; font-weight: 700; font-family: 'Kanit'; }
+            
+        .mission-action-btn {
+            width: 2.5rem; height: 2.5rem; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s; flex-shrink: 0;
+        }
+        .mission-card:hover .mission-action-btn {
+            transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,139,0.2);
         }
 
         .admin-folder-box {
@@ -183,10 +204,6 @@
         @media (max-width: 768px) {
             #mainNav { padding: 0 15px; height: 75px; }
             .fab-add { bottom: 30px; right: 30px; }
-            .mission-path::before { left: 50px; } 
-            .mission-node { flex-direction: row; gap: 20px; align-items: center; }
-            .mission-node:nth-child(even) { flex-direction: row; }
-            .node-content { margin-top: 0; text-align: left; padding: 15px; flex: 1; min-width: auto; }
         }
     </style>
 </head>
@@ -389,6 +406,7 @@
             <div id="folderGridContent" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
         </div>
 
+        <!-- 🌟 โหมดดูภารกิจแบบแอปพลิเคชัน 🌟 -->
         <div id="viewMissionPath" class="hidden-el">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-200 pb-4 gap-4">
                 <button onclick="backToFolders()" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold transition flex items-center gap-2 self-start cursor-pointer shadow-sm font-['Kanit']">
@@ -398,8 +416,8 @@
                     <h2 id="currentFolderNameDisplay" class="text-lg md:text-xl font-bold text-[var(--primary)] font-['Kanit'] m-0">ชื่อโฟลเดอร์</h2>
                 </div>
             </div>
-            <div id="missionPath" class="mission-path">
-                <div id="missionListContent" class="w-full flex flex-col md:items-center"></div>
+            <div id="missionPath" class="w-full mt-2">
+                <div id="missionListContent" class="w-full flex flex-col"></div>
             </div>
         </div>
 
@@ -556,6 +574,7 @@
         let currentOpenedFolder = null;
         let currentClassCode = '';
         let isJoinable = true;
+        let myProgressList = []; // เก็บรายการภารกิจที่ทำสำเร็จแล้ว
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -564,6 +583,8 @@
 
             if (typeof APP_CONFIG !== 'undefined') {
                 if (typeof initAppUI === 'function') initAppUI();
+                document.querySelectorAll('.footer-display-text').forEach(el => el.innerHTML = APP_CONFIG.FOOTER_TEXT || 'นวัตกรรมเพื่อการจัดการเรียนรู้');
+                document.querySelectorAll('.slogan').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN || 'นวัตกรรมเพื่อการจัดการเรียนรู้');
             }
 
             document.getElementById('promptInputVal').addEventListener('keypress', (e) => {
@@ -816,6 +837,7 @@
                         folders = newFolders;
                     }
 
+                    // 🌟 ระบบดึง Progress คะแนนแบบใหม่ (อิงจากตาราง student_missions)
                     if (!isClassOwner) {
                         document.getElementById('studentProgressContainer').classList.remove('hidden');
                         try {
@@ -823,14 +845,16 @@
                             const total = validMissions.length;
                             if (total > 0) {
                                 const missionIds = validMissions.map(m => m.mission_id);
-                                const { data: prog } = await db.from('mission_progress')
+                                const { data: prog } = await db.from('student_missions')
                                     .select('mission_id')
                                     .eq('student_id', currentUserId)
                                     .in('mission_id', missionIds)
-                                    .eq('status', 'completed');
+                                    .eq('is_completed', true);
                                 
-                                const completed = prog ? prog.length : 0;
+                                myProgressList = prog ? prog.map(p => p.mission_id) : [];
+                                const completed = myProgressList.length;
                                 const pct = Math.round((completed / total) * 100);
+                                
                                 document.getElementById('studentProgressBar').style.width = pct + '%';
                                 document.getElementById('studentProgressText').innerText = `${completed}/${total} ภารกิจ (${pct}%)`;
                             }
@@ -1113,23 +1137,6 @@
                     } catch(e) {}
                 }
 
-                const missing2 = userIds.filter(id => !usersDict[id]);
-                if (missing2.length > 0) {
-                    try {
-                        const { data: ssData } = await db.from('school_students')
-                            .select('student_id, student_name, student_lastname, student_code')
-                            .in('student_id', missing2);
-                        if (ssData) {
-                            ssData.forEach(u => usersDict[u.student_id] = {
-                                user_id: u.student_id,
-                                first_name: u.student_name,
-                                last_name: u.student_lastname,
-                                student_code: u.student_code
-                            });
-                        }
-                    } catch(e) {}
-                }
-
                 if (btn) {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -1339,7 +1346,6 @@
             try {
                 const db = getDB();
                 
-                // 1. ดึงรายชื่อนักเรียน
                 let userColName = 'user_id';
                 const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
                 if (testColErr && String(testColErr.code).includes('42703')) userColName = 'student_id';
@@ -1349,25 +1355,22 @@
                 
                 const userIds = enrollments.map(e => e[userColName]);
                 
-                // 2. ดึงข้อมูลส่วนตัว (ชื่อ, รหัส)
                 const { data: usersData } = await db.from('users').select('user_id, first_name, last_name, student_code').in('user_id', userIds);
                 const userMap = {};
                 (usersData || []).forEach(u => userMap[u.user_id] = u);
                 
-                // 3. ดึงภารกิจในห้องเรียนนี้
                 let missionSelect = 'mission_id, custom_title, missions(title, reward_points)';
                 const { data: cMissions } = await db.from('classroom_missions').select(missionSelect).eq('classroom_id', currentClassId).order('order_index');
                 const validMissions = (cMissions || []).filter(m => m.missions);
                 const missionIds = validMissions.map(m => m.mission_id);
                 
-                // 4. ดึงความคืบหน้า/คะแนน
+                // 🌟 อัปเดตดึงคะแนนจาก student_missions
                 let progressData = [];
                 try {
-                    const { data: prog } = await db.from('mission_progress').select('student_id, mission_id, score, status').in('mission_id', missionIds).in('student_id', userIds);
+                    const { data: prog } = await db.from('student_missions').select('student_id, mission_id, score, is_completed').in('mission_id', missionIds).in('student_id', userIds);
                     progressData = prog || [];
-                } catch(e) { console.warn("No mission_progress table or error"); }
+                } catch(e) { console.warn("No student_missions table or error"); }
 
-                // 5. เตรียมโครงสร้างตาราง
                 const headers = ['เลขที่', 'รหัสประจำตัว', 'ชื่อ-นามสกุล'];
                 validMissions.forEach(m => headers.push(m.custom_title || m.missions.title));
                 headers.push('คะแนนรวม');
@@ -1394,7 +1397,6 @@
                     rows.push(row);
                 });
 
-                // 6. สร้างและดาวน์โหลดไฟล์
                 const worksheet = XLSX.utils.aoa_to_sheet(rows);
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "คะแนนนักเรียน");
@@ -1605,7 +1607,9 @@
                 return;
             }
 
-            container.innerHTML = folderMissions.map((m, idx) => {
+            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) 🌟
+            let cardsHtml = '<div class="mission-list-container">';
+            cardsHtml += folderMissions.map((m, idx) => {
                 const baseTitle = m.missions?.title || 'ไม่ระบุชื่อภารกิจ';
                 const displayTitle = m.custom_title || baseTitle;
                 const rewardPoints = m.missions?.reward_points || 10;
@@ -1613,21 +1617,37 @@
                 const subjectGroup = m.missions?.subject_group || 'ทั่วไป';
                 const delay = idx * 0.05;
 
+                // ตรวจสอบว่าภารกิจนี้ทำเสร็จแล้วหรือยัง
+                const isCompleted = myProgressList.includes(m.mission_id);
+                
+                const statusBadge = isCompleted 
+                    ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> สำเร็จแล้ว</span>`
+                    : `<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-200"><i class="fas fa-star"></i> ${rewardPoints} XP</span>`;
+
+                const actionIcon = isCompleted ? '<i class="fas fa-redo ml-0.5 text-xs"></i>' : '<i class="fas fa-play ml-0.5"></i>';
+                const actionColor = isCompleted ? 'bg-emerald-50 text-emerald-500 border border-emerald-200' : 'bg-blue-50 text-blue-500 border border-blue-200';
+
                 return `
-                <div class="mission-node group animate-slide-up" style="animation-delay: ${delay}s;">
-                    <div class="node-circle shadow-lg" onclick="location.href='mission-play.html?mid=${m.mission_id}'">
+                <div class="mission-card group animate-slide-up" style="animation-delay: ${delay}s;" onclick="location.href='mission-play.html?mid=${m.mission_id}'">
+                    <div class="mission-icon-box group-hover:scale-110 transition-transform duration-300">
                         <i class="${getIcon(missionType)}"></i>
                     </div>
-                    <div class="node-content">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest">ลำดับที่ ${idx + 1}</span>
-                            <span class="text-[10px] bg-[#f0f4ff] text-[var(--primary-light)] px-2.5 py-0.5 rounded-lg font-bold"><i class="fas fa-star mr-1"></i>${rewardPoints}</span>
+                    <div class="mission-info">
+                        <div class="mission-badge-group">
+                            <span class="badge-order">ภารกิจที่ ${idx + 1}</span>
+                            ${statusBadge}
                         </div>
-                        <h3 class="font-bold text-slate-800 text-sm md:text-base leading-tight truncate font-sans">${displayTitle}</h3>
-                        <p class="text-[10px] text-slate-400 mt-1 italic font-sans">${subjectGroup}</p>
+                        <h3 class="mission-title">${displayTitle}</h3>
+                        <p class="mission-subtitle"><i class="fas fa-book-open mr-1 opacity-50"></i> ${subjectGroup}</p>
                     </div>
-                </div>`
+                    <div class="mission-action-btn ${actionColor} group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-transparent shadow-sm">
+                        ${actionIcon}
+                    </div>
+                </div>`;
             }).join('');
+            cardsHtml += '</div>';
+
+            container.innerHTML = cardsHtml;
         }
 
         function backToFolders() { 
