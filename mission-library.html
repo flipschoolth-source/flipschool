@@ -736,7 +736,10 @@
             let actualCreatorId = m.created_by || '';
 
             if (creatorUser.first_name) {
-                creatorName = `ครู${creatorUser.first_name} ${creatorUser.last_name || ''}`.trim();
+                // ตัดคำนำหน้า นาย นาง นางสาว ออก เพื่อไม่ให้ซ้ำซ้อนเวลาเติมคำว่า "ครู"
+                let cleanFirstName = creatorUser.first_name.replace(/^(นาย|นางสาว|นาง)/, '').trim();
+                let cleanLastName = (creatorUser.last_name || '').trim();
+                creatorName = `ครู${cleanFirstName} ${cleanLastName}`.trim();
             } else if (m.content_data && m.content_data.creator_name) {
                 creatorName = m.content_data.creator_name;
                 if (!creatorName.startsWith('ครู')) creatorName = `ครู${creatorName}`;
@@ -752,10 +755,8 @@
             
             if (creatorUser.profile_pic && creatorUser.profile_pic.trim() !== '') {
                 if (creatorUser.profile_pic === 'default_avatar.png') {
-                    // หากค่าใน db คือรูป default ให้ชี้ไปที่ path ของระบบ
                     creatorPic = 'img/default_avatar.png';
                 } else {
-                    // หากเป็น URL รูปภาพจริง (เช่น Google Profile หรือ Storage URL) ให้นำมาใช้ได้เลย
                     creatorPic = creatorUser.profile_pic;
                 }
             }
@@ -784,7 +785,8 @@
 
                     <div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 mb-4 group cursor-pointer hover:bg-slate-50 p-2 -mx-2 rounded-lg transition" onclick="filterByCreator('${actualCreatorId}', '${creatorName}')" title="ดูผลงานทั้งหมดของ ${creatorName}">
                         <div class="flex items-center gap-2 overflow-hidden">
-                            <img src="${creatorPic}" class="w-6 h-6 rounded-full object-cover border border-slate-200" loading="lazy" onerror="this.src='${defaultAvatar}'">
+                            <!-- เพิ่ม referrerpolicy="no-referrer" แก้ปัญหารูปจาก Google ไม่แสดง -->
+                            <img src="${creatorPic}" referrerpolicy="no-referrer" class="w-6 h-6 rounded-full object-cover border border-slate-200" loading="lazy" onerror="this.src='${defaultAvatar}'">
                             <span class="text-[11px] text-slate-500 font-['Sarabun'] truncate">สร้างโดย: <b class="text-[var(--primary)] group-hover:underline">${creatorName}</b></span>
                         </div>
                         <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-[var(--primary)] transition"></i>
