@@ -23,9 +23,39 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 
     <style>
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
         body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .nav-gradient { background: linear-gradient(135deg, #00008B 0%, #1e3a8a 100%); }
         
+        /* ================= NAVBAR STYLES (FlipSchool Standard) ================= */
+        #mainNav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 clamp(15px, 5%, 50px); height: 80px; background: white; 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+            border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0;
+        }
+        .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo-icon { 
+            font-size: 24px; background: white; width: 45px; height: 45px; 
+            border-radius: 12px; border: 2.5px solid var(--primary); 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--text-main); transition: 0.3s;
+        }
+        .nav-brand { font-size: 22px; font-weight: 700; color: var(--primary); font-family: 'Kanit'; line-height: 1; }
+        .nav-brand span { color: var(--accent); }
+        .nav-slogan { font-size: 11px; color: var(--text-muted); font-family: 'Sarabun'; font-weight: 500; margin-top: 2px; }
+        
+        .nav-center { display: flex; align-items: center; gap: 25px; }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: 15px; text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .nav-link:hover { color: var(--primary); }
+
         .preview-outer-container {
             width: 100%; display: flex; justify-content: center; align-items: flex-start;
             padding: 1.5rem; height: calc(100vh - 200px); min-height: 650px; overflow: hidden;
@@ -129,28 +159,31 @@
         </div>
     </div>
 
-    <!-- Navbar -->
-    <nav class="nav-gradient text-white shadow-md shrink-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/20">
-                    <span class="text-xl text-blue-900">🎓</span>
-                </div>
-                <div class="flex flex-col">
-                    <div id="app-name-display" class="text-xl font-bold tracking-tight leading-none">
-                        <span class="text-white">Flip</span><span class="text-orange-400">School</span>
-                    </div>
-                    <span id="app-slogan-display" class="text-[10px] text-blue-100 font-medium mt-0.5 tracking-wide opacity-90 italic">Advanced Editor</span>
-                </div>
+    <!-- 🌟 Navbar (Title Bar แบบใหม่) 🌟 -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div id="app-name-display" class="nav-brand"><span style="color: var(--primary);">Flip</span><span style="color: var(--accent);">School</span></div>
+                <div id="app-slogan-display" class="nav-slogan app-slogan-label">Advanced Editor</div>
             </div>
-            <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 border border-white/10 font-bold">
+        </a>
+        
+        <div class="nav-center hidden lg:flex">
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+        </div>
+
+        <div class="nav-right">
+            <button onclick="history.back()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-all text-xs flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> ย้อนกลับ
             </button>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-120px)]">
+    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-80px)]">
         
         <!-- Left Panel: Scrollable Editor & Tools -->
         <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
@@ -391,6 +424,7 @@
     <script>
         let editor = null;
         let targetCid = null, editingMid = null, currentUserId = null, originalTeacherId = null;
+        let currentUserName = "คุณครู";
         let dbSubject = "อื่นๆ", dbGrade = ""; 
         let debounceTimer = null;
         let aiAbortController = null;
@@ -412,9 +446,9 @@
                 const appNameDisplay = document.getElementById('app-name-display');
                 if (appNameDisplay) {
                     if (APP_CONFIG.APP_NAME === 'FlipSchool') {
-                        appNameDisplay.innerHTML = `<span class="text-white">Flip</span><span class="text-orange-400">School</span>`;
+                        appNameDisplay.innerHTML = `<span style="color: var(--primary);">Flip</span><span style="color: var(--accent);">School</span>`;
                     } else {
-                        appNameDisplay.innerHTML = `<span class="text-white">${APP_CONFIG.APP_NAME}</span>`;
+                        appNameDisplay.innerHTML = `<span style="color: var(--primary);">${APP_CONFIG.APP_NAME}</span>`;
                     }
                 }
 
@@ -467,8 +501,15 @@
                     clearInterval(checkDB);
 
                     const { data: { session } } = await window.sysDB.auth.getSession();
-                    if (!session) { window.location.href = 'teacher-login.html'; return; }
+                    if (!session) { window.location.href = 'login.html'; return; }
                     currentUserId = session.user.id;
+
+                    try {
+                        const { data: userData } = await window.sysDB.from('users').select('first_name, last_name').eq('user_id', currentUserId).single();
+                        if(userData) {
+                            currentUserName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || "คุณครู";
+                        }
+                    } catch(err) { console.error("Fetch user name error:", err); }
 
                     await loadKeyFromDB();
                     if (targetCid) await fetchClassroomContext(); 
@@ -577,11 +618,9 @@
         function validateCodeStandard(code) {
             if (!code || code.trim().length < 10) return { status: 'error', msg: "รอรับโค้ด..." };
             const cleanCode = code.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-            const hasBack = /(history\.back|history\.go|window\.location|href\s*=|ย้อนกลับ|กลับหน้าหลัก|back)/i.test(cleanCode);
             const hasPostMessage = /postMessage\s*\(/i.test(cleanCode);
             const hasSaveType = /['"]SAVE_RESULT['"]/i.test(cleanCode);
 
-            if (!hasBack) return { status: 'warning', msg: "⚠️ แนะนำให้ใส่ปุ่มย้อนกลับ" };
             if (!hasPostMessage || !hasSaveType) return { status: 'warning', msg: "⚠️ ไม่พบโค้ดส่งคะแนน" };
             return { status: 'success', msg: "✅ โค้ดถูกต้อง" };
         }
@@ -726,7 +765,7 @@
             }`;
 
             const icon = role === 'user' ? '<i class="fas fa-user text-purple-500 mr-1"></i>' : '<i class="fas fa-robot text-indigo-500 mr-1"></i>';
-            const label = role === 'user' ? 'คุณครู' : 'AI Programmer';
+            const label = role === 'user' ? currentUserName : 'AI Programmer';
 
             const headerDiv = document.createElement("div");
             headerDiv.className = "text-[10px] font-bold mb-1 opacity-70 flex justify-between items-center";
@@ -866,11 +905,10 @@
                 ${contextStr}
                 กฎสำคัญ:
                 1. ใช้ภาษาไทย (Thai font) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
-                2. ต้องมีปุ่ม ย้อนกลับ หรือ history.back()
-                3. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
-                4. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามดึง External JS แปลกๆ ให้ใช้เฉพาะ Tailwind
-                5. ห้ามพยายามใช้ FileReader หรือพยายามอ่านไฟล์ในเครื่อง
-                6. คืนค่าเป็น Strict JSON เท่านั้น:
+                2. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
+                3. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามดึง External JS แปลกๆ ให้ใช้เฉพาะ Tailwind
+                4. ห้ามพยายามใช้ FileReader หรือพยายามอ่านไฟล์ในเครื่อง
+                5. คืนค่าเป็น Strict JSON เท่านั้น:
                 {
                   "change_log": "สรุปสิ่งที่คุณแก้เป็นภาษาไทย (Bullet points)",
                   "mission_description": "เขียนเป้าหมายภารกิจสั้นๆ (สำหรับนักเรียนอ่าน)",
@@ -998,19 +1036,31 @@
             document.getElementById("apiKeyInput").value = cleanedKey;
 
             try {
-                await window.sysDB.from('teachers').update({ gemini_api_key: cleanedKey }).eq('teacher_id', currentUserId);
+                // แก้ไขการ Query เป็นตาราง users
+                const { error } = await window.sysDB.from('users').update({ gemini_api_key: cleanedKey }).eq('user_id', currentUserId);
+                if (error) throw error;
                 toggleKeyEdit(false);
                 showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
-            } catch (e) { showMessage("ไม่สามารถบันทึกได้", true); }
+            } catch (e) { 
+                console.error("Save Key Error:", e);
+                showMessage("ไม่สามารถบันทึกได้", true); 
+            }
         }
 
         async function loadKeyFromDB() {
             if (!window.sysDB || !currentUserId) return;
-            const { data } = await window.sysDB.from('teachers').select('gemini_api_key').eq('teacher_id', currentUserId).single();
-            if(data?.gemini_api_key) {
-                document.getElementById("apiKeyInput").value = data.gemini_api_key;
-                toggleKeyEdit(false);
-            } else { toggleKeyEdit(true); }
+            try {
+                // แก้ไขการ Query เป็นตาราง users
+                const { data, error } = await window.sysDB.from('users').select('gemini_api_key').eq('user_id', currentUserId).single();
+                if (error && error.code !== 'PGRST116') throw error;
+                if(data && data.gemini_api_key) {
+                    document.getElementById("apiKeyInput").value = data.gemini_api_key;
+                    toggleKeyEdit(false);
+                } else { toggleKeyEdit(true); }
+            } catch (err) {
+                console.error("Load Key Error:", err);
+                toggleKeyEdit(true);
+            }
         }
 
         async function loadExistingMission() {
@@ -1073,7 +1123,12 @@
             try {
                 const missionData = {
                     title: title, description: desc, subject_group: subject, grade_level: grade,
-                    mission_type: "html_custom", content_data: { html: code },
+                    mission_type: "html_custom", 
+                    content_data: { 
+                        html: code,
+                        creator_id: currentUserId,
+                        creator_name: currentUserName
+                    },
                     reward_points: 10, can_replay: true, is_public: true, updated_at: new Date().toISOString()
                 };
 
