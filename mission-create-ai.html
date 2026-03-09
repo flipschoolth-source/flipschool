@@ -786,11 +786,10 @@
             const sys = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) ในรูปแบบไฟล์เดียว (Single HTML File)
             กฎสำคัญ:
             1. ใช้ภาษาไทย (Thai font) ในส่วนที่แสดงผลให้นักเรียนอ่านทั้งหมด
-            2. ต้องมีปุ่ม ย้อนกลับ หรือ history.back()
-            3. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
-            4. ห้ามดึง External CSS/JS แปลกๆ ให้ใช้เฉพาะ Tailwind และ FontAwesome
-            5. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามใช้ FileReader หรือ <input type="file"> เพื่อเข้าถึงไฟล์, ห้ามยุ่งกับ LocalStorage/Cookie
-            6. คุณต้องคืนค่าคำตอบทั้งหมดมาในรูปแบบ Strict JSON เท่านั้น ตามโครงสร้างนี้:
+            2. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนน: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: []}, '*')
+            3. ห้ามดึง External CSS/JS แปลกๆ ให้ใช้เฉพาะ Tailwind และ FontAwesome
+            4. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามใช้ FileReader หรือ <input type="file"> เพื่อเข้าถึงไฟล์, ห้ามยุ่งกับ LocalStorage/Cookie
+            5. คุณต้องคืนค่าคำตอบทั้งหมดมาในรูปแบบ Strict JSON เท่านั้น ตามโครงสร้างนี้:
             {
               "change_log": "อธิบายสิ่งที่คุณสร้างหรือแก้ไขไปเป็นภาษาไทยสั้นๆ อ่านง่าย (ใช้ Bullet points)",
               "mission_description": "เขียนเป้าหมายภารกิจสั้นๆ 1-2 บรรทัด (สำหรับให้นักเรียนอ่าน)",
@@ -944,24 +943,40 @@
             document.getElementById("apiKeyInput").value = cleanedKey;
 
             try {
-                // แก้ไขจากตาราง teachers เป็น users และเปลี่ยน teacher_id เป็น user_id
-                const { error } = await window.sysDB.from('users').update({ gemini_api_key: cleanedKey }).eq('user_id', currentUserId);
+                // บันทึกลงฐานข้อมูล users
+                const { data, error } = await window.sysDB.from('users')
+                    .update({ gemini_api_key: cleanedKey })
+                    .eq('user_id', currentUserId)
+                    .select();
+                
                 if (error) throw error;
                 
+                if (!data || data.length === 0) {
+                    throw new Error("ไม่พบข้อมูลบัญชีผู้ใช้ของคุณในระบบฐานข้อมูล");
+                }
+                
                 toggleKeyEdit(false);
-                showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึกและทดสอบ Key ผ่านเรียบร้อย!");
+                showMessage(invalidCount > 0 ? `✅ บันทึกสำเร็จ (ตัดคีย์ที่เสียทิ้ง ${invalidCount} คีย์)` : "✅ บันทึก API Key ลงฐานข้อมูลเรียบร้อย!");
             } catch (e) { 
                 console.error("Save Key Error:", e);
-                showMessage("ไม่สามารถบันทึกได้", true); 
+                let errMsg = e.message || "เกิดข้อผิดพลาด";
+                if(errMsg.includes('gemini_api_key')) errMsg = "ตาราง users ไม่มีคอลัมน์ gemini_api_key";
+                showMessage("บันทึกไม่สำเร็จ: " + errMsg, true); 
             }
         }
 
         async function loadKeyFromDB() {
             if (!window.sysDB || !currentUserId) return;
             try {
-                // แก้ไขจากตาราง teachers เป็น users และเปลี่ยน teacher_id เป็น user_id
-                const { data, error } = await window.sysDB.from('users').select('gemini_api_key').eq('user_id', currentUserId).single();
-                if (error && error.code !== 'PGRST116') throw error;
+                // ดึงข้อมูลจากฐานข้อมูล users
+                const { data, error } = await window.sysDB.from('users')
+                    .select('gemini_api_key')
+                    .eq('user_id', currentUserId)
+                    .single();
+                
+                if (error) {
+                    if (error.code !== 'PGRST116') throw error;
+                }
                 
                 if(data && data.gemini_api_key) {
                     document.getElementById("apiKeyInput").value = data.gemini_api_key;
@@ -971,6 +986,9 @@
                 }
             } catch (err) {
                 console.error("Load Key Error:", err);
+                if (err.message && err.message.includes('gemini_api_key')) {
+                    showMessage("⚠️ ข้อผิดพลาด: ฐานข้อมูลยังไม่มีคอลัมน์ gemini_api_key", true);
+                }
                 toggleKeyEdit(true);
             }
         }
