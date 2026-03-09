@@ -218,9 +218,25 @@
                 }
 
                 // 1. ดึงข้อมูลโปรไฟล์ผู้ใช้ และ Role
-                const { data: profile, error } = await db.from('users').select('*').eq('user_id', userId).single();
+                let { data: profile, error } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
                 
-                if (error || !profile) throw new Error("ไม่พบข้อมูลผู้ใช้งาน");
+                // 🌟 [แก้ไข] หากไม่พบข้อมูลในตาราง users (เช่น โดนลบตอนรวมตาราง) ให้สร้างและกู้คืนบัญชีขึ้นมาใหม่ทันที
+                if (!profile) {
+                    const { data: { user: authUser } } = await db.auth.getUser();
+                    if (authUser) {
+                        const newProfile = {
+                            user_id: authUser.id,
+                            first_name: authUser.user_metadata?.first_name || 'ผู้ใช้งาน',
+                            last_name: authUser.user_metadata?.last_name || '(กู้คืน)',
+                            email: authUser.email,
+                            role: 'teacher' // ให้สิทธิ์เป็นครูไว้ก่อนเพื่อให้ใช้งานได้เต็มรูปแบบ
+                        };
+                        const { data: created } = await db.from('users').upsert([newProfile]).select().single();
+                        profile = created || newProfile;
+                    } else {
+                        throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+                    }
+                }
                 
                 currentUser = profile;
                 userRole = profile.role || (profile.is_super_admin ? 'super_admin' : 'student');
@@ -228,12 +244,14 @@
                 // 2. อัปเดต UI ส่วนตัว
                 updateProfileUI();
 
-                // 3. ดึงและแสดงห้องเรียนตาม Role
+                // 3. ดึงและแสดงห้องเรียน
                 await fetchClassrooms();
 
             } catch (err) {
                 console.error("Dashboard Init Error:", err);
-                showCustomAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err.message, "error");
+                showCustomAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err.message, "error", () => {
+                    if(err.message.includes('หมดอายุ') || err.message.includes('เข้าสู่ระบบ')) window.location.replace('login.html');
+                });
             } finally {
                 const loader = document.getElementById('loadingOverlay');
                 loader.style.opacity = '0';
@@ -254,41 +272,27 @@
             const roleEl = document.getElementById('sidebarRole');
             const subTitleEl = document.getElementById('welcomeSubtitle');
             
-            // ปรับปุ่ม Action และ Sidebar Menu ตาม Role
+            // 🌟 [แก้ไข] เปิดให้เห็นทั้งปุ่ม "สร้างห้องเรียน" และ "เข้าร่วมด้วยรหัส" เสมอ สำหรับทุกคน (แบบ Google Classroom)
             const btnTeacher = document.getElementById('btnActionTeacher');
             const btnStudent = document.getElementById('btnActionStudent');
             const sidebarMenu = document.getElementById('sidebarMenu');
 
+            btnTeacher.classList.remove('hidden');
+            btnTeacher.classList.add('flex');
+            btnStudent.classList.remove('hidden');
+            btnStudent.classList.add('flex');
+
+            roleEl.innerText = (userRole === 'teacher' ? 'TEACHER / INSTRUCTOR' : 'STUDENT');
+            roleEl.className = `text-xs font-bold uppercase tracking-widest mt-1 mb-0 ${userRole === 'teacher' ? 'text-[var(--primary)]' : 'text-[var(--accent)]'}`;
+            subTitleEl.innerText = 'ยินดีต้อนรับสู่พื้นที่การเรียนรู้ของคุณ';
+
             let menuHtml = `<a href="dashboard.html" class="flex items-center gap-3 p-3 rounded-xl bg-[#f0f4ff] text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-th-large w-5 text-center"></i> แดชบอร์ด</a>`;
-
-            if (userRole === 'teacher' || userRole === 'super_admin' || userRole === 'admin') {
-                roleEl.innerText = 'TEACHER / INSTRUCTOR';
-                roleEl.className = 'text-xs text-[var(--primary)] font-bold uppercase tracking-widest mt-1 mb-0';
-                subTitleEl.innerText = 'ยินดีต้อนรับสู่ระบบจัดการห้องเรียนของคุณครู';
-                
-                btnTeacher.classList.remove('hidden');
-                btnTeacher.classList.add('flex');
-                
-                menuHtml += `<a href="mission-library.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-layer-group w-5 text-center"></i> คลังภารกิจ/สื่อ</a>`;
-                
-                if (userRole === 'super_admin') {
-                    menuHtml += `<a href="super_admin.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50 text-rose-600 font-bold transition-all text-sm mt-2"><i class="fas fa-shield-alt w-5 text-center"></i> ระบบแอดมินกลาง</a>`;
-                }
-
-                document.getElementById('emptyTitle').innerText = 'คุณยังไม่มีห้องเรียนที่ดูแล';
-                document.getElementById('emptyDesc').innerText = 'กดปุ่ม "สร้างห้องเรียนใหม่" เพื่อเริ่มต้นจัดการเรียนการสอนได้เลยครับ';
-            } else {
-                roleEl.innerText = 'STUDENT';
-                roleEl.className = 'text-xs text-[var(--accent)] font-bold uppercase tracking-widest mt-1 mb-0';
-                subTitleEl.innerText = 'มาดูกันว่าวันนี้มีภารกิจอะไรให้ทำบ้าง';
-                
-                btnStudent.classList.remove('hidden');
-                btnStudent.classList.add('flex');
-                
-                document.getElementById('emptyTitle').innerText = 'คุณยังไม่ได้เข้าร่วมห้องเรียนใดๆ';
-                document.getElementById('emptyDesc').innerText = 'กดปุ่ม "เข้าร่วมด้วยรหัส" แล้วกรอกรหัส 6 หลักที่คุณครูให้มาเพื่อเข้าห้องครับ';
-            }
+            menuHtml += `<a href="mission-library.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-layer-group w-5 text-center"></i> คลังภารกิจ/สื่อ</a>`;
             
+            if (currentUser.is_super_admin || userRole === 'super_admin') {
+                menuHtml += `<a href="super_admin.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50 text-rose-600 font-bold transition-all text-sm mt-2"><i class="fas fa-shield-alt w-5 text-center"></i> ระบบแอดมินกลาง</a>`;
+            }
+
             sidebarMenu.innerHTML = menuHtml;
         }
 
@@ -296,15 +300,27 @@
             const db = window.sysDB;
             let classList = [];
 
-            if (userRole === 'teacher' || userRole === 'super_admin') {
-                // ครู: ดึงห้องเรียนที่ตัวเองเป็นเจ้าของ
-                const { data } = await db.from('classrooms').select('*').eq('owner_id', currentUser.user_id).order('created_at', { ascending: false });
-                classList = data || [];
-            } else {
-                // นักเรียน: ดึงห้องเรียนที่ลงทะเบียนไว้
-                const { data } = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.user_id).order('created_at', { ascending: false });
-                if (data) classList = data.map(item => item.classrooms).filter(c => c !== null);
+            // 🌟 [แก้ไข] ดึงข้อมูลทั้ง "ห้องที่ตัวเองสร้าง (ผู้สอน)" และ "ห้องที่เข้าร่วม (นักเรียน)"
+            
+            // 1. ดึงห้องเรียนที่ตัวเองเป็นเจ้าของ (สอน)
+            const { data: teachingData } = await db.from('classrooms').select('*').eq('owner_id', currentUser.user_id).order('created_at', { ascending: false });
+            if (teachingData) {
+                teachingData.forEach(c => { c.isTeaching = true; classList.push(c); });
             }
+
+            // 2. ดึงห้องเรียนที่ลงทะเบียนไว้ (เรียน)
+            const { data: enrolledData } = await db.from('classroom_users').select('classrooms(*)').eq('user_id', currentUser.user_id).order('created_at', { ascending: false });
+            if (enrolledData) {
+                enrolledData.forEach(item => { 
+                    if (item.classrooms && !classList.find(c => c.classroom_id === item.classrooms.classroom_id)) {
+                        item.classrooms.isTeaching = false;
+                        classList.push(item.classrooms);
+                    }
+                });
+            }
+
+            // เรียงลำดับรวมกันตามเวลาสร้างล่าสุด
+            classList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             renderClassrooms(classList);
         }
@@ -318,6 +334,8 @@
             if (classes.length === 0) {
                 grid.innerHTML = '';
                 empty.classList.remove('hidden');
+                document.getElementById('emptyTitle').innerText = 'ยังไม่มีห้องเรียน';
+                document.getElementById('emptyDesc').innerText = 'กดปุ่ม "สร้างห้องเรียนใหม่" หรือ "เข้าร่วมด้วยรหัส" ด้านบนเพื่อเริ่มต้นใช้งานครับ';
                 return;
             }
 
@@ -330,9 +348,15 @@
                 const icon = getSubjectIcon(title);
                 const delay = idx * 0.05;
 
+                // 🌟 [แก้ไข] ป้ายกำกับบอกสถานะของห้อง
+                const roleBadge = cls.isTeaching 
+                    ? `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase shadow-sm"><i class="fas fa-chalkboard-teacher mr-1"></i> ผู้สอน</span>`
+                    : `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase shadow-sm"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
+
                 return `
                 <div class="class-card animate-slide-up" style="animation-delay: ${delay}s;" onclick="location.href='classroom-detail.html?id=${cls.classroom_id}'">
                     <div class="class-cover" style="background: ${bgGradient};">
+                        <div class="absolute top-4 left-4 z-10">${roleBadge}</div>
                         <div class="class-icon-circle text-[var(--primary)]"><i class="${icon}"></i></div>
                     </div>
                     <div class="p-5 flex-grow flex flex-col pt-6">
