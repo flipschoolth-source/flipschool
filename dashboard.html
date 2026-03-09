@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="img/favicon.png">
     <link rel="apple-touch-icon" href="img/favicon.png">
 
@@ -85,13 +85,28 @@
 </head>
 <body>
 
+    <!-- 🌟 PWA Smart Banner 🌟 -->
+    <div id="smartAppBanner" class="hidden bg-[var(--primary)] text-white p-3 flex justify-between items-center text-sm shadow-md z-[6000] relative">
+        <div class="flex items-center gap-3">
+            <img src="img/favicon.png" class="w-8 h-8 rounded-md bg-white p-0.5 object-cover">
+            <div>
+                <div class="font-bold font-['Kanit']">FlipSchool App</div>
+                <div class="text-[10px] text-white/80 font-sans">แตะเพื่อติดตั้ง / ใช้งานลื่นไหลขึ้น</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="installPWA()" class="bg-white text-[var(--primary)] px-3 py-1.5 rounded-full font-bold text-xs font-['Kanit'] shadow-sm active:scale-95 transition-transform">ติดตั้งแอป</button>
+            <button onclick="closeSmartBanner()" class="text-white/70 hover:text-white px-2 text-lg bg-transparent border-none cursor-pointer"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" style="display: flex;" class="fixed inset-0 z-[9999] bg-white/90 backdrop-blur-md flex-col items-center justify-center transition-opacity duration-300">
         <div class="spinner"></div>
         <p class="mt-4 text-[var(--primary)] font-bold animate-pulse font-sans">กำลังเตรียมข้อมูล...</p>
     </div>
 
-    <!-- 🌟 Sidebar Drawer 🌟 -->
+    <!-- 🌟 Sidebar Drawer (สไลด์บาร์) 🌟 -->
     <div id="drawerOverlay" onclick="toggleDrawer()" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 bg-black/50 z-[1999] backdrop-blur-sm"></div>
     <div id="sideDrawer" class="fixed top-0 right-0 h-full w-[300px] bg-white z-[2000] translate-x-full transition-transform shadow-2xl p-6 flex flex-col rounded-l-3xl">
         <div class="text-center mb-6 relative">
@@ -111,7 +126,7 @@
         </div>
     </div>
 
-    <!-- 🌟 Modal: เข้าร่วมห้องเรียนด้วยรหัส (สำหรับนักเรียน) 🌟 -->
+    <!-- 🌟 Modal: เข้าร่วมห้องเรียนด้วยรหัส (เข้าห้องเรียน) 🌟 -->
     <div id="joinModal" class="hidden fixed inset-0 z-[5050] items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl transform transition-all text-center relative">
             <button onclick="closeJoinModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer"><i class="fas fa-times text-lg"></i></button>
@@ -120,6 +135,36 @@
             <p class="text-sm text-slate-500 mb-6 font-sans">กรอกรหัส 6 หลักที่คุณครูให้มาเพื่อเข้าห้อง</p>
             <input type="text" id="classCodeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-[0.2em] font-mono font-bold uppercase mb-6 text-slate-700" placeholder="------" maxlength="6">
             <button onclick="submitJoinClass()" id="btnJoinConfirm" class="w-full btn-theme font-bold py-3.5 rounded-xl border-none cursor-pointer font-['Kanit'] text-lg">ยืนยันเข้าร่วม</button>
+        </div>
+    </div>
+
+    <!-- 🌟 Modal: ขอสังกัดโรงเรียน (เข้ากลุ่ม รร.) 🌟 -->
+    <div id="joinSchoolModal" class="hidden fixed inset-0 z-[5050] items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeJoinSchoolModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer"><i class="fas fa-times text-lg"></i></button>
+            <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-school"></i></div>
+            <h3 class="text-xl font-bold text-center text-slate-800 mb-2 font-['Kanit']">สังกัดโรงเรียน</h3>
+            <p class="text-sm text-center text-slate-500 mb-6 font-sans">เชื่อมต่อข้อมูลกับสถานศึกษาของคุณ</p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">รหัสโรงเรียน (School ID)</label>
+                    <input type="text" id="schoolIdInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500 font-sans" placeholder="เช่น SC001">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">สถานะผู้ใช้งาน</label>
+                    <select id="schoolRoleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500 font-sans text-slate-700">
+                        <option value="student">นักเรียน</option>
+                        <option value="teacher">คุณครู / บุคลากร</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">ลิงก์ภาพถ่ายยืนยันตัวตน (ถ้ามี)</label>
+                    <input type="text" id="schoolCardUrlInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500 font-sans" placeholder="URL รูปบัตรประจำตัว">
+                </div>
+            </div>
+
+            <button onclick="submitJoinSchool()" id="btnSubmitSchool" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl mt-6 shadow-md transition-all border-none cursor-pointer font-['Kanit']">ส่งคำขอสังกัดโรงเรียน</button>
         </div>
     </div>
 
@@ -133,7 +178,11 @@
             </div>
         </a>
         <div class="flex items-center gap-4">
-            <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onclick="toggleDrawer()" class="w-10 h-10 rounded-full border-2 border-slate-200 cursor-pointer object-cover hover:border-[var(--primary)] shadow-sm">
+            <!-- ปุ่มแฮมเบอร์เกอร์สำหรับเปิดสไลด์บาร์ -->
+            <button onclick="toggleDrawer()" class="text-slate-600 hover:text-[var(--primary)] text-2xl bg-transparent border-none cursor-pointer focus:outline-none flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition-colors">
+                <i class="fas fa-bars"></i>
+            </button>
+            <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onclick="toggleDrawer()" class="w-10 h-10 rounded-full border-2 border-slate-200 cursor-pointer object-cover hover:border-[var(--primary)] shadow-sm hidden sm:block">
         </div>
     </nav>
 
@@ -146,7 +195,7 @@
             </div>
             
             <div class="flex gap-3">
-                <!-- ปุ่ม Action ตาม Role -->
+                <!-- ปุ่ม Action ทั้ง 2 ปุ่มแสเดงเสมอ -->
                 <button id="btnActionTeacher" onclick="location.href='classroom-add.html'" class="hidden bg-white text-[var(--primary)] hover:bg-slate-50 px-6 py-3 rounded-2xl font-bold font-['Kanit'] shadow-lg flex-1 md:flex-none items-center justify-center gap-2 border-none cursor-pointer transition-transform hover:-translate-y-1">
                     <i class="fas fa-plus-circle"></i> สร้างห้องเรียนใหม่
                 </button>
@@ -193,8 +242,38 @@
 
     <script>
         let currentUser = null;
-        let userRole = 'student'; // ค่าเริ่มต้น
+        let userRole = 'student'; 
 
+        // 🌟 PWA & Banner Logic
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => { 
+            e.preventDefault(); 
+            deferredPrompt = e; 
+            const btn = document.getElementById('btnInstallPwaSidebar');
+            const banner = document.getElementById('smartAppBanner');
+            if(btn) btn.style.display = 'flex'; 
+            if(banner) banner.classList.remove('hidden');
+        });
+
+        function installPWA() { 
+            if (deferredPrompt) { 
+                deferredPrompt.prompt(); 
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+                document.getElementById('smartAppBanner').style.display = 'none'; 
+                const btn = document.getElementById('btnInstallPwaSidebar');
+                if(btn) btn.style.display = 'none';
+            } else {
+                if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
+                    showCustomAlert('<b>ระบบ iOS ไม่รองรับการติดตั้งอัตโนมัติ</b><br><br>กรุณากดปุ่ม "แชร์" (สี่เหลี่ยมลูกศรชี้ขึ้น) และเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen) ครับ', 'info');
+                } else {
+                    showCustomAlert('เบราว์เซอร์ของคุณติดตั้งแอปนี้ไว้แล้ว หรือไม่รองรับฟีเจอร์นี้ครับ', 'info');
+                }
+            }
+        }
+        function closeSmartBanner() { document.getElementById('smartAppBanner').style.display = 'none'; }
+
+
+        // 🌟 Core Init Logic
         document.addEventListener('DOMContentLoaded', () => {
             const checkDB = setInterval(() => { 
                 if (window.sysDB && typeof window.sysDB.auth !== 'undefined') { 
@@ -209,7 +288,6 @@
                 const db = window.sysDB;
                 const { data: { session } } = await db.auth.getSession();
                 
-                // Unified Session check
                 const userId = session ? session.user.id : localStorage.getItem('flip_student_session_id');
                 
                 if (!userId) {
@@ -217,10 +295,9 @@
                     return;
                 }
 
-                // 1. ดึงข้อมูลโปรไฟล์ผู้ใช้ และ Role
                 let { data: profile, error } = await db.from('users').select('*').eq('user_id', userId).maybeSingle();
                 
-                // 🌟 [แก้ไข] หากไม่พบข้อมูลในตาราง users (เช่น โดนลบตอนรวมตาราง) ให้สร้างและกู้คืนบัญชีขึ้นมาใหม่ทันที
+                // กู้คืนบัญชีอัตโนมัติหากตารางโดนลบ
                 if (!profile) {
                     const { data: { user: authUser } } = await db.auth.getUser();
                     if (authUser) {
@@ -229,7 +306,7 @@
                             first_name: authUser.user_metadata?.first_name || 'ผู้ใช้งาน',
                             last_name: authUser.user_metadata?.last_name || '(กู้คืน)',
                             email: authUser.email,
-                            role: 'teacher' // ให้สิทธิ์เป็นครูไว้ก่อนเพื่อให้ใช้งานได้เต็มรูปแบบ
+                            role: 'teacher' 
                         };
                         const { data: created } = await db.from('users').upsert([newProfile]).select().single();
                         profile = created || newProfile;
@@ -241,10 +318,7 @@
                 currentUser = profile;
                 userRole = profile.role || (profile.is_super_admin ? 'super_admin' : 'student');
                 
-                // 2. อัปเดต UI ส่วนตัว
                 updateProfileUI();
-
-                // 3. ดึงและแสดงห้องเรียน
                 await fetchClassrooms();
 
             } catch (err) {
@@ -259,6 +333,7 @@
             }
         }
 
+        // 🌟 อัปเดตเมนูและ Sidebar
         function updateProfileUI() {
             const pic = currentUser.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.first_name}`;
             const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || 'ผู้ใช้งาน';
@@ -272,36 +347,40 @@
             const roleEl = document.getElementById('sidebarRole');
             const subTitleEl = document.getElementById('welcomeSubtitle');
             
-            // 🌟 [แก้ไข] เปิดให้เห็นทั้งปุ่ม "สร้างห้องเรียน" และ "เข้าร่วมด้วยรหัส" เสมอ สำหรับทุกคน (แบบ Google Classroom)
             const btnTeacher = document.getElementById('btnActionTeacher');
             const btnStudent = document.getElementById('btnActionStudent');
             const sidebarMenu = document.getElementById('sidebarMenu');
 
-            btnTeacher.classList.remove('hidden');
-            btnTeacher.classList.add('flex');
-            btnStudent.classList.remove('hidden');
-            btnStudent.classList.add('flex');
+            btnTeacher.classList.remove('hidden'); btnTeacher.classList.add('flex');
+            btnStudent.classList.remove('hidden'); btnStudent.classList.add('flex');
 
             roleEl.innerText = (userRole === 'teacher' ? 'TEACHER / INSTRUCTOR' : 'STUDENT');
             roleEl.className = `text-xs font-bold uppercase tracking-widest mt-1 mb-0 ${userRole === 'teacher' ? 'text-[var(--primary)]' : 'text-[var(--accent)]'}`;
             subTitleEl.innerText = 'ยินดีต้อนรับสู่พื้นที่การเรียนรู้ของคุณ';
 
+            // สร้างเมนูในสไลด์บาร์
             let menuHtml = `<a href="dashboard.html" class="flex items-center gap-3 p-3 rounded-xl bg-[#f0f4ff] text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-th-large w-5 text-center"></i> แดชบอร์ด</a>`;
+            
+            // ปุ่มสังกัดโรงเรียน (Join School)
+            menuHtml += `<a href="javascript:void(0)" onclick="openJoinSchoolModal()" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-teal-600 font-bold transition-all text-sm"><i class="fas fa-school w-5 text-center"></i> สังกัดโรงเรียน</a>`;
+            
             menuHtml += `<a href="mission-library.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-layer-group w-5 text-center"></i> คลังภารกิจ/สื่อ</a>`;
             
             if (currentUser.is_super_admin || userRole === 'super_admin') {
                 menuHtml += `<a href="super_admin.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50 text-rose-600 font-bold transition-all text-sm mt-2"><i class="fas fa-shield-alt w-5 text-center"></i> ระบบแอดมินกลาง</a>`;
             }
 
+            // ปุ่มติดตั้ง PWA จะโผล่มาถ้า Browser รองรับ
+            menuHtml += `<a href="javascript:void(0)" onclick="installPWA()" id="btnInstallPwaSidebar" style="display:none;" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-orange-500 font-bold transition-all text-sm mt-2"><i class="fas fa-download w-5 text-center"></i> ติดตั้งแอป (PWA)</a>`;
+
             sidebarMenu.innerHTML = menuHtml;
         }
 
+        // 🌟 ดึงข้อมูลห้องเรียน (กู้คืนทั้งสร้างเองและเข้าร่วม)
         async function fetchClassrooms() {
             const db = window.sysDB;
             let classList = [];
 
-            // 🌟 [แก้ไข] ดึงข้อมูลทั้ง "ห้องที่ตัวเองสร้าง (ผู้สอน)" และ "ห้องที่เข้าร่วม (นักเรียน)"
-            
             // 1. ดึงห้องเรียนที่ตัวเองเป็นเจ้าของ (สอน)
             const { data: teachingData } = await db.from('classrooms').select('*').eq('owner_id', currentUser.user_id).order('created_at', { ascending: false });
             if (teachingData) {
@@ -319,9 +398,7 @@
                 });
             }
 
-            // เรียงลำดับรวมกันตามเวลาสร้างล่าสุด
             classList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
             renderClassrooms(classList);
         }
 
@@ -348,7 +425,6 @@
                 const icon = getSubjectIcon(title);
                 const delay = idx * 0.05;
 
-                // 🌟 [แก้ไข] ป้ายกำกับบอกสถานะของห้อง
                 const roleBadge = cls.isTeaching 
                     ? `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase shadow-sm"><i class="fas fa-chalkboard-teacher mr-1"></i> ผู้สอน</span>`
                     : `<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase shadow-sm"><i class="fas fa-user-graduate mr-1"></i> นักเรียน</span>`;
@@ -372,7 +448,7 @@
             }).join('');
         }
 
-        // --- ระบบ Join Class สำหรับนักเรียน ---
+        // 🌟 ระบบเข้าห้องเรียน
         function openJoinModal() { document.getElementById('joinModal').style.display = 'flex'; }
         function closeJoinModal() { document.getElementById('joinModal').style.display = 'none'; document.getElementById('classCodeInput').value = ''; }
         
@@ -386,47 +462,82 @@
             
             if (code.length !== 6) return showCustomAlert('กรุณากรอกรหัสห้องเรียน 6 หลักให้ครบถ้วน', 'warning');
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
 
             try {
                 const db = window.sysDB;
-                // 1. หาห้องเรียนจากรหัส
                 const { data: cls } = await db.from('classrooms').select('classroom_id, is_joinable, subject_name').eq('class_code', code).maybeSingle();
-                
                 if (!cls) throw new Error("ไม่พบห้องเรียนที่ตรงกับรหัสนี้");
                 if (cls.is_joinable === false) throw new Error("ห้องเรียนนี้ปิดรับการเข้าร่วมแล้ว");
 
-                // 2. เช็คว่าเคยเข้าหรือยัง
                 const { data: ex } = await db.from('classroom_users').select('enrollment_id').eq('classroom_id', cls.classroom_id).eq('user_id', currentUser.user_id).maybeSingle();
                 if (ex) throw new Error(`คุณอยู่ในห้อง "${cls.subject_name}" อยู่แล้วครับ`);
 
-                // 3. หาลำดับที่ (เลขที่อัตโนมัติ)
                 const { count } = await db.from('classroom_users').select('*', { count: 'exact', head: true }).eq('classroom_id', cls.classroom_id);
-                const nextNumber = (count || 0) + 1;
-
-                // 4. บันทึก
+                
                 const { error } = await db.from('classroom_users').insert([{
                     classroom_id: cls.classroom_id,
                     user_id: currentUser.user_id,
-                    student_number: nextNumber
+                    student_number: (count || 0) + 1
                 }]);
 
                 if (error) throw error;
 
                 closeJoinModal();
                 showCustomAlert(`เข้าร่วมห้องเรียน "${cls.subject_name}" สำเร็จ!`, 'success');
-                await fetchClassrooms(); // รีเฟรชหน้าจอ
+                await fetchClassrooms(); 
+
+            } catch (err) {
+                showCustomAlert(err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.innerHTML = 'ยืนยันเข้าร่วม';
+            }
+        }
+
+        // 🌟 ระบบสังกัดโรงเรียน (เข้ากลุ่มโรงเรียน)
+        function openJoinSchoolModal() { toggleDrawer(); document.getElementById('joinSchoolModal').style.display = 'flex'; }
+        function closeJoinSchoolModal() { document.getElementById('joinSchoolModal').style.display = 'none'; }
+        
+        async function submitJoinSchool() {
+            const schoolId = document.getElementById('schoolIdInput').value.trim();
+            const role = document.getElementById('schoolRoleInput').value;
+            const cardUrl = document.getElementById('schoolCardUrlInput').value.trim();
+            const btn = document.getElementById('btnSubmitSchool');
+
+            if (!schoolId) return showCustomAlert('กรุณากรอกรหัสโรงเรียนให้ครบถ้วน', 'warning');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งคำขอ...';
+
+            try {
+                const db = window.sysDB;
+                // ตรวจสอบข้อมูลโรงเรียนว่ามีอยู่จริงไหม
+                const { data: school } = await db.from('schools').select('school_id').eq('school_id', schoolId).maybeSingle();
+                if (!school) throw new Error("ไม่พบข้อมูลโรงเรียนรหัสนี้ในระบบ กรุณาตรวจสอบอีกครั้ง");
+
+                const payload = {
+                    user_id: currentUser.user_id,
+                    school_id: schoolId,
+                    role: role,
+                    verification_card_url: cardUrl || null,
+                    verification_status: 'pending'
+                };
+
+                const { error } = await db.from('user_school').upsert([payload]);
+                if (error) throw error;
+
+                closeJoinSchoolModal();
+                showCustomAlert('ส่งคำขอสังกัดโรงเรียนสำเร็จ! ระบบกำลังรอแอดมินหรือผู้ดูแลอนุมัติคำขอของคุณ', 'success');
 
             } catch (err) {
                 showCustomAlert(err.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'ยืนยันเข้าร่วม';
+                btn.innerHTML = 'ส่งคำขอสังกัดโรงเรียน';
             }
         }
 
-        // --- UI & Utils ---
+        // 🌟 UI Utils
         function getSubjectIcon(name) {
             if (/วิทย์|science/i.test(name)) return 'fas fa-flask';
             if (/คณิต|math/i.test(name)) return 'fas fa-calculator';
@@ -450,8 +561,7 @@
             }
         }
 
-        let alertCallback = null;
-        let alertCancelCallback = null;
+        let alertCallback = null; let alertCancelCallback = null;
         function showCustomAlert(message, type = 'error', callback = null, cancelCallback = null) {
             const modal = document.getElementById('customAlertModal');
             const box = document.getElementById('customAlertBox');
