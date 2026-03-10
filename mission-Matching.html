@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สร้างเกมจับคู่ - FlipSchool</title>
+    
+    <link rel="icon" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-body: #f4f7fe; --text-main: #2d3436; --text-muted: #636e72; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background-image: radial-gradient(circle at top right, #fff1f2 0%, transparent 40%), radial-gradient(circle at bottom left, #fce7f3 0%, transparent 40%); }
+        
+        #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
+        .nav-left { display: flex; align-items: center; gap: clamp(10px, 2vw, 15px); text-decoration: none; cursor: pointer; transition: 0.3s; }
+        .nav-logo-icon { font-size: clamp(20px, 4vw, 28px); background: white; width: clamp(40px, 5vw, 50px); height: clamp(40px, 5vw, 50px); border-radius: clamp(10px, 2vw, 14px); border: 2.5px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,139,0.1); color: var(--text-main); transition: all 0.3s ease; }
+        .nav-brand { font-size: clamp(20px, 4vw, 26px); font-weight: 700; color: var(--primary); font-family: 'Kanit'; margin-bottom: -4px; transition: 0.3s;}
+        .nav-brand span { color: var(--accent); }
+        .nav-slogan { font-size: 13px; color: var(--text-muted); font-family: 'Sarabun'; transition: 0.3s; }
+        .nav-center { display: flex; align-items: center; gap: clamp(15px, 2vw, 30px); }
+        .nav-link { color: var(--text-muted); font-family: 'Kanit'; font-weight: 500; font-size: clamp(14px, 1.5vw, 16px); text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 8px; position: relative; }
+        .nav-link:hover { color: var(--primary); }
+        .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
+        .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
+        .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
+        .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
+        
+        .preview-frame-wrapper { background: #1e293b; border-radius: 2rem; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 6px solid #0f172a; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3); position: relative; }
+        .device-desktop { width: 100%; height: 100%; border-radius: 1rem; }
+        .device-mobile { width: 375px; height: 667px; margin: 0 auto; aspect-ratio: 9/16; }
+        .device-tablet { width: 768px; height: 1024px; margin: 0 auto; aspect-ratio: 3/4; }
+        
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .spinner { border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 12px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @media (max-width: 992px) { .nav-center { display: none; } .mobile-menu-btn { display: flex; align-items: center; justify-content: center; } }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <div id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังประมวลผล...</div>
+    </div>
+
+    <nav id="mainNav" class="shrink-0">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand">Flip<span>School</span></div>
+                <div class="nav-slogan app-slogan-label">Mini Game Builder</div>
+            </div>
+        </a>
+        <div class="nav-center">
+            <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+        </div>
+        <div class="nav-right flex items-center gap-3">
+            <button onclick="history.back()" class="hidden sm:flex bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl font-bold font-['Kanit'] transition-all border-none cursor-pointer text-sm shadow-sm items-center gap-2">
+                <i class="fas fa-arrow-left"></i> ย้อนกลับ
+            </button>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+        </div>
+        <div id="mobileMenu" class="mobile-dropdown">
+            <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
+            <a href="mission-library.html"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
+            <a href="#" onclick="history.back()"><i class="fas fa-arrow-left text-rose-500"></i> ย้อนกลับ</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-90px)]">
+        
+        <!-- Left Panel: Settings -->
+        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
+            <div class="bg-white p-5 lg:p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
+                
+                <div class="flex items-center gap-4 mb-6 border-b border-slate-100 pb-4 shrink-0">
+                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-2xl shadow-inner border border-rose-100">
+                        <i class="fas fa-puzzle-piece"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 font-['Kanit'] leading-tight m-0">สร้างเกมจับคู่</h2>
+                        <p class="text-xs text-slate-500 m-0 mt-1">Matching Game Builder</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 shrink-0">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">ชื่อเกม / ภารกิจ <span class="text-rose-500">*</span></label>
+                        <input type="text" id="missionTitle" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all text-slate-800" placeholder="เช่น จับคู่คำศัพท์น้ำใส" oninput="updatePreviewTitle()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">หมวดวิชา</label>
+                            <input type="text" id="missionSubject" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:border-rose-500" placeholder="เช่น ภาษาไทย" value="ภาษาไทย">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">ระดับชั้น</label>
+                            <input type="text" id="missionGrade" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:border-rose-500" placeholder="เช่น ป.2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🌟 Pairs Editor 🌟 -->
+                <div class="mt-6 flex-grow flex flex-col min-h-[300px]">
+                    <div class="flex justify-between items-end mb-3 shrink-0">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                            <i class="fas fa-list-ul"></i> ชุดคำศัพท์สำหรับจับคู่
+                        </label>
+                        <button onclick="addPair()" class="bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-rose-100 flex items-center gap-1 shadow-sm">
+                            <i class="fas fa-plus"></i> เพิ่มคู่
+                        </button>
+                    </div>
+
+                    <div id="pairsContainer" class="flex-grow overflow-y-auto pr-1 space-y-3">
+                        <!-- รายการจับคู่จะถูกสร้างที่นี่โดย JS -->
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-100 shrink-0">
+                    <button id="btnSave" onclick="saveMission()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 font-['Kanit'] text-sm">
+                        <i class="fas fa-save"></i> บันทึกภารกิจนี้
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Panel: Preview -->
+        <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center mb-4 shrink-0 px-4">
+                <span class="text-sm font-bold text-slate-700 font-['Kanit'] flex items-center gap-2"><i class="fas fa-eye text-rose-500"></i> ตัวอย่างเกมที่จะได้</span>
+                
+                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl" id="device-controls">
+                    <button onclick="changeView('desktop')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 shadow-sm rounded-lg flex items-center justify-center transition-all text-xs"><i class="fas fa-desktop"></i></button>
+                    <button onclick="changeView('tablet')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 rounded-lg flex items-center justify-center transition-all text-xs"><i class="fas fa-tablet-alt"></i></button>
+                    <button onclick="changeView('mobile')" class="view-btn w-8 h-8 bg-white text-rose-600 rounded-lg flex items-center justify-center transition-all text-xs"><i class="fas fa-mobile-alt"></i></button>
+                </div>
+            </div>
+
+            <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 transition-all">
+                <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl w-full h-full flex flex-col bg-white">
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals" title="Game Preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-100 py-3 text-center shrink-0 z-50">
+        <p class="text-slate-400 font-['Sarabun'] text-[11px] m-0">&copy; <span id="currentYear"></span> FlipSchool. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let targetCid = null, editingMid = null, currentUserId = null, currentUserName = "คุณครู", originalTeacherId = null;
+        let debounceTimer = null;
+
+        // ข้อมูลเริ่มต้นสำหรับเกมจับคู่เรื่อง น้ำใส
+        let gamePairs = [
+            { id: generateId(), left: 'โบ', right: 'https://images.unsplash.com/photo-1579780187850-8b209d048d28?q=80&w=200&auto=format&fit=crop' },
+            { id: generateId(), left: 'ไข่', right: 'https://images.unsplash.com/photo-1506976785307-8732e854ad02?q=80&w=200&auto=format&fit=crop' },
+            { id: generateId(), left: 'เล้า', right: 'ที่อยู่ของสัตว์ เช่น ไก่ เป็ด' },
+            { id: generateId(), left: 'แคร่', right: 'ที่นั่งทำด้วยไม้ไผ่' },
+            { id: generateId(), left: 'กระติก', right: 'ภาชนะสำหรับใส่น้ำ' }
+        ];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(typeof APP_CONFIG !== 'undefined'){
+                document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
+                document.querySelectorAll('.app-slogan-label').forEach(el => el.innerText = APP_CONFIG.APP_SLOGAN);
+            }
+            
+            const params = new URLSearchParams(window.location.search);
+            targetCid = params.get('cid');
+            editingMid = params.get('mid');
+
+            renderPairsEditor();
+            updatePreview();
+
+            const checkDB = setInterval(async () => {
+                if(window.sysDB) {
+                    clearInterval(checkDB);
+                    const { data: { session } } = await window.sysDB.auth.getSession();
+                    if (!session) { window.location.href = 'login.html'; return; }
+                    currentUserId = session.user.id;
+                    
+                    try {
+                        const { data: userData } = await window.sysDB.from('users').select('first_name, last_name').eq('user_id', currentUserId).single();
+                        if(userData) currentUserName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || "คุณครู";
+                    } catch(err) {}
+
+                    if (editingMid) await loadExistingMission();
+                    else if (targetCid) await fetchClassroomContext();
+                }
+            }, 500);
+        });
+
+        function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+        function renderPairsEditor() {
+            const container = document.getElementById('pairsContainer');
+            container.innerHTML = '';
+            
+            gamePairs.forEach((pair, index) => {
+                const itemHtml = `
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 relative group transition-all hover:border-rose-300">
+                        <button onclick="removePair('${pair.id}')" class="absolute -top-2 -right-2 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-sm transition-all opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xs font-bold shrink-0">${index + 1}</span>
+                                <input type="text" class="flex-grow bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-rose-500 font-bold text-slate-700" placeholder="คำศัพท์ (เช่น โบ, ไก่)" value="${pair.left}" oninput="updatePairData('${pair.id}', 'left', this.value)">
+                            </div>
+                            <div class="pl-8">
+                                <input type="text" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-rose-500 text-slate-600" placeholder="ความหมาย หรือ ลิงก์รูปภาพ (http...)" value="${pair.right}" oninput="updatePairData('${pair.id}', 'right', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', itemHtml);
+            });
+        }
+
+        function updatePairData(id, field, value) {
+            const pair = gamePairs.find(p => p.id === id);
+            if (pair) pair[field] = value;
+            
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { updatePreview(); }, 800);
+        }
+
+        function addPair() {
+            gamePairs.push({ id: generateId(), left: '', right: '' });
+            renderPairsEditor();
+            updatePreview();
+        }
+
+        function removePair(id) {
+            gamePairs = gamePairs.filter(p => p.id !== id);
+            renderPairsEditor();
+            updatePreview();
+        }
+
+        function updatePreviewTitle() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { updatePreview(); }, 500);
+        }
+
+        // ==========================================
+        // 🚀 Game Engine Generator (Template โค้ดเกมที่สมบูรณ์แบบ)
+        // ==========================================
+        function generateGameHTML() {
+            const title = document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก';
+            
+            // กรองเฉพาะคู่ที่มีข้อมูลครบ
+            const validPairs = gamePairs.filter(p => p.left.trim() !== '' && p.right.trim() !== '');
+            const pairsJsonString = JSON.stringify(validPairs);
+
+            return `<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${title}</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .kanit { font-family: 'Kanit', sans-serif; }
+        
+        .game-card {
+            background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            min-height: 80px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            font-size: 15px; font-weight: 600; color: #334155; user-select: none;
+            word-break: break-word;
+        }
+        .game-card img { max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 8px; }
+        
+        .game-card:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        .card-selected { border-color: #e11d48; background-color: #fff1f2; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.2); }
+        .card-matched { border-color: #10b981; background-color: #ecfdf5; color: #047857; opacity: 0.6; pointer-events: none; transform: scale(0.95); }
+        .card-wrong { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444; background-color: #fef2f2; color: #b91c1c; }
+        
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(3px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+            40%, 60% { transform: translate3d(5px, 0, 0); }
+        }
+
+        #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; display: none; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+    
+    <!-- Top Nav -->
+    <nav class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shrink-0 shadow-sm z-10 relative">
+        <button onclick="window.history.back()" class="text-slate-500 hover:bg-slate-100 p-2 rounded-lg transition-colors">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="kanit font-bold text-lg text-slate-800 truncate px-2 text-center">${title}</h1>
+        <div class="w-8"></div>
+    </nav>
+
+    <!-- Score & Time Panel -->
+    <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-star text-amber-400"></i>
+            <span class="kanit font-bold text-lg" id="scoreDisplay">0</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="fas fa-clock text-blue-300"></i>
+            <span class="kanit font-bold text-lg tracking-wider" id="timeDisplay">00:00</span>
+        </div>
+    </div>
+
+    <!-- Game Board -->
+    <div class="flex-grow overflow-auto p-4 md:p-6 w-full max-w-4xl mx-auto relative">
+        
+        <div id="gameGrid" class="grid grid-cols-2 gap-4 md:gap-6 relative z-10">
+            <!-- Left Column (Words) -->
+            <div id="colLeft" class="flex flex-col gap-3"></div>
+            <!-- Right Column (Meanings/Images) -->
+            <div id="colRight" class="flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Success Overlay -->
+        <div id="successOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 hidden flex-col items-center justify-center p-6 text-center rounded-2xl">
+            <div class="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center text-5xl mb-4 shadow-inner">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h2 class="kanit text-3xl font-bold text-slate-800 mb-2">ยอดเยี่ยมมาก!</h2>
+            <p class="text-slate-500 mb-6">คุณจับคู่ครบทั้งหมดแล้ว รับคะแนนเต็มไปเลย</p>
+            <button onclick="finishMission()" class="bg-rose-500 hover:bg-rose-600 text-white px-8 py-3 rounded-xl font-bold kanit shadow-lg transition-transform active:scale-95 text-lg">
+                <i class="fas fa-check-circle mr-2"></i> ส่งคำตอบ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const pairsData = ${pairsJsonString};
+        let leftCards = [];
+        let rightCards = [];
+        
+        let selectedLeft = null;
+        let selectedRight = null;
+        let matchedCount = 0;
+        let score = 0;
+        let isLocked = false;
+        
+        let timerInterval;
+        let secondsElapsed = 0;
+
+        function initGame() {
+            if(pairsData.length === 0) {
+                document.getElementById('gameGrid').innerHTML = '<div class="col-span-2 text-center py-10 text-slate-400">ยังไม่ได้เพิ่มชุดคำศัพท์</div>';
+                return;
+            }
+
+            // Create arrays
+            leftCards = pairsData.map(p => ({ id: p.id, type: 'left', content: p.left }));
+            rightCards = pairsData.map(p => ({ id: p.id, type: 'right', content: p.right }));
+
+            // Shuffle arrays independently
+            leftCards.sort(() => Math.random() - 0.5);
+            rightCards.sort(() => Math.random() - 0.5);
+
+            renderBoard();
+            startTimer();
+        }
+
+        function isImageUrl(str) {
+            return str.match(/\\.(jpeg|jpg|gif|png|webp|svg)$/i) || str.startsWith('http');
+        }
+
+        function renderBoard() {
+            const colL = document.getElementById('colLeft');
+            const colR = document.getElementById('colRight');
+            
+            colL.innerHTML = leftCards.map(c => 
+                \`<div id="card-L-\${c.id}" class="game-card kanit" onclick="handleCardClick('\${c.id}', 'left')">\${c.content}</div>\`
+            ).join('');
+
+            colR.innerHTML = rightCards.map(c => {
+                const display = isImageUrl(c.content) ? \`<img src="\${c.content}" alt="image">\` : c.content;
+                return \`<div id="card-R-\${c.id}" class="game-card" onclick="handleCardClick('\${c.id}', 'right')">\${display}</div>\`;
+            }).join('');
+        }
+
+        function handleCardClick(id, side) {
+            if (isLocked) return;
+
+            const el = document.getElementById(\`card-\${side === 'left' ? 'L' : 'R'}-\${id}\`);
+            if (el.classList.contains('card-matched')) return;
+
+            // Deselect if clicked same
+            if (side === 'left' && selectedLeft === id) {
+                el.classList.remove('card-selected');
+                selectedLeft = null;
+                return;
+            }
+            if (side === 'right' && selectedRight === id) {
+                el.classList.remove('card-selected');
+                selectedRight = null;
+                return;
+            }
+
+            // Select logic
+            if (side === 'left') {
+                if (selectedLeft) document.getElementById(\`card-L-\${selectedLeft}\`).classList.remove('card-selected');
+                selectedLeft = id;
+                el.classList.add('card-selected');
+            } else {
+                if (selectedRight) document.getElementById(\`card-R-\${selectedRight}\`).classList.remove('card-selected');
+                selectedRight = id;
+                el.classList.add('card-selected');
+            }
+
+            // Check match if both selected
+            if (selectedLeft && selectedRight) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            isLocked = true;
+            const elL = document.getElementById(\`card-L-\${selectedLeft}\`);
+            const elR = document.getElementById(\`card-R-\${selectedRight}\`);
+
+            if (selectedLeft === selectedRight) {
+                // Correct Match
+                setTimeout(() => {
+                    elL.className = 'game-card kanit card-matched';
+                    elR.className = 'game-card card-matched';
+                    score += 20;
+                    document.getElementById('scoreDisplay').innerText = score;
+                    matchedCount++;
+                    
+                    selectedLeft = null;
+                    selectedRight = null;
+                    isLocked = false;
+
+                    if (matchedCount === pairsData.length) {
+                        gameComplete();
+                    }
+                }, 400);
+            } else {
+                // Wrong Match
+                elL.classList.add('card-wrong');
+                elR.classList.add('card-wrong');
+                score = Math.max(0, score - 5);
+                document.getElementById('scoreDisplay').innerText = score;
+
+                setTimeout(() => {
+                    elL.classList.remove('card-selected', 'card-wrong');
+                    elR.classList.remove('card-selected', 'card-wrong');
+                    selectedLeft = null;
+                    selectedRight = null;
+                    isLocked = false;
+                }, 800);
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                const s = (secondsElapsed % 60).toString().padStart(2, '0');
+                document.getElementById('timeDisplay').innerText = \`\${m}:\${s}\`;
+            }, 1000);
+        }
+
+        function gameComplete() {
+            clearInterval(timerInterval);
+            document.getElementById('successOverlay').classList.remove('hidden');
+            document.getElementById('successOverlay').classList.add('flex');
+            
+            // Post message for auto-save if in FlipSchool player
+            if (window.parent) {
+                window.parent.postMessage({ type: 'SAVE_RESULT', score: 100 }, '*');
+            }
+        }
+
+        function finishMission() {
+            // Check if within iframe/FlipSchool wrapper
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'MISSION_FINISH' }, '*');
+            } else {
+                alert('ส่งคำตอบเรียบร้อยแล้ว (จำลองการกดปุ่ม)');
+                window.history.back();
+            }
+        }
+
+        window.onload = initGame;
+    <\/script>
+</body>
+</html>`;
+        }
+        // ==========================================
+
+        function updatePreview() {
+            const iframe = document.getElementById('missionFrame');
+            const htmlCode = generateGameHTML();
+            iframe.srcdoc = htmlCode;
+        }
+
+        async function fetchClassroomContext() {
+            try {
+                const { data } = await window.sysDB.from('classrooms').select('subject_name, room_name').eq('classroom_id', targetCid).single();
+                if (data) {
+                    dbSubject = data.subject_name || "อื่นๆ";
+                    dbGrade = data.room_name || "";
+
+                    const subjInput = document.getElementById('missionSubject');
+                    const gradeInput = document.getElementById('missionGrade');
+                    if (!subjInput.value || subjInput.value === 'อื่นๆ') subjInput.value = dbSubject;
+                    if (!gradeInput.value) gradeInput.value = dbGrade;
+
+                    document.getElementById('classroomContextArea').classList.remove('hidden-el');
+                    document.getElementById('linkIcon').className = "fas fa-check-circle text-teal-500";
+                    document.getElementById('linkStatus').innerText = "เชื่อมโยงห้องเรียนแล้ว";
+                }
+            } catch (err) {}
+        }
+
+        async function loadExistingMission() {
+            try {
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+                if (error) throw error;
+                if (data) {
+                    originalTeacherId = data.created_by;
+                    document.getElementById('missionTitle').value = data.title || '';
+                    document.getElementById('missionSubject').value = data.subject_group || '';
+                    document.getElementById('missionGrade').value = data.grade_level || '';
+                    
+                    if(data.content_data && data.content_data.pairs) {
+                        gamePairs = data.content_data.pairs;
+                        renderPairsEditor();
+                        updatePreview();
+                    }
+                }
+            } catch (e) { console.error("Load Error:", e); }
+        }
+
+        async function saveMission() {
+            const title = document.getElementById('missionTitle').value.trim();
+            const subject = document.getElementById('missionSubject').value.trim() || "อื่นๆ";
+            const grade = document.getElementById('missionGrade').value.trim() || "";
+            
+            const validPairs = gamePairs.filter(p => p.left.trim() !== '' && p.right.trim() !== '');
+
+            if (!title) {
+                document.getElementById('missionTitle').focus();
+                return alert('กรุณาตั้งชื่อภารกิจครับ');
+            }
+            if (validPairs.length < 2) return alert('กรุณาเพิ่มชุดคำศัพท์อย่างน้อย 2 คู่เพื่อสร้างเกมครับ');
+
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+            try {
+                const finalHtml = generateGameHTML();
+                
+                const payload = {
+                    title: title, 
+                    description: `จับคู่คำศัพท์ ${validPairs.length} คู่`, 
+                    subject_group: subject, 
+                    grade_level: grade,
+                    mission_type: 'match',
+                    content_data: { 
+                        html: finalHtml,
+                        pairs: validPairs,
+                        creator_id: currentUserId,
+                        creator_name: currentUserName
+                    },
+                    reward_points: 10, 
+                    can_replay: true, 
+                    is_public: true, 
+                    updated_at: new Date().toISOString()
+                };
+
+                let mid = editingMid;
+                let isNewFork = false;
+
+                if (editingMid && currentUserId === originalTeacherId) {
+                    await window.sysDB.from('missions').update(payload).eq('mission_id', editingMid);
+                } else {
+                    payload.created_by = currentUserId;
+                    payload.created_at = new Date().toISOString();
+                    const { data } = await window.sysDB.from('missions').insert([payload]).select();
+                    mid = data[0].mission_id;
+                    if (editingMid) isNewFork = true;
+                }
+
+                if (targetCid) {
+                    await window.sysDB.from('classroom_missions').upsert({
+                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                    }, { onConflict: 'classroom_id, mission_id' });
+                }
+
+                if (isNewFork) alert("บันทึกเป็นสำเนาภารกิจใหม่เรียบร้อย (เนื่องจากคุณไม่ใช่ผู้สร้างต้นฉบับ)");
+                else alert("บันทึกเกมจับคู่สำเร็จ!");
+
+                window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+            } catch (e) {
+                alert("Error: " + e.message);
+                btn.disabled = false; btn.innerHTML = `<i class="fas fa-save"></i> บันทึกภารกิจนี้`;
+            }
+        }
+
+        function changeView(size) { 
+            const wrapper = document.getElementById("previewWrapper");
+            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl flex flex-col bg-white`; 
+            if(event) {
+                document.querySelectorAll('.view-btn').forEach(b => { b.classList.remove('bg-white','text-rose-600', 'shadow-sm'); b.classList.add('hover:bg-white','text-slate-500'); });
+                event.currentTarget.classList.add('bg-white','text-rose-600', 'shadow-sm');
+                event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
+            }
+        }
+
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+    </script>
+</body>
+</html>
