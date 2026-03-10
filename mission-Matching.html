@@ -58,6 +58,9 @@
         
         /* Type Selector */
         .type-selector { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto; }
+        
+        /* Error State Input */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; color: #b91c1c !important; }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -65,6 +68,12 @@
     <div id="loadingOverlay" style="display: none;">
         <div class="spinner"></div>
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังบันทึกข้อมูล...</div>
+    </div>
+
+    <!-- Alert / Toast Container -->
+    <div id="alertToast" class="fixed top-24 right-5 bg-rose-500 text-white px-5 py-3 rounded-xl shadow-lg z-[9999] transform transition-transform translate-x-full font-['Kanit'] font-bold flex items-center gap-2">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="alertToastMsg">ข้อความแจ้งเตือน</span>
     </div>
 
     <nav id="mainNav" class="shrink-0">
@@ -218,6 +227,7 @@
     <script>
         let targetCid = null, editingMid = null, currentUserId = null, currentUserName = "คุณครู", originalTeacherId = null;
         let debounceTimer = null;
+        let alertTimer = null;
 
         // การตั้งค่าดีไซน์เกม (ค่าเริ่มต้น)
         let gameConfig = {
@@ -267,6 +277,18 @@
             }, 500);
         });
 
+        // ================= Custom Alerts =================
+        function showToastAlert(msg) {
+            const toast = document.getElementById('alertToast');
+            document.getElementById('alertToastMsg').innerText = msg;
+            toast.classList.remove('translate-x-full');
+            
+            if(alertTimer) clearTimeout(alertTimer);
+            alertTimer = setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3500);
+        }
+
         // ================= UI Controls =================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
@@ -308,7 +330,7 @@
             debounceTimer = setTimeout(() => { updatePreview(); }, 300);
         }
 
-        // ================= Pairs Editor (หัวใจหลักของเครื่องมือ) =================
+        // ================= Pairs Editor =================
         function generateId() { return Math.random().toString(36).substr(2, 9); }
 
         function getPlaceholder(type) {
@@ -343,7 +365,12 @@
                                     <option value="emoji" ${pair.left.type === 'emoji' ? 'selected' : ''}>😂 อิโมจิ</option>
                                     <option value="audio" ${pair.left.type === 'audio' ? 'selected' : ''}>🎵 เสียง</option>
                                 </select>
-                                <input type="text" class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" placeholder="${getPlaceholder(pair.left.type)}" value="${pair.left.value}" oninput="updatePairData('${pair.id}', 'left', this.value)">
+                                <input type="text" data-pair-id="${pair.id}" data-side="left"
+                                       class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
+                                       placeholder="${getPlaceholder(pair.left.type)}" 
+                                       value="${pair.left.value}" 
+                                       oninput="updatePairData('${pair.id}', 'left', this.value, this)"
+                                       onchange="validateMedia('${pair.id}', 'left', this)">
                             </div>
 
                             <!-- Right Item -->
@@ -354,7 +381,12 @@
                                     <option value="emoji" ${pair.right.type === 'emoji' ? 'selected' : ''}>😂 อิโมจิ</option>
                                     <option value="audio" ${pair.right.type === 'audio' ? 'selected' : ''}>🎵 เสียง</option>
                                 </select>
-                                <input type="text" class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" placeholder="${getPlaceholder(pair.right.type)}" value="${pair.right.value}" oninput="updatePairData('${pair.id}', 'right', this.value)">
+                                <input type="text" data-pair-id="${pair.id}" data-side="right"
+                                       class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
+                                       placeholder="${getPlaceholder(pair.right.type)}" 
+                                       value="${pair.right.value}" 
+                                       oninput="updatePairData('${pair.id}', 'right', this.value, this)"
+                                       onchange="validateMedia('${pair.id}', 'right', this)">
                             </div>
                         </div>
                     </div>
@@ -374,12 +406,44 @@
             updatePreviewTitle(); // Re-render preview
         }
 
-        function updatePairData(id, side, value) {
+        function updatePairData(id, side, value, inputEl) {
             const pair = gamePairs.find(p => p.id === id);
             if (pair) pair[side].value = value;
             
+            // ลบสถานะ Error ออกทันทีเมื่อผู้ใช้เริ่มพิมพ์แก้ไข
+            if (inputEl) inputEl.classList.remove('input-error');
+
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, 800);
+        }
+
+        // 🌟 ตรวจสอบ URL รูปภาพ 🌟
+        function validateMedia(id, side, inputEl) {
+            const pair = gamePairs.find(p => p.id === id);
+            if (!pair || !inputEl.value.trim()) return;
+
+            const val = inputEl.value.trim();
+
+            if (pair[side].type === 'image' && val.startsWith('http')) {
+                const img = new Image();
+                
+                img.onload = () => {
+                    inputEl.classList.remove('input-error');
+                };
+                
+                img.onerror = () => {
+                    showToastAlert("❌ ไม่สามารถโหลดรูปภาพได้ ระบบปฏิเสธ URL นี้");
+                    inputEl.value = ''; // ล้างค่าทิ้งทันที
+                    pair[side].value = ''; // ลบออกจาก Data ด้วย
+                    inputEl.classList.add('input-error');
+                    
+                    // รีเฟรชพรีวิวเพื่อลบรูปที่เสียออก
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => { updatePreview(); }, 300);
+                };
+                
+                img.src = val;
+            }
         }
 
         function addPair() {
@@ -566,6 +630,7 @@
 
         function generateCardContent(dataObj) {
             const val = dataObj.value;
+            // ใช้ fallback เบื้องต้นถ้าเกิดภาพเสียในหน้าเล่นเกม
             if (dataObj.type === 'image') return \`<img src="\${val}" class="img-content" alt="image" onerror="this.src='https://placehold.co/200x100?text=Image+Error'">\`;
             if (dataObj.type === 'emoji') return \`<span class="emoji-content">\${val}</span>\`;
             if (dataObj.type === 'audio') return \`<i class="fas fa-volume-up audio-content" data-url="\${val}"></i>\`;
