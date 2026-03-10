@@ -18,6 +18,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&family=Prompt:wght@400;500;600&family=Mali:wght@400;500;600&family=Charm:wght@400;700&display=swap" rel="stylesheet">
 
+    <!-- 🌟 โหลดไลบรารี Emoji Picker อัจฉริยะ 🌟 -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+
     <style>
         :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-body: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; }
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
@@ -57,6 +60,20 @@
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; color: #b91c1c !important; }
         .disabled-side { opacity: 0.4; pointer-events: none; filter: grayscale(100%); }
         .hidden-el { display: none !important; }
+
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        /* Emoji Picker Component Customization */
+        emoji-picker {
+            width: 100%;
+            height: 350px;
+            --border-radius: 0;
+            --background: #ffffff;
+            --indicator-color: #f43f5e;
+            --input-border-color: #e2e8f0;
+            --input-focus-border-color: #f43f5e;
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -64,6 +81,22 @@
     <div id="loadingOverlay" style="display: none;">
         <div class="spinner"></div>
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังบันทึกข้อมูล...</div>
+    </div>
+
+    <!-- 🌟 Modal สำหรับเลือก Emoji 🌟 -->
+    <div id="emojiPickerModal" class="hidden-el fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10500] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden w-full max-w-sm animate-pop-in relative">
+            <div class="bg-slate-50 border-b border-slate-100 p-3.5 flex justify-between items-center shrink-0">
+                <span class="font-bold text-slate-700 font-['Kanit'] flex items-center gap-2">
+                    <i class="fas fa-smile-beam text-rose-500 text-lg"></i> ค้นหาและเลือกอิโมจิ
+                </span>
+                <button onclick="closeEmojiPicker()" class="text-slate-400 hover:text-rose-500 hover:bg-rose-50 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <!-- คอมโพเนนต์ Picker ที่มีช่องค้นหาในตัว -->
+            <emoji-picker class="w-full"></emoji-picker>
+        </div>
     </div>
 
     <!-- Alert / Toast -->
@@ -103,7 +136,7 @@
                     </div>
                     <div>
                         <h2 class="text-xl font-bold text-slate-800 font-['Kanit'] leading-tight m-0">Pro Matching Game</h2>
-                        <p class="text-xs text-slate-500 m-0 mt-0.5 font-['Sarabun']">ระบบสร้างเกมจับคู่อัจฉริยะ</p>
+                        <p class="text-xs text-slate-500 m-0 mt-0.5 font-['Sarabun']">สร้างเกมจับคู่อัจฉริยะขั้นสูง</p>
                     </div>
                 </div>
 
@@ -121,7 +154,7 @@
                 <div id="tab-content" class="tab-pane block space-y-4">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-xs font-bold text-slate-600 font-['Kanit']">จัดการคู่คำศัพท์ / ตัวลวง</span>
-                        <button onclick="addPair()" class="bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-rose-100 flex items-center gap-1">
+                        <button onclick="addPair()" class="bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-rose-100 flex items-center gap-1 shadow-sm">
                             <i class="fas fa-plus"></i> เพิ่มรายการ
                         </button>
                     </div>
@@ -133,10 +166,8 @@
                 <!-- 2. Tab: ดีไซน์ & กติกา -->
                 <div id="tab-design" class="tab-pane hidden space-y-6">
                     
-                    <!-- โหมดการเล่นใหม่ -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-100 pb-5">
-                        
-                        <!-- Game Style (กติกาพิเศษ) -->
+                        <!-- Game Style -->
                         <div>
                             <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide flex items-center gap-1 mb-2">
                                 <i class="fas fa-magic text-rose-500"></i> สไตล์เกม
@@ -147,7 +178,7 @@
                             </div>
                         </div>
 
-                        <!-- Interaction Mode (วิธีเล่น) -->
+                        <!-- Interaction Mode -->
                         <div>
                             <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide flex items-center gap-1 mb-2">
                                 <i class="fas fa-hand-pointer text-indigo-500"></i> วิธีจับคู่
@@ -200,11 +231,8 @@
                             </label>
                         </div>
 
-                        <!-- ซ่อน/แสดงตามโหมดที่เลือก -->
                         <div id="pairsPerRoundConfig" class="hidden mt-3 bg-slate-50 border border-slate-100 p-4 rounded-xl">
-                            <label class="text-xs font-bold text-slate-700 font-['Kanit'] block mb-2">
-                                จำนวนคู่ต่อหน้าจอ (Visible Pairs)
-                            </label>
+                            <label class="text-xs font-bold text-slate-700 font-['Kanit'] block mb-2">จำนวนคู่ต่อหน้าจอ (Visible Pairs)</label>
                             <div class="flex items-center gap-3">
                                 <input type="number" id="visiblePairsInput" class="w-24 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-rose-500 outline-none text-center" min="2" max="20" value="4" oninput="updateDesign('visiblePairs', parseInt(this.value)||4)">
                                 <span class="text-xs font-bold text-slate-500 font-['Kanit']">คู่ / กระดาน</span>
@@ -314,6 +342,7 @@
         let targetCid = null, editingMid = null, currentUserId = null, currentUserName = "คุณครู", originalTeacherId = null;
         let debounceTimer = null;
         let alertTimer = null;
+        let currentEmojiInput = null; // ตัวแปรเก็บ Input อิโมจิที่ถูกเลือก
 
         // 🌟 Game Config รองรับ Layout & Interaction แบบจัดเต็ม 🌟
         let gameConfig = {
@@ -343,6 +372,21 @@
             renderPairsEditor();
             updatePreview();
 
+            // 🌟 ตั้งค่าระบบการรับค่าจาก Emoji Picker 🌟
+            const picker = document.querySelector('emoji-picker');
+            if (picker) {
+                picker.addEventListener('emoji-click', event => {
+                    if (currentEmojiInput) {
+                        currentEmojiInput.value = event.detail.unicode;
+                        // อัปเดตข้อมูล
+                        const pairId = currentEmojiInput.getAttribute('data-pair-id');
+                        const side = currentEmojiInput.getAttribute('data-side');
+                        updatePairData(pairId, side, event.detail.unicode, currentEmojiInput);
+                        closeEmojiPicker();
+                    }
+                });
+            }
+
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -360,6 +404,7 @@
             }, 500);
         });
 
+        // ================= Custom Alerts & Code Actions =================
         function showToastAlert(msg) {
             const toast = document.getElementById('alertToast');
             document.getElementById('alertToastMsg').innerText = msg;
@@ -367,6 +412,29 @@
             if(alertTimer) clearTimeout(alertTimer);
             alertTimer = setTimeout(() => { toast.classList.add('translate-x-full'); }, 3500);
         }
+
+        // ================= Emoji Picker Controls =================
+        function openEmojiPicker(inputEl) {
+            if (inputEl.hasAttribute('disabled')) return;
+            currentEmojiInput = inputEl;
+            const modal = document.getElementById('emojiPickerModal');
+            modal.classList.remove('hidden-el');
+        }
+
+        function closeEmojiPicker() {
+            const modal = document.getElementById('emojiPickerModal');
+            modal.classList.add('hidden-el');
+            currentEmojiInput = null;
+        }
+
+        // ปิด Picker หากคลิกพื้นที่ด้านนอก
+        document.addEventListener('mousedown', (e) => {
+            const modal = document.getElementById('emojiPickerModal');
+            const pickerCard = modal.querySelector('div.bg-white');
+            if (!modal.classList.contains('hidden-el') && !pickerCard.contains(e.target) && e.target.tagName !== 'EMOJI-PICKER' && !e.target.closest('button')) {
+                closeEmojiPicker();
+            }
+        });
 
         function toggleCodeView(mode) {
             const iframe = document.getElementById('missionFrame');
@@ -399,6 +467,7 @@
             }
         }
 
+        // ================= UI Controls =================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
@@ -430,7 +499,6 @@
                 const hint = document.getElementById('styleHint');
                 
                 if (value === 'memory') {
-                    // เกมความจำ บังคับ Grid + Click
                     gameConfig.boardLayout = 'grid';
                     gameConfig.interactionMode = 'click';
                     
@@ -450,7 +518,6 @@
                 }
             } else if (property === 'boardLayout') {
                 if (value === 'grid' && gameConfig.interactionMode === 'drag') {
-                    // Grid ไม่เหมาะกับ Drag
                     gameConfig.interactionMode = 'click';
                     const interactBtns = document.querySelectorAll('.interaction-btn');
                     interactBtns[1].classList.replace('bg-white', 'text-slate-500'); interactBtns[1].classList.remove('shadow-sm', 'text-slate-800');
@@ -459,7 +526,6 @@
                 }
             } else if (property === 'interactionMode') {
                 if (value === 'drag' && gameConfig.boardLayout === 'grid') {
-                    // Drag ต้องใช้ Split
                     gameConfig.boardLayout = 'split';
                     const layoutBtns = document.querySelectorAll('.layout-btn');
                     layoutBtns[1].classList.replace('bg-white', 'text-slate-500'); layoutBtns[1].classList.remove('shadow-sm', 'text-slate-800');
@@ -516,9 +582,9 @@
 
         // ================= Pairs Editor =================
         function generateId() { return Math.random().toString(36).substr(2, 9); }
+        
         function getPlaceholder(type) {
             if (type === 'image') return 'วางลิงก์รูปภาพ (http...)';
-            if (type === 'emoji') return 'พิมพ์อิโมจิ (Win + . หรือ แป้นพิมพ์)';
             if (type === 'audio') return 'วางลิงก์ไฟล์เสียง (.mp3)';
             return 'พิมพ์ข้อความ...';
         }
@@ -530,6 +596,20 @@
             gamePairs.forEach((pair, index) => {
                 const isLeftDecoy = pair.mode === 'decoy_left';
                 const isRightDecoy = pair.mode === 'decoy_right';
+
+                // ฟังก์ชันสำหรับสร้าง Attribute ของ Input ให้รองรับการกดเลือก Emoji
+                const getInputAttr = (side, isDecoy) => {
+                    const pType = pair[side].type;
+                    const pVal = pair[side].value;
+                    const baseClass = "flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-colors text-slate-700";
+                    const disableAttr = isDecoy ? 'disabled' : '';
+                    
+                    if (pType === 'emoji') {
+                        return `placeholder="👉 คลิกเพื่อค้นหา/เลือกอิโมจิ" value="${pVal}" readonly onclick="openEmojiPicker(this)" class="${baseClass} cursor-pointer hover:border-rose-300 focus:border-rose-500 focus:bg-white ${isDecoy ? 'disabled-side' : ''}" data-pair-id="${pair.id}" data-side="${side}" ${disableAttr}`;
+                    } else {
+                        return `placeholder="${getPlaceholder(pType)}" value="${pVal}" oninput="updatePairData('${pair.id}', '${side}', this.value, this)" onchange="validateMedia('${pair.id}', '${side}', this)" class="${baseClass} focus:border-[var(--primary)] focus:bg-white" data-pair-id="${pair.id}" data-side="${side}" ${disableAttr}`;
+                    }
+                };
 
                 const itemHtml = `
                     <div class="bg-white p-4 rounded-2xl border-2 border-slate-100 relative group transition-all hover:border-slate-300 shadow-sm">
@@ -549,6 +629,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
+                            <!-- Left Item -->
                             <div class="flex gap-2 ${isRightDecoy ? 'disabled-side' : ''}">
                                 <select class="type-selector bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-600 outline-none w-[90px] shrink-0" onchange="updatePairType('${pair.id}', 'left', this.value)">
                                     <option value="text" ${pair.left.type === 'text' ? 'selected' : ''}>🔤 ข้อความ</option>
@@ -556,12 +637,10 @@
                                     <option value="emoji" ${pair.left.type === 'emoji' ? 'selected' : ''}>😂 อิโมจิ</option>
                                     <option value="audio" ${pair.left.type === 'audio' ? 'selected' : ''}>🎵 เสียง</option>
                                 </select>
-                                <input type="text" data-pair-id="${pair.id}" data-side="left"
-                                       class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
-                                       placeholder="${getPlaceholder(pair.left.type)}" value="${pair.left.value}" 
-                                       oninput="updatePairData('${pair.id}', 'left', this.value, this)" onchange="validateMedia('${pair.id}', 'left', this)" ${isRightDecoy ? 'disabled' : ''}>
+                                <input type="text" ${getInputAttr('left', isRightDecoy)}>
                             </div>
 
+                            <!-- Right Item -->
                             <div class="flex gap-2 ${isLeftDecoy ? 'disabled-side' : ''}">
                                 <select class="type-selector bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-600 outline-none w-[90px] shrink-0" onchange="updatePairType('${pair.id}', 'right', this.value)">
                                     <option value="text" ${pair.right.type === 'text' ? 'selected' : ''}>🔤 ข้อความ</option>
@@ -569,10 +648,7 @@
                                     <option value="emoji" ${pair.right.type === 'emoji' ? 'selected' : ''}>😂 อิโมจิ</option>
                                     <option value="audio" ${pair.right.type === 'audio' ? 'selected' : ''}>🎵 เสียง</option>
                                 </select>
-                                <input type="text" data-pair-id="${pair.id}" data-side="right"
-                                       class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
-                                       placeholder="${getPlaceholder(pair.right.type)}" value="${pair.right.value}" 
-                                       oninput="updatePairData('${pair.id}', 'right', this.value, this)" onchange="validateMedia('${pair.id}', 'right', this)" ${isLeftDecoy ? 'disabled' : ''}>
+                                <input type="text" ${getInputAttr('right', isLeftDecoy)}>
                             </div>
                         </div>
                     </div>
@@ -582,17 +658,25 @@
         }
 
         function updatePairMode(id, newMode) { const pair = gamePairs.find(p => p.id === id); if (pair) pair.mode = newMode; renderPairsEditor(); updatePreviewTitle(); }
+        
         function updatePairType(id, side, newType) {
             const pair = gamePairs.find(p => p.id === id);
-            if (pair) { pair[side].type = newType; if (newType === 'emoji' && pair[side].value.length > 5) pair[side].value = ''; }
-            renderPairsEditor(); updatePreviewTitle();
+            if (pair) { 
+                pair[side].type = newType; 
+                // ล้างค่าหากเปลี่ยนประเภทเพื่อป้องกันปัญหา
+                pair[side].value = ''; 
+            }
+            renderPairsEditor(); 
+            updatePreviewTitle();
         }
+        
         function updatePairData(id, side, value, inputEl) {
             const pair = gamePairs.find(p => p.id === id); if (pair) pair[side].value = value;
             if (inputEl) inputEl.classList.remove('input-error');
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, 800);
         }
+        
         function validateMedia(id, side, inputEl) {
             const pair = gamePairs.find(p => p.id === id); if (!pair || !inputEl.value.trim()) return;
             const val = inputEl.value.trim();
@@ -608,6 +692,7 @@
                 img.src = val;
             }
         }
+
         function addPair() {
             gamePairs.push({ id: generateId(), mode: 'normal', left: {type: 'text', value: ''}, right: {type: 'text', value: ''} });
             renderPairsEditor();
@@ -1069,6 +1154,134 @@
 </body>
 </html>`;
         }
+
+        // ==========================================
+
+        function updatePreview() {
+            const iframe = document.getElementById('missionFrame');
+            const codeBox = document.getElementById('codeView');
+            const htmlCode = generateGameHTML();
+            
+            iframe.srcdoc = htmlCode;
+            if (codeBox && !codeBox.classList.contains('hidden-el')) {
+                codeBox.value = htmlCode;
+            }
+        }
+
+        async function loadExistingMission() {
+            try {
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+                if (data) {
+                    originalTeacherId = data.created_by;
+                    document.getElementById('missionTitle').value = data.title || '';
+                    document.getElementById('missionSubject').value = data.subject_group || '';
+                    document.getElementById('missionGrade').value = data.grade_level || '';
+                    
+                    if(data.content_data) {
+                        if(data.content_data.pairs) gamePairs = data.content_data.pairs;
+                        if(data.content_data.config) {
+                            gameConfig = {...gameConfig, ...data.content_data.config};
+                            
+                            // UI Updates based on config
+                            if(gameConfig.fontFamily) updateDesign('fontFamily', gameConfig.fontFamily, document.querySelector(`.font-btn:contains('${gameConfig.fontFamily}')`));
+                            
+                            if(gameConfig.playMode) {
+                                document.querySelector(`input[name="playMode"][value="${gameConfig.playMode}"]`).checked = true;
+                                updateGameMode(gameConfig.playMode);
+                            }
+                            if(gameConfig.visiblePairs !== undefined) document.getElementById('visiblePairsInput').value = gameConfig.visiblePairs;
+                        }
+                        renderPairsEditor();
+                        updatePreview();
+                    }
+                }
+            } catch (e) {}
+        }
+
+        async function saveMission() {
+            const title = document.getElementById('missionTitle').value.trim();
+            const subject = document.getElementById('missionSubject').value.trim() || "อื่นๆ";
+            const grade = document.getElementById('missionGrade').value.trim() || "";
+            
+            // กรองเช็คว่ามีคู่ที่มีคำตอบครบ (normal mode) อย่างน้อย 1 คู่หรือไม่
+            const validPairs = gamePairs.filter(p => {
+                if(p.mode === 'normal') return p.left.value.trim() !== '' && p.right.value.trim() !== '';
+                if(p.mode === 'decoy_left') return p.left.value.trim() !== '';
+                if(p.mode === 'decoy_right') return p.right.value.trim() !== '';
+                return false;
+            });
+            
+            const hasNormalPair = validPairs.some(p => p.mode === 'normal');
+
+            if (!title) {
+                document.getElementById('missionTitle').focus(); switchTab('tab-info');
+                return alert('กรุณาตั้งชื่อภารกิจครับ');
+            }
+            if (!hasNormalPair) {
+                switchTab('tab-content');
+                return alert('กรุณาเพิ่มชุดคำศัพท์ประเภท "จับคู่ปกติ" อย่างน้อย 1 คู่ เพื่อให้เกมสามารถเล่นผ่านได้ครับ');
+            }
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const finalHtml = generateGameHTML();
+                const payload = {
+                    title: title, 
+                    description: `เกมจับคู่อัจฉริยะ ${validPairs.length} รายการ`, 
+                    subject_group: subject, 
+                    grade_level: grade,
+                    mission_type: 'match',
+                    content_data: { 
+                        html: finalHtml,
+                        pairs: validPairs,
+                        config: gameConfig,
+                        creator_id: currentUserId,
+                        creator_name: currentUserName
+                    },
+                    reward_points: 10, 
+                    can_replay: true, 
+                    is_public: true, 
+                    updated_at: new Date().toISOString()
+                };
+
+                let mid = editingMid;
+
+                if (editingMid && currentUserId === originalTeacherId) {
+                    await window.sysDB.from('missions').update(payload).eq('mission_id', editingMid);
+                } else {
+                    payload.created_by = currentUserId;
+                    payload.created_at = new Date().toISOString();
+                    const { data } = await window.sysDB.from('missions').insert([payload]).select();
+                    mid = data[0].mission_id;
+                }
+
+                if (targetCid) {
+                    await window.sysDB.from('classroom_missions').upsert({
+                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                    }, { onConflict: 'classroom_id, mission_id' });
+                }
+
+                window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+            } catch (e) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                alert("Error: " + e.message);
+            }
+        }
+
+        function changeView(size) { 
+            const wrapper = document.getElementById("previewWrapper");
+            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl flex flex-col bg-white relative`; 
+            if(event) {
+                document.querySelectorAll('.view-btn').forEach(b => { b.classList.remove('bg-white','text-rose-600', 'shadow-sm'); b.classList.add('hover:bg-white','text-slate-500'); });
+                event.currentTarget.classList.add('bg-white','text-rose-600', 'shadow-sm');
+                event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
+            }
+        }
+
+        HTMLElement.prototype.containsText = function(text) {
+            return this.innerText.includes(text);
+        };
     </script>
 </body>
 </html>
