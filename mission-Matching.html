@@ -64,19 +64,19 @@
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
         .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         
-        /* 🌟 Emoji Picker Component Customization (World-Class Level) 🌟 */
+        /* 🌟 Emoji Picker Component Customization 🌟 */
         emoji-picker {
             width: 100%;
-            height: 420px; /* เพิ่มความสูงให้เห็นจุใจ */
+            height: 420px;
             --border-radius: 0;
             --background: #ffffff;
-            --indicator-color: #f43f5e; /* สีแท็บหมวดหมู่ที่เลือก (Rose) */
+            --indicator-color: #f43f5e;
             --input-border-color: #e2e8f0;
             --input-focus-border-color: #f43f5e;
-            --input-font-color: #1e293b; /* อักษรช่องค้นหาเข้มชัดเจน */
+            --input-font-color: #1e293b;
             --input-placeholder-color: #94a3b8;
             --font-family: 'Kanit', sans-serif;
-            --emoji-size: 1.6rem; /* เพิ่มขนาดตัวอิโมจิให้จิ้มง่ายขึ้น */
+            --emoji-size: 1.6rem;
             --category-font-size: 14px;
             --category-font-weight: 700;
             --category-font-color: #64748b;
@@ -90,9 +90,8 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังบันทึกข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Modal คลังอิโมจิอัจฉริยะ (อัปเกรดขนาดและ UI) 🌟 -->
+    <!-- 🌟 Modal คลังอิโมจิอัจฉริยะ (รองรับภาษาไทย) 🌟 -->
     <div id="emojiPickerModal" class="hidden-el fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10500] flex items-center justify-center p-4 md:p-6">
-        <!-- ขยายความกว้างเป็น max-w-lg (ใหญ่ขึ้น) -->
         <div class="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden w-full max-w-lg animate-pop-in relative">
             
             <div class="bg-white border-b border-slate-100 p-4 flex justify-between items-center shrink-0">
@@ -111,11 +110,11 @@
             </div>
             
             <div class="p-2 bg-blue-50/50 text-blue-600 text-[11px] font-['Kanit'] text-center border-b border-blue-100">
-                💡 <b>เคล็ดลับ:</b> ค้นหาไอคอนที่ต้องการด้วยภาษาอังกฤษ (เช่น dog, cat, apple, smile)
+                💡 <b>เคล็ดลับ:</b> พิมพ์ค้นหาเป็น <b>ภาษาไทย</b> ได้เลย (เช่น ไก่, หมา, รถ, ยิ้ม)
             </div>
             
-            <!-- คอมโพเนนต์ Picker ที่มีช่องค้นหาในตัว และรองรับการเปลี่ยนภาษา (i18n) -->
-            <emoji-picker class="w-full"></emoji-picker>
+            <!-- 🌟 โหลด Database ภาษาไทย (th) อัตโนมัติ เพื่อให้ค้นหาด้วยภาษาไทยได้ 🌟 -->
+            <emoji-picker class="w-full" locale="th" data-source="https://cdn.jsdelivr.net/npm/emojibase-data@7/th/data.json"></emoji-picker>
         </div>
     </div>
 
@@ -362,7 +361,7 @@
         let targetCid = null, editingMid = null, currentUserId = null, currentUserName = "คุณครู", originalTeacherId = null;
         let debounceTimer = null;
         let alertTimer = null;
-        let currentEmojiInput = null; // ตัวแปรเก็บ Input อิโมจิที่ถูกเลือก
+        let currentEmojiInput = null;
 
         // 🌟 Game Config
         let gameConfig = {
@@ -392,31 +391,33 @@
             renderPairsEditor();
             updatePreview();
 
-            // 🌟 ตั้งค่าระบบการรับค่าจาก Emoji Picker และแปลภาษา UI เป็นไทย 🌟
+            // 🌟 ตั้งค่าระบบ Emoji Picker (แก้ไขบั๊กและจัดเตรียมข้อมูลภาษาไทย) 🌟
             const picker = document.querySelector('emoji-picker');
             if (picker) {
-                // แปลภาษา UI ตามหมวดหมู่ที่คุ้นเคย
+                // ผสาน (Merge) การตั้งค่า i18n เพื่อป้องกันบั๊กเวลาค้นหาแล้วหา key "searchResults" ไม่เจอ
+                const currentI18n = picker.i18n;
                 picker.i18n = {
-                    search: 'ค้นหาด้วยภาษาอังกฤษ (เช่น dog, cat)...',
+                    ...currentI18n,
+                    search: 'พิมพ์ค้นหาภาษาไทย หรือ อังกฤษ...',
                     clear: 'ล้างการค้นหา',
                     notFound: 'ไม่พบอิโมจิที่ค้นหา',
                     categories: {
+                        ...currentI18n.categories, // เก็บค่าเดิมที่จำเป็นไว้ทั้งหมด
                         smileys_people: 'ใบหน้าและผู้คน',
                         animals_nature: 'สัตว์และธรรมชาติ',
                         food_drink: 'อาหารและเครื่องดื่ม',
                         activities: 'กิจกรรม',
-                        travel_places: 'การเดินทางและสถานที่',
+                        travel_places: 'สถานที่',
                         objects: 'สิ่งของ',
                         symbols: 'สัญลักษณ์',
                         flags: 'ธง',
-                        custom: 'กำหนดเอง'
+                        searchResults: 'ผลการค้นหา' // 📌 จุดสำคัญที่ทำให้ค้นหาไม่แครช!
                     }
                 };
 
                 picker.addEventListener('emoji-click', event => {
                     if (currentEmojiInput) {
                         currentEmojiInput.value = event.detail.unicode;
-                        // อัปเดตข้อมูล
                         const pairId = currentEmojiInput.getAttribute('data-pair-id');
                         const side = currentEmojiInput.getAttribute('data-side');
                         updatePairData(pairId, side, event.detail.unicode, currentEmojiInput);
@@ -465,7 +466,6 @@
             currentEmojiInput = null;
         }
 
-        // ปิด Picker หากคลิกพื้นที่ด้านนอก
         document.addEventListener('mousedown', (e) => {
             const modal = document.getElementById('emojiPickerModal');
             const pickerCard = modal.querySelector('div.bg-white');
@@ -634,7 +634,6 @@
                 const isLeftDecoy = pair.mode === 'decoy_left';
                 const isRightDecoy = pair.mode === 'decoy_right';
 
-                // ฟังก์ชันสำหรับสร้าง Attribute ของ Input ให้รองรับการกดเลือก Emoji
                 const getInputAttr = (side, isDecoy) => {
                     const pType = pair[side].type;
                     const pVal = pair[side].value;
