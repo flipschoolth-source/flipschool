@@ -371,7 +371,7 @@
         let alertTimer = null;
         let currentEmojiInput = null;
 
-        // 🌟 Game Config อัปเดตให้มี cardShape เป็นจิกซอว์เริ่มต้นและลากได้
+        // 🌟 Game Config
         let gameConfig = {
             themeColor: '#f43f5e',
             fontFamily: 'Kanit',
@@ -807,7 +807,7 @@
         function updatePreviewTitle() { if (debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { updatePreview(); }, 500); }
 
         // ==========================================
-        // 🚀 Game Engine Generator (รวม Jigsaw CSS + 2-way Drag Drop + Permanent Merge)
+        // 🚀 Game Engine Generator (รวม Permanent Joined Jigsaw)
         // ==========================================
         function generateGameHTML() {
             const title = document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก';
@@ -854,14 +854,14 @@
         #gameGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; }
         #colLeft, #colRight { display: contents; }
         ` : `
-        /* เปลี่ยนมาใช้ CSS Grid เพื่อบังคับให้แถว (Row) ตรงกันเป๊ะๆ ทั้ง 2 ฝั่ง */
-        #gameGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
+        /* 🌟 บังคับ CSS Grid 2 คอลัมน์ เพื่อให้รวมร่าง Span 2 ได้ 🌟 */
+        #gameGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; }
         #colLeft, #colRight { display: contents; }
         `}
 
         .game-card {
             background: white; border: 3px solid #e2e8f0; border-radius: 16px; padding: 12px;
-            cursor: pointer; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s, background-color 0.3s, box-shadow 0.2s;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, filter 0.5s;
             display: flex; align-items: center; justify-content: center; text-align: center;
             min-height: 90px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             font-weight: 600; color: #334155; word-break: break-word;
@@ -889,8 +889,8 @@
         `}
         
         ${isJigsaw ? `
-        /* 🌟 CSS จิกซอว์แบบสมจริง 🌟 */
-        .jigsaw-left { border-radius: 12px 0 0 12px !important; margin-right: 18px; overflow: visible !important; border-right: 2px dashed #cbd5e1 !important; }
+        /* 🌟 ทรงจิกซอว์ 🌟 */
+        .jigsaw-left { border-radius: 12px 0 0 12px !important; overflow: visible !important; border-right: 2px dashed #cbd5e1 !important; }
         .jigsaw-left::after {
             content: ''; position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
             width: 36px; height: 36px; background-color: inherit; border-radius: 50%;
@@ -898,7 +898,7 @@
         }
         .card-selected.jigsaw-left::after { border-color: var(--theme-color); box-shadow: inset 0 0 0 4px rgba(var(--theme-rgb), 0.2); }
         
-        .jigsaw-right { border-radius: 0 12px 12px 0 !important; margin-left: 18px; overflow: visible !important; padding-left: 18px; border-left: none !important; }
+        .jigsaw-right { border-radius: 0 12px 12px 0 !important; overflow: visible !important; padding-left: 24px; border-left: none !important; }
         .jigsaw-right::before {
             content: ''; position: absolute; left: -20px; top: 50%; transform: translateY(-50%);
             width: 36px; height: 36px; background-color: #f8fafc; border-radius: 50%;
@@ -907,32 +907,42 @@
         .card-selected.jigsaw-right::before { border-color: var(--theme-color); box-shadow: inset 0 0 0 4px rgba(var(--theme-rgb), 0.2); }
         ` : ''}
 
-        /* 🌟 ถาวร & ประกอบร่าง (Permanent Merge for Split Layout) 🌟 */
-        .layout-split .card-matched[id^="card-left-"] {
-            transform: translateX(calc(50% + 0.5rem)) !important;
-            z-index: 10 !important;
-            opacity: 1 !important; filter: none !important; pointer-events: none;
-            background-color: #ecfdf5 !important; border-color: #10b981 !important;
+        /* 🌟 สถานะประกอบร่างถาวร (Permanent Joined Jigsaw) 🌟 */
+        .merged-card {
+            grid-column: span 2;
+            display: flex !important;
+            flex-direction: row;
+            padding: 0 !important;
+            background-color: #ecfdf5 !important;
+            border-color: #10b981 !important;
+            pointer-events: none;
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2) !important;
+            margin: 0 !important;
         }
-        .layout-split .card-matched[id^="card-right-"] {
-            transform: translateX(calc(-50% - 0.5rem)) !important;
-            z-index: 9 !important;
-            opacity: 1 !important; filter: none !important; pointer-events: none;
-            background-color: #ecfdf5 !important; border-color: #10b981 !important;
+        .merged-left {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            position: relative; padding: 12px; border-radius: 12px 0 0 12px;
         }
-        
-        ${isJigsaw ? `
-        .layout-split .card-matched.jigsaw-left { 
-            transform: translateX(calc(50% + 0.5rem - 9px)) !important; 
-            border-right-color: transparent !important; 
+        .merged-right {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 12px; border-radius: 0 12px 12px 0;
         }
-        .layout-split .card-matched.jigsaw-right { 
-            transform: translateX(calc(-50% - 0.5rem + 9px)) !important; 
-            border-left-color: transparent !important; 
+        .jigsaw-seam {
+            position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            border-left-color: transparent; z-index: 10;
         }
-        .layout-split .card-matched.jigsaw-left::after { background-color: #ecfdf5; border-color: #10b981; }
-        .layout-split .card-matched.jigsaw-right::before { opacity: 0; } 
-        ` : ''}
+        .jigsaw-seam-line {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 3px;
+            background: linear-gradient(to bottom, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.4) calc(50% - 18px), transparent calc(50% - 18px), transparent calc(50% + 18px), rgba(16, 185, 129, 0.4) calc(50% + 18px), rgba(16, 185, 129, 0.4) 100%);
+        }
+        .straight-seam {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 3px;
+            background-color: rgba(16, 185, 129, 0.4);
+        }
 
         /* 🌟 โหมด Grid ให้คงที่และเปลี่ยนสี 🌟 */
         .layout-grid .card-matched {
@@ -1016,6 +1026,9 @@
             </button>
         </div>
     </div>
+
+    <!-- Overlay สำหรับบล็อกจอระหว่างเล่นอนิเมชัน -->
+    <div id="blockerOverlay" class="fixed inset-0 z-[9900] hidden"></div>
 
     <audio id="gameAudioPlayer" class="hidden"></audio>
 
@@ -1130,13 +1143,13 @@
                     </div>
                 </div>\`;
             } else if (isDrag) {
+                // 🌟 เพิ่มให้รองรับลากทั้ง 2 ฝั่ง (2-way Drag & Drop)
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in cursor-grab \${shapeClass}" draggable="true" ondragstart="dragStart(event, \${idx}, '\${side}')" ondragend="dragEnd(event)" ondragover="dragOver(event, '\${side}')" ondragleave="dragLeave(event)" ondrop="drop(event, \${idx}, '\${side}')" \${extraStyle}>\${content}</div>\`;
             } else {
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in \${shapeClass}" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}>\${content}</div>\`;
             }
         }
 
-        // 🌟 ใหม่: สลับไพ่ด้วย CSS Grid แทน Flexbox แยกซ้ายขวา 🌟
         function renderBoard() {
             let html = '';
             for(let i=0; i<activeLeftSlots.length; i++) {
@@ -1169,7 +1182,6 @@
                 elTo.setAttribute('ondrop', \`drop(event, \${idxFrom}, '\${side}')\`);
             }
             
-            // Swap DOM elements safely
             const parent = elFrom.parentNode;
             const siblingFrom = elFrom.nextSibling;
             const siblingTo = elTo.nextSibling;
@@ -1184,7 +1196,7 @@
             }
         }
 
-        // --- Drag & Drop Logic ---
+        // --- 🌟 Drag & Drop Logic (2-way) 🌟 ---
         function dragStart(e, idx, side) {
             if(isLocked) { e.preventDefault(); return; }
             draggedIdx = idx;
@@ -1199,13 +1211,19 @@
         }
         function dragOver(e, targetSide) { 
             e.preventDefault(); 
-            if (draggedSide && draggedSide !== targetSide) e.currentTarget.classList.add('drag-over'); 
+            // ยอมให้โชว์ไฮไลต์เฉพาะเมื่อเป็นการลากไปหา "อีกฝั่ง"
+            if (draggedSide && draggedSide !== targetSide) {
+                e.currentTarget.classList.add('drag-over'); 
+            }
         }
-        function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        function dragLeave(e) { 
+            e.currentTarget.classList.remove('drag-over'); 
+        }
         function drop(e, dropIdx, dropSide) {
             e.preventDefault(); 
             e.currentTarget.classList.remove('drag-over');
             
+            // ถ้าลากไปวางในฝั่งตรงข้าม
             if(draggedIdx !== null && !isLocked && draggedSide !== dropSide) {
                 if (draggedSide === 'left') {
                     selectedLeftSlot = draggedIdx;
@@ -1265,6 +1283,80 @@
             if (selectedLeftSlot !== null && selectedRightSlot !== null) checkMatch();
         }
 
+        // --- 🌟 อนิเมชันประกอบร่างจิกซอว์ 🌟 ---
+        function playMatchAnimation(elL, elR, isJigsawMode, cb) {
+            document.getElementById('blockerOverlay').classList.remove('hidden');
+            
+            const rectL = elL.getBoundingClientRect();
+            const rectR = elR.getBoundingClientRect();
+            
+            const cloneL = elL.cloneNode(true);
+            const cloneR = elR.cloneNode(true);
+            
+            cloneL.removeAttribute('id'); cloneR.removeAttribute('id');
+            cloneL.className = elL.className.replace('card-selected', '').replace('drag-over', '') + ' card-matched';
+            cloneR.className = elR.className.replace('card-selected', '').replace('drag-over', '') + ' card-matched';
+            
+            cloneL.style.position = 'fixed'; cloneL.style.margin = '0'; cloneL.style.zIndex = '9999';
+            cloneL.style.top = rectL.top + 'px'; cloneL.style.left = rectL.left + 'px';
+            cloneL.style.width = rectL.width + 'px'; cloneL.style.height = rectL.height + 'px';
+            cloneL.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            
+            cloneR.style.position = 'fixed'; cloneR.style.margin = '0'; cloneR.style.zIndex = '9998';
+            cloneR.style.top = rectR.top + 'px'; cloneR.style.left = rectR.left + 'px';
+            cloneR.style.width = rectR.width + 'px'; cloneR.style.height = rectR.height + 'px';
+            cloneR.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            
+            document.body.appendChild(cloneL);
+            document.body.appendChild(cloneR);
+            
+            elL.style.opacity = '0';
+            elR.style.opacity = '0';
+            
+            // รอให้บราวเซอร์ Render Clones เสร็จ
+            requestAnimationFrame(() => {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                
+                const cardWidthL = rectL.width;
+                const cardWidthR = rectR.width;
+                
+                const overlap = isJigsawMode ? 18 : 0; 
+                const totalWidth = cardWidthL + cardWidthR - overlap;
+                const startX = centerX - (totalWidth / 2);
+                
+                cloneL.style.top = (centerY - rectL.height / 2) + 'px';
+                cloneL.style.left = startX + 'px';
+                cloneL.style.transform = 'scale(1.1)';
+                
+                cloneR.style.top = (centerY - rectR.height / 2) + 'px';
+                cloneR.style.left = (startX + cardWidthL - overlap) + 'px';
+                cloneR.style.transform = 'scale(1.1)';
+                
+                // แช่ให้ดูความสำเร็จ
+                setTimeout(() => {
+                    if (gameConf.playMode === 'continuous') {
+                        // ถ้าโหมดต่อเนื่อง ให้หดหายไป
+                        cloneL.style.transform = 'scale(0)';
+                        cloneR.style.transform = 'scale(0)';
+                        cloneL.style.opacity = '0';
+                        cloneR.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            cloneL.remove(); cloneR.remove();
+                            document.getElementById('blockerOverlay').classList.add('hidden');
+                            cb();
+                        }, 500);
+                    } else {
+                        // ถ้าโหมดกระดานรวม/ด่าน ให้โชว์ร่างรวมใน DOM แล้วลบโคลนทิ้ง
+                        cloneL.remove(); cloneR.remove();
+                        document.getElementById('blockerOverlay').classList.add('hidden');
+                        cb();
+                    }
+                }, 800);
+            });
+        }
+
         function checkMatch() {
             isLocked = true;
             let sL = selectedLeftSlot; 
@@ -1275,16 +1367,16 @@
             
             if (lCard.matchId && rCard.matchId && lCard.matchId === rCard.matchId) {
                 
-                // 🌟 หากการ์ดอยู่คนละแถว ให้สลับมาแถวเดียวกันทันที 🌟
-                if (!isGrid && sL !== sR) {
+                // 🌟 หากการ์ดอยู่คนละแถว ให้สลับมาแถวเดียวกันก่อน 🌟
+                if (!isGrid && !isMemory && sL !== sR) {
                     if (draggedSide === 'left') {
                         swapCardsDOM('left', sL, sR);
-                        sL = sR;
+                        sL = sR; // อัปเดต index หลังจากสลับ
                     } else if (draggedSide === 'right') {
                         swapCardsDOM('right', sR, sL);
                         sR = sL;
                     } else {
-                        // Click interaction (move right to left's row)
+                        // แบบคลิก ให้ฝั่งขวาขยับมาหาฝั่งซ้าย
                         swapCardsDOM('right', sR, sL);
                         sR = sL;
                     }
@@ -1296,24 +1388,20 @@
                 elL.classList.remove('card-selected');
                 elR.classList.remove('card-selected');
                 
-                // กระตุ้น CSS Snap Animation (ดึงการ์ดเข้าหากัน)
-                elL.classList.add('card-matched');
-                elR.classList.add('card-matched');
-                
                 score += 20; document.getElementById('scoreDisplay').innerText = score;
                 matchedCount++;
                 
                 selectedLeftSlot = null; selectedRightSlot = null; draggedSide = null;
                 
-                // รอให้อนิเมชันปะทะรวมร่างจบ
-                setTimeout(() => {
-                    if (gameConf.playMode === 'continuous') {
-                        elL.style.opacity = '0'; elR.style.opacity = '0';
-                        setTimeout(() => {
+                // 🌟 เล่นอนิเมชันปะทะรวมร่าง 🌟
+                if (!isGrid && !isMemory) {
+                    playMatchAnimation(elL, elR, isJigsaw, () => {
+                        if (gameConf.playMode === 'continuous') {
                             if (continuousQueue.length > 0) {
                                 let newPair = continuousQueue.shift();
                                 activeLeftSlots[sL] = {...newPair, side:'left', data: newPair.left, matchId: newPair.id};
                                 activeRightSlots[sR] = {...newPair, side:'right', data: newPair.right, matchId: newPair.id};
+                                
                                 elL.outerHTML = generateCardHTML(activeLeftSlots[sL], sL, 'left');
                                 elR.outerHTML = generateCardHTML(activeRightSlots[sR], sR, 'right');
                             } else {
@@ -1322,7 +1410,68 @@
                                 elR.className = 'game-card opacity-0 pointer-events-none transition-all duration-500 border-none';
                             }
                             isLocked = false; checkWin();
-                        }, 400);
+                        } else {
+                            // โหมดไม่ต่อเนื่อง: ประกอบร่างถาวรใน DOM แบบ Span 2 Columns
+                            elR.style.display = 'none'; // ซ่อนฝั่งขวา
+                            
+                            elL.className = 'game-card merged-card animate-pop-in';
+                            elL.style.opacity = '1';
+                            
+                            const seamHTML = isJigsaw 
+                                ? '<div class="jigsaw-seam"></div><div class="jigsaw-seam-line"></div>'
+                                : '<div class="straight-seam"></div>';
+
+                            elL.innerHTML = \`
+                                <div class="merged-left">
+                                    \${generateCardContent(activeLeftSlots[sL].data)}
+                                    \${seamHTML}
+                                </div>
+                                <div class="merged-right">
+                                    \${generateCardContent(activeRightSlots[sR].data)}
+                                </div>
+                            \`;
+                            
+                            isLocked = false; 
+                            
+                            if (gameConf.playMode === 'rounds') {
+                                roundMatchedCount++;
+                                if(roundMatchedCount >= targetMatchesForRound) {
+                                    if (currentRoundIndex < roundChunks.length - 1) {
+                                        setTimeout(() => {
+                                            document.getElementById('nextRoundOverlay').classList.remove('hidden');
+                                            document.getElementById('nextRoundOverlay').classList.add('flex');
+                                        }, 500);
+                                    } else checkWin();
+                                }
+                            } else {
+                                checkWin();
+                            }
+                        }
+                    });
+                } else {
+                    // แบบ Grid หรือ Memory
+                    elL.classList.add('card-matched');
+                    elR.classList.add('card-matched');
+                    
+                    if (gameConf.playMode === 'continuous') {
+                        setTimeout(() => {
+                            if (continuousQueue.length > 0) {
+                                let newPair = continuousQueue.shift();
+                                activeLeftSlots[sL] = {...newPair, side:'left', data: newPair.left, matchId: newPair.id};
+                                activeRightSlots[sR] = {...newPair, side:'right', data: newPair.right, matchId: newPair.id};
+                                
+                                const orderL = isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '';
+                                const orderR = isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '';
+                                
+                                elL.outerHTML = generateCardHTML(activeLeftSlots[sL], sL, 'left', orderL);
+                                elR.outerHTML = generateCardHTML(activeRightSlots[sR], sR, 'right', orderR);
+                            } else {
+                                activeLeftSlots[sL] = null; activeRightSlots[sR] = null;
+                                elL.className = 'game-card opacity-0 pointer-events-none transition-all duration-500 border-none';
+                                elR.className = 'game-card opacity-0 pointer-events-none transition-all duration-500 border-none';
+                            }
+                            isLocked = false; checkWin();
+                        }, isMemory ? 600 : 400);
                     } else if (gameConf.playMode === 'rounds') {
                         isLocked = false; roundMatchedCount++;
                         if(roundMatchedCount >= targetMatchesForRound) {
@@ -1330,14 +1479,14 @@
                                 setTimeout(() => {
                                     document.getElementById('nextRoundOverlay').classList.remove('hidden');
                                     document.getElementById('nextRoundOverlay').classList.add('flex');
-                                }, 500);
+                                }, isMemory ? 600 : 200);
                             } else checkWin();
                         }
                     } else {
-                        // All-in-one: เก็บการ์ดคู่กันถาวรไว้แบบนั้นเลย
                         isLocked = false; checkWin();
                     }
-                }, 600); 
+                }
+
             } else {
                 if(!isMemory) { 
                     const elL = document.getElementById(\`card-left-\${sL}\`);
