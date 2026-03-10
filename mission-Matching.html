@@ -16,7 +16,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- โหลดฟอนต์หลากหลายรูปแบบให้เลืออก -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&family=Prompt:wght@400;500;600&family=Mali:wght@400;500;600&family=Charm:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -47,11 +46,9 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Tabs */
         .tab-btn { transition: all 0.2s; border-bottom: 2px solid transparent; }
         .tab-btn.active { border-bottom-color: #f43f5e; color: #e11d48; font-weight: 700; }
         
-        /* Color Picker & Selectors */
         .color-option { cursor: pointer; transition: all 0.2s; border: 2px solid transparent; outline: 2px solid transparent; outline-offset: 2px; }
         .color-option.selected { outline-color: #334155; transform: scale(1.1); }
         
@@ -59,6 +56,7 @@
         
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; color: #b91c1c !important; }
         .disabled-side { opacity: 0.4; pointer-events: none; filter: grayscale(100%); }
+        .hidden-el { display: none !important; }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -68,7 +66,7 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังบันทึกข้อมูล...</div>
     </div>
 
-    <!-- Alert / Toast Container -->
+    <!-- Alert / Toast -->
     <div id="alertToast" class="fixed top-24 right-5 bg-rose-500 text-white px-5 py-3 rounded-xl shadow-lg z-[9999] transform transition-transform translate-x-full font-['Kanit'] font-bold flex items-center gap-2">
         <i class="fas fa-exclamation-circle"></i>
         <span id="alertToastMsg">ข้อความแจ้งเตือน</span>
@@ -98,7 +96,6 @@
         <!-- Left Panel: Settings -->
         <div class="lg:col-span-5 flex flex-col h-full overflow-hidden bg-white rounded-[2rem] shadow-sm border border-slate-200">
             
-            <!-- Header & Tabs -->
             <div class="pt-6 px-6 shrink-0">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-2xl shadow-inner border border-rose-100">
@@ -106,11 +103,10 @@
                     </div>
                     <div>
                         <h2 class="text-xl font-bold text-slate-800 font-['Kanit'] leading-tight m-0">Pro Matching Game</h2>
-                        <p class="text-xs text-slate-500 m-0 mt-0.5 font-['Sarabun']">สร้างเกมจับคู่อัจฉริยะแบบแบ่งด่าน</p>
+                        <p class="text-xs text-slate-500 m-0 mt-0.5 font-['Sarabun']">ระบบสร้างเกมจับคู่อัจฉริยะ</p>
                     </div>
                 </div>
 
-                <!-- Tabs Navigation -->
                 <div class="flex gap-6 border-b border-slate-200 mt-6 font-['Kanit'] text-sm">
                     <button onclick="switchTab('tab-content')" id="btn-tab-content" class="tab-btn active pb-2 text-slate-500 flex items-center gap-1.5"><i class="fas fa-list-ul"></i> เนื้อหาเกม</button>
                     <button onclick="switchTab('tab-design')" id="btn-tab-design" class="tab-btn pb-2 text-slate-500 flex items-center gap-1.5"><i class="fas fa-sliders-h"></i> ดีไซน์ & กติกา</button>
@@ -134,55 +130,93 @@
                     </div>
                 </div>
 
-                <!-- 2. Tab: ดีไซน์ & กติกา (Design & Mechanics) -->
+                <!-- 2. Tab: ดีไซน์ & กติกา -->
                 <div id="tab-design" class="tab-pane hidden space-y-6">
                     
-                    <!-- 🌟 อัปเกรด: รูปแบบการเล่น (Game Mode) 🌟 -->
+                    <!-- โหมดการเล่นใหม่ -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-100 pb-5">
+                        
+                        <!-- Game Style (กติกาพิเศษ) -->
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide flex items-center gap-1 mb-2">
+                                <i class="fas fa-magic text-rose-500"></i> สไตล์เกม
+                            </label>
+                            <div class="flex bg-slate-100 p-1 rounded-xl w-full">
+                                <button onclick="updateDesign('gameStyle', 'classic', this)" class="style-btn w-1/2 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-800 transition-all">คลาสสิก</button>
+                                <button onclick="updateDesign('gameStyle', 'memory', this)" class="style-btn w-1/2 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all" title="เกมเปิดไพ่หาคู่">เกมความจำ</button>
+                            </div>
+                        </div>
+
+                        <!-- Interaction Mode (วิธีเล่น) -->
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide flex items-center gap-1 mb-2">
+                                <i class="fas fa-hand-pointer text-indigo-500"></i> วิธีจับคู่
+                            </label>
+                            <div class="flex bg-slate-100 p-1 rounded-xl w-full" id="interactionControl">
+                                <button onclick="updateDesign('interactionMode', 'click', this)" class="interaction-btn w-1/2 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-800 transition-all">คลิกเลือก</button>
+                                <button onclick="updateDesign('interactionMode', 'drag', this)" class="interaction-btn w-1/2 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all">ลากไปวาง</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Board Layout -->
+                        <div class="md:col-span-2 mt-2">
+                            <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide flex items-center gap-1 mb-2">
+                                <i class="fas fa-th-large text-emerald-500"></i> รูปแบบกระดาน
+                            </label>
+                            <div class="flex bg-slate-100 p-1 rounded-xl w-full" id="layoutControl">
+                                <button onclick="updateDesign('boardLayout', 'split', this)" class="layout-btn w-1/2 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-800 transition-all">แยกคอลัมน์ซ้ายขวา</button>
+                                <button onclick="updateDesign('boardLayout', 'grid', this)" class="layout-btn w-1/2 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all" title="กระจายการ์ดทั่วหน้าจอ">ตารางสุ่มรวม (Grid)</button>
+                            </div>
+                            <p id="styleHint" class="text-[10px] text-rose-500 mt-2 hidden-el font-['Sarabun']">* เกมความจำ บังคับใช้กระดานตารางรวมและคลิกเลือก</p>
+                        </div>
+                    </div>
+
+                    <!-- ลำดับการไหลของเกม (Game Flow) -->
                     <div>
                         <label class="text-sm font-bold text-slate-600 font-['Kanit'] flex items-center gap-2 mb-3">
-                            <i class="fas fa-gamepad text-indigo-500"></i> รูปแบบการเล่น (Game Mode)
+                            <i class="fas fa-layer-group text-blue-500"></i> การไหลของเกม (Game Flow)
                         </label>
                         <div class="space-y-2">
                             <label class="flex items-center gap-3 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
                                 <input type="radio" name="playMode" value="all" onchange="updateGameMode(this.value)" checked class="w-4 h-4 text-rose-500 focus:ring-rose-500">
                                 <div>
                                     <span class="block text-sm font-bold font-['Kanit'] text-slate-700">1. กระดานใหญ่ (All-in-one)</span>
-                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">แสดงการ์ดทั้งหมดที่มีในหน้าจอเดียว</span>
+                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">แสดงการ์ดทั้งหมดที่มีในหน้าจอเดียว (จบในด่านเดียว)</span>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
                                 <input type="radio" name="playMode" value="rounds" onchange="updateGameMode(this.value)" class="w-4 h-4 text-rose-500 focus:ring-rose-500">
                                 <div>
                                     <span class="block text-sm font-bold font-['Kanit'] text-slate-700">2. แบ่งด่าน (Pagination)</span>
-                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">สุ่มแสดงเป็นชุดๆ จับคู่ครบแล้วเคลียร์กระดานเพื่อไปชุดถัดไป</span>
+                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">สุ่มแสดงเป็นชุดๆ จับคู่ครบแล้วเคลียร์กระดานเพื่อไปด่านถัดไป</span>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
                                 <input type="radio" name="playMode" value="continuous" onchange="updateGameMode(this.value)" class="w-4 h-4 text-rose-500 focus:ring-rose-500">
                                 <div>
                                     <span class="block text-sm font-bold font-['Kanit'] text-slate-700">3. แบบต่อเนื่อง (Continuous Feed) 🔥</span>
-                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">จับคู่ถูกการ์ดจะหายไป และ "คู่ใหม่" จะสไลด์เข้ามาแทนที่ทันที!</span>
+                                    <span class="block text-[10px] text-slate-500 font-['Sarabun'] mt-0.5">เมื่อจับคู่ถูกการ์ดจะหายไป และมี "คู่ใหม่" สไลด์เข้ามาแทนที่ทันที</span>
                                 </div>
                             </label>
                         </div>
 
                         <!-- ซ่อน/แสดงตามโหมดที่เลือก -->
-                        <div id="pairsPerRoundConfig" class="hidden mt-3 bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
-                            <label class="text-xs font-bold text-indigo-800 font-['Kanit'] block mb-2">
+                        <div id="pairsPerRoundConfig" class="hidden mt-3 bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                            <label class="text-xs font-bold text-slate-700 font-['Kanit'] block mb-2">
                                 จำนวนคู่ต่อหน้าจอ (Visible Pairs)
                             </label>
                             <div class="flex items-center gap-3">
-                                <input type="number" id="visiblePairsInput" class="w-24 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none text-center" min="2" max="10" value="4" oninput="updateDesign('visiblePairs', parseInt(this.value)||4)">
-                                <span class="text-xs font-bold text-indigo-700 font-['Kanit']">คู่ / กระดาน</span>
+                                <input type="number" id="visiblePairsInput" class="w-24 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-rose-500 outline-none text-center" min="2" max="20" value="4" oninput="updateDesign('visiblePairs', parseInt(this.value)||4)">
+                                <span class="text-xs font-bold text-slate-500 font-['Kanit']">คู่ / กระดาน</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="border-t border-slate-100 my-4"></div>
 
-                    <!-- ธีมสี -->
+                    <!-- ธีมสี & ฟอนต์ -->
                     <div>
-                        <label class="text-xs font-bold text-slate-600 font-['Kanit'] block mb-3">ธีมสีหลัก (Theme Color)</label>
+                        <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide block mb-3">ธีมสีหลัก (Theme Color)</label>
                         <div class="flex flex-wrap gap-3" id="colorPicker">
                             <div onclick="updateDesign('themeColor', '#f43f5e', this)" class="color-option selected w-8 h-8 rounded-full bg-rose-500 shadow-sm" title="Rose"></div>
                             <div onclick="updateDesign('themeColor', '#3b82f6', this)" class="color-option w-8 h-8 rounded-full bg-blue-500 shadow-sm" title="Blue"></div>
@@ -193,9 +227,8 @@
                         </div>
                     </div>
 
-                    <!-- ฟอนต์ -->
                     <div>
-                        <label class="text-xs font-bold text-slate-600 font-['Kanit'] block mb-3">รูปแบบฟอนต์ (Font Family)</label>
+                        <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide block mb-3 mt-4">รูปแบบฟอนต์ (Font Family)</label>
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="updateDesign('fontFamily', 'Kanit', this)" class="font-btn bg-rose-50 border border-rose-200 text-rose-700 py-2 rounded-xl text-sm transition-all" style="font-family: 'Kanit', sans-serif;">Kanit (มาตรฐาน)</button>
                             <button onclick="updateDesign('fontFamily', 'Prompt', this)" class="font-btn bg-slate-50 border border-slate-200 text-slate-600 py-2 rounded-xl text-sm transition-all" style="font-family: 'Prompt', sans-serif;">Prompt (อ่านง่าย)</button>
@@ -204,9 +237,8 @@
                         </div>
                     </div>
 
-                    <!-- ขนาดฟอนต์ -->
                     <div>
-                        <label class="text-xs font-bold text-slate-600 font-['Kanit'] block mb-3">ขนาดฟอนต์ในการ์ด</label>
+                        <label class="text-[11px] font-bold text-slate-600 font-['Kanit'] uppercase tracking-wide block mb-3 mt-4">ขนาดฟอนต์ในการ์ด</label>
                         <div class="flex bg-slate-100 p-1 rounded-xl w-full">
                             <button onclick="updateDesign('fontSize', 'text-sm md:text-base', this)" class="size-btn flex-1 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all">เล็ก</button>
                             <button onclick="updateDesign('fontSize', 'text-base md:text-lg', this)" class="size-btn flex-1 py-1.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-800 transition-all">กลาง</button>
@@ -245,10 +277,20 @@
 
         <!-- Right Panel: Preview -->
         <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
-            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center mb-4 shrink-0 px-4">
-                <span class="text-sm font-bold text-slate-700 font-['Kanit'] flex items-center gap-2">
-                    <i class="fas fa-mobile-alt text-slate-400"></i> ตัวอย่างเกมเรียลไทม์
-                </span>
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center mb-4 shrink-0 px-4 flex-wrap gap-2">
+                
+                <div class="flex items-center gap-2">
+                    <div class="flex bg-slate-100 p-1 rounded-xl">
+                        <button onclick="toggleCodeView('preview')" id="btnViewPreview" class="bg-white text-rose-600 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"><i class="fas fa-gamepad"></i> เกม</button>
+                        <button onclick="toggleCodeView('code')" id="btnViewCode" class="text-slate-500 hover:bg-white hover:shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"><i class="fas fa-code"></i> โค้ด</button>
+                    </div>
+                    <button onclick="updatePreview(); showToastAlert('รีเฟรชหน้าจอเกมเรียบร้อย');" class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center shadow-sm" title="รีเฟรชเกม">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button onclick="copyGeneratedCode()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center shadow-sm" title="คัดลอก HTML โค้ด">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
                 
                 <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl" id="device-controls">
                     <button onclick="changeView('desktop')" class="view-btn w-8 h-8 hover:bg-white text-slate-500 shadow-sm rounded-lg flex items-center justify-center transition-all text-xs" title="PC"><i class="fas fa-desktop"></i></button>
@@ -258,8 +300,10 @@
             </div>
 
             <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all">
-                <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl w-full h-full flex flex-col bg-white">
-                    <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Game Preview"></iframe>
+                <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl w-full h-full flex flex-col bg-white relative">
+                    <!-- ถอด sandbox allow-same-origin ออกเพื่อความปลอดภัย -->
+                    <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals" title="Game Preview"></iframe>
+                    <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly></textarea>
                 </div>
             </div>
         </div>
@@ -271,22 +315,24 @@
         let debounceTimer = null;
         let alertTimer = null;
 
-        // การตั้งค่าดีไซน์เกมและกติกา
+        // 🌟 Game Config รองรับ Layout & Interaction แบบจัดเต็ม 🌟
         let gameConfig = {
             themeColor: '#f43f5e',
             fontFamily: 'Kanit',
             fontSize: 'text-base md:text-lg',
             playMode: 'all', // all, rounds, continuous
-            visiblePairs: 4
+            visiblePairs: 4,
+            boardLayout: 'split', // split, grid
+            interactionMode: 'click', // click, drag
+            gameStyle: 'classic' // classic, memory
         };
 
-        // โครงสร้างข้อมูล รองรับ "ตัวลวง" (Decoys)
         let gamePairs = [
             { id: generateId(), mode: 'normal', left: { type: 'text', value: 'ไข่' }, right: { type: 'image', value: 'https://images.unsplash.com/photo-1506976785307-8732e854ad02?q=80&w=200&auto=format&fit=crop' } },
             { id: generateId(), mode: 'normal', left: { type: 'text', value: 'ไก่' }, right: { type: 'emoji', value: '🐔' } },
-            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'เล้า' }, right: { type: 'text', value: 'ที่อยู่ของเป็ดไก่' } },
+            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'เล้า' }, right: { type: 'text', value: 'ที่อยู่ของสัตว์ เช่น ไก่ เป็ด' } },
             { id: generateId(), mode: 'normal', left: { type: 'text', value: 'แคร่' }, right: { type: 'text', value: 'ที่นั่งทำจากไม้ไผ่' } },
-            { id: generateId(), mode: 'decoy_left', left: { type: 'text', value: 'สุนัข' }, right: { type: 'text', value: '' } } // ตัวลวง
+            { id: generateId(), mode: 'decoy_left', left: { type: 'text', value: 'สุนัข' }, right: { type: 'text', value: '' } }
         ];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -314,17 +360,45 @@
             }, 500);
         });
 
-        // ================= Custom Alerts =================
         function showToastAlert(msg) {
             const toast = document.getElementById('alertToast');
             document.getElementById('alertToastMsg').innerText = msg;
             toast.classList.remove('translate-x-full');
-            
             if(alertTimer) clearTimeout(alertTimer);
             alertTimer = setTimeout(() => { toast.classList.add('translate-x-full'); }, 3500);
         }
 
-        // ================= UI Controls =================
+        function toggleCodeView(mode) {
+            const iframe = document.getElementById('missionFrame');
+            const codeBox = document.getElementById('codeView');
+            const btnPreview = document.getElementById('btnViewPreview');
+            const btnCode = document.getElementById('btnViewCode');
+
+            if (mode === 'preview') {
+                iframe.classList.remove('hidden-el');
+                codeBox.classList.add('hidden-el');
+                btnPreview.className = "bg-white text-rose-600 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1";
+                btnCode.className = "text-slate-500 hover:bg-white hover:shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1";
+            } else {
+                iframe.classList.add('hidden-el');
+                codeBox.classList.remove('hidden-el');
+                codeBox.value = generateGameHTML();
+                btnCode.className = "bg-white text-rose-600 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1";
+                btnPreview.className = "text-slate-500 hover:bg-white hover:shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1";
+            }
+        }
+
+        function copyGeneratedCode() {
+            const code = generateGameHTML();
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(() => { showToastAlert("คัดลอกโค้ดเกมเรียบร้อยแล้ว!"); });
+            } else {
+                const el = document.createElement('textarea'); el.value = code; document.body.appendChild(el); el.select();
+                try { document.execCommand('copy'); showToastAlert("คัดลอกโค้ดเกมเรียบร้อยแล้ว!"); } catch (err) { showToastAlert("เกิดข้อผิดพลาดในการคัดลอก!"); }
+                document.body.removeChild(el);
+            }
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
@@ -340,11 +414,8 @@
         function updateGameMode(mode) {
             gameConfig.playMode = mode;
             const configPanel = document.getElementById('pairsPerRoundConfig');
-            if(mode === 'all') {
-                configPanel.classList.add('hidden');
-            } else {
-                configPanel.classList.remove('hidden');
-            }
+            if(mode === 'all') configPanel.classList.add('hidden');
+            else configPanel.classList.remove('hidden');
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, 300);
         }
@@ -352,6 +423,51 @@
         function updateDesign(property, value, element) {
             gameConfig[property] = value;
             
+            // กฎการเชื่อมโยงระบบ:
+            if (property === 'gameStyle') {
+                const layoutBtns = document.querySelectorAll('.layout-btn');
+                const interactBtns = document.querySelectorAll('.interaction-btn');
+                const hint = document.getElementById('styleHint');
+                
+                if (value === 'memory') {
+                    // เกมความจำ บังคับ Grid + Click
+                    gameConfig.boardLayout = 'grid';
+                    gameConfig.interactionMode = 'click';
+                    
+                    layoutBtns[0].classList.replace('bg-white', 'text-slate-500'); layoutBtns[0].classList.remove('shadow-sm', 'text-slate-800');
+                    layoutBtns[1].classList.replace('text-slate-500', 'bg-white'); layoutBtns[1].classList.add('shadow-sm', 'text-slate-800');
+                    document.getElementById('layoutControl').classList.add('opacity-50', 'pointer-events-none');
+                    
+                    interactBtns[1].classList.replace('bg-white', 'text-slate-500'); interactBtns[1].classList.remove('shadow-sm', 'text-slate-800');
+                    interactBtns[0].classList.replace('text-slate-500', 'bg-white'); interactBtns[0].classList.add('shadow-sm', 'text-slate-800');
+                    document.getElementById('interactionControl').classList.add('opacity-50', 'pointer-events-none');
+                    
+                    hint.classList.remove('hidden-el');
+                } else {
+                    document.getElementById('layoutControl').classList.remove('opacity-50', 'pointer-events-none');
+                    document.getElementById('interactionControl').classList.remove('opacity-50', 'pointer-events-none');
+                    hint.classList.add('hidden-el');
+                }
+            } else if (property === 'boardLayout') {
+                if (value === 'grid' && gameConfig.interactionMode === 'drag') {
+                    // Grid ไม่เหมาะกับ Drag
+                    gameConfig.interactionMode = 'click';
+                    const interactBtns = document.querySelectorAll('.interaction-btn');
+                    interactBtns[1].classList.replace('bg-white', 'text-slate-500'); interactBtns[1].classList.remove('shadow-sm', 'text-slate-800');
+                    interactBtns[0].classList.replace('text-slate-500', 'bg-white'); interactBtns[0].classList.add('shadow-sm', 'text-slate-800');
+                    showToastAlert('ตารางรวม (Grid) ต้องใช้การ "คลิก" เพื่อจับคู่ครับ');
+                }
+            } else if (property === 'interactionMode') {
+                if (value === 'drag' && gameConfig.boardLayout === 'grid') {
+                    // Drag ต้องใช้ Split
+                    gameConfig.boardLayout = 'split';
+                    const layoutBtns = document.querySelectorAll('.layout-btn');
+                    layoutBtns[1].classList.replace('bg-white', 'text-slate-500'); layoutBtns[1].classList.remove('shadow-sm', 'text-slate-800');
+                    layoutBtns[0].classList.replace('text-slate-500', 'bg-white'); layoutBtns[0].classList.add('shadow-sm', 'text-slate-800');
+                    showToastAlert('การ "ลากวาง" ต้องใช้กระดานแบบ แยกคอลัมน์ ครับ');
+                }
+            }
+
             if(element) {
                 if (property === 'themeColor') {
                     document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
@@ -370,6 +486,27 @@
                     });
                     element.classList.remove('text-slate-500');
                     element.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+                } else if (property === 'boardLayout') {
+                    document.querySelectorAll('.layout-btn').forEach(el => {
+                        el.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+                        el.classList.add('text-slate-500');
+                    });
+                    element.classList.remove('text-slate-500');
+                    element.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+                } else if (property === 'interactionMode') {
+                    document.querySelectorAll('.interaction-btn').forEach(el => {
+                        el.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+                        el.classList.add('text-slate-500');
+                    });
+                    element.classList.remove('text-slate-500');
+                    element.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+                } else if (property === 'gameStyle') {
+                    document.querySelectorAll('.style-btn').forEach(el => {
+                        el.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+                        el.classList.add('text-slate-500');
+                    });
+                    element.classList.remove('text-slate-500');
+                    element.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
                 }
             }
 
@@ -379,7 +516,6 @@
 
         // ================= Pairs Editor =================
         function generateId() { return Math.random().toString(36).substr(2, 9); }
-
         function getPlaceholder(type) {
             if (type === 'image') return 'วางลิงก์รูปภาพ (http...)';
             if (type === 'emoji') return 'พิมพ์อิโมจิ (Win + . หรือ แป้นพิมพ์)';
@@ -413,7 +549,6 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
-                            <!-- Left Item -->
                             <div class="flex gap-2 ${isRightDecoy ? 'disabled-side' : ''}">
                                 <select class="type-selector bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-600 outline-none w-[90px] shrink-0" onchange="updatePairType('${pair.id}', 'left', this.value)">
                                     <option value="text" ${pair.left.type === 'text' ? 'selected' : ''}>🔤 ข้อความ</option>
@@ -423,14 +558,10 @@
                                 </select>
                                 <input type="text" data-pair-id="${pair.id}" data-side="left"
                                        class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
-                                       placeholder="${getPlaceholder(pair.left.type)}" 
-                                       value="${pair.left.value}" 
-                                       oninput="updatePairData('${pair.id}', 'left', this.value, this)"
-                                       onchange="validateMedia('${pair.id}', 'left', this)"
-                                       ${isRightDecoy ? 'disabled' : ''}>
+                                       placeholder="${getPlaceholder(pair.left.type)}" value="${pair.left.value}" 
+                                       oninput="updatePairData('${pair.id}', 'left', this.value, this)" onchange="validateMedia('${pair.id}', 'left', this)" ${isRightDecoy ? 'disabled' : ''}>
                             </div>
 
-                            <!-- Right Item -->
                             <div class="flex gap-2 ${isLeftDecoy ? 'disabled-side' : ''}">
                                 <select class="type-selector bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-600 outline-none w-[90px] shrink-0" onchange="updatePairType('${pair.id}', 'right', this.value)">
                                     <option value="text" ${pair.right.type === 'text' ? 'selected' : ''}>🔤 ข้อความ</option>
@@ -440,11 +571,8 @@
                                 </select>
                                 <input type="text" data-pair-id="${pair.id}" data-side="right"
                                        class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:bg-white transition-colors text-slate-700" 
-                                       placeholder="${getPlaceholder(pair.right.type)}" 
-                                       value="${pair.right.value}" 
-                                       oninput="updatePairData('${pair.id}', 'right', this.value, this)"
-                                       onchange="validateMedia('${pair.id}', 'right', this)"
-                                       ${isLeftDecoy ? 'disabled' : ''}>
+                                       placeholder="${getPlaceholder(pair.right.type)}" value="${pair.right.value}" 
+                                       oninput="updatePairData('${pair.id}', 'right', this.value, this)" onchange="validateMedia('${pair.id}', 'right', this)" ${isLeftDecoy ? 'disabled' : ''}>
                             </div>
                         </div>
                     </div>
@@ -453,34 +581,20 @@
             });
         }
 
-        function updatePairMode(id, newMode) {
-            const pair = gamePairs.find(p => p.id === id);
-            if (pair) pair.mode = newMode;
-            renderPairsEditor();
-            updatePreviewTitle();
-        }
-
+        function updatePairMode(id, newMode) { const pair = gamePairs.find(p => p.id === id); if (pair) pair.mode = newMode; renderPairsEditor(); updatePreviewTitle(); }
         function updatePairType(id, side, newType) {
             const pair = gamePairs.find(p => p.id === id);
-            if (pair) {
-                pair[side].type = newType;
-                if (newType === 'emoji' && pair[side].value.length > 5) pair[side].value = '';
-            }
-            renderPairsEditor();
-            updatePreviewTitle();
+            if (pair) { pair[side].type = newType; if (newType === 'emoji' && pair[side].value.length > 5) pair[side].value = ''; }
+            renderPairsEditor(); updatePreviewTitle();
         }
-
         function updatePairData(id, side, value, inputEl) {
-            const pair = gamePairs.find(p => p.id === id);
-            if (pair) pair[side].value = value;
+            const pair = gamePairs.find(p => p.id === id); if (pair) pair[side].value = value;
             if (inputEl) inputEl.classList.remove('input-error');
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, 800);
         }
-
         function validateMedia(id, side, inputEl) {
-            const pair = gamePairs.find(p => p.id === id);
-            if (!pair || !inputEl.value.trim()) return;
+            const pair = gamePairs.find(p => p.id === id); if (!pair || !inputEl.value.trim()) return;
             const val = inputEl.value.trim();
             if (pair[side].type === 'image' && val.startsWith('http')) {
                 const img = new Image();
@@ -494,32 +608,20 @@
                 img.src = val;
             }
         }
-
         function addPair() {
             gamePairs.push({ id: generateId(), mode: 'normal', left: {type: 'text', value: ''}, right: {type: 'text', value: ''} });
             renderPairsEditor();
-            const container = document.getElementById('settingsContainer');
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+            setTimeout(() => { document.getElementById('settingsContainer').scrollTop = document.getElementById('settingsContainer').scrollHeight; }, 100);
         }
-
-        function removePair(id) {
-            gamePairs = gamePairs.filter(p => p.id !== id);
-            renderPairsEditor();
-            updatePreview();
-        }
-
-        function updatePreviewTitle() {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => { updatePreview(); }, 500);
-        }
+        function removePair(id) { gamePairs = gamePairs.filter(p => p.id !== id); renderPairsEditor(); updatePreview(); }
+        function updatePreviewTitle() { if (debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { updatePreview(); }, 500); }
 
         // ==========================================
-        // 🚀 Game Engine Generator (อัปเกรดระบบแบ่งด่าน & ตัวลวง)
+        // 🚀 Game Engine Generator (ระดับโคตรโปร)
         // ==========================================
         function generateGameHTML() {
             const title = document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก';
             
-            // กรองคู่ที่ข้อมูลมีค่า (ตามโหมด)
             const validPairs = gamePairs.filter(p => {
                 if(p.mode === 'normal') return p.left.value.trim() !== '' && p.right.value.trim() !== '';
                 if(p.mode === 'decoy_left') return p.left.value.trim() !== '';
@@ -535,6 +637,10 @@
             const fSize = gameConfig.fontSize;
             const hexToRgb = hex => { let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return `${r}, ${g}, ${b}`; };
             const themeRgb = hexToRgb(tColor);
+            
+            const isGrid = gameConfig.boardLayout === 'grid';
+            const isMemory = gameConfig.gameStyle === 'memory';
+            const isDrag = gameConfig.interactionMode === 'drag';
 
             return `<!DOCTYPE html>
 <html lang="th">
@@ -551,53 +657,62 @@
             --theme-rgb: ${themeRgb};
             --font-main: '${fFamily}', sans-serif;
         }
-        body { font-family: var(--font-main); background-color: #f8fafc; overflow-x: hidden; }
+        body { font-family: var(--font-main); background-color: #f8fafc; overflow-x: hidden; user-select: none; }
         
+        ${isGrid ? `
+        #gameGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; }
+        #colLeft, #colRight { display: contents; }
+        ` : `
+        #gameGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        #colLeft, #colRight { display: flex; flex-direction: column; gap: 0.75rem; }
+        `}
+
         .game-card {
             background: white; border: 3px solid #e2e8f0; border-radius: 16px; padding: 12px;
-            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, filter 0.5s;
             display: flex; align-items: center; justify-content: center; text-align: center;
-            min-height: 80px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            font-weight: 600; color: #334155; user-select: none; word-break: break-word;
-            position: relative; overflow: hidden;
-        }
-        
-        .img-content { max-height: 90px; max-width: 100%; object-fit: contain; border-radius: 8px; }
-        .emoji-content { font-size: 3.5rem; line-height: 1; }
-        .audio-content { font-size: 2.5rem; color: var(--theme-color); }
-        .text-content { padding: 4px; }
-        
-        .game-card:hover { transform: translateY(-4px); border-color: rgba(var(--theme-rgb), 0.4); box-shadow: 0 10px 20px -5px rgba(var(--theme-rgb), 0.15); }
-        
-        .card-selected { 
-            border-color: var(--theme-color); background-color: rgba(var(--theme-rgb), 0.05); 
-            transform: scale(1.02) !important; box-shadow: 0 0 0 4px rgba(var(--theme-rgb), 0.2) !important; 
-        }
-        
-        .card-matched { 
-            border-color: #10b981; background-color: #ecfdf5; opacity: 0.4; 
-            pointer-events: none; transform: scale(0.95) !important; filter: grayscale(0.7);
-        }
-        
-        .card-wrong { 
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
-            border-color: #ef4444; background-color: #fef2f2; color: #b91c1c; 
+            min-height: 90px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            font-weight: 600; color: #334155; word-break: break-word;
+            position: relative;
         }
 
+        ${isMemory ? `
+        .game-card { perspective: 1000px; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+        .card-inner { position: relative; width: 100%; height: 100%; min-height: 90px; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .game-card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 16px; border: 3px solid #e2e8f0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        
+        /* The pattern side (visually front before flip) */
+        .card-front { 
+            background: var(--theme-color); font-size: 2.5rem; color: rgba(255,255,255,0.9);
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1));
+            background-size: 20px 20px; 
+        }
+        .card-front::after { content: '?'; font-family: 'Kanit'; font-weight: 700; }
+        
+        /* The content side */
+        .card-back { background: white; transform: rotateY(180deg); padding: 8px; }
+        .card-matched .card-inner { opacity: 0.4; transform: rotateY(180deg) scale(0.95); filter: grayscale(1); }
+        ` : `
+        .game-card:hover { transform: translateY(-4px); border-color: rgba(var(--theme-rgb), 0.4); box-shadow: 0 10px 20px -5px rgba(var(--theme-rgb), 0.15); }
+        .card-selected { border-color: var(--theme-color) !important; background-color: rgba(var(--theme-rgb), 0.05) !important; transform: scale(1.02) !important; box-shadow: 0 0 0 4px rgba(var(--theme-rgb), 0.2) !important; }
+        .card-matched { border-color: #10b981 !important; background-color: #ecfdf5 !important; opacity: 0.4; pointer-events: none; transform: scale(0.95) !important; filter: grayscale(0.7); }
+        `}
+        
+        .img-content { max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 8px; pointer-events: none; }
+        .emoji-content { font-size: 3.5rem; line-height: 1; pointer-events: none; }
+        .audio-content { font-size: 2.5rem; color: var(--theme-color); pointer-events: none; }
+        .text-content { padding: 4px; pointer-events: none; }
+        
+        .card-wrong { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; color: #b91c1c !important; }
         .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         
-        @keyframes popIn { 
-            0% { opacity: 0; transform: scale(0.8); } 
-            100% { opacity: 1; transform: scale(1); } 
-        }
-        
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(3px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
-            40%, 60% { transform: translate3d(5px, 0, 0); }
-        }
+        /* Drag UI */
+        .drag-over { border-color: var(--theme-color) !important; transform: scale(1.05); background-color: rgba(var(--theme-rgb), 0.1) !important; border-style: dashed !important; border-width: 4px !important; }
+        .dragging { opacity: 0.5; transform: scale(0.95); }
 
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(3px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-5px, 0, 0); } 40%, 60% { transform: translate3d(5px, 0, 0); } }
         .pulse-audio { animation: pulse 1s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
@@ -627,31 +742,28 @@
 
     <!-- Game Board -->
     <div class="flex-grow overflow-auto p-4 md:p-6 w-full max-w-4xl mx-auto relative">
-        
-        <div id="gameGrid" class="grid grid-cols-2 gap-4 md:gap-6 relative z-10 pb-10">
-            <div id="colLeft" class="flex flex-col gap-3 md:gap-4"></div>
-            <div id="colRight" class="flex flex-col gap-3 md:gap-4"></div>
+        <div id="gameGrid" class="relative z-10 pb-10">
+            <div id="colLeft"></div>
+            <div id="colRight"></div>
         </div>
 
-        <!-- Next Round Overlay -->
         <div id="nextRoundOverlay" class="fixed inset-0 bg-white/95 backdrop-blur-sm z-40 hidden flex-col items-center justify-center p-6 text-center">
             <div class="w-24 h-24 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-lg">
                 <i class="fas fa-level-up-alt"></i>
             </div>
             <h2 class="text-3xl font-bold text-slate-800 mb-2" style="font-family: 'Kanit', sans-serif;">ผ่านชุดที่ <span id="overlayRoundNum"></span>!</h2>
-            <p class="text-slate-500 mb-8 text-lg">คุณจับคู่คำตอบในชุดนี้ครบแล้ว ไปลุยชุดต่อไปกันเลย</p>
+            <p class="text-slate-500 mb-8 text-lg">จับคู่คำตอบครบแล้ว ไปลุยกันต่อเลย</p>
             <button onclick="startNextRound()" class="text-white px-8 py-3 rounded-2xl font-bold shadow-xl transition-transform active:scale-95 text-lg flex items-center gap-2" style="background-color: var(--theme-color); font-family: 'Kanit', sans-serif;">
                 ชุดต่อไป <i class="fas fa-arrow-right"></i>
             </button>
         </div>
 
-        <!-- Final Success Overlay -->
         <div id="successOverlay" class="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-6 text-center">
             <div class="w-28 h-28 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center text-6xl mb-6 shadow-lg transform scale-0 transition-transform duration-500" id="trophyIcon">
                 <i class="fas fa-trophy"></i>
             </div>
             <h2 class="text-4xl font-bold text-slate-800 mb-2" style="font-family: 'Kanit', sans-serif;">ยอดเยี่ยมมาก!</h2>
-            <p class="text-slate-500 mb-8 text-lg">คุณทำสำเร็จครบทุกด่าน ใช้เวลาไป <span id="finalTime" class="font-bold text-slate-700"></span></p>
+            <p class="text-slate-500 mb-8 text-lg">ทำสำเร็จทั้งหมด ใช้เวลาไป <span id="finalTime" class="font-bold text-slate-700"></span></p>
             <button onclick="finishMission()" class="text-white px-10 py-4 rounded-2xl font-bold shadow-xl transition-transform active:scale-95 text-xl flex items-center gap-2 hover:brightness-110" style="background-color: var(--theme-color); font-family: 'Kanit', sans-serif;">
                 <i class="fas fa-check-circle"></i> ส่งคำตอบ
             </button>
@@ -664,13 +776,13 @@
         const allPairsData = ${pairsJsonString};
         const gameConf = ${configJsonString};
         
-        let playMode = gameConf.playMode || 'all';
-        let visiblePairs = parseInt(gameConf.visiblePairs) || 4;
+        const isMemory = gameConf.gameStyle === 'memory';
+        const isGrid = gameConf.boardLayout === 'grid';
+        const isDrag = gameConf.interactionMode === 'drag' && !isMemory && !isGrid;
+        const playMode = gameConf.playMode || 'all';
+        const visiblePairs = parseInt(gameConf.visiblePairs) || 4;
 
-        let normalPairs = [];
-        let decoyLefts = [];
-        let decoyRights = [];
-        
+        let normalPairs = []; let decoyLefts = []; let decoyRights = [];
         allPairsData.forEach(p => {
             if(p.mode === 'normal') normalPairs.push(p);
             else if(p.mode === 'decoy_left') decoyLefts.push(p);
@@ -678,81 +790,51 @@
         });
 
         let totalPairs = normalPairs.length;
-        let matchedCount = 0;
-        let score = 0;
-        let isLocked = false;
+        let matchedCount = 0; let score = 0; let isLocked = false;
+        let selectedLeftSlot = null; let selectedRightSlot = null;
+        let draggedLeftIdx = null; // สำหรับโหมดลาก
         
-        let selectedLeftSlot = null;
-        let selectedRightSlot = null;
-        
-        let timerInterval;
-        let secondsElapsed = 0;
+        let timerInterval; let secondsElapsed = 0;
 
-        // For Rounds
-        let roundChunks = [];
-        let currentRoundIndex = 0;
-        let roundMatchedCount = 0;
-        let targetMatchesForRound = 0;
+        let roundChunks = []; let currentRoundIndex = 0;
+        let roundMatchedCount = 0; let targetMatchesForRound = 0;
 
-        // For Continuous & Active Render
-        let activeLeftSlots = [];
-        let activeRightSlots = [];
-        let continuousQueue = [];
+        let activeLeftSlots = []; let activeRightSlots = []; let continuousQueue = [];
 
         function initGame() {
-            if(normalPairs.length === 0) {
-                document.getElementById('gameGrid').innerHTML = '<div class="col-span-2 text-center py-20 text-slate-400 font-bold"><i class="fas fa-puzzle-piece text-4xl mb-4"></i><br>กรุณาเพิ่มคำศัพท์ปกติเพื่อสร้างเกม</div>';
-                return;
-            }
+            if(normalPairs.length === 0) return document.getElementById('gameGrid').innerHTML = '<div class="col-span-2 text-center py-20 text-slate-400 font-bold">ไม่มีคำศัพท์ปกติ</div>';
 
             if(playMode === 'all' || visiblePairs >= normalPairs.length) {
-                playMode = 'all';
                 loadAll();
             } else if (playMode === 'rounds') {
                 let shuffled = [...normalPairs].sort(()=>Math.random()-0.5);
-                for(let i=0; i<shuffled.length; i+=visiblePairs) {
-                    roundChunks.push(shuffled.slice(i, i+visiblePairs));
-                }
+                for(let i=0; i<shuffled.length; i+=visiblePairs) roundChunks.push(shuffled.slice(i, i+visiblePairs));
                 if (roundChunks.length > 1) document.getElementById('roundContainer').classList.remove('hidden');
                 loadRound(0);
             } else if (playMode === 'continuous') {
                 continuousQueue = [...normalPairs].sort(()=>Math.random()-0.5);
                 let initial = continuousQueue.splice(0, visiblePairs);
                 
-                let lefts = initial.map(p => ({...p, side:'left', data: p.left, matchId: p.id}))
-                                   .concat(decoyLefts.map(p => ({...p, side:'left', data: p.left, matchId: null})));
-                let rights = initial.map(p => ({...p, side:'right', data: p.right, matchId: p.id}))
-                                    .concat(decoyRights.map(p => ({...p, side:'right', data: p.right, matchId: null})));
+                let lefts = initial.map(p => ({...p, side:'left', data: p.left, matchId: p.id})).concat(decoyLefts.map(p => ({...p, side:'left', data: p.left, matchId: null})));
+                let rights = initial.map(p => ({...p, side:'right', data: p.right, matchId: p.id})).concat(decoyRights.map(p => ({...p, side:'right', data: p.right, matchId: null})));
+                lefts.sort(()=>Math.random()-0.5); rights.sort(()=>Math.random()-0.5);
                 
-                lefts.sort(()=>Math.random()-0.5); 
-                rights.sort(()=>Math.random()-0.5);
-                
-                // Balance columns if one is shorter
                 while(lefts.length < rights.length) lefts.push(null);
                 while(rights.length < lefts.length) rights.push(null);
-
-                activeLeftSlots = lefts;
-                activeRightSlots = rights;
-                
-                renderContinuousBoard();
+                activeLeftSlots = lefts; activeRightSlots = rights;
+                renderBoard();
             }
             startTimer();
         }
 
         function loadAll() {
-            let lefts = normalPairs.map(p => ({...p, side:'left', data: p.left, matchId: p.id}))
-                               .concat(decoyLefts.map(p => ({...p, side:'left', data: p.left, matchId: null})));
-            let rights = normalPairs.map(p => ({...p, side:'right', data: p.right, matchId: p.id}))
-                                .concat(decoyRights.map(p => ({...p, side:'right', data: p.right, matchId: null})));
-            lefts.sort(()=>Math.random()-0.5); 
-            rights.sort(()=>Math.random()-0.5);
-            
+            let lefts = normalPairs.map(p => ({...p, side:'left', data: p.left, matchId: p.id})).concat(decoyLefts.map(p => ({...p, side:'left', data: p.left, matchId: null})));
+            let rights = normalPairs.map(p => ({...p, side:'right', data: p.right, matchId: p.id})).concat(decoyRights.map(p => ({...p, side:'right', data: p.right, matchId: null})));
+            lefts.sort(()=>Math.random()-0.5); rights.sort(()=>Math.random()-0.5);
             while(lefts.length < rights.length) lefts.push(null);
             while(rights.length < lefts.length) rights.push(null);
-
-            activeLeftSlots = lefts;
-            activeRightSlots = rights;
-            renderContinuousBoard();
+            activeLeftSlots = lefts; activeRightSlots = rights;
+            renderBoard();
         }
 
         function loadRound(idx) {
@@ -761,27 +843,20 @@
             document.getElementById('overlayRoundNum').innerText = idx + 1;
             
             let chunk = roundChunks[idx];
-            targetMatchesForRound = chunk.length;
-            roundMatchedCount = 0;
+            targetMatchesForRound = chunk.length; roundMatchedCount = 0;
             
             let lefts = chunk.map(p => ({...p, side:'left', data: p.left, matchId: p.id}));
             let rights = chunk.map(p => ({...p, side:'right', data: p.right, matchId: p.id}));
             
-            // ใส่ตัวลวงเฉพาะด่านแรก
             if (idx === 0) {
                 lefts = lefts.concat(decoyLefts.map(p => ({...p, side:'left', data: p.left, matchId: null})));
                 rights = rights.concat(decoyRights.map(p => ({...p, side:'right', data: p.right, matchId: null})));
             }
-            
-            lefts.sort(()=>Math.random()-0.5); 
-            rights.sort(()=>Math.random()-0.5);
-            
+            lefts.sort(()=>Math.random()-0.5); rights.sort(()=>Math.random()-0.5);
             while(lefts.length < rights.length) lefts.push(null);
             while(rights.length < lefts.length) rights.push(null);
-
-            activeLeftSlots = lefts;
-            activeRightSlots = rights;
-            renderContinuousBoard();
+            activeLeftSlots = lefts; activeRightSlots = rights;
+            renderBoard();
         }
 
         function generateCardContent(dataObj) {
@@ -792,23 +867,58 @@
             return \`<span class="text-content ${fSize}">\${val}</span>\`;
         }
 
-        function renderContinuousBoard() {
-            document.getElementById('colLeft').innerHTML = activeLeftSlots.map((c, i) => {
-                if(!c) return '<div class="game-card opacity-0 pointer-events-none border-none"></div>';
-                return \`<div id="card-L-\${i}" class="game-card animate-pop-in" onclick="handleCardClick(\${i}, 'left')">\${generateCardContent(c.data)}</div>\`
-            }).join('');
+        function generateCardHTML(c, idx, side, extraStyle = '') {
+            if(!c) return \`<div class="game-card opacity-0 pointer-events-none border-none" \${extraStyle}></div>\`;
+            const content = generateCardContent(c.data);
             
-            document.getElementById('colRight').innerHTML = activeRightSlots.map((c, i) => {
-                if(!c) return '<div class="game-card opacity-0 pointer-events-none border-none"></div>';
-                return \`<div id="card-R-\${i}" class="game-card animate-pop-in" onclick="handleCardClick(\${i}, 'right')">\${generateCardContent(c.data)}</div>\`
-            }).join('');
+            if (isMemory) {
+                return \`
+                <div id="card-\${side}-\${idx}" class="game-card animate-pop-in" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}>
+                    <div class="card-inner">
+                        <div class="card-front"></div>
+                        <div class="card-back">\${content}</div>
+                    </div>
+                </div>\`;
+            } else if (isDrag) {
+                if (side === 'left') {
+                    return \`<div id="card-left-\${idx}" class="game-card animate-pop-in cursor-grab" draggable="true" ondragstart="dragStart(event, \${idx})" ondragend="dragEnd(event)" \${extraStyle}>\${content}</div>\`;
+                } else {
+                    return \`<div id="card-right-\${idx}" class="game-card animate-pop-in" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event, \${idx})" \${extraStyle}>\${content}</div>\`;
+                }
+            } else {
+                return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}>\${content}</div>\`;
+            }
         }
 
-        function handleCardClick(idx, side) {
-            if (isLocked) return;
-            const el = document.getElementById(\`card-\${side === 'left' ? 'L' : 'R'}-\${idx}\`);
-            if (!el || el.classList.contains('card-matched')) return;
+        function renderBoard() {
+            let leftHtml = activeLeftSlots.map((c, i) => generateCardHTML(c, i, 'left', isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '')).join('');
+            let rightHtml = activeRightSlots.map((c, i) => generateCardHTML(c, i, 'right', isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '')).join('');
+            document.getElementById('colLeft').innerHTML = leftHtml;
+            document.getElementById('colRight').innerHTML = rightHtml;
+        }
 
+        // --- Drag & Drop Logic ---
+        function dragStart(e, idx) {
+            if(isLocked) { e.preventDefault(); return; }
+            draggedLeftIdx = idx;
+            setTimeout(() => { e.target.classList.add('dragging'); }, 10);
+            playAudioIfAny(e.target);
+        }
+        function dragEnd(e) { e.target.classList.remove('dragging'); draggedLeftIdx = null; }
+        function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+        function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        function drop(e, rightIdx) {
+            e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+            if(draggedLeftIdx !== null && !isLocked) {
+                selectedLeftSlot = draggedLeftIdx;
+                selectedRightSlot = rightIdx;
+                playAudioIfAny(e.currentTarget);
+                checkMatch();
+            }
+        }
+
+        // --- Click Logic ---
+        function playAudioIfAny(el) {
             const audioIcon = el.querySelector('.audio-content');
             if (audioIcon) {
                 const player = document.getElementById('gameAudioPlayer');
@@ -817,25 +927,37 @@
                 audioIcon.classList.add('pulse-audio');
                 setTimeout(() => audioIcon.classList.remove('pulse-audio'), 1000);
             }
+        }
+
+        function handleCardClick(idx, side) {
+            if (isLocked) return;
+            const el = document.getElementById(\`card-\${side}-\${idx}\`);
+            if (!el || el.classList.contains('card-matched') || el.classList.contains('flipped')) return;
+
+            playAudioIfAny(el);
+
+            if (isMemory) el.classList.add('flipped');
 
             if (side === 'left') {
-                if (selectedLeftSlot !== null && selectedLeftSlot !== idx) {
-                    const prevEl = document.getElementById(\`card-L-\${selectedLeftSlot}\`);
+                if (!isMemory && selectedLeftSlot !== null && selectedLeftSlot !== idx) {
+                    const prevEl = document.getElementById(\`card-left-\${selectedLeftSlot}\`);
                     if(prevEl) prevEl.classList.remove('card-selected');
                 }
-                if (selectedLeftSlot === idx) {
+                if (!isMemory && selectedLeftSlot === idx) {
                     el.classList.remove('card-selected'); selectedLeftSlot = null; return;
                 }
-                selectedLeftSlot = idx; el.classList.add('card-selected');
+                selectedLeftSlot = idx; 
+                if(!isMemory) el.classList.add('card-selected');
             } else {
-                if (selectedRightSlot !== null && selectedRightSlot !== idx) {
-                    const prevEl = document.getElementById(\`card-R-\${selectedRightSlot}\`);
+                if (!isMemory && selectedRightSlot !== null && selectedRightSlot !== idx) {
+                    const prevEl = document.getElementById(\`card-right-\${selectedRightSlot}\`);
                     if(prevEl) prevEl.classList.remove('card-selected');
                 }
-                if (selectedRightSlot === idx) {
+                if (!isMemory && selectedRightSlot === idx) {
                     el.classList.remove('card-selected'); selectedRightSlot = null; return;
                 }
-                selectedRightSlot = idx; el.classList.add('card-selected');
+                selectedRightSlot = idx; 
+                if(!isMemory) el.classList.add('card-selected');
             }
 
             if (selectedLeftSlot !== null && selectedRightSlot !== null) checkMatch();
@@ -845,69 +967,66 @@
             isLocked = true;
             const lCard = activeLeftSlots[selectedLeftSlot];
             const rCard = activeRightSlots[selectedRightSlot];
-            
-            const elL = document.getElementById(\`card-L-\${selectedLeftSlot}\`);
-            const elR = document.getElementById(\`card-R-\${selectedRightSlot}\`);
+            const elL = document.getElementById(\`card-left-\${selectedLeftSlot}\`);
+            const elR = document.getElementById(\`card-right-\${selectedRightSlot}\`);
 
+            // Check if match
             if (lCard.matchId && rCard.matchId && lCard.matchId === rCard.matchId) {
                 setTimeout(() => {
-                    elL.className = 'game-card card-matched';
-                    elR.className = 'game-card card-matched';
-                    score += 20;
-                    document.getElementById('scoreDisplay').innerText = score;
+                    elL.classList.add('card-matched'); elL.classList.remove('card-selected');
+                    elR.classList.add('card-matched'); elR.classList.remove('card-selected');
+                    score += 20; document.getElementById('scoreDisplay').innerText = score;
                     matchedCount++;
                     
-                    let sL = selectedLeftSlot;
-                    let sR = selectedRightSlot;
+                    let sL = selectedLeftSlot; let sR = selectedRightSlot;
                     selectedLeftSlot = null; selectedRightSlot = null; 
                     
-                    if (playMode === 'continuous') {
+                    if (gameConf.playMode === 'continuous') {
                         setTimeout(() => {
                             if (continuousQueue.length > 0) {
                                 let newPair = continuousQueue.shift();
                                 activeLeftSlots[sL] = {...newPair, side:'left', data: newPair.left, matchId: newPair.id};
                                 activeRightSlots[sR] = {...newPair, side:'right', data: newPair.right, matchId: newPair.id};
                                 
-                                elL.className = 'game-card animate-pop-in';
-                                elL.innerHTML = generateCardContent(activeLeftSlots[sL].data);
+                                const orderL = isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '';
+                                const orderR = isGrid ? \`style="order: \${Math.floor(Math.random() * 100)}"\` : '';
                                 
-                                elR.className = 'game-card animate-pop-in';
-                                elR.innerHTML = generateCardContent(activeRightSlots[sR].data);
+                                elL.outerHTML = generateCardHTML(activeLeftSlots[sL], sL, 'left', orderL);
+                                elR.outerHTML = generateCardHTML(activeRightSlots[sR], sR, 'right', orderR);
                             } else {
-                                activeLeftSlots[sL] = null;
-                                activeRightSlots[sR] = null;
+                                activeLeftSlots[sL] = null; activeRightSlots[sR] = null;
                                 elL.className = 'game-card opacity-0 pointer-events-none transition-all duration-500 border-none';
                                 elR.className = 'game-card opacity-0 pointer-events-none transition-all duration-500 border-none';
                             }
-                            isLocked = false;
-                            checkWin();
-                        }, 500);
-                    } else if (playMode === 'rounds') {
-                        isLocked = false;
-                        roundMatchedCount++;
+                            isLocked = false; checkWin();
+                        }, isMemory ? 600 : 400);
+                    } else if (gameConf.playMode === 'rounds') {
+                        isLocked = false; roundMatchedCount++;
                         if(roundMatchedCount >= targetMatchesForRound) {
                             if (currentRoundIndex < roundChunks.length - 1) {
-                                document.getElementById('nextRoundOverlay').classList.remove('hidden');
-                                document.getElementById('nextRoundOverlay').classList.add('flex');
-                            } else {
-                                checkWin();
-                            }
+                                setTimeout(() => {
+                                    document.getElementById('nextRoundOverlay').classList.remove('hidden');
+                                    document.getElementById('nextRoundOverlay').classList.add('flex');
+                                }, isMemory ? 600 : 200);
+                            } else checkWin();
                         }
                     } else {
-                        isLocked = false;
-                        checkWin();
+                        isLocked = false; checkWin();
                     }
-                }, 400);
+                }, isMemory ? 600 : 300); // รอ Flip
             } else {
-                elL.classList.add('card-wrong'); elR.classList.add('card-wrong');
-                score = Math.max(0, score - 5);
-                document.getElementById('scoreDisplay').innerText = score;
+                if(!isMemory) { elL.classList.add('card-wrong'); elR.classList.add('card-wrong'); }
+                score = Math.max(0, score - 5); document.getElementById('scoreDisplay').innerText = score;
 
                 setTimeout(() => {
-                    elL.classList.remove('card-selected', 'card-wrong');
-                    elR.classList.remove('card-selected', 'card-wrong');
+                    if (isMemory) {
+                        elL.classList.remove('flipped'); elR.classList.remove('flipped');
+                    } else {
+                        elL.classList.remove('card-selected', 'card-wrong');
+                        elR.classList.remove('card-selected', 'card-wrong');
+                    }
                     selectedLeftSlot = null; selectedRightSlot = null; isLocked = false;
-                }, 800);
+                }, isMemory ? 800 : 600);
             }
         }
 
@@ -915,16 +1034,11 @@
             if(matchedCount >= totalPairs) {
                 clearInterval(timerInterval);
                 document.getElementById('finalTime').innerText = document.getElementById('timeDisplay').innerText;
-                
                 const overlay = document.getElementById('successOverlay');
-                overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
-                
                 setTimeout(() => {
-                    document.getElementById('trophyIcon').classList.remove('scale-0');
-                    document.getElementById('trophyIcon').classList.add('scale-100');
-                }, 100);
-                
+                    overlay.classList.remove('hidden'); overlay.classList.add('flex');
+                    setTimeout(() => { document.getElementById('trophyIcon').classList.remove('scale-0'); document.getElementById('trophyIcon').classList.add('scale-100'); }, 100);
+                }, isMemory ? 600 : 300);
                 if (window.parent) window.parent.postMessage({ type: 'SAVE_RESULT', score: 100 }, '*');
             }
         }
@@ -947,9 +1061,7 @@
         function finishMission() {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'MISSION_FINISH' }, '*');
-            } else {
-                alert('จำลองการกดส่งคำตอบเรียบร้อย');
-            }
+            } else { alert('จำลองการกดส่งคำตอบเรียบร้อย'); }
         }
 
         window.onload = initGame;
@@ -957,129 +1069,6 @@
 </body>
 </html>`;
         }
-
-        // ==========================================
-
-        function updatePreview() {
-            const iframe = document.getElementById('missionFrame');
-            const htmlCode = generateGameHTML();
-            iframe.srcdoc = htmlCode;
-        }
-
-        async function loadExistingMission() {
-            try {
-                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
-                if (data) {
-                    originalTeacherId = data.created_by;
-                    document.getElementById('missionTitle').value = data.title || '';
-                    document.getElementById('missionSubject').value = data.subject_group || '';
-                    document.getElementById('missionGrade').value = data.grade_level || '';
-                    
-                    if(data.content_data) {
-                        if(data.content_data.pairs) gamePairs = data.content_data.pairs;
-                        if(data.content_data.config) {
-                            gameConfig = {...gameConfig, ...data.content_data.config};
-                            
-                            // UI Updates based on config
-                            if(gameConfig.fontFamily) updateDesign('fontFamily', gameConfig.fontFamily, document.querySelector(`.font-btn:contains('${gameConfig.fontFamily}')`));
-                            
-                            if(gameConfig.playMode) {
-                                document.querySelector(`input[name="playMode"][value="${gameConfig.playMode}"]`).checked = true;
-                                updateGameMode(gameConfig.playMode);
-                            }
-                            if(gameConfig.visiblePairs !== undefined) document.getElementById('visiblePairsInput').value = gameConfig.visiblePairs;
-                        }
-                        renderPairsEditor();
-                        updatePreview();
-                    }
-                }
-            } catch (e) {}
-        }
-
-        async function saveMission() {
-            const title = document.getElementById('missionTitle').value.trim();
-            const subject = document.getElementById('missionSubject').value.trim() || "อื่นๆ";
-            const grade = document.getElementById('missionGrade').value.trim() || "";
-            
-            // กรองเช็คว่ามีคู่ที่มีคำตอบครบ (normal mode) อย่างน้อย 1 คู่หรือไม่
-            const validPairs = gamePairs.filter(p => {
-                if(p.mode === 'normal') return p.left.value.trim() !== '' && p.right.value.trim() !== '';
-                if(p.mode === 'decoy_left') return p.left.value.trim() !== '';
-                if(p.mode === 'decoy_right') return p.right.value.trim() !== '';
-                return false;
-            });
-            
-            const hasNormalPair = validPairs.some(p => p.mode === 'normal');
-
-            if (!title) {
-                document.getElementById('missionTitle').focus(); switchTab('tab-info');
-                return alert('กรุณาตั้งชื่อภารกิจครับ');
-            }
-            if (!hasNormalPair) {
-                switchTab('tab-content');
-                return alert('กรุณาเพิ่มชุดคำศัพท์ประเภท "จับคู่ปกติ" อย่างน้อย 1 คู่ เพื่อให้เกมสามารถเล่นผ่านได้ครับ');
-            }
-
-            document.getElementById('loadingOverlay').style.display = 'flex';
-
-            try {
-                const finalHtml = generateGameHTML();
-                const payload = {
-                    title: title, 
-                    description: `เกมจับคู่อัจฉริยะ ${validPairs.length} รายการ`, 
-                    subject_group: subject, 
-                    grade_level: grade,
-                    mission_type: 'match',
-                    content_data: { 
-                        html: finalHtml,
-                        pairs: validPairs,
-                        config: gameConfig,
-                        creator_id: currentUserId,
-                        creator_name: currentUserName
-                    },
-                    reward_points: 10, 
-                    can_replay: true, 
-                    is_public: true, 
-                    updated_at: new Date().toISOString()
-                };
-
-                let mid = editingMid;
-
-                if (editingMid && currentUserId === originalTeacherId) {
-                    await window.sysDB.from('missions').update(payload).eq('mission_id', editingMid);
-                } else {
-                    payload.created_by = currentUserId;
-                    payload.created_at = new Date().toISOString();
-                    const { data } = await window.sysDB.from('missions').insert([payload]).select();
-                    mid = data[0].mission_id;
-                }
-
-                if (targetCid) {
-                    await window.sysDB.from('classroom_missions').upsert({
-                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
-                    }, { onConflict: 'classroom_id, mission_id' });
-                }
-
-                window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
-            } catch (e) {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                alert("Error: " + e.message);
-            }
-        }
-
-        function changeView(size) { 
-            const wrapper = document.getElementById("previewWrapper");
-            wrapper.className = `preview-frame-wrapper device-${size} shadow-2xl flex flex-col bg-white`; 
-            if(event) {
-                document.querySelectorAll('.view-btn').forEach(b => { b.classList.remove('bg-white','text-rose-600', 'shadow-sm'); b.classList.add('hover:bg-white','text-slate-500'); });
-                event.currentTarget.classList.add('bg-white','text-rose-600', 'shadow-sm');
-                event.currentTarget.classList.remove('hover:bg-white','text-slate-500');
-            }
-        }
-
-        HTMLElement.prototype.containsText = function(text) {
-            return this.innerText.includes(text);
-        };
     </script>
 </body>
 </html>
