@@ -90,7 +90,7 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังบันทึกข้อมูล...</div>
     </div>
 
-    <!-- 🌟 Modal คลังอิโมจิอัจฉริยะ (แก้ไขไม่ให้โหลดพัง) 🌟 -->
+    <!-- 🌟 Modal คลังอิโมจิอัจฉริยะ (พร้อมระบบแปลภาษา Real-time) 🌟 -->
     <div id="emojiPickerModal" class="hidden-el fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10500] flex items-center justify-center p-4 md:p-6">
         <div class="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden w-full max-w-lg animate-pop-in relative">
             
@@ -100,8 +100,10 @@
                         <i class="fas fa-smile-beam"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 font-['Kanit'] text-lg m-0 leading-tight">คลังอิโมจิครบชุด</h3>
-                        <p class="text-[10px] text-slate-500 font-['Sarabun'] m-0">จัดหมวดหมู่เรียบร้อย เลือกใช้งานได้ทันที</p>
+                        <h3 class="font-bold text-slate-800 font-['Kanit'] text-lg m-0 leading-tight">คลังอิโมจิอัจฉริยะ</h3>
+                        <p class="text-[10px] text-slate-500 font-['Sarabun'] m-0 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> ระบบแปลภาษาไทยทำงานอยู่
+                        </p>
                     </div>
                 </div>
                 <button onclick="closeEmojiPicker()" class="text-slate-400 hover:text-rose-600 hover:bg-rose-50 w-8 h-8 rounded-full transition-colors flex items-center justify-center shadow-sm border border-transparent hover:border-rose-100">
@@ -110,10 +112,10 @@
             </div>
             
             <div class="p-2 bg-blue-50/50 text-blue-600 text-[11px] font-['Kanit'] text-center border-b border-blue-100">
-                💡 <b>เคล็ดลับ:</b> พิมพ์ค้นหาเป็น <b>ภาษาอังกฤษ</b> (เช่น dog, cat, apple, smile)
+                💡 พิมพ์คำศัพท์ภาษาไทย (เช่น <b>หมา, ยิ้ม, รถ, แอปเปิ้ล</b>) ระบบจะค้นหาให้อัตโนมัติ!
             </div>
             
-            <!-- ถอด data-source ออก เพื่อใช้ Default Database ของตัวไลบรารี ป้องกันปัญหา Could not load emoji 100% -->
+            <!-- ใช้ Default Database ป้องกันเว็บล่ม -->
             <emoji-picker class="w-full"></emoji-picker>
         </div>
     </div>
@@ -348,7 +350,6 @@
 
             <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all">
                 <div id="previewWrapper" class="preview-frame-wrapper device-mobile shadow-2xl w-full h-full flex flex-col bg-white relative">
-                    <!-- ถอด sandbox allow-same-origin ออกเพื่อความปลอดภัย -->
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals" title="Game Preview"></iframe>
                     <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly></textarea>
                 </div>
@@ -375,12 +376,13 @@
             gameStyle: 'classic'
         };
 
+        // ข้อมูลตัวอย่างสำหรับแผนการสอน "น้ำใส"
         let gamePairs = [
-            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'ไข่' }, right: { type: 'image', value: 'https://images.unsplash.com/photo-1506976785307-8732e854ad02?q=80&w=200&auto=format&fit=crop' } },
-            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'ไก่' }, right: { type: 'emoji', value: '🐔' } },
+            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'โบ' }, right: { type: 'emoji', value: '🎀' } },
+            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'ไข่' }, right: { type: 'emoji', value: '🥚' } },
             { id: generateId(), mode: 'normal', left: { type: 'text', value: 'เล้า' }, right: { type: 'text', value: 'ที่อยู่ของสัตว์ เช่น ไก่ เป็ด' } },
             { id: generateId(), mode: 'normal', left: { type: 'text', value: 'แคร่' }, right: { type: 'text', value: 'ที่นั่งทำจากไม้ไผ่' } },
-            { id: generateId(), mode: 'decoy_left', left: { type: 'text', value: 'สุนัข' }, right: { type: 'text', value: '' } }
+            { id: generateId(), mode: 'normal', left: { type: 'text', value: 'กระติก' }, right: { type: 'image', value: 'https://images.unsplash.com/photo-1606168094336-397af1340622?q=80&w=200&auto=format&fit=crop' } }
         ];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -391,14 +393,14 @@
             renderPairsEditor();
             updatePreview();
 
-            // 🌟 ตั้งค่าระบบ Emoji Picker (ใช้ฐานข้อมูล Default ของไลบรารีเพื่อเสถียรภาพ) 🌟
+            // 🌟 ตั้งค่าระบบ Emoji Picker และพจนานุกรมแปลภาษาไทย 🌟
             const picker = document.querySelector('emoji-picker');
             if (picker) {
                 // คงเมนูและคำแนะนำเป็นภาษาไทย
                 const currentI18n = picker.i18n;
                 picker.i18n = {
                     ...currentI18n,
-                    search: 'ค้นหาด้วยคำภาษาอังกฤษ (เช่น dog, cat)...',
+                    search: 'ค้นหาภาษาไทย/อังกฤษ (เช่น หมา, dog)...',
                     clear: 'ล้างการค้นหา',
                     notFound: 'ไม่พบอิโมจิที่ค้นหา',
                     categories: {
@@ -424,6 +426,77 @@
                         closeEmojiPicker();
                     }
                 });
+
+                // 🧠 พจนานุกรมแปลภาษาไทยเป็นอังกฤษ สำหรับ Emoji Picker 🧠
+                const thaiDict = {
+                    // แผนการสอนน้ำใส
+                    "โบ": "ribbon", "โบว์": "ribbon", "ไข่": "egg", "กระติก": "cup", "แคร่": "wood", "เล้า": "chicken",
+                    // อารมณ์และใบหน้า
+                    "ยิ้ม": "smile", "หัวเราะ": "laugh", "ร้องไห้": "cry", "เศร้า": "sad", "โกรธ": "angry", "รัก": "love", "หัวใจ": "heart",
+                    "ตกใจ": "shock", "กลัว": "fear", "หลับ": "sleep", "ง่วง": "sleepy", "จูบ": "kiss", "ดีใจ": "happy",
+                    "ตาฮาร์ท": "heart eyes", "แว่นตา": "glasses", "แว่นกันแดด": "sunglasses",
+                    // สัตว์
+                    "หมา": "dog", "สุนัข": "dog", "ลูกหมา": "puppy", "แมว": "cat", "ลูกแมว": "kitten",
+                    "หมู": "pig", "หมูป่า": "boar", "ไก่": "chicken", "ไก่ตัวผู้": "rooster", "ลูกไก่": "chick",
+                    "นก": "bird", "นกฮูก": "owl", "เป็ด": "duck", "นกอินทรี": "eagle",
+                    "ปลา": "fish", "ปลาฉลาม": "shark", "ปลาโลมา": "dolphin", "ปลาวาฬ": "whale",
+                    "กุ้ง": "shrimp", "ปู": "crab", "ปลาหมึก": "squid", "หอย": "shell",
+                    "งู": "snake", "เต่า": "turtle", "ช้าง": "elephant", "ม้า": "horse",
+                    "แกะ": "sheep", "แพะ": "goat", "กวาง": "deer", "ลิง": "monkey",
+                    "กบ": "frog", "หนู": "mouse", "กระต่าย": "rabbit", "หมี": "bear", "แพนด้า": "panda", "เสือ": "tiger", "สิงโต": "lion",
+                    "ผึ้ง": "bee", "มด": "ant", "เต่าทอง": "beetle", "แมงมุม": "spider",
+                    // อาหาร
+                    "แอปเปิ้ล": "apple", "กล้วย": "banana", "ส้ม": "orange", "แตงโม": "watermelon", "องุ่น": "grapes",
+                    "สตรอเบอร์รี่": "strawberry", "มะพร้าว": "coconut", "สับปะรด": "pineapple", "มะม่วง": "mango", "ผลไม้": "fruit",
+                    "มะเขือเทศ": "tomato", "ข้าวโพด": "corn", "แครอท": "carrot", "เห็ด": "mushroom", "ผัก": "vegetable",
+                    "กระเทียม": "garlic", "หอมใหญ่": "onion", "พริก": "hot pepper", "แตงกวา": "cucumber",
+                    "อาหาร": "food", "ข้าว": "rice", "ขนมปัง": "bread", "เนย": "butter", "ชีส": "cheese", "เนื้อ": "meat", "ไก่ทอด": "poultry leg",
+                    "แฮมเบอร์เกอร์": "hamburger", "เฟรนช์ฟรายส์": "french fries", "พิซซ่า": "pizza", "ฮอทดอก": "hot dog",
+                    "แซนวิช": "sandwich", "ทาโก้": "taco", "สลัด": "salad", "ซุป": "soup", "ก๋วยเตี๋ยว": "noodle",
+                    "ไอศกรีม": "ice cream", "โดนัท": "doughnut", "คุกกี้": "cookie", "เค้ก": "cake", "ช็อคโกแลต": "chocolate", "ลูกอม": "candy",
+                    "น้ำ": "water", "นม": "milk", "กาแฟ": "coffee", "ชา": "tea", "เบียร์": "beer", "ไวน์": "wine", "น้ำผลไม้": "juice",
+                    // ยานพาหนะ & สถานที่
+                    "รถ": "car", "แท็กซี่": "taxi", "รถบัส": "bus", "รถไฟ": "train", "รถบรรทุก": "truck",
+                    "จักรยาน": "bicycle", "มอเตอร์ไซค์": "motorcycle", "เครื่องบิน": "airplane", "เรือ": "ship", "จรวด": "rocket", "เฮลิคอปเตอร์": "helicopter",
+                    "บ้าน": "house", "โรงเรียน": "school", "โรงพยาบาล": "hospital", "ธนาคาร": "bank", "วัด": "temple", "โบสถ์": "church",
+                    // ธรรมชาติ
+                    "ภูเขา": "mountain", "ทะเล": "sea", "ชายหาด": "beach", "เกาะ": "island", "ป่า": "forest", "ทะเลทราย": "desert",
+                    "ต้นไม้": "tree", "ดอกไม้": "flower", "กุหลาบ": "rose", "ใบไม้": "leaf", "หญ้า": "grass",
+                    "พระอาทิตย์": "sun", "ดวงอาทิตย์": "sun", "ดวงจันทร์": "moon", "ดาว": "star", "เมฆ": "cloud",
+                    "ฝน": "rain", "หิมะ": "snow", "ลม": "wind", "พายุ": "storm", "ไฟ": "fire", "น้ำแข็ง": "ice", "รุ้ง": "rainbow",
+                    // สิ่งของ & อื่นๆ
+                    "หนังสือ": "book", "สมุด": "book", "ดินสอ": "pencil", "ปากกา": "pen", "กระเป๋า": "bag", "รองเท้า": "shoe",
+                    "เสื้อ": "shirt", "กางเกง": "pants", "หมวก": "hat", "นาฬิกา": "watch",
+                    "โทรศัพท์": "phone", "มือถือ": "phone", "คอมพิวเตอร์": "computer", "แล็ปท็อป": "laptop", "ทีวี": "tv", "กล้อง": "camera", "ไมโครโฟน": "microphone",
+                    "กีฬา": "sport", "ฟุตบอล": "soccer", "บาสเกตบอล": "basketball", "เบสบอล": "baseball", "เทนนิส": "tennis", "วอลเลย์บอล": "volleyball",
+                    "ว่ายน้ำ": "swim", "วิ่ง": "run", "เดิน": "walk", "เต้น": "dance",
+                    "เพลง": "music", "กีตาร์": "guitar", "เปียโน": "piano", "กลอง": "drum", "ไวโอลิน": "violin",
+                    "ศิลปะ": "art", "สี": "paint", "ธง": "flag", "ไทย": "thailand",
+                    "ถูก": "check", "ผิด": "cross", "คำถาม": "question", "เงิน": "money", "ทอง": "gold", "ดาว": "star"
+                };
+
+                // ดักจับเหตุการณ์การพิมพ์ใน Shadow DOM ของ Picker
+                setTimeout(() => {
+                    const shadowRoot = picker.shadowRoot;
+                    if (shadowRoot) {
+                        const searchInput = shadowRoot.querySelector('input');
+                        if (searchInput) {
+                            searchInput.addEventListener('keyup', (e) => {
+                                let val = e.target.value.trim();
+                                if (/[ก-๙]/.test(val)) {
+                                    for (let thWord in thaiDict) {
+                                        if (val.includes(thWord)) {
+                                            // เมื่อเจอคำไทยที่ตรง ให้แทนที่ด้วยภาษาอังกฤษทันที
+                                            e.target.value = val.replace(thWord, thaiDict[thWord]);
+                                            e.target.dispatchEvent(new Event('input', { bubbles: true }));
+                                            break; 
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }, 500); // รอให้ Shadow DOM โหลดเสร็จ
             }
 
             const checkDB = setInterval(async () => {
@@ -464,6 +537,16 @@
             const modal = document.getElementById('emojiPickerModal');
             modal.classList.add('hidden-el');
             currentEmojiInput = null;
+            
+            // ล้างช่องค้นหาเมื่อปิดหน้าต่าง
+            const picker = document.querySelector('emoji-picker');
+            if (picker && picker.shadowRoot) {
+                const searchInput = picker.shadowRoot.querySelector('input');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
         }
 
         document.addEventListener('mousedown', (e) => {
@@ -641,7 +724,7 @@
                     const disableAttr = isDecoy ? 'disabled' : '';
                     
                     if (pType === 'emoji') {
-                        return `placeholder="👉 คลิกเพื่อค้นหา/เลือกอิโมจิ" value="${pVal}" readonly onclick="openEmojiPicker(this)" class="${baseClass} cursor-pointer hover:border-rose-300 focus:border-rose-500 focus:bg-white ${isDecoy ? 'disabled-side' : ''}" data-pair-id="${pair.id}" data-side="${side}" ${disableAttr}`;
+                        return `placeholder="👉 คลิกเพื่อเลือกอิโมจิ" value="${pVal}" readonly onclick="openEmojiPicker(this)" class="${baseClass} cursor-pointer hover:border-rose-300 focus:border-rose-500 focus:bg-white ${isDecoy ? 'disabled-side' : ''}" data-pair-id="${pair.id}" data-side="${side}" ${disableAttr}`;
                     } else {
                         return `placeholder="${getPlaceholder(pType)}" value="${pVal}" oninput="updatePairData('${pair.id}', '${side}', this.value, this)" onchange="validateMedia('${pair.id}', '${side}', this)" class="${baseClass} focus:border-[var(--primary)] focus:bg-white" data-pair-id="${pair.id}" data-side="${side}" ${disableAttr}`;
                     }
