@@ -353,8 +353,9 @@
 
             <!-- Container พรีวิว -->
             <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all h-full">
+                <!-- 🌟 แก้ไข: เพิ่ม gameBoardWrapper ล้อมกรอบ iframe 🌟 -->
                 <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative w-full h-full flex flex-col bg-white overflow-hidden">
-                    <!-- 🛡️ ใส่ allow-same-origin กลับเพื่อให้ Drag API ทำงานสมบูรณ์ -->
+                    <!-- 🛡️ ใส่ allow-same-origin กลับเพื่อให้ Drag API ทำงานสมบูรณ์ 100% -->
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Game Preview"></iframe>
                     <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly></textarea>
                 </div>
@@ -834,7 +835,7 @@
             triggerLiveSync(); 
         }
 
-        // 🌟 ฟังก์ชันการรีเฟรช Preview 🌟
+        // 🌟 ฟังก์ชันการรีเฟรช Preview ที่เสถียรที่สุด 🌟
         function triggerLiveSync(instant = false) {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, instant ? 50 : 500);
@@ -845,7 +846,8 @@
             const newIframe = document.createElement('iframe');
             newIframe.id = 'missionFrame';
             newIframe.className = iframe.className;
-            newIframe.sandbox = iframe.sandbox;
+            // 🛡️ แก้ไขบั๊ก Sandbox DOMTokenList 
+            newIframe.setAttribute('sandbox', iframe.getAttribute('sandbox') || 'allow-scripts allow-forms allow-modals allow-same-origin');
             newIframe.title = iframe.title;
             newIframe.srcdoc = generateGameHTML();
             
@@ -875,7 +877,8 @@
                 const newIframe = document.createElement('iframe');
                 newIframe.id = 'missionFrame';
                 newIframe.className = iframe.className;
-                newIframe.sandbox = iframe.sandbox;
+                // 🛡️ แก้ไขบั๊ก Sandbox DOMTokenList
+                newIframe.setAttribute('sandbox', iframe.getAttribute('sandbox') || 'allow-scripts allow-forms allow-modals allow-same-origin');
                 newIframe.title = iframe.title;
                 newIframe.srcdoc = htmlCode;
                 
@@ -897,7 +900,7 @@
         }
 
         // ==========================================
-        // 🚀 Game Engine Generator (รวม State-driven Data + Drag Fixes)
+        // 🚀 Game Engine Generator
         // ==========================================
         function generateGameHTML() {
             const title = document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก';
@@ -1056,7 +1059,8 @@
         </div>
     </div>
 
-    <div id="gameBoardWrapper" class="flex-grow overflow-auto p-4 md:p-6 w-full max-w-4xl mx-auto relative \${isGrid ? 'layout-grid' : 'layout-split'} \${isMemory ? 'style-memory' : 'style-classic'} \${isJigsaw ? 'shape-jigsaw' : 'shape-rounded'}">
+    <!-- Wrapper กำหนด Classes สำหรับดีไซน์ -->
+    <div id="gameBoardWrapper" class="flex-grow overflow-auto p-4 md:p-6 w-full max-w-4xl mx-auto relative">
         <div id="gameGrid" class="relative z-10 pb-10">
             <!-- Cards will be injected here -->
         </div>
@@ -1282,14 +1286,13 @@
             if (isMemory) {
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}><div class="card-inner"><div class="card-front"></div><div class="card-back">\${content}</div></div></div>\`;
             } else if (isDrag) {
-                // 🛡️ เพิ่ม dataTransfer.setData เข้าไปเพื่อให้ HTML5 Drag รองรับทุก Browser
+                // 🛡️ เพิ่ม dataTransfer.setData เพื่อให้ HTML5 Drag API ทำงานได้สมบูรณ์ในทุก Browser
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in cursor-grab \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" draggable="true" ondragstart="dragStart(event, \${idx}, '\${side}')" ondragend="dragEnd(event)" ondragover="dragOver(event, '\${side}')" ondragleave="dragLeave(event)" ondrop="drop(event, \${idx}, '\${side}')" ontouchstart="tStart(event, \${idx}, '\${side}')" ontouchmove="tMove(event)" ontouchend="tEnd(event)" \${extraStyle}>\${content}</div>\`;
             } else {
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}>\${content}</div>\`;
             }
         }
 
-        // 🌟 State-driven Render ที่รองรับ Grid Order 🌟
         function renderBoard() {
             let html = '';
             for(let i=0; i<activeLeftSlots.length; i++) {
@@ -1390,22 +1393,25 @@
         function dragStart(e, idx, side) {
             if(isLocked) { e.preventDefault(); return; }
             draggedIdx = idx; draggedSide = side;
-            // 🛡️ ป้องกันบั๊ก Drag ถูกยกเลิกบนบาง Browser โดยต้อง SetData ให้ครบ
+            
             if(e.dataTransfer) {
-                e.dataTransfer.setData('text/plain', idx);
+                e.dataTransfer.setData('text/plain', idx.toString());
                 e.dataTransfer.effectAllowed = 'move';
             }
             setTimeout(() => { e.target.classList.add('dragging'); }, 10);
             SoundFX.play('drag'); 
-            playAudioIfAny(e.target);
         }
+        
         function dragEnd(e) { e.target.classList.remove('dragging'); draggedIdx = null; draggedSide = null; }
+        
         function dragOver(e, targetSide) { 
             e.preventDefault(); 
             if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
             if (draggedSide && draggedSide !== targetSide) e.currentTarget.classList.add('drag-over'); 
         }
+        
         function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        
         function drop(e, dropIdx, dropSide) {
             e.preventDefault(); e.currentTarget.classList.remove('drag-over');
             if(draggedIdx !== null && !isLocked && draggedSide !== dropSide) {
@@ -1417,7 +1423,7 @@
         }
 
         function playAudioIfAny(el) {
-            // ไม่ต้องใช้ HTML Audio อีกต่อไป เราเปลี่ยนไปใช้ Web Audio หมดแล้วเพื่อความสเถียร
+            // ใช้ระบบเสียงแบบ Web Audio API (เงียบไว้ถ้าไม่ใช่ไฟล์เสียงพิเศษ)
         }
 
         function handleCardClick(idx, side) {
@@ -1467,7 +1473,6 @@
             cloneL.className = elL.className.replace('card-selected', '').replace('drag-over', '') + ' card-matched';
             cloneR.className = elR.className.replace('card-selected', '').replace('drag-over', '') + ' card-matched';
             
-            // ตั้งค่า CSS Inline สำหรับร่างโคลนให้บินอิสระ
             cloneL.style.position = 'fixed'; cloneL.style.margin = '0'; cloneL.style.zIndex = '9999';
             cloneL.style.top = rectL.top + 'px'; cloneL.style.left = rectL.left + 'px';
             cloneL.style.width = rectL.width + 'px'; cloneL.style.height = rectL.height + 'px';
@@ -1496,7 +1501,6 @@
                 const totalWidth = cardWidthL + cardWidthR - overlap;
                 const startX = centerX - (totalWidth / 2);
                 
-                // สั่งให้บินมาปะทะตรงกลาง
                 cloneL.style.top = (centerY - rectL.height / 2) + 'px';
                 cloneL.style.left = startX + 'px';
                 cloneL.style.transform = 'scale(1.15)';
@@ -1507,7 +1511,6 @@
                 
                 setTimeout(() => {
                     if (gameConf.playMode === 'continuous') {
-                        // โหมดต่อเนื่อง ให้หดตัวหายวับไป
                         cloneL.style.transform = 'scale(0)'; cloneR.style.transform = 'scale(0)';
                         cloneL.style.opacity = '0'; cloneR.style.opacity = '0';
                         setTimeout(() => {
@@ -1516,7 +1519,6 @@
                             cb();
                         }, 500);
                     } else {
-                        // โหมดกระดาน ให้โชว์ร่างจริงที่ประกอบแล้ว ลบร่างโคลนทิ้ง
                         cloneL.remove(); cloneR.remove();
                         document.getElementById('blockerOverlay').classList.add('hidden-el');
                         cb();
@@ -1525,7 +1527,6 @@
             });
         }
 
-        // 🌟 ระบบตรวจสอบการจับคู่ที่เสถียรที่สุด 🌟
         function checkMatch() {
             isLocked = true;
             let sL = selectedLeftSlot; 
@@ -1537,7 +1538,6 @@
             if (lCard && rCard && lCard.matchId && rCard.matchId && lCard.matchId === rCard.matchId) {
                 SoundFX.play('match'); 
                 
-                // จัดระเบียบ: หากอยู่คนละบรรทัด ให้สลับข้อมูลใน Array ให้มาบรรทัดเดียวกัน
                 if (!isGrid && !isMemory && sL !== sR) {
                     if (draggedSide === 'left') {
                         const temp = activeLeftSlots[sL]; activeLeftSlots[sL] = activeLeftSlots[sR]; activeLeftSlots[sR] = temp;
@@ -1579,7 +1579,6 @@
                                 renderBoard();
                                 isLocked = false; checkWin();
                             } else {
-                                // แปลงเป็นการ์ดรวมร่างถาวร
                                 activeLeftSlots[sL].isMerged = true;
                                 activeRightSlots[sR].isMerged = true;
                                 renderBoard();
@@ -1729,7 +1728,7 @@
         }
 
         applyGameConfig();
-        window.onload = initGame;
+        initGame();
     <\/script>
 </body>
 </html>`;
