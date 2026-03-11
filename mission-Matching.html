@@ -23,6 +23,7 @@
 
     <style>
         :root { --primary: #00008B; --primary-light: #0000cd; --accent: #FF8C00; --bg-body: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; }
+        /* ปลดล็อกให้เลื่อนบนมือถือได้ตามปกติ */
         body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
         
         #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 80px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s; flex-shrink: 0; }
@@ -37,6 +38,7 @@
         
         .preview-frame-wrapper { background: #1e293b; border-radius: 2rem; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 6px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); position: relative; width: 100%; height: 100%; }
         
+        /* 🌟 ปรับขนาด Responsive Preview Container ใหม่ 🌟 */
         .device-desktop { max-width: 100%; border-radius: 1rem; border-width: 4px; }
         .device-mobile { max-width: 375px; aspect-ratio: 9/16; margin: 0 auto; height: auto !important; max-height: 100%; }
         .device-tablet { max-width: 768px; aspect-ratio: 3/4; margin: 0 auto; height: auto !important; max-height: 100%; }
@@ -334,7 +336,7 @@
                         <button onclick="toggleCodeView('preview')" id="btnViewPreview" class="bg-white text-rose-600 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"><i class="fas fa-gamepad"></i> เกม</button>
                         <button onclick="toggleCodeView('code')" id="btnViewCode" class="text-slate-500 hover:bg-white hover:shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"><i class="fas fa-code"></i> โค้ด</button>
                     </div>
-                    <button onclick="forceRefreshPreview()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center shadow-sm" title="รีเฟรชเกม">
+                    <button onclick="forceRefreshPreview()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center shadow-sm" title="รีเฟรชเกมใหม่">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                     <button onclick="copyGeneratedCode()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-8 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center shadow-sm" title="คัดลอก HTML โค้ด">
@@ -349,11 +351,10 @@
                 </div>
             </div>
 
-            <!-- 🌟 Container พรีวิวแบบขยายเต็มจอ 🌟 -->
+            <!-- Container พรีวิว -->
             <div id="previewContainer" class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all h-full">
-                <!-- Device Wrapper -->
                 <div id="previewWrapper" class="preview-frame-wrapper device-desktop shadow-2xl relative w-full h-full flex flex-col bg-white overflow-hidden">
-                    <!-- 🛡️ ใส่ sandbox allow-same-origin กลับเข้าไปเพื่อรับส่ง postMessage และ DragAPI ให้สมบูรณ์ -->
+                    <!-- 🛡️ ใส่ allow-same-origin กลับเพื่อให้ Drag API ทำงานสมบูรณ์ -->
                     <iframe id="missionFrame" class="w-full h-full bg-white border-none absolute inset-0 z-10 transition-opacity duration-300" sandbox="allow-scripts allow-forms allow-modals allow-same-origin" title="Game Preview"></iframe>
                     <textarea id="codeView" class="w-full h-full bg-[#0d1117] text-[#10b981] p-6 text-sm border-none outline-none resize-none absolute inset-0 z-20 hidden-el overflow-y-auto leading-relaxed" readonly></textarea>
                 </div>
@@ -833,7 +834,7 @@
             triggerLiveSync(); 
         }
 
-        // 🌟 ฟังก์ชัน Live Sync 🌟
+        // 🌟 ฟังก์ชันการรีเฟรช Preview 🌟
         function triggerLiveSync(instant = false) {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => { updatePreview(); }, instant ? 50 : 500);
@@ -841,8 +842,15 @@
 
         function forceRefreshPreview() {
             const iframe = document.getElementById('missionFrame');
-            iframe.srcdoc = generateGameHTML();
-            iframe.setAttribute('data-loaded', 'true');
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'missionFrame';
+            newIframe.className = iframe.className;
+            newIframe.sandbox = iframe.sandbox;
+            newIframe.title = iframe.title;
+            newIframe.srcdoc = generateGameHTML();
+            
+            iframe.parentNode.replaceChild(newIframe, iframe);
+            newIframe.setAttribute('data-loaded', 'true');
             showToastAlert('รีเฟรชกระดานเกมใหม่เรียบร้อยแล้ว');
         }
 
@@ -862,22 +870,34 @@
                 return false;
             });
 
+            // ตรวจสอบสถานะการโหลดและสร้าง Iframe ใหม่เพื่อความสะอาดของหน่วยความจำ
             if (!iframe.srcdoc || iframe.getAttribute('data-loaded') !== 'true') {
-                iframe.srcdoc = htmlCode;
-                iframe.setAttribute('data-loaded', 'true');
+                const newIframe = document.createElement('iframe');
+                newIframe.id = 'missionFrame';
+                newIframe.className = iframe.className;
+                newIframe.sandbox = iframe.sandbox;
+                newIframe.title = iframe.title;
+                newIframe.srcdoc = htmlCode;
+                
+                iframe.parentNode.replaceChild(newIframe, iframe);
+                newIframe.setAttribute('data-loaded', 'true');
             } else {
-                const msgPayload = {
-                    type: 'LIVE_SYNC',
-                    config: gameConfig,
-                    pairs: validPairs,
-                    title: document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก'
-                };
-                iframe.contentWindow.postMessage(msgPayload, '*');
+                try {
+                    const msgPayload = {
+                        type: 'LIVE_SYNC',
+                        config: gameConfig,
+                        pairs: validPairs,
+                        title: document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก'
+                    };
+                    iframe.contentWindow.postMessage(msgPayload, '*');
+                } catch(e) {
+                    iframe.srcdoc = htmlCode; // Fallback
+                }
             }
         }
 
         // ==========================================
-        // 🚀 Game Engine Generator (รวม State-driven Data + CSS Array mapping)
+        // 🚀 Game Engine Generator (รวม State-driven Data + Drag Fixes)
         // ==========================================
         function generateGameHTML() {
             const title = document.getElementById('missionTitle').value.trim() || 'เกมจับคู่มหาสนุก';
@@ -889,19 +909,18 @@
                 return false;
             });
             
-            const configJsonString = JSON.stringify(gameConfig);
+            // 🛡️ ป้องกัน Syntax Error จากอักขระพิเศษด้วยการ Escape ให้หมดก่อนยัดลงใน Template Literal
+            const configJsonString = JSON.stringify(gameConfig).replace(/\\/g, '\\\\').replace(/\$/g, '\\$').replace(/`/g, '\\`').replace(/<\/script>/gi, '<\\/script>');
             
-            // Add gridOrder to each pair to prevent shuffling
             const formattedPairs = validPairs.map(p => ({
                 ...p,
                 gridOrderL: Math.floor(Math.random() * 100),
                 gridOrderR: Math.floor(Math.random() * 100)
             }));
-            const pairsJsonString = JSON.stringify(formattedPairs);
+            const pairsJsonString = JSON.stringify(formattedPairs).replace(/\\/g, '\\\\').replace(/\$/g, '\\$').replace(/`/g, '\\`').replace(/<\/script>/gi, '<\\/script>');
             
             const tColor = gameConfig.themeColor;
             const fFamily = gameConfig.fontFamily;
-            const fSize = gameConfig.fontSize;
             const hexToRgb = hex => { let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return `${r}, ${g}, ${b}`; };
             const themeRgb = hexToRgb(tColor);
             
@@ -1261,6 +1280,7 @@
             if (isMemory) {
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}><div class="card-inner"><div class="card-front"></div><div class="card-back">\${content}</div></div></div>\`;
             } else if (isDrag) {
+                // 🛡️ เพิ่ม dataTransfer.setData เข้าไปเพื่อให้ HTML5 Drag รองรับทุก Browser
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in cursor-grab \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" draggable="true" ondragstart="dragStart(event, \${idx}, '\${side}')" ondragend="dragEnd(event)" ondragover="dragOver(event, '\${side}')" ondragleave="dragLeave(event)" ondrop="drop(event, \${idx}, '\${side}')" ontouchstart="tStart(event, \${idx}, '\${side}')" ontouchmove="tMove(event)" ontouchend="tEnd(event)" \${extraStyle}>\${content}</div>\`;
             } else {
                 return \`<div id="card-\${side}-\${idx}" class="game-card animate-pop-in \${shapeClass} \${c.isMatched ? 'card-matched' : ''}" onclick="handleCardClick(\${idx}, '\${side}')" \${extraStyle}>\${content}</div>\`;
@@ -1368,6 +1388,11 @@
         function dragStart(e, idx, side) {
             if(isLocked) { e.preventDefault(); return; }
             draggedIdx = idx; draggedSide = side;
+            // 🛡️ ป้องกันบั๊ก Drag ถูกยกเลิกบนบาง Browser โดยต้อง SetData ให้ครบ
+            if(e.dataTransfer) {
+                e.dataTransfer.setData('text/plain', idx);
+                e.dataTransfer.effectAllowed = 'move';
+            }
             setTimeout(() => { e.target.classList.add('dragging'); }, 10);
             SoundFX.play('drag'); 
             playAudioIfAny(e.target);
@@ -1375,6 +1400,7 @@
         function dragEnd(e) { e.target.classList.remove('dragging'); draggedIdx = null; draggedSide = null; }
         function dragOver(e, targetSide) { 
             e.preventDefault(); 
+            if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
             if (draggedSide && draggedSide !== targetSide) e.currentTarget.classList.add('drag-over'); 
         }
         function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
