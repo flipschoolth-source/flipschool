@@ -857,7 +857,7 @@
                 
                 const finalHTML = generateGameHTML();
 
-                // *UPDATE: โครงสร้างข้อมูลให้ตรงกับ Table missions ใหม่
+                // โครงสร้างข้อมูลให้ตรงกับ Table missions
                 const missionData = {
                     title: title,
                     description: desc,
@@ -867,23 +867,23 @@
                         pairs: gamePairs,
                         cover_image_url: cover
                     },
-                    content: finalHTML, // เอาโค้ด HTML มาเซฟลงฟิลด์ content ตรงๆ
+                    content: finalHTML,
                     is_public: true
                 };
 
-                // ถ้ามีการสร้างจากห้องเรียน ให้แนบ classroom_id ลง Table missions ด้วยตาม schema
                 if (targetCid) {
                     missionData.classroom_id = targetCid;
                 }
 
                 let mid = editingMid;
 
+                // 1. บันทึกหรืออัปเดตข้อมูลลงตาราง missions
                 if (editingMid && currentUserId === originalTeacherId) {
                     const { error: updateError } = await window.sysDB.from('missions')
                         .update(missionData).eq('mission_id', editingMid);
                     if (updateError) throw updateError;
                 } else {
-                    missionData.created_by = currentUserId; // *UPDATE: ใช้ created_by แทน teacher_id
+                    missionData.created_by = currentUserId;
                     const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
                     if (insertError) throw insertError;
                     
@@ -891,19 +891,33 @@
                     if (editingMid && currentUserId !== originalTeacherId) isNewFork = true;
                 }
 
+                // 2. บันทึกข้อมูลการมอบหมายลงตาราง classroom_missions (แก้ไขการใช้ upsert เป็น select แล้วค่อย insert/update)
                 if (targetCid) {
-                    const assignData = {
-                        classroom_id: targetCid, 
-                        mission_id: mid, 
-                        assigned_at: new Date().toISOString()
-                    };
-                    if (targetFolder) assignData.folder_name = targetFolder;
+                    // ตรวจสอบว่าเคยมอบหมายภารกิจนี้ในห้องเรียนนี้หรือยัง
+                    const { data: existingMap, error: checkError } = await window.sysDB.from('classroom_missions')
+                        .select('assignment_id')
+                        .eq('classroom_id', targetCid)
+                        .eq('mission_id', mid)
+                        .maybeSingle();
 
-                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert(
-                        assignData, 
-                        { onConflict: 'classroom_id, mission_id' }
-                    );
-                    if (mapError) throw mapError;
+                    if (checkError) throw checkError;
+
+                    if (!existingMap) {
+                        // ถ้ายังไม่มี ให้ Insert ใหม่
+                        const assignData = {
+                            classroom_id: targetCid, 
+                            mission_id: mid, 
+                            folder_name: targetFolder || 'ทั่วไป'
+                        };
+                        const { error: mapError } = await window.sysDB.from('classroom_missions').insert([assignData]);
+                        if (mapError) throw mapError;
+                    } else if (targetFolder) {
+                        // ถ้ามีอยู่แล้ว และมีการระบุโฟลเดอร์มา ให้ Update โฟลเดอร์
+                        const { error: updateMapError } = await window.sysDB.from('classroom_missions')
+                            .update({ folder_name: targetFolder })
+                            .eq('assignment_id', existingMap.assignment_id);
+                        if (updateMapError) throw updateMapError;
+                    }
                 }
                 
                 if (isNewFork) showMessage("✅ บันทึกเป็นสำเนาภารกิจใหม่เรียบร้อย");
