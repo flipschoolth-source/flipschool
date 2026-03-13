@@ -247,7 +247,7 @@
         </div>
     </div>
 
-    <!-- Container สำหรับแสดงผลภารกิจ (ดึงพื้นที่ที่เหลือทั้งหมดแบบพอดีจอ ไม่ล้น) -->
+    <!-- Container สำหรับแสดงผลภารกิจ -->
     <main id="mainContainer" class="flex-1 relative w-full h-full overflow-hidden bg-white shadow-inner">
         <iframe id="missionIframe" class="absolute inset-0 w-full h-full border-none opacity-0 transition-opacity duration-500 block" sandbox="allow-scripts allow-forms allow-modals allow-same-origin allow-downloads" allow="camera; microphone; fullscreen; display-capture; autoplay" title="Mission Player"></iframe>
         
@@ -268,7 +268,7 @@
                     <i class="fas fa-cog text-blue-500 w-5 text-center"></i> ตั้งค่า
                 </button>
                 <button id="editBtn" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 rounded-xl text-sm font-bold text-slate-600 w-full text-left border-none bg-transparent cursor-pointer font-['Kanit'] transition-colors">
-                    <i class="fas fa-code text-orange-500 w-5 text-center"></i> แก้ไขโค้ด/เนื้อหา
+                    <i class="fas fa-code text-orange-500 w-5 text-center"></i> แก้ไขเนื้อหา
                 </button>
                 <button onclick="openDelete()" class="flex items-center gap-3 px-4 py-3 hover:bg-rose-50 rounded-xl text-sm font-bold text-rose-500 w-full text-left border-none bg-transparent cursor-pointer font-['Kanit'] transition-colors">
                     <i class="fas fa-trash-alt w-5 text-center"></i> ถอนภารกิจ
@@ -295,7 +295,7 @@
         let assignmentData = null; 
         let isTeacher = false;
         let missionData = null; 
-        let nextMissionId = null; // ตัวแปรสำหรับเก็บรหัสภารกิจถัดไป
+        let nextMissionId = null; 
 
         document.addEventListener('DOMContentLoaded', () => {
             // 🌟 จำลองการ Scroll สำหรับหน้าจอล็อก (เพื่อให้ Navbar ย่อขนาดได้) 🌟
@@ -347,15 +347,12 @@
 
         // 🌟 ฟังก์ชันย้อนกลับไปหน้าที่ผ่านมา (History Back) 🌟
         function goBack() {
-            // เช็คว่ามีหน้าต่างก่อนหน้าที่อยู่ในโดเมนเดียวกันหรือไม่
             if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
                 window.history.back();
             } 
-            // แผนสำรอง 1: พากลับไปหน้าห้องเรียน
             else if (assignmentData && assignmentData.classroom_id) {
                 window.location.replace(`classroom-detail.html?id=${assignmentData.classroom_id}`);
             } 
-            // แผนสำรอง 2: พากลับไปคลังภารกิจ
             else {
                 window.location.replace('mission-library.html');
             }
@@ -401,6 +398,126 @@
             if(emailEl) emailEl.innerText = profile.email || `รหัส: ${profile.student_code || '-'}`;
         }
 
+        // สร้าง HTML เกมจับคู่สดๆ (กรณีโค้ดใน DB หายไป)
+        function generateMatchingFallbackHTML(pairsData) {
+            const stringifiedPairs = JSON.stringify(pairsData.map(p => {
+                return {
+                    id: p.id || Date.now().toString() + Math.random(),
+                    a_type: p.a_type || (p.a && p.a.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i) ? 'image' : 'text'),
+                    a_val: p.a_val || p.a || '',
+                    b_type: p.b_type || (p.b && p.b.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i) ? 'image' : 'text'),
+                    b_val: p.b_val || p.b || ''
+                };
+            }));
+
+            return `
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Match Game</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        .font-heading { font-family: 'Kanit', sans-serif; }
+        .card-inner { transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; position: relative; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { backface-visibility: hidden; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 1rem; }
+        .card-back { transform: rotateY(180deg); }
+        .matched { animation: matchScale 0.5s ease forwards; pointer-events: none; }
+        @keyframes matchScale { 0% { transform: scale(1); } 50% { transform: scale(1.1); filter: brightness(1.2); } 100% { transform: scale(1); opacity: 0.6; } }
+        .game-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        @media (min-width: 640px) { .game-grid { grid-template-columns: repeat(4, 1fr); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 sm:p-6">
+    <div class="max-w-4xl mx-auto w-full">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 gap-4">
+            <div class="font-bold text-xl text-blue-600 flex items-center gap-2 font-heading">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ภารกิจจับคู่พลิกไพ่
+            </div>
+            <div class="flex space-x-3 text-sm font-heading">
+                <div class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full font-semibold border border-blue-100">คะแนน: <span id="game-score">0</span></div>
+                <div class="bg-orange-50 text-orange-700 px-4 py-1.5 rounded-full font-semibold border border-orange-100">เวลา: <span id="game-timer">00:00</span></div>
+            </div>
+        </div>
+        <!-- Board -->
+        <div id="game-board" class="game-grid"></div>
+    </div>
+
+    <script>
+        const pairsData = ${stringifiedPairs};
+        let cards = [];
+        pairsData.forEach(p => {
+            if(p.a_val && p.a_val.trim() !== '') cards.push({ id: p.id, type: p.a_type, content: p.a_val });
+            if(p.b_val && p.b_val.trim() !== '') cards.push({ id: p.id, type: p.b_type, content: p.b_val });
+        });
+        cards = cards.sort(() => Math.random() - 0.5);
+
+        const board = document.getElementById('game-board');
+        let flipped = [], matched = 0, score = 0, timer = 0, isProcessing = false;
+        
+        let interval = setInterval(() => {
+            timer++;
+            document.getElementById('game-timer').innerText = String(Math.floor(timer/60)).padStart(2,'0') + ':' + String(timer%60).padStart(2,'0');
+        }, 1000);
+
+        cards.forEach(card => {
+            const el = document.createElement('div');
+            el.className = 'card h-32 sm:h-40 relative group';
+            let contentHTML = '';
+            if(card.type === 'image' || card.content.match(/\\.(jpeg|jpg|gif|png|webp|svg)(\\?.*)?$/i) || card.content.startsWith('http')) {
+                contentHTML = \`<img src="\${card.content}" class="max-w-full max-h-full object-contain rounded">\`;
+            } else if(card.type === 'emoji') {
+                contentHTML = \`<span class="text-6xl drop-shadow-sm">\${card.content}</span>\`;
+            } else {
+                contentHTML = \`<span class="text-xl sm:text-2xl font-semibold break-words">\${card.content}</span>\`;
+            }
+
+            el.innerHTML = \`
+                <div class="card-inner w-full h-full shadow-sm hover:shadow-md rounded-2xl bg-white transition-all">
+                    <div class="card-front bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl shadow-inner border-4 border-white font-bold opacity-90 group-hover:opacity-100">?</div>
+                    <div class="card-back bg-white flex items-center justify-center p-3 border-2 border-blue-100 rounded-2xl overflow-hidden text-center text-slate-700 font-heading">
+                        \${contentHTML}
+                    </div>
+                </div>\`;
+            
+            el.onclick = () => {
+                if(isProcessing || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+                el.classList.add('flipped');
+                flipped.push({ el, id: card.id });
+                if(flipped.length === 2) {
+                    isProcessing = true;
+                    setTimeout(() => {
+                        if(flipped[0].id === flipped[1].id) {
+                            flipped[0].el.classList.add('matched');
+                            flipped[1].el.classList.add('matched');
+                            matched++; score += 100;
+                            document.getElementById('game-score').innerText = score;
+                            if(matched === pairsData.filter(p => p.a_val.trim()!=='' && p.b_val.trim()!=='').length && matched > 0) {
+                                clearInterval(interval);
+                                // ส่งคะแนนไปให้ parent window (หน้าที่ครอบ iframe อยู่)
+                                window.parent.postMessage({ type: 'SAVE_RESULT', score: score }, '*');
+                            }
+                        } else {
+                            flipped[0].el.classList.remove('flipped');
+                            flipped[1].el.classList.remove('flipped');
+                        }
+                        flipped = []; isProcessing = false;
+                    }, 700);
+                }
+            };
+            board.appendChild(el);
+        });
+    <\/script>
+</body>
+</html>`;
+        }
+
         async function initPage() {
             try {
                 const db = window.sysDB;
@@ -411,12 +528,10 @@
                 if (!currentUserId) {
                     document.getElementById('guestIndicator').classList.remove('hidden');
                 } else {
-                    // ดึงข้อมูลโปรไฟล์เพื่อแสดงที่ Navbar
                     const { data: profile } = await db.from('users').select('*').eq('user_id', currentUserId).maybeSingle();
                     if (profile) updateProfileUI(profile);
                 }
 
-                // ดึงข้อมูลห้องเรียน+ภารกิจ (เช็ค owner_id และเผื่อ teacher_id เดิม)
                 const { data: assign } = await db.from('classroom_missions')
                     .select('*, missions(*), classrooms(teacher_id, owner_id, subject_name)')
                     .eq('mission_id', currentMissionId)
@@ -429,7 +544,6 @@
                     const classData = assign.classrooms || {};
                     isTeacher = currentUserId && (classData.owner_id === currentUserId || classData.teacher_id === currentUserId);
                     
-                    // 🌟 หาภารกิจถัดไปในห้องเรียน (ถ้ามี) 🌟
                     if (assign.classroom_id) {
                         const { data: allMissions } = await db.from('classroom_missions')
                             .select('mission_id, order_index')
@@ -460,11 +574,16 @@
                     document.getElementById('replayToggle').checked = assignmentData.can_replay;
                     
                     document.getElementById('editBtn').onclick = () => {
-                        window.location.href = `mission-paste-code.html?cid=${assignmentData.classroom_id}&mid=${currentMissionId}`;
+                        // ปรับลิงก์แก้ไขตามประเภทภารกิจ
+                        let editUrl = 'mission-paste-code.html';
+                        if (missionData.mission_type && missionData.mission_type.includes('matching-flip')) {
+                            editUrl = 'mission-Matching-flip.html';
+                        }
+                        window.location.href = `${editUrl}?cid=${assignmentData.classroom_id}&edit_mid=${currentMissionId}`;
                     };
                 }
 
-                // ✅ ตรวจสอบการอนุญาตให้เล่นซ้ำ (ใช้ student_missions แบบใหม่)
+                // ✅ ตรวจสอบการอนุญาตให้เล่นซ้ำ
                 if (currentUserId && !isTeacher && assignmentData && !assignmentData.can_replay) {
                     const { data: ex } = await db.from('student_missions')
                         .select('id')
@@ -480,20 +599,70 @@
                     }
                 }
 
-                // ดึงข้อมูล HTML ออกมาให้ถูกต้อง (รองรับทั้งแบบ Object และ String)
-                let finalHtmlContent = "";
-                if (missionData.content_data) {
-                    finalHtmlContent = typeof missionData.content_data === 'string' ? missionData.content_data : missionData.content_data.html;
-                } else if (missionData.content) {
-                    finalHtmlContent = typeof missionData.content === 'string' ? missionData.content : missionData.content.html;
+                // 🌟 ระบบดึงข้อมูล HTML (รองรับโครงสร้างใหม่ เก่า และระบบสร้างใหม่อัตโนมัติ) 🌟
+                let finalContent = "";
+                let isUrl = false;
+                
+                // 1. ตรวจสอบจากฟิลด์ content (โครงสร้างใหม่) ก่อน
+                if (missionData.content) {
+                    if (typeof missionData.content === 'string') {
+                        finalContent = missionData.content;
+                    } else if (typeof missionData.content === 'object') {
+                        finalContent = missionData.content.html || missionData.content.url || "";
+                        if (missionData.content.url) isUrl = true;
+                    }
+                } 
+                
+                // 2. หากยังไม่มี ให้ค้นหาใน content_data (โครงสร้างเก่า)
+                if (!finalContent && missionData.content_data) {
+                    if (typeof missionData.content_data === 'string') {
+                        finalContent = missionData.content_data;
+                    } else if (typeof missionData.content_data === 'object') {
+                        finalContent = missionData.content_data.html || missionData.content_data.url || "";
+                        if (missionData.content_data.url) isUrl = true;
+                    }
                 }
 
-                if (!finalHtmlContent) {
+                // 3. Fallback: ถ้ายังไม่มี HTML อีก แต่มีข้อมูลคู่คำศัพท์ (สำหรับเกมจับคู่) ให้สร้างเกมใหม่ทันที!
+                if (!finalContent && missionData.mission_type && missionData.mission_type.includes('matching')) {
+                    let pairs = [];
+                    if (missionData.content_data && missionData.content_data.pairs) {
+                        pairs = missionData.content_data.pairs;
+                    } else if (typeof missionData.content_data === 'string') {
+                        try {
+                            const parsed = JSON.parse(missionData.content_data);
+                            pairs = parsed.pairs || [];
+                        } catch(e) {}
+                    }
+                    
+                    if (pairs.length > 0) {
+                        finalContent = generateMatchingFallbackHTML(pairs);
+                    }
+                }
+
+                // 4. ตรวจเช็คให้แน่ใจว่าเป็นลิงก์เว็บไซต์หรือไม่
+                if (finalContent && typeof finalContent === 'string') {
+                    const trimmedContent = finalContent.trim();
+                    if ((trimmedContent.startsWith('http://') || trimmedContent.startsWith('https://')) && !trimmedContent.includes('<html')) {
+                        isUrl = true;
+                        finalContent = trimmedContent;
+                    }
+                }
+
+                if (!finalContent) {
+                    console.error("Mission Data Debug:", missionData);
                     throw new Error("ไม่พบโค้ดหรือลิงก์เนื้อหาของภารกิจนี้");
                 }
 
                 const iframe = document.getElementById('missionIframe');
-                iframe.srcdoc = finalHtmlContent;
+                
+                if (isUrl) {
+                    iframe.removeAttribute('srcdoc');
+                    iframe.src = finalContent;
+                } else {
+                    iframe.removeAttribute('src');
+                    iframe.srcdoc = finalContent;
+                }
                 
                 iframe.onload = () => {
                     setTimeout(() => {
@@ -521,7 +690,6 @@
                 
                 try {
                     const db = window.sysDB;
-                    // 🌟 บันทึกสถานะ is_completed
                     const { data: existing } = await db.from('student_missions')
                         .select('id')
                         .eq('student_id', currentUserId)
@@ -541,10 +709,8 @@
                     if (existing) await db.from('student_missions').update(payload).eq('id', existing.id);
                     else await db.from('student_missions').insert([payload]);
                     
-                    // 🌟 แสดง Modal ปรบมือเมื่อจบเกมและบอกคะแนน
                     document.getElementById('successScoreDisplay').innerText = score + " คะแนน";
                     
-                    // เปิดปุ่มเล่นภารกิจถัดไป (ถ้ามี)
                     const nextBtn = document.getElementById('nextMissionBtn');
                     if (nextMissionId && !isTeacher) {
                         nextBtn.style.display = 'block';
@@ -553,7 +719,6 @@
                         nextBtn.style.display = 'none';
                     }
                     
-                    // เช็คว่าอนุญาตให้เล่นซ้ำไหม (เพื่อซ่อนปุ่มเล่นอีกครั้ง)
                     const replayBtn = document.getElementById('successReplayBtn');
                     if (assignmentData && assignmentData.can_replay === false) {
                         replayBtn.style.display = 'none';
@@ -561,7 +726,6 @@
                         replayBtn.style.display = 'block';
                     }
 
-                    // ยกเลิก Fullscreen อัตโนมัติ (ถ้าเปิดอยู่) เพื่อให้ป๊อปอัปแสดงได้ชัดเจน
                     if (document.fullscreenElement) { document.exitFullscreen(); }
 
                     document.getElementById('successModal').style.display = 'flex';
