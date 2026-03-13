@@ -121,7 +121,7 @@
         </div>
 
         <div class="nav-right">
-             <button onclick="window.location.href='mission-Matching-center.html'" class="hidden sm:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold font-['Kanit'] transition-all border border-slate-200 cursor-pointer text-xs shadow-sm">
+             <button onclick="window.location.href='mission-Matching-center.html' + window.location.search" class="hidden sm:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold font-['Kanit'] transition-all border border-slate-200 cursor-pointer text-xs shadow-sm">
                 <i class="fas fa-arrow-left"></i> กลับไปศูนย์รวมเกม
             </button>
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
@@ -131,7 +131,7 @@
             <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
             <a href="mission-library.html" class="mission-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
-            <a href="mission-Matching-center.html"><i class="fas fa-arrow-left text-rose-500"></i> ศูนย์รวมเกมจับคู่</a>
+            <a href="#" onclick="window.location.href='mission-Matching-center.html' + window.location.search"><i class="fas fa-arrow-left text-rose-500"></i> ศูนย์รวมเกมจับคู่</a>
         </div>
     </nav>
 
@@ -302,8 +302,9 @@
     <script>
         // --- System Data ---
         let targetCid = null;
+        let targetFolder = null;
         let editingMid = null;
-        let originalTeacherId = null;
+        let originalTeacherId = null; // Map ถึง created_by ใน DB ใหม่
         let isNewFork = false;
         
         // --- Game Data Structure ---
@@ -776,12 +777,17 @@
 
                 const urlParams = new URLSearchParams(window.location.search);
                 targetCid = urlParams.get('cid');
+                targetFolder = urlParams.get('folder');
                 editingMid = urlParams.get('edit_mid');
 
                 if (targetCid) {
                     document.getElementById('classroomSelectorContainer').classList.remove('hidden');
                     const { data: cData } = await window.sysDB.from('classrooms').select('name').eq('classroom_id', targetCid).single();
-                    if (cData) document.getElementById('targetClassroomName').innerText = cData.name;
+                    if (cData) {
+                        let displayName = cData.name;
+                        if (targetFolder) displayName += ` (โฟลเดอร์: ${targetFolder})`;
+                        document.getElementById('targetClassroomName').innerText = displayName;
+                    }
                 }
 
                 if (editingMid) {
@@ -790,17 +796,18 @@
                     
                     if (mError) throw mError;
                     if (mData) {
-                        originalTeacherId = mData.teacher_id;
+                        originalTeacherId = mData.created_by; // *UPDATE: อิงโครงสร้าง DB ใหม่
                         document.getElementById('missionTitle').value = mData.title || '';
                         document.getElementById('missionDesc').value = mData.description || '';
-                        document.getElementById('missionCover').value = mData.cover_image_url || '';
                         
-                        // แปลงข้อมูลเก่า (ถ้ามี) ให้รองรับโครงสร้างใหม่ที่ระบุประเภท a_type, b_type
-                        if (mData.mission_data && (mData.mission_data.type === 'matching-flip' || mData.mission_data.type === 'matching')) {
-                            let rawPairs = mData.mission_data.pairs || gamePairs;
+                        // *UPDATE: ดึง cover ออกมาจาก content_data
+                        document.getElementById('missionCover').value = mData.content_data?.cover_image_url || '';
+                        
+                        // แปลงข้อมูลเก่า/ใหม่ จาก content_data
+                        if (mData.content_data && (mData.mission_type === 'matching-flip' || mData.mission_type === 'matching')) {
+                            let rawPairs = mData.content_data.pairs || gamePairs;
                             gamePairs = rawPairs.map(p => {
-                                if(p.a_type) return p; // ข้อมูลเป็นรูปแบบใหม่แล้ว
-                                // ระบบคาดเดาประเภทข้อมูลอัตโนมัติสำหรับภารกิจเก่า
+                                if(p.a_type) return p; 
                                 const getOldType = v => (v && (v.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i) || v.startsWith('http'))) ? 'image' : 'text';
                                 return {
                                     id: p.id || Date.now().toString() + Math.random(),
@@ -850,18 +857,24 @@
                 
                 const finalHTML = generateGameHTML();
 
+                // *UPDATE: โครงสร้างข้อมูลให้ตรงกับ Table missions ใหม่
                 const missionData = {
                     title: title,
                     description: desc,
                     mission_type: 'matching-flip', 
-                    cover_image_url: cover,
-                    mission_data: { 
+                    content_data: { 
                         type: 'matching-flip',
                         pairs: gamePairs,
-                        html: finalHTML 
+                        cover_image_url: cover
                     },
+                    content: finalHTML, // เอาโค้ด HTML มาเซฟลงฟิลด์ content ตรงๆ
                     is_public: true
                 };
+
+                // ถ้ามีการสร้างจากห้องเรียน ให้แนบ classroom_id ลง Table missions ด้วยตาม schema
+                if (targetCid) {
+                    missionData.classroom_id = targetCid;
+                }
 
                 let mid = editingMid;
 
@@ -870,7 +883,7 @@
                         .update(missionData).eq('mission_id', editingMid);
                     if (updateError) throw updateError;
                 } else {
-                    missionData.teacher_id = currentUserId;
+                    missionData.created_by = currentUserId; // *UPDATE: ใช้ created_by แทน teacher_id
                     const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
                     if (insertError) throw insertError;
                     
@@ -879,9 +892,17 @@
                 }
 
                 if (targetCid) {
-                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
-                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
-                    }, { onConflict: 'classroom_id, mission_id' });
+                    const assignData = {
+                        classroom_id: targetCid, 
+                        mission_id: mid, 
+                        assigned_at: new Date().toISOString()
+                    };
+                    if (targetFolder) assignData.folder_name = targetFolder;
+
+                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert(
+                        assignData, 
+                        { onConflict: 'classroom_id, mission_id' }
+                    );
                     if (mapError) throw mapError;
                 }
                 
