@@ -782,11 +782,20 @@
 
                 if (targetCid) {
                     document.getElementById('classroomSelectorContainer').classList.remove('hidden');
-                    const { data: cData } = await window.sysDB.from('classrooms').select('name').eq('classroom_id', targetCid).single();
+                    
+                    // เปลี่ยนจากการดึง 'name' เป็น 'subject_name, room_name' ให้ตรงกับ Schema จริง
+                    const { data: cData, error: cError } = await window.sysDB.from('classrooms')
+                        .select('subject_name, room_name')
+                        .eq('classroom_id', targetCid)
+                        .single();
+                        
                     if (cData) {
-                        let displayName = cData.name;
+                        let displayName = `${cData.subject_name} (${cData.room_name})`;
                         if (targetFolder) displayName += ` (โฟลเดอร์: ${targetFolder})`;
                         document.getElementById('targetClassroomName').innerText = displayName;
+                    } else if (cError) {
+                        console.error("Error fetching classroom:", cError);
+                        document.getElementById('targetClassroomName').innerText = "ไม่พบข้อมูลห้องเรียน";
                     }
                 }
 
