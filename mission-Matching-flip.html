@@ -114,7 +114,6 @@
             </div>
         </a>
         
-        <!-- ซ่อนลิงก์ตรงกลางบนจอเล็ก เพื่อประหยัดพื้นที่ให้ปุ่มเครื่องมือ -->
         <div class="nav-center hidden xl:flex shrink-0">
             <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
@@ -270,8 +269,28 @@
         </div>
     </div>
 
+    <!-- Emoji Picker Modal (พิมพ์ไทยหาอิโมจิ) -->
+    <div id="emojiPickerModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <h3 class="font-heading text-base font-medium text-white flex items-center gap-2">
+                    <i class="fa-solid fa-face-smile text-yellow-400"></i> ค้นหาอิโมจิ
+                </h3>
+                <button onclick="closeEmojiPicker()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <input type="text" id="emojiSearchInput" oninput="filterEmojis(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 mb-4 font-['Sarabun']" placeholder="ค้นหา (เช่น หมา, แอปเปิ้ล, รถ)">
+                <div id="emojiGrid" class="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- อิโมจิจะถูกแทรกที่นี่ -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-4 right-4 translate-y-[150%] transition-transform duration-300 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl font-medium text-sm border"></div>
+    <div id="toast" class="fixed bottom-4 right-4 translate-y-[150%] transition-transform duration-300 z-[110] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl font-medium text-sm border"></div>
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-slate-900/80 flex flex-col items-center justify-center text-white hidden">
@@ -287,12 +306,41 @@
         let originalTeacherId = null;
         let isNewFork = false;
         
-        // --- Game Data ---
+        // --- Game Data Structure ---
+        // เปลี่ยนโครงสร้างให้รับรู้ประเภท (text, image, emoji) ได้อิสระ
         let gamePairs = [
-            { id: Date.now().toString(), a: '🍎', b: 'แอปเปิ้ล' },
-            { id: (Date.now() + 1).toString(), a: '🍌', b: 'กล้วย' },
-            { id: (Date.now() + 2).toString(), a: '🍇', b: 'องุ่น' },
-            { id: (Date.now() + 3).toString(), a: '🍉', b: 'แตงโม' }
+            { id: Date.now().toString(), a_type: 'emoji', a_val: '🍎', b_type: 'text', b_val: 'แอปเปิ้ล' },
+            { id: (Date.now() + 1).toString(), a_type: 'emoji', a_val: '🍌', b_type: 'text', b_val: 'กล้วย' },
+            { id: (Date.now() + 2).toString(), a_type: 'emoji', a_val: '🍇', b_type: 'text', b_val: 'องุ่น' },
+            { id: (Date.now() + 3).toString(), a_type: 'emoji', a_val: '🍉', b_type: 'text', b_val: 'แตงโม' }
+        ];
+
+        // --- Emoji Database สำหรับค้นหาด้วยภาษาไทย ---
+        const emojiDB = [
+            { e: '🐶', k: 'หมา สุนัข dog puppy' }, { e: '🐱', k: 'แมว cat' }, { e: '🐭', k: 'หนู mouse' }, { e: '🐰', k: 'กระต่าย rabbit' },
+            { e: '🦊', k: 'จิ้งจอก fox' }, { e: '🐻', k: 'หมี bear' }, { e: '🐼', k: 'แพนด้า panda' }, { e: '🦁', k: 'สิงโต lion' },
+            { e: '🐯', k: 'เสือ tiger' }, { e: '🐮', k: 'วัว cow' }, { e: '🐷', k: 'หมู pig' }, { e: '🐸', k: 'กบ frog' },
+            { e: '🐵', k: 'ลิง monkey' }, { e: '🐔', k: 'ไก่ chicken' }, { e: '🐧', k: 'เพนกวิน penguin' }, { e: '🐦', k: 'นก bird' },
+            { e: '🦆', k: 'เป็ด duck' }, { e: '🦅', k: 'นกอินทรี eagle' }, { e: '🦉', k: 'นกฮูก owl' }, { e: '🦇', k: 'ค้างคาว bat' },
+            { e: '🐴', k: 'ม้า horse' }, { e: '🐝', k: 'ผึ้ง bee' }, { e: '🦋', k: 'ผีเสื้อ butterfly' }, { e: '🐌', k: 'หอยทาก snail' },
+            { e: '🐜', k: 'มด ant' }, { e: '🐢', k: 'เต่า turtle' }, { e: '🐍', k: 'งู snake' }, { e: '🦖', k: 'ไดโนเสาร์ dinosaur t-rex' },
+            { e: '🐙', k: 'ปลาหมึก octopus squid' }, { e: '🦀', k: 'ปู crab' }, { e: '🐟', k: 'ปลา fish' }, { e: '🐬', k: 'โลมา dolphin' },
+            { e: '🐳', k: 'ปลาวาฬ วาฬ whale' }, { e: '🦈', k: 'ฉลาม shark' }, { e: '🐊', k: 'จระเข้ crocodile' }, { e: '🐘', k: 'ช้าง elephant' },
+            { e: '🦒', k: 'ยีราฟ giraffe' }, { e: '🍎', k: 'แอปเปิ้ล apple' }, { e: '🍌', k: 'กล้วย banana' }, { e: '🍉', k: 'แตงโม watermelon' },
+            { e: '🍇', k: 'องุ่น grape' }, { e: '🍓', k: 'สตรอว์เบอร์รี strawberry' }, { e: '🍒', k: 'เชอร์รี่ cherry' }, { e: '🍑', k: 'ลูกพีช peach' },
+            { e: '🥭', k: 'มะม่วง mango' }, { e: '🍍', k: 'สับปะรด pineapple' }, { e: '🥥', k: 'มะพร้าว coconut' }, { e: '🍅', k: 'มะเขือเทศ tomato' },
+            { e: '🥦', k: 'บรอกโคลี broccoli' }, { e: '🌽', k: 'ข้าวโพด corn' }, { e: '🥕', k: 'แครอท carrot' }, { e: '🍞', k: 'ขนมปัง bread' },
+            { e: '🧀', k: 'ชีส เนยแข็ง cheese' }, { e: '🥚', k: 'ไข่ egg' }, { e: '🍔', k: 'แฮมเบอร์เกอร์ เบอร์เกอร์ burger hamburger' }, { e: '🍟', k: 'เฟรนช์ฟรายส์ fries' },
+            { e: '🍕', k: 'พิซซ่า pizza' }, { e: '🌭', k: 'ฮอทดอก hot dog' }, { e: '🍜', k: 'ก๋วยเตี๋ยว ราเมน บะหมี่ noodles ramen' }, { e: '🍣', k: 'ซูชิ sushi' },
+            { e: '🍚', k: 'ข้าว rice' }, { e: '🍦', k: 'ไอศกรีม ไอติม ice cream' }, { e: '🍰', k: 'เค้ก cake' }, { e: '🍭', k: 'ลูกอม อมยิ้ม candy' },
+            { e: '🍫', k: 'ช็อกโกแลต chocolate' }, { e: '☕', k: 'กาแฟ coffee' }, { e: '🥛', k: 'นม milk' }, { e: '🧋', k: 'ชาไข่มุก boba bubble tea' },
+            { e: '🚗', k: 'รถ รถยนต์ car' }, { e: '🚌', k: 'รถบัส รถเมล์ bus' }, { e: '🚓', k: 'รถตำรวจ police car' }, { e: '🚑', k: 'รถพยาบาล ambulance' },
+            { e: '🚒', k: 'รถดับเพลิง fire truck' }, { e: '🚜', k: 'แทรกเตอร์ tractor' }, { e: '🛵', k: 'มอเตอร์ไซค์ motorcycle' }, { e: '🚲', k: 'จักรยาน bicycle' },
+            { e: '✈️', k: 'เครื่องบิน airplane plane' }, { e: '🚀', k: 'จรวด rocket' }, { e: '🚢', k: 'เรือ ship' }, { e: '📱', k: 'มือถือ โทรศัพท์ phone' },
+            { e: '💻', k: 'คอมพิวเตอร์ โน้ตบุ๊ก computer laptop' }, { e: '📷', k: 'กล้อง ถ่ายรูป camera' }, { e: '📺', k: 'ทีวี โทรทัศน์ tv' }, { e: '⚽', k: 'ฟุตบอล บอล ลูกบอล football soccer' },
+            { e: '🏀', k: 'บาสเกตบอล basketball' }, { e: '🎸', k: 'กีตาร์ กีต้าร์ guitar' }, { e: '🎨', k: 'ศิลปะ วาดรูป art' }, { e: '🏆', k: 'ถ้วยรางวัล ถ้วย ชนะ trophy' },
+            { e: '🌞', k: 'พระอาทิตย์ แดด sun' }, { e: '🌙', k: 'พระจันทร์ moon' }, { e: '⭐', k: 'ดาว star' }, { e: '🌧️', k: 'ฝน ฝนตก rain' },
+            { e: '🔥', k: 'ไฟ ร้อน เปลวไฟ fire' }, { e: '❄️', k: 'น้ำแข็ง หนาว เย็น ice cold' }
         ];
 
         // --- Layout Initialization ---
@@ -324,21 +372,48 @@
                 el.className = "bg-slate-800 border border-slate-700 rounded-lg p-3 mb-3 relative group transition-colors focus-within:border-blue-500/50";
                 
                 el.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded">คู่ที่ ${index + 1}</span>
                         <button onclick="removePair('${pair.id}')" class="text-slate-500 hover:text-red-400 transition-colors w-6 h-6 flex items-center justify-center rounded hover:bg-slate-700" title="ลบคู่นี้">
                             <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
                     </div>
-                    <div class="flex gap-2">
-                        <div class="flex-1">
-                            <input type="text" value="${pair.a}" oninput="updatePairData('${pair.id}', 'a', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 text-sm transition-colors" placeholder="ไอเทมที่ 1 (เช่น 🍎 หรือลิงก์ภาพ)">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <!-- ฝั่งซ้าย -->
+                        <div class="flex-1 flex flex-col gap-1.5">
+                            <select onchange="updatePairType('${pair.id}', 'a', this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 font-['Kanit']">
+                                <option value="text" ${pair.a_type === 'text' ? 'selected' : ''}>📝 ข้อความ</option>
+                                <option value="image" ${pair.a_type === 'image' ? 'selected' : ''}>🖼️ ลิงก์รูปภาพ</option>
+                                <option value="emoji" ${pair.a_type === 'emoji' ? 'selected' : ''}>😀 อิโมจิ</option>
+                            </select>
+                            <div class="relative">
+                                <input type="text" value="${pair.a_val}" 
+                                    oninput="updatePairData('${pair.id}', 'a', this.value)" 
+                                    class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 text-sm transition-colors ${pair.a_type === 'emoji' ? 'cursor-pointer hover:bg-slate-900 text-2xl text-center pb-2' : ''}" 
+                                    placeholder="${getPlaceholder(pair.a_type)}" 
+                                    ${pair.a_type === 'emoji' ? `readonly onclick="openEmojiPicker('${pair.id}', 'a')"` : ''}>
+                            </div>
                         </div>
-                        <div class="flex items-center text-slate-600 px-1">
-                            <i class="fa-solid fa-arrow-right-arrow-left text-xs"></i>
+
+                        <!-- ตัวคั่น -->
+                        <div class="flex items-center justify-center text-slate-600 px-1 py-2 sm:py-0 mt-4 sm:mt-6">
+                            <i class="fa-solid fa-arrow-right-arrow-left text-xs rotate-90 sm:rotate-0"></i>
                         </div>
-                        <div class="flex-1">
-                            <input type="text" value="${pair.b}" oninput="updatePairData('${pair.id}', 'b', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 text-sm transition-colors" placeholder="ไอเทมที่ 2 (เช่น แอปเปิ้ล)">
+
+                        <!-- ฝั่งขวา -->
+                        <div class="flex-1 flex flex-col gap-1.5">
+                            <select onchange="updatePairType('${pair.id}', 'b', this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 font-['Kanit']">
+                                <option value="text" ${pair.b_type === 'text' ? 'selected' : ''}>📝 ข้อความ</option>
+                                <option value="image" ${pair.b_type === 'image' ? 'selected' : ''}>🖼️ ลิงก์รูปภาพ</option>
+                                <option value="emoji" ${pair.b_type === 'emoji' ? 'selected' : ''}>😀 อิโมจิ</option>
+                            </select>
+                            <div class="relative">
+                                <input type="text" value="${pair.b_val}" 
+                                    oninput="updatePairData('${pair.id}', 'b', this.value)" 
+                                    class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 text-sm transition-colors ${pair.b_type === 'emoji' ? 'cursor-pointer hover:bg-slate-900 text-2xl text-center pb-2' : ''}" 
+                                    placeholder="${getPlaceholder(pair.b_type)}" 
+                                    ${pair.b_type === 'emoji' ? `readonly onclick="openEmojiPicker('${pair.id}', 'b')"` : ''}>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -346,21 +421,34 @@
             });
         }
 
-        function updatePairData(id, field, value) {
+        function getPlaceholder(type) {
+            if(type === 'image') return 'วาง URL รูปภาพ...';
+            if(type === 'emoji') return 'คลิกเลือกอิโมจิ...';
+            return 'พิมพ์ข้อความ...';
+        }
+
+        function updatePairType(id, side, newType) {
             const pair = gamePairs.find(p => p.id === id);
             if (pair) {
-                pair[field] = value;
-                // Debounce auto-preview
+                pair[side + '_type'] = newType;
+                pair[side + '_val'] = ''; // เคลียร์ค่าเดิมเมื่อเปลี่ยนประเภท
+                renderPairsEditor();
+                updatePreview();
+            }
+        }
+
+        function updatePairData(id, side, value) {
+            const pair = gamePairs.find(p => p.id === id);
+            if (pair) {
+                pair[side + '_val'] = value;
                 clearTimeout(window.previewTimeout);
                 window.previewTimeout = setTimeout(updatePreview, 800);
             }
         }
 
         function addPair() {
-            gamePairs.push({ id: Date.now().toString(), a: '', b: '' });
+            gamePairs.push({ id: Date.now().toString(), a_type: 'text', a_val: '', b_type: 'text', b_val: '' });
             renderPairsEditor();
-            
-            // Scroll to bottom
             const container = document.getElementById('pairs-container');
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
         }
@@ -370,6 +458,55 @@
             renderPairsEditor();
             updatePreview();
         }
+
+        // --- Emoji Picker Logic ---
+        let currentEmojiTarget = null; // เก็บอ้างอิงว่ากำลังแก้อิโมจิฝั่งไหน
+
+        function openEmojiPicker(id, side) {
+            currentEmojiTarget = { id, side };
+            document.getElementById('emojiPickerModal').classList.remove('hidden');
+            document.getElementById('emojiSearchInput').value = '';
+            filterEmojis('');
+            setTimeout(() => document.getElementById('emojiSearchInput').focus(), 100);
+        }
+
+        function closeEmojiPicker() {
+            document.getElementById('emojiPickerModal').classList.add('hidden');
+            currentEmojiTarget = null;
+        }
+
+        function filterEmojis(query) {
+            const q = query.toLowerCase().trim();
+            const grid = document.getElementById('emojiGrid');
+            grid.innerHTML = '';
+            
+            const filtered = emojiDB.filter(item => {
+                if(!q) return true;
+                return item.k.includes(q);
+            });
+
+            if(filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-6 text-center text-slate-500 text-xs py-4">ไม่พบอิโมจิที่ค้นหา</div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'text-2xl p-2 hover:bg-slate-800 rounded transition-colors flex justify-center items-center';
+                btn.innerText = item.e;
+                btn.onclick = () => selectEmoji(item.e);
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectEmoji(emojiChar) {
+            if(currentEmojiTarget) {
+                updatePairData(currentEmojiTarget.id, currentEmojiTarget.side, emojiChar);
+                renderPairsEditor(); // เพื่อรีเฟรชค่าในช่อง input
+            }
+            closeEmojiPicker();
+        }
+
 
         // --- HTML Generator ---
         function generateGameHTML() {
@@ -439,8 +576,8 @@
         
         // Setup Cards
         pairsData.forEach(p => {
-            if(p.a.trim() !== '') cards.push({ id: p.id, content: p.a });
-            if(p.b.trim() !== '') cards.push({ id: p.id, content: p.b });
+            if(p.a_val && p.a_val.trim() !== '') cards.push({ id: p.id, type: p.a_type, content: p.a_val });
+            if(p.b_val && p.b_val.trim() !== '') cards.push({ id: p.id, type: p.b_type, content: p.b_val });
         });
         
         // Shuffle
@@ -466,17 +603,21 @@
             const el = document.createElement('div');
             el.className = 'card h-32 sm:h-40 relative group';
             
-            // Basic text rendering, but if looks like image url, render image
-            let contentHTML = card.content;
-            if(card.content.match(/\\.(jpeg|jpg|gif|png|webp|svg)(\\?.*)?$/i) || card.content.startsWith('http')) {
+            // ประมวลผลการแสดงผลตามประเภทของข้อมูล (Text, Image, Emoji)
+            let contentHTML = '';
+            if(card.type === 'image' || card.content.match(/\\.(jpeg|jpg|gif|png|webp|svg)(\\?.*)?$/i) || card.content.startsWith('http')) {
                 contentHTML = \`<img src="\${card.content}" class="max-w-full max-h-full object-contain rounded" onerror="this.outerHTML='<span class=\\'text-xs text-red-500 font-heading\\'>โหลดรูปไม่สำเร็จ</span>'">\`;
+            } else if(card.type === 'emoji') {
+                contentHTML = \`<span class="text-6xl drop-shadow-sm">\${card.content}</span>\`;
+            } else {
+                contentHTML = \`<span class="text-xl sm:text-2xl font-semibold break-words">\${card.content}</span>\`;
             }
 
             el.innerHTML = \`
                 <div class="card-inner w-full h-full shadow-sm hover:shadow-md rounded-2xl bg-white transition-all">
                     <div class="card-front bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl shadow-inner border-4 border-white font-bold opacity-90 group-hover:opacity-100">?</div>
-                    <div class="card-back bg-white flex items-center justify-center p-3 border-2 border-blue-100 rounded-2xl overflow-hidden">
-                        <div class="text-2xl sm:text-4xl text-center break-words w-full flex items-center justify-center font-heading">\${contentHTML}</div>
+                    <div class="card-back bg-white flex items-center justify-center p-3 border-2 border-blue-100 rounded-2xl overflow-hidden text-center text-slate-700 font-heading">
+                        \${contentHTML}
                     </div>
                 </div>
             \`;
@@ -497,7 +638,8 @@
                             score += 100;
                             document.getElementById('game-score').innerText = score;
                             
-                            if(matched === pairsData.length && pairsData.length > 0) {
+                            // Check win condition (จำนวนที่จับคู่ถูก = จำนวนคู่ทั้งหมด)
+                            if(matched === pairsData.filter(p => p.a_val.trim()!=='' && p.b_val.trim()!=='').length && matched > 0) {
                                 clearInterval(interval);
                                 document.getElementById('final-time').innerText = timer;
                                 document.getElementById('victory').classList.remove('hidden');
@@ -530,20 +672,17 @@
             const btns = document.querySelectorAll('.vp-btn');
             const browserBar = document.getElementById('browser-bar');
             
-            // Reset button states
             btns.forEach(btn => {
                 btn.classList.remove('bg-slate-800', 'text-slate-300');
                 btn.classList.add('text-slate-500');
             });
             
-            // Set active button state
             const activeBtn = document.getElementById('btn-vp-' + type);
             if(activeBtn) {
                 activeBtn.classList.remove('text-slate-500');
                 activeBtn.classList.add('bg-slate-800', 'text-slate-300');
             }
             
-            // Change wrapper width to simulate devices
             if(type === 'mobile') {
                 wrapper.style.maxWidth = '375px';
                 wrapper.style.maxHeight = '812px';
@@ -586,7 +725,6 @@
             resizer.addEventListener('mousedown', (e) => {
                 isResizing = true;
                 document.body.style.cursor = 'col-resize';
-                // Prevent iframe from capturing mouse events during drag
                 document.getElementById('previewPanel').style.pointerEvents = 'none';
             });
 
@@ -613,7 +751,7 @@
                 `<i class="fa-solid fa-circle-exclamation text-red-500 text-lg"></i> <span class="text-slate-800">${msg}</span>` : 
                 `<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i> <span class="text-slate-800">${msg}</span>`;
             
-            toast.className = `fixed bottom-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl font-medium text-sm border transition-transform duration-300 transform translate-y-0 ${
+            toast.className = `fixed bottom-4 right-4 z-[110] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl font-medium text-sm border transition-transform duration-300 transform translate-y-0 ${
                 isError ? 'bg-red-50 border-red-100' : 'bg-white border-slate-200'
             }`;
             
@@ -657,9 +795,19 @@
                         document.getElementById('missionDesc').value = mData.description || '';
                         document.getElementById('missionCover').value = mData.cover_image_url || '';
                         
-                        // Extract specific format for matching-flip game
+                        // แปลงข้อมูลเก่า (ถ้ามี) ให้รองรับโครงสร้างใหม่ที่ระบุประเภท a_type, b_type
                         if (mData.mission_data && (mData.mission_data.type === 'matching-flip' || mData.mission_data.type === 'matching')) {
-                            gamePairs = mData.mission_data.pairs || gamePairs;
+                            let rawPairs = mData.mission_data.pairs || gamePairs;
+                            gamePairs = rawPairs.map(p => {
+                                if(p.a_type) return p; // ข้อมูลเป็นรูปแบบใหม่แล้ว
+                                // ระบบคาดเดาประเภทข้อมูลอัตโนมัติสำหรับภารกิจเก่า
+                                const getOldType = v => (v && (v.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i) || v.startsWith('http'))) ? 'image' : 'text';
+                                return {
+                                    id: p.id || Date.now().toString() + Math.random(),
+                                    a_type: getOldType(p.a), a_val: p.a || '',
+                                    b_type: getOldType(p.b), b_val: p.b || ''
+                                };
+                            });
                         }
                     }
                 }
@@ -673,7 +821,7 @@
         }
 
         function openSaveModal() {
-            if(gamePairs.length === 0 || gamePairs.some(p => p.a.trim() === '' || p.b.trim() === '')) {
+            if(gamePairs.length === 0 || gamePairs.some(p => p.a_val.trim() === '' || p.b_val.trim() === '')) {
                 showMessage("กรุณากรอกข้อมูลคู่การ์ดให้ครบถ้วนก่อนบันทึก", true);
                 return;
             }
@@ -705,7 +853,7 @@
                 const missionData = {
                     title: title,
                     description: desc,
-                    mission_type: 'matching-flip', // identifier for this builder
+                    mission_type: 'matching-flip', 
                     cover_image_url: cover,
                     mission_data: { 
                         type: 'matching-flip',
