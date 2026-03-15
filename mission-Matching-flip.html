@@ -277,6 +277,18 @@
                     <input type="text" id="customSoundWin" class="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400 text-xs mt-2 hidden" placeholder="หรือวางลิงก์ .mp3 ที่นี่...">
                 </div>
                 
+                <!-- เสียงจับคู่ผิด -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1 font-['Kanit']">เสียงเมื่อจับคู่ผิด</label>
+                    <div class="flex gap-2">
+                        <select id="selSoundWrong" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-['Sarabun']"></select>
+                        <button onclick="previewSound('selSoundWrong')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 rounded-lg border border-slate-700 transition" title="ทดลองฟัง">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                    </div>
+                    <input type="text" id="customSoundWrong" class="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400 text-xs mt-2 hidden" placeholder="หรือวางลิงก์ .mp3 ที่นี่...">
+                </div>
+                
                 <p class="text-[10px] text-slate-500 mt-2 font-['Sarabun']">
                     * เลือก "กำหนดลิงก์เอง" หาต้องการนำลิงก์ไฟล์ .mp3 จากเว็บอื่นมาใส่
                 </p>
@@ -376,7 +388,8 @@
         let gameSettings = {
             soundFlip: 'sounds/flip.mp3',
             soundMatch: 'sounds/match.mp3',
-            soundWin: 'sounds/win.mp3'
+            soundWin: 'sounds/win.mp3',
+            soundWrong: '' // เสียงผิดเริ่มต้นเป็นไม่มีเสียง
         };
 
         // รายการเสียงที่มีในระบบ (ต้องนำไฟล์ .mp3 ไปวางในโฟลเดอร์ sounds/ จริงๆ เพื่อให้มีเสียง)
@@ -388,7 +401,9 @@
             { name: "จับคู่ถูก 1 (Match)", url: "sounds/match.mp3" },
             { name: "จับคู่ถูก 2 (Ting)", url: "sounds/ting.mp3" },
             { name: "ชนะ 1 (Win)", url: "sounds/win.mp3" },
-            { name: "ชนะ 2 (Applause)", url: "sounds/applause.mp3" }
+            { name: "ชนะ 2 (Applause)", url: "sounds/applause.mp3" },
+            { name: "จับคู่ผิด 1 (Error)", url: "sounds/error.mp3" },
+            { name: "จับคู่ผิด 2 (Buzzer)", url: "sounds/buzzer.mp3" }
         ];
 
         let gamePairs = [
@@ -436,7 +451,7 @@
 
         // --- 🌟 Sound Settings Logic 🌟 ---
         function initSoundDropdowns() {
-            const dropdowns = ['selSoundFlip', 'selSoundMatch', 'selSoundWin'];
+            const dropdowns = ['selSoundFlip', 'selSoundMatch', 'selSoundWin', 'selSoundWrong'];
             dropdowns.forEach(id => {
                 const select = document.getElementById(id);
                 select.innerHTML = '';
@@ -480,6 +495,7 @@
             mapSoundToDropdown('selSoundFlip', gameSettings.soundFlip);
             mapSoundToDropdown('selSoundMatch', gameSettings.soundMatch);
             mapSoundToDropdown('selSoundWin', gameSettings.soundWin);
+            mapSoundToDropdown('selSoundWrong', gameSettings.soundWrong || '');
 
             document.getElementById('gameSettingsModal').classList.remove('hidden');
         }
@@ -504,6 +520,7 @@
             gameSettings.soundFlip = getSoundValue('selSoundFlip');
             gameSettings.soundMatch = getSoundValue('selSoundMatch');
             gameSettings.soundWin = getSoundValue('selSoundWin');
+            gameSettings.soundWrong = getSoundValue('selSoundWrong');
 
             updatePreview();
             closeGameSettings();
@@ -833,6 +850,7 @@
                             }
                         } else {
                             // กรณีจับคู่ผิด
+                            playAudio(settings.soundWrong);
                             flipped[0].el.classList.remove('flipped');
                             flipped[1].el.classList.remove('flipped');
                         }
@@ -996,9 +1014,9 @@
                         document.getElementById('missionCover').value = mData.content_data?.cover_image_url || '';
                         
                         if (mData.content_data && (mData.mission_type === 'matching-flip' || mData.mission_type === 'matching')) {
-                            // โหลดการตั้งค่าเสียง
+                            // โหลดการตั้งค่าเสียงแบบปลอดภัย ไม่ให้ค่าที่เพิ่มใหม่หาย
                             if (mData.content_data.settings) {
-                                gameSettings = mData.content_data.settings;
+                                gameSettings = { ...gameSettings, ...mData.content_data.settings };
                             }
 
                             let rawPairs = mData.content_data.pairs || gamePairs;
