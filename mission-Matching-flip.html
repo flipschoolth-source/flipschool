@@ -894,7 +894,7 @@
         cards = cards.sort(() => Math.random() - 0.5);
 
         const board = document.getElementById('game-board');
-        let flipped = [], matched = 0, score = 0, timer = 0, isProcessing = false;
+        let flipped = [], matched = 0, score = 0, timer = 0, isProcessing = false, moves = 0;
         
         // --- BGM Logic ---
         const bgmBtn = document.getElementById('bgm-toggle');
@@ -998,6 +998,7 @@
                 
                 if(flipped.length === 2) {
                     isProcessing = true;
+                    moves++; // นับจำนวนครั้งที่พลิกไพ่ทาย
                     setTimeout(() => {
                         if(flipped[0].id === flipped[1].id) {
                             playAudio(settings.soundMatch);
@@ -1013,7 +1014,14 @@
                                 document.getElementById('final-time').innerText = timer;
                                 document.getElementById('victory').classList.remove('hidden');
                                 playAudio(settings.soundWin); 
-                                window.parent.postMessage({ type: 'SAVE_RESULT', score: score }, '*');
+                                
+                                // รวบรวมสถิติเพื่อส่งไปบันทึกเป็นคำตอบ (Answers)
+                                const answerStats = [
+                                    { question: 'เวลาที่ใช้ (วินาที)', answer: timer.toString() },
+                                    { question: 'จำนวนครั้งที่พลิกไพ่', answer: moves.toString() }
+                                ];
+                                
+                                window.parent.postMessage({ type: 'SAVE_RESULT', score: score, answers: answerStats }, '*');
                             }
                         } else {
                             playAudio(settings.soundWrong);
