@@ -205,6 +205,11 @@
                         <i class="fa-solid fa-cog"></i> ตั้งค่าเกม
                     </button>
 
+                    <!-- 🌟 NEW: ปุ่มดูโค้ด 🌟 -->
+                    <button onclick="openCodeModal()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-slate-700 shadow-sm whitespace-nowrap" title="ดู Source Code">
+                        <i class="fa-solid fa-code"></i> ดูโค้ด
+                    </button>
+
                     <button onclick="updatePreview()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-slate-700 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-rotate-right"></i> อัปเดตพรีวิว
                     </button>
@@ -387,8 +392,31 @@
         </div>
     </div>
 
+    <!-- 🌟 NEW: View Code Modal 🌟 -->
+    <div id="codeModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <h3 class="font-heading text-lg font-medium text-white flex items-center gap-2">
+                    <i class="fa-solid fa-code text-emerald-400"></i> Source Code
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="copyGameCode()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm flex items-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> คัดลอกโค้ด
+                    </button>
+                    <button onclick="closeCodeModal()" class="text-slate-400 hover:text-white p-1 ml-2">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-0 overflow-hidden flex-1 relative bg-[#0d1117] min-h-[400px]">
+                <textarea id="generatedCodeArea" readonly class="w-full h-full min-h-[400px] p-4 bg-transparent text-[#10b981] font-mono text-xs sm:text-sm resize-none outline-none focus:ring-0 leading-relaxed"></textarea>
+            </div>
+        </div>
+    </div>
+
     <!-- Emoji Picker Modal -->
-    <div id="emojiPickerModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div id="emojiPickerModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[105] flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
                 <h3 class="font-heading text-base font-medium text-white flex items-center gap-2">
@@ -1044,6 +1072,36 @@
             const htmlContent = generateGameHTML();
             const iframe = document.getElementById('preview-frame');
             iframe.srcdoc = htmlContent;
+        }
+
+        // --- 🌟 NEW: Code View Logic 🌟 ---
+        function openCodeModal() {
+            const htmlContent = generateGameHTML();
+            document.getElementById('generatedCodeArea').value = htmlContent;
+            document.getElementById('codeModal').classList.remove('hidden');
+        }
+
+        function closeCodeModal() {
+            document.getElementById('codeModal').classList.add('hidden');
+        }
+
+        function copyGameCode() {
+            const codeArea = document.getElementById('generatedCodeArea');
+            codeArea.select();
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(codeArea.value).then(() => {
+                    showMessage("คัดลอกโค้ดเรียบร้อยแล้ว!", false);
+                }).catch(err => {
+                    showMessage("ไม่สามารถคัดลอกโค้ดได้", true);
+                });
+            } else {
+                try {
+                    document.execCommand('copy');
+                    showMessage("คัดลอกโค้ดเรียบร้อยแล้ว!", false);
+                } catch (err) {
+                    showMessage("ไม่สามารถคัดลอกโค้ดได้", true);
+                }
+            }
         }
 
         // --- Viewport Toggle (Device Simulator) ---
