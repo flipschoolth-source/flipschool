@@ -693,11 +693,20 @@
         }
 
         function createCardHTML(m, index) {
-            const colors = { quiz:'#f43f5e', match:'#10b981', ai_generated:'#8b5cf6', competition:'#f59e0b', html_custom:'#3b82f6', default: 'var(--primary)' };
-            const labels = { quiz:'ควิซปรนัย', match:'จับคู่', ai_generated:'AI สร้าง', competition:'แข่งขัน', html_custom:'สื่อ/ลิงก์ภายนอก' };
+            const colors = { quiz:'#f43f5e', match:'#10b981', 'matching-flip':'#0d9488', ai_generated:'#8b5cf6', competition:'#f59e0b', html_custom:'#3b82f6', default: 'var(--primary)' };
+            const labels = { quiz:'ควิซปรนัย', match:'จับคู่ลากวาง', 'matching-flip':'จับคู่พลิกไพ่', ai_generated:'AI สร้าง', competition:'แข่งขัน', html_custom:'สื่อ/ลิงก์ภายนอก' };
             
             const themeColor = colors[m.mission_type] || colors.default;
             const playUrl = currentUserId ? `mission-play.html?mid=${m.mission_id}` : `mission-play.html?mid=${m.mission_id}&mode=guest`;
+            
+            // 🌟 เลือกลิงก์แก้ไขตามประเภทของภารกิจ 🌟
+            let editUrl = `mission-paste-code.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+            if (m.mission_type === 'matching-flip') {
+                editUrl = `mission-Matching-flip.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+            } else if (m.mission_type === 'matching' || m.mission_type === 'match') {
+                editUrl = `mission-Matching.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+            }
+            
             const safeTitle = m.title || 'ไม่ระบุชื่อ';
             const safeSubject = m.subject_group || 'ทั่วไป';
 
@@ -777,7 +786,7 @@
                         </button>
 
                         ${(actualCreatorId === currentUserId && currentUserId !== null) ? `
-                            <button onclick="location.href='mission-create.html?mid=${m.mission_id}'" class="bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="แก้ไข"><i class="fas fa-edit"></i></button>
+                            <button onclick="location.href='${editUrl}'" class="bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="แก้ไข"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteMission('${m.mission_id}', '${safeTitle.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                         ` : ''}
                     </div>
