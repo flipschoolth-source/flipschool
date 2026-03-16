@@ -50,7 +50,7 @@
             min-height: 100vh; display: flex; flex-direction: column;
         }
         
-        /* ================= NAVBAR (เป๊ะตาม index.html 100%) ================= */
+        /* ================= NAVBAR ================= */
         #mainNav { display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(15px, 5%, 50px); height: 90px; background: white; position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; border-bottom: 1px solid #f1f5f9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #mainNav.scrolled { height: 70px; box-shadow: 0 10px 30px rgba(0,0,80,0.08); border-bottom-color: transparent; }
         
@@ -100,7 +100,7 @@
             background: #f0f4ff; color: var(--primary-light); flex-shrink: 0;
         }
 
-        /* ================= 🌟 PROFESSIONAL APP MISSION CARDS (แทนที่ timeline แบบเดิม) 🌟 ================= */
+        /* ================= 🌟 PROFESSIONAL APP MISSION CARDS 🌟 ================= */
         .mission-list-container {
             display: flex; flex-direction: column; gap: 1rem; width: 100%; padding-bottom: 2rem;
         }
@@ -176,7 +176,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* ================= 🌟 SMOOTH ANIMATIONS (เพิ่มใหม่) 🌟 ================= */
+        /* ================= 🌟 SMOOTH ANIMATIONS 🌟 ================= */
         #viewFolderGrid:not(.hidden-el),
         #viewMissionPath:not(.hidden-el),
         #viewManageMode:not(.hidden-el) {
@@ -216,7 +216,7 @@
         <p class="mt-4 text-[var(--primary)] font-bold animate-pulse text-sm font-sans" id="loadingText">กำลังโหลดข้อมูล...</p>
     </div>
 
-    <!-- Modals (Prompt & Confirm & Schedule) ปิดไว้ทั้งหมด 100% ตอนเริ่ม -->
+    <!-- Modals -->
     <div id="customPromptModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[5050] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white rounded-[2rem] w-full max-w-[90vw] md:max-w-sm p-6 md:p-8 shadow-2xl transform transition-all scale-95 opacity-0 text-center" id="customPromptCard">
             <div id="promptIconBox" class="w-16 h-16 bg-[#f0f4ff] text-[var(--primary-light)] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
@@ -857,11 +857,14 @@
                                 
                                 myProgressList = [];
                                 myProgressMap = {};
+                                let totalScore = 0; // 🌟 เพิ่มตัวแปรเก็บคะแนนรวม
                                 
                                 if (prog) {
                                     prog.forEach(p => {
                                         myProgressList.push(p.mission_id);
-                                        myProgressMap[p.mission_id] = p.score || 0; // เก็บสถิติคะแนนไว้ใน Map
+                                        const score = p.score || 0;
+                                        myProgressMap[p.mission_id] = score; // เก็บสถิติคะแนนไว้ใน Map
+                                        totalScore += score; // บวกคะแนนรวม
                                     });
                                 }
 
@@ -869,7 +872,8 @@
                                 const pct = Math.round((completed / total) * 100);
                                 
                                 document.getElementById('studentProgressBar').style.width = pct + '%';
-                                document.getElementById('studentProgressText').innerText = `${completed}/${total} ภารกิจ (${pct}%)`;
+                                // 🌟 อัปเดตข้อความให้แสดงคะแนนรวมด้วย
+                                document.getElementById('studentProgressText').innerHTML = `${completed}/${total} ภารกิจ (${pct}%) <span class="ml-2 text-yellow-300"><i class="fas fa-star text-[10px]"></i> ${totalScore} XP</span>`;
                             }
                         } catch(e) {
                             console.warn('Progress tracking fallback/error:', e);
@@ -1412,7 +1416,7 @@
 
                 const worksheet = XLSX.utils.aoa_to_sheet(rows);
                 const workbook = XLSX.utils.book_new();
-                XLS.utils.book_append_sheet(workbook, worksheet, "คะแนนนักเรียน");
+                XLSX.utils.book_append_sheet(workbook, worksheet, "คะแนนนักเรียน");
                 
                 const subjectName = document.getElementById('subjectName').innerText.replace(/[^a-zA-Z0-9ก-๙]/g, '_');
                 XLSX.writeFile(workbook, `คะแนน_${subjectName}.xlsx`);
@@ -1620,7 +1624,7 @@
                 return;
             }
 
-            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) 🌟
+            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) พร้อมแสดงคะแนน 🌟
             let cardsHtml = '<div class="mission-list-container">';
             cardsHtml += folderMissions.map((m, idx) => {
                 const baseTitle = m.missions?.title || 'ไม่ระบุชื่อภารกิจ';
@@ -1635,7 +1639,7 @@
                 const myScore = isCompleted ? (myProgressMap[m.mission_id] || 0) : 0;
                 
                 const statusBadge = isCompleted 
-                    ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> ได้ ${myScore} คะแนน</span>`
+                    ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> ทำแล้ว ได้ ${myScore} คะแนน</span>`
                     : `<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-200"><i class="fas fa-star"></i> ${rewardPoints} XP</span>`;
 
                 const actionIcon = isCompleted ? '<i class="fas fa-redo ml-0.5 text-xs"></i>' : '<i class="fas fa-play ml-0.5"></i>';
