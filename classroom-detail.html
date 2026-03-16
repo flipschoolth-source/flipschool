@@ -83,7 +83,6 @@
         .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
         .mobile-dropdown a { padding: 16px 25px; text-decoration: none; color: var(--text-main); font-family: 'Kanit'; font-weight: 500; border-bottom: 1px solid #f8faff; display: flex; align-items: center; gap: 12px; font-size: 15px; transition: 0.2s; }
         .mobile-dropdown a:hover { background: #f0f4ff; color: var(--primary); padding-left: 30px; }
-        .mobile-dropdown a i { width: 20px; text-align: center; color: var(--primary-light); }
 
         .header-gradient { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); box-shadow: 0 15px 30px rgba(0, 0, 139, 0.1); }
         
@@ -154,8 +153,9 @@
         .admin-mission-item {
             background: white; border-radius: 0.75rem; padding: clamp(0.75rem, 2vw, 1rem);
             border: 1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-            display: flex; align-items: center; gap: clamp(0.5rem, 2vw, 1rem); cursor: grab;
+            display: flex; align-items: center; gap: clamp(0.5rem, 2vw, 1rem); cursor: grab; transition: 0.2s;
         }
+        .admin-mission-item.selected { background: #f0fdf4; border-color: #10b981; }
         .admin-mission-item:active { cursor: grabbing; }
         .drag-handle-icon { color: #94a3b8; font-size: 1.2rem; cursor: grab; }
 
@@ -194,7 +194,6 @@
         button:active:not(:disabled) { transform: scale(0.95); }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         /* ================= FOOTER ================= */
         .footer { padding: clamp(20px, 4vw, 30px) 20px; font-size: clamp(12px, 1.5vw, 13px); color: #a4b0be; text-align: center; margin-top: auto; font-family: 'Sarabun', sans-serif; line-height: 1.6; border-top: 1px solid rgba(0,0,0,0.05); background: white; }
@@ -262,7 +261,7 @@
                     <label class="block text-sm font-bold text-slate-700 mb-2 font-['Kanit']">วันเวลาสิ้นสุด (กำหนดส่ง)</label>
                     <input type="datetime-local" id="schedDue" class="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[var(--primary-light)] font-sans text-slate-600 bg-slate-50">
                 </div>
-                <p class="text-xs text-slate-400 mb-6 font-sans text-center"><i class="fas fa-info-circle"></i> ปล่อยว่างไว้หากไม่ต้องการจำกัดเวลา</p>
+                <p class="text-xs text-slate-400 mb-6 font-sans text-center"><i class="fas fa-info-circle"></i> ปล่อยว่างไว้หากไม่ต้องการจำกัดเวลา (ระบบ Batch จะตั้งเวลาให้ทุกรายการที่เลือก)</p>
                 <div class="flex gap-3">
                     <button onclick="closeScheduleModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all border-none cursor-pointer font-['Kanit']">ยกเลิก</button>
                     <button onclick="saveSchedule()" class="flex-1 bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white font-bold py-3 rounded-xl transition-all shadow-md border-none cursor-pointer font-['Kanit']">บันทึกเวลา</button>
@@ -283,7 +282,7 @@
         
         <nav class="flex-1 space-y-2 overflow-y-auto pt-2">
             <a href="dashboard.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-th-large w-5 text-center"></i> แดชบอร์ด</a>
-            <a href="#" onclick="goToStudents()" class="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-users w-5 text-center"></i> จัดการรายชื่อนักเรียน</a>
+            <a href="#" onclick="goToStudents()" class="teacher-only flex items-center gap-3 p-3 rounded-xl hover:bg-[#f0f4ff] text-slate-600 hover:text-[var(--primary)] font-bold transition-all text-sm"><i class="fas fa-users w-5 text-center"></i> จัดการรายชื่อนักเรียน</a>
         </nav>
         
         <div class="pt-4 border-t border-slate-100 mt-auto">
@@ -305,11 +304,17 @@
             <a href="index.html" class="nav-link"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
             <a href="mission-library.html" class="nav-link"><i class="fas fa-th-list"></i> คลังภารกิจ</a>
-            <a href="#" class="nav-link" onclick="openGloryModal()"><i class="fas fa-star"></i> นวัตกรรม</a>
-            <a href="#" class="nav-link" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info')"><i class="fas fa-book"></i> คู่มือ</a>
+            <a href="#" class="nav-link teacher-only" onclick="openGloryModal()"><i class="fas fa-star"></i> นวัตกรรม</a>
         </div>
 
         <div class="nav-right">
+            <div id="studentViewToggle" class="hidden items-center gap-2 mr-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"><i class="fas fa-eye"></i> มุมมองนักเรียน</span>
+                <div class="relative inline-block w-8 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="simToggle" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer" onchange="toggleSimulateStudent(this)"/>
+                    <label for="simToggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-300 cursor-pointer"></label>
+                </div>
+            </div>
             <img id="navProfileImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onclick="toggleDrawer()" class="w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-slate-200 cursor-pointer object-cover hover:border-[var(--primary)] transition-colors shadow-sm ml-2">
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
         </div>
@@ -317,9 +322,8 @@
         <div id="mobileMenu" class="mobile-dropdown">
             <a href="index.html"><i class="fas fa-home"></i> หน้าแรก</a>
             <a href="dashboard.html"><i class="fas fa-th-large"></i> แดชบอร์ด</a>
-            <a href="#" onclick="goToStudents()"><i class="fas fa-users"></i> รายชื่อนักเรียน</a>
-            <a href="#" onclick="openGloryModal(); toggleMobileMenu();"><i class="fas fa-star"></i> นวัตกรรม GLORY Model</a>
-            <a href="#" onclick="showCustomAlert('ระบบคู่มือการใช้งานกำลังจัดทำครับ', 'info'); toggleMobileMenu();"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
+            <a href="#" onclick="goToStudents()" class="teacher-only"><i class="fas fa-users"></i> รายชื่อนักเรียน</a>
+            <a href="#" onclick="openGloryModal(); toggleMobileMenu();" class="teacher-only"><i class="fas fa-star"></i> นวัตกรรม GLORY Model</a>
             <a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt text-rose-500"></i> ออกจากระบบ</a>
         </div>
     </nav>
@@ -348,7 +352,7 @@
                         </span>
                     </div>
 
-                    <!-- 🌟 หลอดความคืบหน้า (แสดงเฉพาะนักเรียน) 🌟 -->
+                    <!-- 🌟 หลอดความคืบหน้า (แสดงเฉพาะนักเรียน หรือตอนจำลองมุมมองนักเรียน) 🌟 -->
                     <div id="studentProgressContainer" class="hidden w-full max-w-md mt-5">
                         <div class="flex justify-between text-xs text-white/90 font-bold mb-1.5 font-sans">
                             <span>ความคืบหน้าภารกิจของคุณ</span>
@@ -362,7 +366,13 @@
                     </div>
                 </div>
                 
-                <div class="flex gap-3 w-full md:w-auto shrink-0 mt-1 md:mt-0">
+                <div class="flex gap-3 w-full md:w-auto shrink-0 mt-1 md:mt-0 teacher-only">
+                    <!-- 🌟 FEATURE 4: Quick Analytics (อัตราความสำเร็จ) 🌟 -->
+                    <div class="hidden md:flex bg-white/10 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/20 text-center flex-1 md:min-w-[120px] shadow-lg flex-col justify-center">
+                        <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest opacity-80 mb-0.5 md:mb-1">อัตราสำเร็จเฉลี่ย</p>
+                        <p id="avgCompletion" class="text-xl md:text-3xl font-black m-0 leading-none text-emerald-300">0%</p>
+                    </div>
+
                     <div onclick="goToStudents()" class="group bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/20 text-center flex-1 md:min-w-[120px] shadow-lg cursor-pointer flex flex-col justify-center relative overflow-hidden">
                         <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest opacity-80 mb-0.5 md:mb-1 group-hover:text-yellow-300 transition-colors flex items-center justify-center gap-1.5">
                             นักเรียน <i class="fas fa-users-cog text-[11px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
@@ -390,9 +400,20 @@
                     <h3 class="text-yellow-800 font-bold font-['Kanit'] text-base md:text-lg mb-1">ประกาศจากห้องเรียน</h3>
                     <p id="announcementText" class="text-sm md:text-base text-yellow-700 m-0 whitespace-pre-wrap font-sans leading-relaxed"></p>
                 </div>
-                <button id="btnEditAnnouncement" onclick="editAnnouncement()" title="แก้ไขประกาศ" class="hidden absolute top-3 right-3 text-yellow-500 hover:text-yellow-700 hover:bg-yellow-100 w-8 h-8 rounded-full flex items-center justify-center transition-all border-none cursor-pointer">
+                <button id="btnEditAnnouncement" onclick="editAnnouncement()" title="แก้ไขประกาศ" class="teacher-only hidden absolute top-3 right-3 text-yellow-500 hover:text-yellow-700 hover:bg-yellow-100 w-8 h-8 rounded-full flex items-center justify-center transition-all border-none cursor-pointer">
                     <i class="fas fa-pen"></i>
                 </button>
+            </div>
+        </div>
+
+        <!-- 🌟 FEATURE 1: กระดานผู้นำ (Leaderboard) 🌟 -->
+        <div id="leaderboardContainer" class="hidden-el mb-8 transition-all duration-300 teacher-only">
+            <div class="flex items-center gap-2 mb-3 px-1">
+                <i class="fas fa-trophy text-amber-500 text-lg"></i>
+                <h3 class="font-bold text-slate-800 font-['Kanit'] m-0">Top 5 นักเรียนคะแนนสูงสุด (XP)</h3>
+            </div>
+            <div id="leaderboardCards" class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                <!-- Javascript will inject leaderboard cards here -->
             </div>
         </div>
 
@@ -400,7 +421,7 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg md:text-xl font-bold text-[var(--primary)] font-['Kanit'] m-0"><i class="fas fa-folder-open text-[var(--accent)] mr-2"></i> หมวดหมู่บทเรียน</h2>
                 
-                <button onclick="toggleManageMode()" id="startManageBtn" title="เข้าสู่โหมดจัดการเนื้อหา" class="hidden items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-1.5 md:px-5 md:py-2 rounded-xl font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm">
+                <button onclick="toggleManageMode()" id="startManageBtn" title="เข้าสู่โหมดจัดการเนื้อหา" class="teacher-only hidden items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-1.5 md:px-5 md:py-2 rounded-xl font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm">
                     <i class="fas fa-cogs text-lg md:text-base text-[var(--primary-light)]"></i> <span class="hidden sm:inline">จัดการเนื้อหา</span>
                 </button>
             </div>
@@ -424,10 +445,10 @@
         </div>
 
         <!-- โหมดจัดการเนื้อหา -->
-        <div id="viewManageMode" class="hidden-el">
+        <div id="viewManageMode" class="hidden-el pb-20">
             
             <!-- ระบบเชิญเข้าห้องเรียน -->
-            <div class="bg-white border border-blue-100 rounded-2xl p-5 md:p-6 mb-8 shadow-sm">
+            <div class="bg-white border border-blue-100 rounded-2xl p-5 md:p-6 mb-8 shadow-sm teacher-only">
                 <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
                     <h3 class="font-bold text-lg md:text-xl text-[var(--primary)] font-['Kanit'] m-0">
                         <i class="fas fa-user-plus text-[var(--accent)] mr-2"></i> ระบบเข้าร่วมห้องเรียน
@@ -491,14 +512,24 @@
                 </div>
             </div>
             
-            <div id="manageContent" class="space-y-6"></div>
+            <div id="manageContent" class="space-y-6 pb-12"></div>
         </div>
 
     </main>
 
-    <button id="fabAddBtn" onclick="handleFabAddMission()" class="fab-add hidden-el" title="เพิ่ม/สร้างภารกิจใหม่">
+    <button id="fabAddBtn" onclick="handleFabAddMission()" class="fab-add hidden-el teacher-only" title="เพิ่ม/สร้างภารกิจใหม่">
         <i class="fas fa-plus"></i>
     </button>
+
+    <!-- 🌟 FEATURE 5: Batch Actions Toolbar (โผล่มาเมื่อมีติ๊กถูก) 🌟 -->
+    <div id="batchToolbar" class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-[2000] flex justify-between items-center transition-transform transform translate-y-full teacher-only">
+        <div class="font-bold text-[var(--primary)] font-['Kanit']">เลือกแล้ว <span id="batchCount" class="bg-[var(--accent)] text-white px-2 py-0.5 rounded-md mx-1">0</span> รายการ</div>
+        <div class="flex gap-2">
+            <button onclick="batchMove()" class="bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold font-['Kanit'] transition text-sm md:text-base border-none cursor-pointer"><i class="fas fa-folder"></i><span class="hidden sm:inline ml-1"> ย้ายโฟลเดอร์</span></button>
+            <button onclick="batchSchedule()" class="bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold font-['Kanit'] transition text-sm md:text-base border-none cursor-pointer"><i class="fas fa-clock"></i><span class="hidden sm:inline ml-1"> ตั้งเวลา</span></button>
+            <button onclick="batchDelete()" class="bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold font-['Kanit'] transition text-sm md:text-base border-none cursor-pointer"><i class="fas fa-trash"></i><span class="hidden sm:inline ml-1"> ลบ</span></button>
+        </div>
+    </div>
 
     <footer class="footer footer-display-text"></footer>
 
@@ -568,6 +599,7 @@
         let currentUserId = null;
         let currentClassId = null;
         let isClassOwner = false; 
+        let isSimulateStudent = false; // 🌟 สถานะจำลองมุมมองนักเรียน
         let missions = [];
         let folders = []; 
         let isManageMode = false;
@@ -577,7 +609,7 @@
         let currentClassCode = '';
         let isJoinable = true;
         let myProgressList = []; // เก็บรายการภารกิจที่ทำสำเร็จแล้ว
-        let myProgressMap = {}; // 🌟 NEW: เก็บข้อมูลคะแนนของแต่ละภารกิจ
+        let myProgressMap = {}; // เก็บข้อมูลคะแนนของแต่ละภารกิจ
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -616,8 +648,99 @@
         
         function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
         
+        // 🌟 จำลองมุมมองนักเรียน (Student View) 🌟
+        function toggleSimulateStudent(checkbox) {
+            isSimulateStudent = checkbox.checked;
+            applyRoleStyles();
+            
+            if (currentOpenedFolder) openFolder(currentOpenedFolder);
+            else showFolderGrid();
+        }
+
+        function applyRoleStyles() {
+            const isTeacherView = isClassOwner && !isSimulateStudent;
+            document.querySelectorAll('.teacher-only').forEach(el => {
+                if (isTeacherView) {
+                    el.classList.remove('hidden-el');
+                    if (el.tagName !== 'BUTTON' && el.tagName !== 'DIV') el.style.display = ''; 
+                } else {
+                    el.classList.add('hidden-el');
+                }
+            });
+
+            const progContainer = document.getElementById('studentProgressContainer');
+            if (progContainer) {
+                if (isTeacherView) progContainer.classList.add('hidden');
+                else progContainer.classList.remove('hidden');
+            }
+            
+            if (isTeacherView) document.getElementById('fabAddBtn').classList.remove('hidden-el');
+            else document.getElementById('fabAddBtn').classList.add('hidden-el');
+            
+            const manageBtn = document.getElementById('startManageBtn');
+            if (manageBtn) {
+                if (isTeacherView) { manageBtn.classList.remove('hidden'); manageBtn.classList.add('flex'); }
+                else { manageBtn.classList.add('hidden'); manageBtn.classList.remove('flex'); }
+            }
+        }
+
+        // 🌟 อัปเดต Batch Actions UI 🌟
+        function updateBatchUI() {
+            const checks = document.querySelectorAll('.batch-checkbox:checked');
+            const count = checks.length;
+            const toolbar = document.getElementById('batchToolbar');
+            document.getElementById('batchCount').innerText = count;
+            
+            if (count > 0) {
+                toolbar.classList.remove('translate-y-full');
+            } else {
+                toolbar.classList.add('translate-y-full');
+            }
+        }
+
+        function batchMove() {
+            const checks = document.querySelectorAll('.batch-checkbox:checked');
+            if(checks.length === 0) return;
+            openCustomPrompt('ย้ายหมวดหมู่หมู่', 'ชื่อหมวดหมู่ที่ต้องการย้ายไป', (newFolder) => {
+                const folderName = newFolder.trim() || 'ทั่วไป';
+                checks.forEach(cb => {
+                    const assignId = cb.value;
+                    const mission = missions.find(m => String(m.assignment_id) === String(assignId));
+                    if (mission) mission.folder_name = folderName;
+                });
+                if(!folders.includes(folderName)) folders.push(folderName);
+                renderAdminManageView();
+                showCustomAlert("จำลองการย้ายเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+            }, '', 'fas fa-folder-open', 'พิมพ์ชื่อหมวดหมู่ที่มีอยู่แล้ว หรือหมวดหมู่ใหม่');
+        }
+
+        function batchSchedule() {
+            const checks = document.querySelectorAll('.batch-checkbox:checked');
+            if(checks.length === 0) return;
+            // ใช้ schedAssignmentId พิเศษว่า "BATCH"
+            openScheduleModal('BATCH', '', '');
+        }
+
+        function batchDelete() {
+            const checks = document.querySelectorAll('.batch-checkbox:checked');
+            if(checks.length === 0) return;
+            openCustomConfirm('ลบแบบกลุ่ม', `ต้องการถอนการติดตั้ง ${checks.length} ภารกิจ ออกจากห้องเรียนใช่หรือไม่?`, true, () => {
+                checks.forEach(cb => {
+                    const assignId = cb.value;
+                    deletedAssignments.push(assignId);
+                    missions = missions.filter(m => String(m.assignment_id) !== String(assignId));
+                });
+                document.getElementById('missionCount').innerText = missions.length;
+                renderAdminManageView();
+                updateBatchUI();
+                showCustomAlert("นำออกเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+            });
+        }
+
+        // --- Core Functions ---
+
         function openGloryModal() { 
-            renderGloryDetails(); 
+            if(typeof renderGloryDetails === 'function') renderGloryDetails(); 
             const modal = document.getElementById('gloryModal');
             const box = document.getElementById('gloryModalBox');
             modal.style.display = 'flex';
@@ -790,12 +913,29 @@
                     }
                     isJoinable = cls.is_joinable !== false; 
                 }
+                
+                if(isClassOwner) {
+                    document.getElementById('studentViewToggle').classList.remove('hidden');
+                    document.getElementById('studentViewToggle').classList.add('flex');
+                }
 
+                // ดึงข้อมูลนักเรียน
+                let totalStudents = 0;
+                let userColName = 'user_id';
+                let enrollList = [];
                 try {
-                    const { count } = await db.from('classroom_users').select('*', { count: 'exact', head: true }).eq('classroom_id', currentClassId);
-                    if (count !== null) document.getElementById('studentCount').innerText = count;
+                    const { error: testColErr } = await db.from('classroom_users').select('user_id').limit(1);
+                    if (testColErr && String(testColErr.code).includes('42703')) userColName = 'student_id';
+                    
+                    const { data: enData } = await db.from('classroom_users').select(userColName).eq('classroom_id', currentClassId);
+                    if (enData) {
+                        enrollList = enData;
+                        totalStudents = enData.length;
+                        document.getElementById('studentCount').innerText = totalStudents;
+                    }
                 } catch(e){}
 
+                // ดึงภารกิจ
                 let missionsSelect = 'assignment_id, mission_id, order_index, folder_name, custom_title, start_date, due_date, missions(*)';
                 let misData, misErr;
                 
@@ -819,36 +959,92 @@
                         newFolders = uniqueFolders.length > 0 ? uniqueFolders : ['ทั่วไป'];
                     }
 
-                    const newMissionState = { missions: newMissions, folders: newFolders };
-                    const newMissionString = JSON.stringify(newMissionState);
-                    const oldMissionString = localStorage.getItem(`flip_cache_missions_${currentClassId}`);
+                    missions = newMissions;
+                    folders = newFolders;
+                    document.getElementById('missionCount').innerText = missions.length;
+                    
+                    localStorage.setItem(`flip_cache_missions_${currentClassId}`, JSON.stringify({ missions: newMissions, folders: newFolders }));
 
-                    if (newMissionString !== oldMissionString) {
-                        localStorage.setItem(`flip_cache_missions_${currentClassId}`, newMissionString);
-                        missions = newMissions;
-                        folders = newFolders;
-                        document.getElementById('missionCount').innerText = missions.length;
-                        
-                        if (isManageMode) {
-                            renderAdminManageView();
-                        } else {
-                            if (currentOpenedFolder) openFolder(currentOpenedFolder);
-                            else showFolderGrid();
-                        }
+                    if (isManageMode) {
+                        renderAdminManageView();
                     } else {
-                        missions = newMissions;
-                        folders = newFolders;
+                        if (currentOpenedFolder) openFolder(currentOpenedFolder);
+                        else showFolderGrid();
                     }
+                    
+                    applyRoleStyles();
 
-                    // 🌟 ระบบดึง Progress คะแนนแบบใหม่ (อิงจากตาราง student_missions)
-                    if (!isClassOwner) {
-                        document.getElementById('studentProgressContainer').classList.remove('hidden');
+                    // 🌟 ระบบดึง Progress 🌟
+                    if (isClassOwner) {
+                        // 🌟 ดึงข้อมูลรวมสำหรับ Analytics & Leaderboard 🌟
+                        if (totalStudents > 0 && missions.length > 0) {
+                            const uids = enrollList.map(e => e[userColName]);
+                            const mids = missions.map(m => m.mission_id);
+                            
+                            const { data: allProg } = await db.from('student_missions')
+                                .select('student_id, score, is_completed')
+                                .in('mission_id', mids)
+                                .in('student_id', uids);
+                                
+                            if (allProg) {
+                                // 🌟 1. คำนวณอัตราความสำเร็จ (Avg Completion)
+                                const totalCompleted = allProg.filter(p => p.is_completed).length;
+                                const totalPossible = totalStudents * missions.length;
+                                const avgPct = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
+                                document.getElementById('avgCompletion').innerText = avgPct + '%';
+                                
+                                // 🌟 2. คำนวณ Leaderboard
+                                let studentScores = {};
+                                uids.forEach(uid => studentScores[uid] = 0);
+                                allProg.forEach(p => {
+                                    if (p.score) studentScores[p.student_id] += p.score;
+                                });
+                                
+                                const sortedUids = Object.keys(studentScores).sort((a,b) => studentScores[b] - studentScores[a]);
+                                const topUids = sortedUids.filter(uid => studentScores[uid] > 0).slice(0, 5);
+                                
+                                if (topUids.length > 0) {
+                                    const { data: topUsers } = await db.from('users').select('user_id, first_name, last_name, profile_pic').in('user_id', topUids);
+                                    let topUsersMap = {};
+                                    if(topUsers) topUsers.forEach(u => topUsersMap[u.user_id] = u);
+                                    
+                                    let lbHtml = '';
+                                    topUids.forEach((uid, index) => {
+                                        const u = topUsersMap[uid];
+                                        if(u) {
+                                            const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'นักเรียน';
+                                            const pic = u.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
+                                            const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+                                            lbHtml += `
+                                                <div class="flex items-center gap-3 bg-white p-2 md:p-3 rounded-2xl shadow-sm border border-slate-100 min-w-[160px] md:min-w-[180px] shrink-0 hover:border-amber-200 transition-colors">
+                                                    <div class="text-2xl">${medals[index]}</div>
+                                                    <img src="${pic}" class="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-slate-50">
+                                                    <div class="min-w-0">
+                                                        <div class="text-xs md:text-sm font-bold text-slate-700 font-['Kanit'] truncate m-0">${name}</div>
+                                                        <div class="text-[10px] md:text-xs text-amber-500 font-bold m-0"><i class="fas fa-star text-[9px]"></i> ${studentScores[uid]} XP</div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }
+                                    });
+                                    document.getElementById('leaderboardCards').innerHTML = lbHtml;
+                                    document.getElementById('leaderboardContainer').classList.remove('hidden-el');
+                                } else {
+                                    document.getElementById('leaderboardContainer').classList.add('hidden-el');
+                                }
+                            }
+                        } else {
+                            document.getElementById('avgCompletion').innerText = '0%';
+                            document.getElementById('leaderboardContainer').classList.add('hidden-el');
+                        }
+
+                    } else {
+                        // 🌟 ดึง Progress สำหรับมุมมองนักเรียน
                         try {
                             const validMissions = missions;
                             const total = validMissions.length;
                             if (total > 0) {
                                 const missionIds = validMissions.map(m => m.mission_id);
-                                // 🌟 ดึงฟิลด์ score ออกมาด้วย
                                 const { data: prog } = await db.from('student_missions')
                                     .select('mission_id, score')
                                     .eq('student_id', currentUserId)
@@ -857,14 +1053,14 @@
                                 
                                 myProgressList = [];
                                 myProgressMap = {};
-                                let totalScore = 0; // 🌟 เพิ่มตัวแปรเก็บคะแนนรวม
+                                let totalScore = 0; 
                                 
                                 if (prog) {
                                     prog.forEach(p => {
                                         myProgressList.push(p.mission_id);
                                         const score = p.score || 0;
-                                        myProgressMap[p.mission_id] = score; // เก็บสถิติคะแนนไว้ใน Map
-                                        totalScore += score; // บวกคะแนนรวม
+                                        myProgressMap[p.mission_id] = score; 
+                                        totalScore += score; 
                                     });
                                 }
 
@@ -872,14 +1068,11 @@
                                 const pct = Math.round((completed / total) * 100);
                                 
                                 document.getElementById('studentProgressBar').style.width = pct + '%';
-                                // 🌟 อัปเดตข้อความให้แสดงคะแนนรวมด้วย
                                 document.getElementById('studentProgressText').innerHTML = `${completed}/${total} ภารกิจ (${pct}%) <span class="ml-2 text-yellow-300"><i class="fas fa-star text-[10px]"></i> ${totalScore} XP</span>`;
                             }
                         } catch(e) {
                             console.warn('Progress tracking fallback/error:', e);
                         }
-                    } else {
-                        document.getElementById('studentProgressContainer').classList.add('hidden');
                     }
                 }
 
@@ -913,9 +1106,6 @@
             let targetCol = data.hasOwnProperty('owner_id') ? 'owner_id' : 'teacher_id';
             if (data[targetCol] === currentUserId) {
                 isClassOwner = true;
-                const btn = document.getElementById('startManageBtn');
-                if(btn) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
-                
                 currentClassCode = data.class_code || currentClassCode;
                 isJoinable = data.is_joinable !== false; 
 
@@ -927,16 +1117,13 @@
                 document.getElementById('displayClassCode').innerText = currentClassCode || '------';
                 document.getElementById('joinToggle').checked = isJoinable;
                 updateInviteBoxUI();
-
             } else {
                 isClassOwner = false;
-                const btn = document.getElementById('startManageBtn');
-                if(btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
             }
+            applyRoleStyles();
 
             const annContainer = document.getElementById('announcementContainer');
             const annText = document.getElementById('announcementText');
-            const btnEditAnn = document.getElementById('btnEditAnnouncement');
             
             if (data.announcement && data.announcement.trim() !== '') {
                 annContainer.classList.remove('hidden-el');
@@ -949,9 +1136,6 @@
                     annContainer.classList.add('hidden-el');
                 }
             }
-            
-            if (isClassOwner) btnEditAnn.classList.remove('hidden');
-            else btnEditAnn.classList.add('hidden');
 
             const appName = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.APP_NAME : 'FlipSchool';
             document.title = `${data.subject_name} | ${appName}`;
@@ -1544,20 +1728,44 @@
             
             try {
                 const db = getDB();
-                const { error } = await db.from('classroom_missions').update({ 
-                    start_date: start ? new Date(start).toISOString() : null, 
-                    due_date: due ? new Date(due).toISOString() : null 
-                }).eq('assignment_id', assignmentId);
                 
-                if (error) {
-                    if (String(error.code).includes('42703')) {
-                        throw new Error("ระบบฐานข้อมูลยังไม่รองรับการตั้งเวลา (โปรดเพิ่มคอลัมน์ start_date และ due_date ในตาราง classroom_missions)");
+                // 🌟 ตรวจสอบว่าเป็นการตั้งเวลาแบบกลุ่ม (Batch) หรือไม่ 🌟
+                if (assignmentId === 'BATCH') {
+                    const checks = document.querySelectorAll('.batch-checkbox:checked');
+                    const updates = [];
+                    checks.forEach(cb => {
+                        const aId = cb.value;
+                        const mission = missions.find(m => String(m.assignment_id) === String(aId));
+                        if (mission) {
+                            mission.start_date = start ? new Date(start).toISOString() : null;
+                            mission.due_date = due ? new Date(due).toISOString() : null;
+                        }
+                        updates.push(db.from('classroom_missions').update({ 
+                            start_date: start ? new Date(start).toISOString() : null, 
+                            due_date: due ? new Date(due).toISOString() : null 
+                        }).eq('assignment_id', aId));
+                    });
+                    
+                    await Promise.all(updates);
+                    renderAdminManageView();
+                    showCustomAlert("จำลองการตั้งเวลาเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+                    
+                } else {
+                    const { error } = await db.from('classroom_missions').update({ 
+                        start_date: start ? new Date(start).toISOString() : null, 
+                        due_date: due ? new Date(due).toISOString() : null 
+                    }).eq('assignment_id', assignmentId);
+                    
+                    if (error) {
+                        if (String(error.code).includes('42703')) {
+                            throw new Error("ระบบฐานข้อมูลยังไม่รองรับการตั้งเวลา (โปรดเพิ่มคอลัมน์ start_date และ due_date ในตาราง classroom_missions)");
+                        }
+                        throw error;
                     }
-                    throw error;
+                    
+                    showCustomAlert("บันทึกเวลาสำเร็จ!", "success");
+                    await fetchFreshData(db);
                 }
-                
-                showCustomAlert("บันทึกเวลาสำเร็จ!", "success");
-                await fetchFreshData(db);
             } catch(e) {
                 showCustomAlert(e.message, "error");
             } finally {
@@ -1579,8 +1787,7 @@
             document.getElementById('viewMissionPath').classList.add('hidden-el');
             document.getElementById('viewManageMode').classList.add('hidden-el');
             
-            if (isClassOwner) document.getElementById('fabAddBtn').classList.remove('hidden-el');
-            else document.getElementById('fabAddBtn').classList.add('hidden-el');
+            applyRoleStyles();
             
             const grid = document.getElementById('folderGridContent');
             const hasOrphans = missions.some(m => !folders.includes(m.folder_name || 'ทั่วไป'));
@@ -1608,8 +1815,7 @@
             document.getElementById('viewMissionPath').classList.remove('hidden-el');
             document.getElementById('currentFolderNameDisplay').innerText = folderName;
             
-            if (isClassOwner) document.getElementById('fabAddBtn').classList.remove('hidden-el');
-            else document.getElementById('fabAddBtn').classList.add('hidden-el');
+            applyRoleStyles();
 
             const container = document.getElementById('missionListContent');
             const folderMissions = missions.filter(m => (m.folder_name || 'ทั่วไป') === folderName);
@@ -1619,14 +1825,14 @@
                     <div class="py-20 opacity-30 text-center">
                         <i class="fas fa-box-open text-5xl md:text-6xl mb-4 text-slate-300"></i>
                         <h3 class="text-lg md:text-xl font-bold font-sans text-slate-500">หมวดหมู่นี้ยังว่างเปล่า</h3>
-                        ${isClassOwner ? `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">กดปุ่ม + (เพิ่มภารกิจ) มุมขวาล่างเพื่อสร้างภารกิจได้เลยครับ</p>` : `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">รอคุณครูเพิ่มภารกิจ</p>`}
+                        ${isClassOwner && !isSimulateStudent ? `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">กดปุ่ม + (เพิ่มภารกิจ) มุมขวาล่างเพื่อสร้างภารกิจได้เลยครับ</p>` : `<p class="text-xs md:text-sm font-sans text-slate-400 mt-2">รอคุณครูเพิ่มภารกิจ</p>`}
                     </div>`;
                 return;
             }
 
-            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) พร้อมแสดงคะแนน 🌟
+            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) 🌟
             let cardsHtml = '<div class="mission-list-container">';
-            cardsHtml += folderMissions.map((m, idx) => {
+            folderMissions.forEach((m, idx) => {
                 const baseTitle = m.missions?.title || 'ไม่ระบุชื่อภารกิจ';
                 const displayTitle = m.custom_title || baseTitle;
                 const rewardPoints = m.missions?.reward_points || 10;
@@ -1634,19 +1840,37 @@
                 const subjectGroup = m.missions?.subject_group || 'ทั่วไป';
                 const delay = idx * 0.05;
 
-                // ตรวจสอบว่าภารกิจนี้ทำเสร็จแล้วหรือยัง และดึงคะแนนมาแสดง
                 const isCompleted = myProgressList.includes(m.mission_id);
                 const myScore = isCompleted ? (myProgressMap[m.mission_id] || 0) : 0;
+                
+                // 🌟 FEATURE 2: ป้ายกำกับเวลา (Schedule Status) 🌟
+                let timeStatusHtml = '';
+                let isLocked = false;
+                const now = new Date();
+                if (m.start_date || m.due_date) {
+                    const start = m.start_date ? new Date(m.start_date) : null;
+                    const due = m.due_date ? new Date(m.due_date) : null;
+                    
+                    if (start && now < start) {
+                        timeStatusHtml = `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 shadow-sm"><i class="fas fa-clock"></i> เปิด ${start.toLocaleDateString('th-TH', {month:'short', day:'numeric'})}</span>`;
+                        isLocked = true;
+                    } else if (due && now > due) {
+                        timeStatusHtml = `<span class="bg-rose-50 text-rose-500 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-200 shadow-sm"><i class="fas fa-lock"></i> ปิดแล้ว</span>`;
+                        // isLocked = true; // อนุญาตให้ดูย้อนหลังได้ หรือจะแก้เป็นปิดเลยก็ได้
+                    } else if (due) {
+                        timeStatusHtml = `<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 shadow-sm"><i class="fas fa-unlock"></i> ถึง ${due.toLocaleDateString('th-TH', {month:'short', day:'numeric'})}</span>`;
+                    }
+                }
                 
                 const statusBadge = isCompleted 
                     ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> ทำแล้ว ได้ ${myScore} คะแนน</span>`
                     : `<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-200"><i class="fas fa-star"></i> ${rewardPoints} XP</span>`;
 
-                const actionIcon = isCompleted ? '<i class="fas fa-redo ml-0.5 text-xs"></i>' : '<i class="fas fa-play ml-0.5"></i>';
-                const actionColor = isCompleted ? 'bg-emerald-50 text-emerald-500 border border-emerald-200' : 'bg-blue-50 text-blue-500 border border-blue-200';
+                const actionIcon = isLocked ? '<i class="fas fa-lock text-slate-400"></i>' : (isCompleted ? '<i class="fas fa-redo ml-0.5 text-xs"></i>' : '<i class="fas fa-play ml-0.5"></i>');
+                const actionColor = isLocked ? 'bg-slate-50 text-slate-400 border border-slate-200' : (isCompleted ? 'bg-emerald-50 text-emerald-500 border border-emerald-200' : 'bg-blue-50 text-blue-500 border border-blue-200');
 
-                return `
-                <div class="mission-card group animate-slide-up" style="animation-delay: ${delay}s;" onclick="location.href='mission-play.html?mid=${m.mission_id}'">
+                cardsHtml += `
+                <div class="mission-card group animate-slide-up ${isLocked && !isClassOwner ? 'opacity-60 grayscale-[50%]' : ''}" style="animation-delay: ${delay}s;" ${isLocked && !isClassOwner ? `onclick="showCustomAlert('ภารกิจยังไม่เปิดให้ทำครับ', 'info')"` : `onclick="location.href='mission-play.html?mid=${m.mission_id}'"`}>
                     <div class="mission-icon-box group-hover:scale-110 transition-transform duration-300">
                         <i class="${getIcon(missionType)}"></i>
                     </div>
@@ -1654,15 +1878,16 @@
                         <div class="mission-badge-group">
                             <span class="badge-order">ภารกิจที่ ${idx + 1}</span>
                             ${statusBadge}
+                            ${timeStatusHtml}
                         </div>
                         <h3 class="mission-title">${displayTitle}</h3>
                         <p class="mission-subtitle"><i class="fas fa-book-open mr-1 opacity-50"></i> ${subjectGroup}</p>
                     </div>
-                    <div class="mission-action-btn ${actionColor} group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-transparent shadow-sm">
+                    <div class="mission-action-btn ${actionColor} ${!isLocked ? 'group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-transparent' : ''} shadow-sm">
                         ${actionIcon}
                     </div>
                 </div>`;
-            }).join('');
+            });
             cardsHtml += '</div>';
 
             container.innerHTML = cardsHtml;
@@ -1702,6 +1927,7 @@
         async function forceExitManageMode() {
             isManageMode = false; 
             deletedAssignments = []; 
+            document.getElementById('batchToolbar').classList.add('translate-y-full'); // 🌟 ซ่อน Toolbar
             
             const btn = document.getElementById('startManageBtn');
             if(btn) {
@@ -1732,6 +1958,8 @@
             document.getElementById('viewMissionPath').classList.add('hidden-el');
             document.getElementById('viewManageMode').classList.remove('hidden-el');
             document.getElementById('fabAddBtn').classList.add('hidden-el');
+            
+            updateBatchUI(); // รีเซ็ต Batch Toolbar
 
             const container = document.getElementById('manageContent');
             let html = '';
@@ -1763,16 +1991,28 @@
                     const safeDisplayTitle = String(displayTitle).replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     const safeOriginalTitle = String(baseTitle).replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     const missionType = m.missions?.mission_type || 'quiz';
+                    
+                    let timeBadge = '';
+                    if (m.start_date || m.due_date) {
+                        timeBadge = `<span class="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded text-[9px] font-bold ml-2 border border-indigo-100"><i class="fas fa-clock"></i> ตั้งเวลาแล้ว</span>`;
+                    }
 
                     html += `
                         <div class="admin-mission-item" data-assignment-id="${m.assignment_id}">
                             <i class="fas fa-grip-vertical drag-handle-icon"></i>
+                            
+                            <!-- 🌟 FEATURE 5: Batch Checkbox 🌟 -->
+                            <input type="checkbox" value="${m.assignment_id}" class="batch-checkbox w-5 h-5 accent-[var(--accent)] cursor-pointer mr-1" onchange="this.parentElement.classList.toggle('selected', this.checked); updateBatchUI();">
+                            
                             <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#f0f4ff] text-[var(--primary-light)] flex items-center justify-center shrink-0">
                                 <i class="${getIcon(missionType)} text-sm md:text-base"></i>
                             </div>
                             <div class="flex-grow min-w-0">
-                                <p class="font-bold text-sm md:text-base text-slate-700 truncate">${displayTitle}</p>
-                                <p class="text-[10px] text-slate-400">ID: ${String(m.assignment_id).substring(0,6)}...</p>
+                                <div class="flex items-center">
+                                    <p class="font-bold text-sm md:text-base text-slate-700 truncate mb-0">${displayTitle}</p>
+                                    ${timeBadge}
+                                </div>
+                                <p class="text-[10px] text-slate-400 m-0">ID: ${String(m.assignment_id).substring(0,6)}...</p>
                             </div>
                             <button onclick="openScheduleModal('${m.assignment_id}', '${m.start_date || ''}', '${m.due_date || ''}')" class="text-blue-500 hover:text-white hover:bg-blue-500 bg-blue-50 w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 mr-1 border-none cursor-pointer" title="ตั้งเวลาเปิด/ปิด">
                                 <i class="fas fa-clock text-xs"></i>
@@ -1886,6 +2126,7 @@
                 const el = document.querySelector(`[data-assignment-id="${assignmentId}"]`); if(el) el.remove();
                 missions = missions.filter(m => String(m.assignment_id) !== String(assignmentId));
                 document.getElementById('missionCount').innerText = missions.length;
+                updateBatchUI(); // อัปเดตเผื่อลบตัวที่เลือกอยู่
             });
         }
 
@@ -1915,6 +2156,7 @@
                 try { await db.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId); } catch(e) {}
 
                 isManageMode = false;
+                document.getElementById('batchToolbar').classList.add('translate-y-full');
                 
                 const btn = document.getElementById('startManageBtn');
                 if(btn) {
