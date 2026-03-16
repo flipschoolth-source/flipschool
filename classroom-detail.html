@@ -76,6 +76,8 @@
 
         .mobile-menu-btn { display: none; background: #f8faff; border: 1px solid #eef2f7; font-size: 20px; color: var(--primary); cursor: pointer; width: 42px; height: 42px; border-radius: 12px; transition: 0.3s; }
         .mobile-menu-btn:hover { background: #eef2f7; }
+        #mainNav.scrolled .mobile-menu-btn { width: 36px; height: 36px; font-size: 16px; }
+        #mainNav.scrolled #navProfileImg { width: 36px; height: 36px; }
         
         .mobile-dropdown { display: none; flex-direction: column; background: white; position: absolute; top: 100%; left: 0; width: 100%; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-top: 1px solid #f1f5f9; z-index: 999; }
         .mobile-dropdown.active { display: flex; animation: slideDown 0.3s ease-out; }
@@ -575,6 +577,7 @@
         let currentClassCode = '';
         let isJoinable = true;
         let myProgressList = []; // เก็บรายการภารกิจที่ทำสำเร็จแล้ว
+        let myProgressMap = {}; // 🌟 NEW: เก็บข้อมูลคะแนนของแต่ละภารกิจ
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -845,13 +848,23 @@
                             const total = validMissions.length;
                             if (total > 0) {
                                 const missionIds = validMissions.map(m => m.mission_id);
+                                // 🌟 ดึงฟิลด์ score ออกมาด้วย
                                 const { data: prog } = await db.from('student_missions')
-                                    .select('mission_id')
+                                    .select('mission_id, score')
                                     .eq('student_id', currentUserId)
                                     .in('mission_id', missionIds)
                                     .eq('is_completed', true);
                                 
-                                myProgressList = prog ? prog.map(p => p.mission_id) : [];
+                                myProgressList = [];
+                                myProgressMap = {};
+                                
+                                if (prog) {
+                                    prog.forEach(p => {
+                                        myProgressList.push(p.mission_id);
+                                        myProgressMap[p.mission_id] = p.score || 0; // เก็บสถิติคะแนนไว้ใน Map
+                                    });
+                                }
+
                                 const completed = myProgressList.length;
                                 const pct = Math.round((completed / total) * 100);
                                 
@@ -1399,7 +1412,7 @@
 
                 const worksheet = XLSX.utils.aoa_to_sheet(rows);
                 const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "คะแนนนักเรียน");
+                XLS.utils.book_append_sheet(workbook, worksheet, "คะแนนนักเรียน");
                 
                 const subjectName = document.getElementById('subjectName').innerText.replace(/[^a-zA-Z0-9ก-๙]/g, '_');
                 XLSX.writeFile(workbook, `คะแนน_${subjectName}.xlsx`);
@@ -1412,7 +1425,7 @@
 
         // ================= จัดการภารกิจ =================
 
-        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
+        function getIcon(t) { return { quiz:'fas fa-tasks', ai_generated:'fas fa-robot', html_custom:'fas fa-code', match:'fas fa-clone', 'matching-flip':'fas fa-clone', competition:'fas fa-trophy' }[t] || 'fas fa-star'; }
 
         let promptCallback = null;
         function openCustomPrompt(title, placeholder, callback, defaultValue = '', iconClass = 'fas fa-folder-plus', subtitle = '') {
@@ -1617,11 +1630,12 @@
                 const subjectGroup = m.missions?.subject_group || 'ทั่วไป';
                 const delay = idx * 0.05;
 
-                // ตรวจสอบว่าภารกิจนี้ทำเสร็จแล้วหรือยัง
+                // ตรวจสอบว่าภารกิจนี้ทำเสร็จแล้วหรือยัง และดึงคะแนนมาแสดง
                 const isCompleted = myProgressList.includes(m.mission_id);
+                const myScore = isCompleted ? (myProgressMap[m.mission_id] || 0) : 0;
                 
                 const statusBadge = isCompleted 
-                    ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> สำเร็จแล้ว</span>`
+                    ? `<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i class="fas fa-check-circle"></i> ได้ ${myScore} คะแนน</span>`
                     : `<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-200"><i class="fas fa-star"></i> ${rewardPoints} XP</span>`;
 
                 const actionIcon = isCompleted ? '<i class="fas fa-redo ml-0.5 text-xs"></i>' : '<i class="fas fa-play ml-0.5"></i>';
@@ -1659,14 +1673,10 @@
         function toggleManageMode() {
             if (!isManageMode) {
                 isManageMode = true;
-                const btn = document.getElementById('manageModeBtn');
-                const btnMob = document.getElementById('manageModeMobileBtn');
+                const btn = document.getElementById('startManageBtn');
                 if(btn) {
-                    btn.innerHTML = '<i class="fas fa-save text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">บันทึกข้อมูล</span>';
-                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-emerald-500 border-2 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600 px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-md cursor-pointer text-sm";
-                }
-                if(btnMob) {
-                    btnMob.innerHTML = '<i class="fas fa-save text-emerald-500"></i> <span class="text-emerald-500 font-bold">บันทึกข้อมูล</span>';
+                    btn.innerHTML = '<i class="fas fa-save text-lg md:text-base"></i> <span class="hidden sm:inline">บันทึกข้อมูล</span>';
+                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-emerald-500 border border-emerald-500 text-white hover:bg-emerald-600 px-4 py-1.5 md:px-5 md:py-2 rounded-xl font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
                 }
                 renderAdminManageView();
                 window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -1689,14 +1699,10 @@
             isManageMode = false; 
             deletedAssignments = []; 
             
-            const btn = document.getElementById('manageModeBtn');
-            const btnMob = document.getElementById('manageModeMobileBtn');
+            const btn = document.getElementById('startManageBtn');
             if(btn) {
-                btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
-                btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
-            }
-            if(btnMob) {
-                btnMob.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+                btn.innerHTML = '<i class="fas fa-cogs text-lg md:text-base text-[var(--primary-light)]"></i> <span class="hidden sm:inline">จัดการเนื้อหา</span>';
+                btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-1.5 md:px-5 md:py-2 rounded-xl font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
             }
 
             document.getElementById('loadingOverlay').style.opacity = '1';
@@ -1906,14 +1912,10 @@
 
                 isManageMode = false;
                 
-                const btn = document.getElementById('manageModeBtn');
-                const btnMob = document.getElementById('manageModeMobileBtn');
+                const btn = document.getElementById('startManageBtn');
                 if(btn) {
-                    btn.innerHTML = '<i class="fas fa-cog text-lg md:text-base"></i> <span class="hidden md:inline text-xs font-bold">จัดการเนื้อหา</span>';
-                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
-                }
-                if(btnMob) {
-                    btnMob.innerHTML = '<i class="fas fa-cog"></i> จัดการเนื้อหา';
+                    btn.innerHTML = '<i class="fas fa-cogs text-lg md:text-base text-[var(--primary-light)]"></i> <span class="hidden sm:inline">จัดการเนื้อหา</span>';
+                    btn.className = "hidden md:flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-1.5 md:px-5 md:py-2 rounded-xl font-bold font-['Kanit'] transition-all shadow-sm cursor-pointer text-sm";
                 }
 
                 await fetchFreshData(db);
