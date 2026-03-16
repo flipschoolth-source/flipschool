@@ -110,6 +110,8 @@
         }
         #toastNotification.show { top: 40px; }
 
+        .hidden-el { display: none !important; }
+
         @media (max-width: 1024px) {
             .nav-center { display: none; }
             .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
@@ -201,6 +203,22 @@
     <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1200px] relative">
         
+        <!-- 🌟 แถบโหมดนำเข้าห้องเรียน (Import Mode) 🌟 -->
+        <div id="importModeBanner" class="hidden-el mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg shadow-sm">
+                    <i class="fas fa-file-import"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-emerald-800 font-['Kanit'] m-0">โหมดเลือกภารกิจเข้าห้องเรียน</h3>
+                    <p class="text-xs text-emerald-600 font-['Sarabun'] m-0"><span id="importFolderText">หมวดหมู่: ทั่วไป</span> (กดปุ่ม + บนการ์ดภารกิจเพื่อนำเข้า)</p>
+                </div>
+            </div>
+            <button onclick="goBackToClassroom()" class="bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition font-['Kanit'] cursor-pointer shadow-sm">
+                กลับห้องเรียน
+            </button>
+        </div>
+
         <div id="creatorFilterBanner" class="creator-filter-banner hidden">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-[var(--primary)] text-white rounded-full flex items-center justify-center font-bold"><i class="fas fa-user-check"></i></div>
@@ -257,7 +275,7 @@
     <div id="customAlertModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10050] items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div class="bg-white rounded-[25px] w-full max-w-[420px] p-8 shadow-2xl text-center transform scale-95 transition-transform" id="customAlertBox">
             <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
-            <h3 id="customAlertTitle" class="text-xl font-bold font-['Kanit'] text-slate-800 mb-2">แจ้งเตือน</h3>
+            <h3 id="customAlertTitle" class="text-xl font-bold text-slate-800 mb-2 font-['Kanit']">แจ้งเตือน</h3>
             <p id="customAlertMessage" class="text-slate-500 mb-6 font-['Sarabun']"></p>
             <div class="flex justify-center gap-3">
                 <button onclick="closeCustomAlert()" id="customAlertOkBtn" class="bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white px-10 py-3 rounded-full font-bold font-['Kanit'] border-none cursor-pointer">ตกลง</button>
@@ -280,6 +298,10 @@
         let userPlaylists = [];
         let activePlaylistMissionId = null;
         let savedMissionIds = new Set();
+        
+        // 🌟 NEW: ตัวแปรสำหรับการนำเข้า (Import Mode)
+        let currentCid = null;
+        let currentFolder = null;
 
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('mainNav');
@@ -337,13 +359,26 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initAppUI === 'function') initAppUI();
+            
+            // 🌟 ตรวจสอบพารามิเตอร์ URL สำหรับโหมดนำเข้าห้องเรียน 🌟
+            const params = new URLSearchParams(window.location.search);
+            currentCid = params.get('cid');
+            currentFolder = params.get('folder');
+
+            if (currentCid) {
+                document.getElementById('importModeBanner').classList.remove('hidden-el');
+                if (currentFolder) {
+                    document.getElementById('importFolderText').innerText = `โฟลเดอร์: ${currentFolder}`;
+                }
+            }
+            
             try {
                 const db = getDB();
                 const { data: { session } } = await db.auth.getSession();
                 if (session && session.user) {
                     currentUserId = session.user.id;
                     document.getElementById('btnLoginLogout').innerText = 'ออกจากระบบ';
-                    document.getElementById('fabAdd').classList.remove('hidden');
+                    if (!currentCid) document.getElementById('fabAdd').classList.remove('hidden'); // ซ่อนปุ่มสร้างถ้าอยู่ในโหมดนำเข้า
                     
                     await fetchUserPlaylists(db);
                     await fetchSavedMissions(db); 
@@ -373,6 +408,64 @@
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
         });
+
+        // 🌟 กลับสู่ห้องเรียนเดิม 🌟
+        function goBackToClassroom() {
+            if (currentCid) {
+                window.location.href = `classroom-detail.html?id=${currentCid}`;
+            } else {
+                window.history.back();
+            }
+        }
+
+        // 🌟 ฟังก์ชัน นำเข้าภารกิจ สู่ห้องเรียน 🌟
+        async function importMissionToClass(mid, title) {
+            if (!currentCid) return;
+            
+            showCustomAlert(`ต้องการนำภารกิจ <b>"${title}"</b> เข้าสู่ห้องเรียนหรือไม่?`, 'confirm', async () => {
+                try {
+                    const db = getDB();
+                    
+                    // ตรวจสอบว่ามีอยู่ในห้องเรียนหรือยัง
+                    const { data: existing } = await db.from('classroom_missions')
+                        .select('assignment_id')
+                        .eq('classroom_id', currentCid)
+                        .eq('mission_id', mid)
+                        .maybeSingle();
+                        
+                    if (existing) {
+                        showCustomAlert("ภารกิจนี้ถูกเพิ่มในห้องเรียนนี้ไปแล้วครับ", "info");
+                        return;
+                    }
+                    
+                    // ดึงค่า order_index สูงสุดในโฟลเดอร์นี้เพื่อไปต่อท้าย
+                    const { data: maxOrder } = await db.from('classroom_missions')
+                        .select('order_index')
+                        .eq('classroom_id', currentCid)
+                        .eq('folder_name', currentFolder || 'ทั่วไป')
+                        .order('order_index', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                        
+                    const nextOrder = maxOrder ? (maxOrder.order_index || 0) + 1 : 0;
+                    
+                    const assignData = {
+                        classroom_id: currentCid,
+                        mission_id: mid,
+                        folder_name: currentFolder || 'ทั่วไป',
+                        order_index: nextOrder
+                    };
+                    
+                    const { error } = await db.from('classroom_missions').insert([assignData]);
+                    if (error) throw error;
+                    
+                    showToast(`เพิ่ม "${title}" เข้าห้องเรียนสำเร็จ!`, "fas fa-check-circle", "#10b981");
+                } catch (e) {
+                    console.error(e);
+                    showCustomAlert("เกิดข้อผิดพลาดในการนำเข้าภารกิจ", "error");
+                }
+            });
+        }
 
         async function fetchUserPlaylists(db) {
             if (!currentUserId) return;
@@ -750,6 +843,12 @@
                 : "bg-blue-50 hover:bg-blue-500 text-blue-500 hover:text-white shadow-sm";
             const bookmarkIcon = isSaved ? "fas fa-bookmark" : "far fa-bookmark";
 
+            // 🌟 NEW: เพิ่มปุ่ม นำเข้า (Import) หากมี currentCid
+            let importBtnHtml = '';
+            if (currentCid) {
+                importBtnHtml = `<button onclick="importMissionToClass('${m.mission_id}', '${safeTitle.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="นำเข้าห้องเรียน"><i class="fas fa-plus"></i><span class="ml-1 text-[10px] font-bold hidden xl:inline">นำเข้า</span></button>`;
+            }
+
             return `
             <div class="mission-card animate-pop-in" style="animation-delay: ${delay}s; border-top-color: ${themeColor};">
                 <div class="mission-body">
@@ -784,6 +883,8 @@
                         <button onclick="quickShare('${m.mission_id}')" class="bg-indigo-50 hover:bg-indigo-500 text-indigo-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="คัดลอกลิงก์แชร์">
                             <i class="fas fa-share-alt"></i>
                         </button>
+
+                        ${importBtnHtml}
 
                         ${(actualCreatorId === currentUserId && currentUserId !== null) ? `
                             <button onclick="location.href='${editUrl}'" class="bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white px-3.5 rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="แก้ไข"><i class="fas fa-edit"></i></button>
