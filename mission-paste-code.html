@@ -910,20 +910,24 @@
                 const currentGrade = document.getElementById("missionGradeInput").value.trim() || dbGrade;
                 const contextStr = targetCid ? `Context: For Subject "${currentSubject}", Grade Level "${currentGrade}".` : "";
 
+                // 🌟 เปลี่ยนคำสั่งใหม่: บังคับห้ามตัดทอนโค้ด และเลิกใช้ JSON เพื่อความเสถียร 100%
                 const sysPrompt = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) แบบ Single HTML File
                 คำสั่งของครู: "${prompt}"
                 ${contextStr}
-                กฎสำคัญ:
-                1. ใช้ภาษาไทย (Thai font) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
-                2. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนนและสถิติ: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: [{question: 'เวลาที่ใช้ (วินาที)', answer: '45'}, {question: 'ข้อที่ผิด', answer: '2'}]}, '*')
-                3. ระบบความปลอดภัยสูงสุด: ห้ามใช้ eval(), ห้ามดึงข้อมูลข้ามโดเมน, ห้ามดึง External JS แปลกๆ ให้ใช้เฉพาะ Tailwind
-                4. ห้ามพยายามใช้ FileReader หรือพยายามอ่านไฟล์ในเครื่อง
-                5. คืนค่าเป็น Strict JSON เท่านั้น:
-                {
-                  "change_log": "สรุปสิ่งที่คุณแก้เป็นภาษาไทย (Bullet points)",
-                  "mission_description": "เขียนเป้าหมายภารกิจสั้นๆ (สำหรับนักเรียนอ่าน)",
-                  "html_code": "<!DOCTYPE html><html>...</html>"
-                }`;
+                กฎสำคัญขั้นเด็ดขาด (CRITICAL):
+                1. ใช้ภาษาไทย (Thai font เช่น Kanit, Sarabun) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
+                2. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนนและสถิติ: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: [...]}, '*')
+                3. ในส่วนของ [HTML_CODE] คุณต้องคืนค่าโค้ด HTML "ฉบับเต็มตั้งแต่ <!DOCTYPE html> จนถึง </html>" เท่านั้น ห้ามตัดทอนโค้ด ห้ามใช้คอมเมนต์ละเว้นโค้ด (เช่น <!-- ... existing code ... -->) โดยเด็ดขาด ต้องรักษาโค้ดส่วนอื่นๆ ที่ไม่ได้สั่งแก้ไว้ให้ทำงานได้สมบูรณ์เหมือนเดิม 100%
+                4. รูปแบบการตอบกลับ ให้ส่งมาเป็น Text Format ตามแท็กนี้เท่านั้น (ห้ามครอบด้วย JSON):
+                
+                [CHANGE_LOG]
+                สรุปการแก้ไขที่ทำให้เป็นภาษาไทยสั้นๆ
+                [/CHANGE_LOG]
+                
+                [HTML_CODE]
+                <!DOCTYPE html>
+                <html>...ใส่โค้ดฉบับเต็มทั้งหมดห้ามตัดทอน...</html>
+                [/HTML_CODE]`;
 
                 const payload = { contents: [{ parts: [{ text: `นี่คือโค้ดตั้งต้น โปรดปรับแก้ตามคำสั่ง:\n\`\`\`html\n${currentCode}\n\`\`\`` }] }], systemInstruction: { parts: [{ text: sysPrompt }] } };
 
@@ -985,19 +989,34 @@
                     else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
                 }
 
-                let jsonText = resultData.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (jsonText) {
-                    jsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
-                    const result = JSON.parse(jsonText);
+                // 🌟 ดึงข้อความดิบออกมา และแปลผลผ่าน Tag แบบใหม่ 🌟
+                let responseText = resultData.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (responseText) {
+                    // อ่านโค้ด HTML ผ่าน Tag [HTML_CODE] หรือ ฟอร์แมต Markdown ```html
+                    const htmlMatch = responseText.match(/\[HTML_CODE\]([\s\S]*?)\[\/HTML_CODE\]/i) || responseText.match(/```html([\s\S]*?)```/i);
+                    const logMatch = responseText.match(/\[CHANGE_LOG\]([\s\S]*?)\[\/CHANGE_LOG\]/i);
+                    
+                    let extractedHtml = htmlMatch ? htmlMatch[1].trim() : null;
+                    let changeLog = logMatch ? logMatch[1].trim() : "แก้ไขโค้ดเรียบร้อยแล้วครับ ✨ ลองกดพรีวิวดูได้เลย";
+                    
+                    // หากหาแท็กไม่เจอ ให้พยายามดึงตั้งแต่ <!DOCTYPE html> ลงมา
+                    if (!extractedHtml && responseText.includes("<!DOCTYPE html>")) {
+                        extractedHtml = responseText.substring(responseText.indexOf("<!DOCTYPE html>"));
+                        // ตัด Tag ปิดที่อาจจะหลงเหลือ
+                        if (extractedHtml.includes("[/HTML_CODE]")) extractedHtml = extractedHtml.split("[/HTML_CODE]")[0].trim();
+                    }
 
-                    if (result.html_code) {
-                        editor.setValue(result.html_code); 
+                    if (extractedHtml) {
+                        editor.setValue(extractedHtml); 
                         setTimeout(formatCode, 100);
-                        appendChatBubble('ai', result.change_log || "แก้ไขโค้ดเรียบร้อยแล้วครับ ✨ ลองกดดูพรีวิวได้เลย");
-                        if (result.mission_description) document.getElementById('missionDescInput').value = result.mission_description;
+                        appendChatBubble('ai', changeLog);
                         showMessage("✨ AI ปรับแก้โค้ดเสร็จสิ้น!");
-                    } else throw new Error("AI ส่งข้อมูลกลับมาไม่ครบถ้วน");
-                } else throw new Error("รูปแบบข้อมูลที่ได้จาก AI ไม่ถูกต้อง");
+                    } else {
+                        throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์ (ไม่พบโครงสร้าง HTML)");
+                    }
+                } else {
+                    throw new Error("รูปแบบข้อมูลที่ได้จาก AI ไม่ถูกต้อง");
+                }
 
             } catch (e) { 
                 if (e.name === 'AbortError' || e.message === 'AbortError') {
