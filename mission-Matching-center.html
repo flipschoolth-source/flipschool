@@ -85,6 +85,22 @@
         .coming-soon { filter: grayscale(0.8); opacity: 0.7; cursor: not-allowed; pointer-events: none; }
         .category-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; width: fit-content; font-family: 'Kanit'; letter-spacing: 0.5px; }
 
+        .hidden-el { display: none !important; }
+        
+        /* Modals */
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        
+        /* Recent Cards */
+        .recent-card {
+            background: white; border-radius: 1rem; padding: 1rem; border: 1px solid #e2e8f0;
+            display: flex; flex-direction: column; gap: 0.5rem; transition: 0.2s; cursor: pointer;
+            min-width: 220px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .recent-card:hover { border-color: var(--primary-light); box-shadow: 0 10px 20px rgba(0,0,139,0.05); transform: translateY(-3px); }
+        .recent-scroll-container { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; }
+        .recent-scroll-container::-webkit-scrollbar { height: 6px; }
+        .recent-scroll-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; }
         .spinner { border: 4px solid #f0f4ff; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 12px; }
         
@@ -105,7 +121,7 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังจัดเตรียมกระดาน...</div>
     </div>
 
-    <!-- 🌟 Navbar (แบบเดียวกับ mission-create.html เป๊ะ) 🌟 -->
+    <!-- 🌟 Navbar 🌟 -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -149,6 +165,18 @@
 
     <main class="flex-grow container mx-auto px-5 pb-20 max-w-[1200px]">
 
+        <!-- 🌟 FEATURE 4: แถบ "สร้างล่าสุด (Recent Creations)" 🌟 -->
+        <div id="recentMissionsSection" class="hidden-el mb-10 bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-[var(--accent)]"></div>
+            <div class="flex items-center justify-between mb-4 pl-3">
+                <h2 class="text-lg font-bold text-[var(--primary)] font-['Kanit']"><i class="fas fa-history text-slate-400 mr-2"></i> แก้ไขล่าสุด (Recent)</h2>
+                <a href="mission-library.html" class="text-xs font-bold text-slate-400 hover:text-blue-500 transition">ดูทั้งหมด <i class="fas fa-chevron-right ml-1"></i></a>
+            </div>
+            <div id="recentCardsContainer" class="recent-scroll-container pl-3">
+                <!-- Javascript will inject recent cards here -->
+            </div>
+        </div>
+
         <!-- 🌟 SECTION: รูปแบบเกมจับคู่ 🌟 -->
         <div class="mb-12">
             <div class="flex items-center justify-between mb-6">
@@ -163,16 +191,36 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 
                 <!-- 1. เกมจับคู่พลิกไพ่ (Memory Match) -->
-                <a href="mission-Matching-flip.html" class="model-card group mission-link border-2 border-blue-50">
-                    <div class="category-tag bg-blue-100 text-blue-600">Memory Match</div>
+                <div class="model-card group border-2 border-blue-50" onclick="goToCreate('mission-Matching-flip.html')">
+                    <!-- 🌟 FEATURE 3: Smart Tags 🌟 -->
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <div class="category-tag bg-blue-100 text-blue-600 mb-0">Memory Match</div>
+                        <div class="category-tag bg-rose-100 text-rose-600 mb-0">🔥 ยอดฮิต</div>
+                        <div class="category-tag bg-amber-100 text-amber-600 mb-0">⚡ 5 นาที</div>
+                    </div>
+                    
                     <div class="icon-box bg-blue-500 text-white shadow-md"><i class="fas fa-clone"></i></div>
                     <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">จับคู่พลิกไพ่</h3>
                     <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">เกมคลาสสิกที่ผู้เล่นต้องพลิกการ์ดเพื่อค้นหาคู่ที่เหมือนกัน ทดสอบความจำและคำศัพท์ได้อย่างดีเยี่ยม</p>
-                    <div class="flex items-center text-blue-600 font-bold text-xs mt-4 font-['Kanit'] group-hover:gap-2 transition-all">สร้างเกมนี้ <i class="fas fa-arrow-right ml-1"></i></div>
-                </a>
+                    
+                    <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <!-- 🌟 FEATURE 2: ปุ่มวิดีโอสอน 🌟 -->
+                        <button onclick="openTutorialModal('dQw4w9WgXcQ'); event.stopPropagation();" class="text-[10px] bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 px-3 py-2 rounded-lg font-bold font-['Kanit'] transition flex items-center gap-1 border-none cursor-pointer">
+                            <i class="fab fa-youtube text-rose-500"></i> วิธีสร้าง
+                        </button>
+                        <!-- 🌟 FEATURE 1: ปุ่มทดลองเล่น 🌟 -->
+                        <button onclick="openDemoModal('mission-Matching-flip'); event.stopPropagation();" class="text-[10px] bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg font-bold font-['Kanit'] transition flex items-center gap-1 border-none cursor-pointer">
+                            <i class="fas fa-play text-blue-500"></i> ทดลองเล่น
+                        </button>
+                        
+                        <div class="flex-1 text-right flex items-center justify-end text-blue-600 font-bold text-sm font-['Kanit'] group-hover:pr-2 transition-all">
+                            สร้าง <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- 2. จับคู่ลากเส้น (Draw Lines) -->
-                <a href="#" class="model-card group border-2 border-emerald-50 coming-soon" onclick="comingSoonAlert('จับคู่ลากเส้น')">
+                <div class="model-card group border-2 border-emerald-50 coming-soon" onclick="comingSoonAlert('จับคู่ลากเส้น')">
                     <div class="flex justify-between items-start mb-2">
                         <div class="category-tag bg-emerald-100 text-emerald-600 mb-0">Draw Lines</div>
                         <span class="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full font-['Kanit']">เร็วๆ นี้</span>
@@ -180,11 +228,11 @@
                     <div class="icon-box bg-emerald-500 text-white shadow-md mt-2"><i class="fas fa-pen-ruler"></i></div>
                     <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">จับคู่ลากเส้น</h3>
                     <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">เชื่อมโยงคำศัพท์ด้านซ้ายกับความหมายด้านขวาด้วยการลากเส้น เหมาะสำหรับข้อสอบหรือแบบฝึกหัด</p>
-                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 font-['Kanit']">อยู่ระหว่างการพัฒนา <i class="fas fa-lock ml-1"></i></div>
-                </a>
+                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 pt-4 border-t border-slate-100 font-['Kanit']">อยู่ระหว่างการพัฒนา <i class="fas fa-lock ml-1"></i></div>
+                </div>
 
                 <!-- 3. ลากวางลงกล่อง (Drag & Drop) -->
-                <a href="#" class="model-card group border-2 border-purple-50 coming-soon" onclick="comingSoonAlert('ลากวางลงกล่อง')">
+                <div class="model-card group border-2 border-purple-50 coming-soon" onclick="comingSoonAlert('ลากวางลงกล่อง')">
                     <div class="flex justify-between items-start mb-2">
                         <div class="category-tag bg-purple-100 text-purple-600 mb-0">Drag & Drop</div>
                         <span class="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full font-['Kanit']">เร็วๆ นี้</span>
@@ -192,15 +240,96 @@
                     <div class="icon-box bg-purple-500 text-white shadow-md mt-2"><i class="fas fa-hand-pointer"></i></div>
                     <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">ลากวางลงกล่อง</h3>
                     <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">ลากไอเทมหรือข้อความไปวางในหมวดหมู่ หรือกล่องที่ถูกต้องเพื่อจับคู่ สนุกและเห็นภาพชัดเจน</p>
-                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 font-['Kanit']">อยู่ระหว่างการพัฒนา <i class="fas fa-lock ml-1"></i></div>
-                </a>
+                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 pt-4 border-t border-slate-100 font-['Kanit']">อยู่ระหว่างการพัฒนา <i class="fas fa-lock ml-1"></i></div>
+                </div>
+
+                <!-- 🌟 FEATURE 5: ไอเดียเกมใหม่ (Future Game Types) 🌟 -->
+                
+                <!-- 4. จับคู่เสียงกับภาพ (Audio Match) -->
+                <div class="model-card group border-2 border-pink-50 coming-soon" onclick="comingSoonAlert('จับคู่เสียงกับภาพ')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2">
+                            <div class="category-tag bg-pink-100 text-pink-600 mb-0">Audio Match</div>
+                            <div class="category-tag bg-slate-100 text-slate-600 mb-0">🗣️ ภาษา</div>
+                        </div>
+                        <span class="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full font-['Kanit']">ไอเดียใหม่</span>
+                    </div>
+                    <div class="icon-box bg-pink-500 text-white shadow-md mt-2"><i class="fas fa-volume-up"></i></div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">จับคู่เสียงกับภาพ</h3>
+                    <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">กดฟังเสียงอ่านคำศัพท์ (Pronunciation) แล้วเลือกลากภาพที่ตรงกับเสียงนั้น เหมาะสำหรับวิชาภาษาต่างๆ</p>
+                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 pt-4 border-t border-slate-100 font-['Kanit']">Coming Soon <i class="fas fa-rocket ml-1"></i></div>
+                </div>
+
+                <!-- 5. แยกหมวดหมู่ (Sorting Box) -->
+                <div class="model-card group border-2 border-indigo-50 coming-soon" onclick="comingSoonAlert('แยกหมวดหมู่')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2">
+                            <div class="category-tag bg-indigo-100 text-indigo-600 mb-0">Sorting Box</div>
+                            <div class="category-tag bg-slate-100 text-slate-600 mb-0">📦 วิเคราะห์</div>
+                        </div>
+                        <span class="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full font-['Kanit']">ไอเดียใหม่</span>
+                    </div>
+                    <div class="icon-box bg-indigo-500 text-white shadow-md mt-2"><i class="fas fa-box-open"></i></div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">กล่องแยกหมวดหมู่</h3>
+                    <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">ลากป้ายคำศัพท์ทิ้งลงไปในกล่องแต่ละใบตามหมวดหมู่ (เช่น กล่องสัตว์บก, สัตว์น้ำ, สัตว์ปีก)</p>
+                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 pt-4 border-t border-slate-100 font-['Kanit']">Coming Soon <i class="fas fa-rocket ml-1"></i></div>
+                </div>
+
+                <!-- 6. เรียงลำดับ (Sequence) -->
+                <div class="model-card group border-2 border-teal-50 coming-soon" onclick="comingSoonAlert('เรียงลำดับขั้นตอน')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2">
+                            <div class="category-tag bg-teal-100 text-teal-600 mb-0">Sequence</div>
+                            <div class="category-tag bg-slate-100 text-slate-600 mb-0">🔢 ลำดับ</div>
+                        </div>
+                        <span class="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full font-['Kanit']">ไอเดียใหม่</span>
+                    </div>
+                    <div class="icon-box bg-teal-500 text-white shadow-md mt-2"><i class="fas fa-list-ol"></i></div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1 font-['Kanit']">เรียงลำดับขั้นตอน</h3>
+                    <p class="text-slate-500 text-xs flex-grow font-['Sarabun'] leading-relaxed">สลับตำแหน่งการ์ดให้เรียงตามลำดับเหตุการณ์ ลำดับเวลา หรือขั้นตอนกระบวนการทางวิทยาศาสตร์</p>
+                    <div class="flex items-center text-slate-400 font-bold text-xs mt-4 pt-4 border-t border-slate-100 font-['Kanit']">Coming Soon <i class="fas fa-rocket ml-1"></i></div>
+                </div>
 
             </div>
         </div>
 
     </main>
 
-    <!-- 🌟 Footer (แบบเดียวกับ mission-create.html เป๊ะ) 🌟 -->
+    <!-- 🌟 MODAL: พรีวิวเกม (Demo) 🌟 -->
+    <div id="demoModal" class="hidden fixed inset-0 z-[1500] items-center justify-center p-4 modal-overlay" onclick="closeDemoModal()">
+        <div class="bg-slate-900 rounded-[2rem] w-full max-w-3xl h-[80vh] flex flex-col shadow-2xl relative overflow-hidden border border-slate-700" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                <h3 class="font-bold text-white font-['Kanit'] text-lg"><i class="fas fa-play-circle text-blue-400 mr-2"></i> ทดลองเล่น: <span id="demoTitle">จับคู่พลิกไพ่</span></h3>
+                <button onclick="closeDemoModal()" class="text-slate-400 hover:text-white bg-transparent border-none cursor-pointer w-8 h-8 rounded-full hover:bg-slate-700 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex-1 bg-slate-950 relative flex items-center justify-center p-4">
+                <!-- จำลองเครื่องมือถือเพื่อให้เห็นภาพง่าย -->
+                <div class="w-full max-w-[375px] h-full max-h-[812px] bg-white rounded-3xl overflow-hidden shadow-2xl border-[6px] border-slate-800 relative">
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-xl z-20"></div>
+                    <iframe id="demoIframe" class="w-full h-full border-none"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 MODAL: วิดีโอสอนสร้าง (Tutorial) 🌟 -->
+    <div id="tutorialModal" class="hidden fixed inset-0 z-[1500] items-center justify-center p-4 modal-overlay" onclick="closeTutorialModal()">
+        <div class="bg-slate-900 rounded-[2rem] w-full max-w-4xl shadow-2xl relative overflow-hidden border border-slate-700 flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                <h3 class="font-bold text-white font-['Kanit'] text-lg"><i class="fab fa-youtube text-rose-500 mr-2"></i> วิธีสร้าง: <span id="tutorialTitle">เกมจับคู่</span></h3>
+                <button onclick="closeTutorialModal()" class="text-slate-400 hover:text-white bg-transparent border-none cursor-pointer w-8 h-8 rounded-full hover:bg-slate-700 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="aspect-w-16 aspect-h-9 bg-black w-full relative pb-[56.25%]">
+                <!-- สำหรับตัวอย่างใช้รูปภาพแทน Iframe วิดีโอไปก่อน จะได้ไม่ Error เวลายังไม่มีวิดีโอจริง -->
+                <div id="tutorialIframe" class="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-slate-500 font-['Kanit']">
+                    <i class="fab fa-youtube text-6xl text-slate-700 mb-4"></i>
+                    <p>ระบบวิดีโอสอนการใช้งานกำลังจัดทำครับ</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
     <footer class="bg-white border-t border-slate-100 py-6 mt-auto">
         <div class="container mx-auto px-6 text-center">
             <p class="text-slate-400 font-['Sarabun'] text-xs font-medium">© <span id="currentYear"></span> FlipSchool. <span class="app-slogan-label"></span></p>
@@ -208,6 +337,10 @@
     </footer>
 
     <script>
+        // --- ตัวแปรสำหรับส่งค่าไปสร้างเกม ---
+        let currentCid = null;
+        let currentFolder = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof APP_CONFIG !== 'undefined') {
                 document.getElementById('currentYear').innerText = APP_CONFIG.YEAR || new Date().getFullYear();
@@ -221,34 +354,148 @@
                 else nav.classList.remove('scrolled');
             });
 
-            // Handle URL Parameters (cid, folder)
+            // ดึงค่า Parameter จาก URL
             const params = new URLSearchParams(window.location.search);
-            const cid = params.get('cid');
-            const folder = params.get('folder');
+            currentCid = params.get('cid');
+            currentFolder = params.get('folder');
 
-            if (cid || folder) {
-                document.querySelectorAll('.mission-link').forEach(link => {
-                    try {
-                        const currentHref = link.getAttribute('href');
-                        if (currentHref && currentHref !== '#') {
-                            const url = new URL(currentHref, window.location.origin);
-                            if (cid) url.searchParams.set('cid', cid);
-                            if (folder) url.searchParams.set('folder', folder);
-                            link.href = url.href;
-                        }
-                    } catch (e) { }
-                });
-            }
-
-            // Click interaction for loading overlay
-            document.querySelectorAll('.mission-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    if (link.getAttribute('href') !== '#') {
-                        document.getElementById('loadingOverlay').style.display = 'flex';
-                    }
-                });
-            });
+            // 🌟 เช็คและดึงข้อมูลภารกิจล่าสุด 🌟
+            const checkDB = setInterval(() => { 
+                if (window.sysDB && typeof window.sysDB.auth !== 'undefined') { 
+                    clearInterval(checkDB); 
+                    fetchRecentMatchingMissions();
+                } 
+            }, 300);
         });
+
+        // --- ฟังก์ชันลิงก์ไปหน้าสร้างเกม (แนบ Params ไปด้วย) ---
+        function goToCreate(pageUrl) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            const url = new URL(pageUrl, window.location.origin);
+            if (currentCid) url.searchParams.set('cid', currentCid);
+            if (currentFolder) url.searchParams.set('folder', currentFolder);
+            
+            window.location.href = url.href;
+        }
+
+        // --- 🌟 ดึงข้อมูลเกมจับคู่ที่เพิ่งสร้างล่าสุด 🌟 ---
+        async function fetchRecentMatchingMissions() {
+            try {
+                const db = window.sysDB;
+                const { data: { session } } = await db.auth.getSession();
+                const uid = session ? session.user.id : localStorage.getItem('flip_student_session_id');
+                if (!uid) return;
+
+                const { data, error } = await db.from('missions')
+                    .select('mission_id, title, updated_at, mission_type')
+                    .eq('created_by', uid)
+                    .in('mission_type', ['matching-flip', 'matching', 'match']) // เอาเฉพาะเกมจับคู่
+                    .order('updated_at', { ascending: false })
+                    .limit(4);
+
+                if (data && data.length > 0) {
+                    renderRecentMissions(data);
+                }
+            } catch (e) {
+                console.error('Error fetching recent missions:', e);
+            }
+        }
+
+        function renderRecentMissions(data) {
+            const container = document.getElementById('recentCardsContainer');
+            const section = document.getElementById('recentMissionsSection');
+            
+            let html = '';
+            data.forEach(m => {
+                const isFlip = m.mission_type === 'matching-flip';
+                const icon = isFlip ? 'fa-clone' : 'fa-puzzle-piece';
+                const typeText = isFlip ? 'จับคู่พลิกไพ่' : 'จับคู่ภาพ';
+                const title = m.title || 'ไม่ระบุชื่อ';
+                
+                // คำนวณเวลาที่ผ่านไปอย่างง่าย
+                const date = new Date(m.updated_at);
+                const today = new Date();
+                const diffTime = Math.abs(today - date);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                let timeText = diffDays === 1 ? 'วันนี้' : (diffDays === 2 ? 'เมื่อวาน' : `${diffDays} วันที่แล้ว`);
+
+                // ส่งไปหน้าแก้ไขโดยตรง
+                let editUrl = isFlip ? 'mission-Matching-flip.html' : 'mission-Matching.html';
+                
+                html += `
+                    <div class="recent-card group" onclick="goToEdit('${editUrl}', '${m.mission_id}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-sm text-slate-800 font-['Kanit'] truncate m-0">${title}</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 rounded">${typeText}</span>
+                                    <span class="text-[10px] text-slate-400"><i class="far fa-clock"></i> ${timeText}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            section.classList.remove('hidden-el');
+        }
+
+        function goToEdit(pageUrl, missionId) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            const url = new URL(pageUrl, window.location.origin);
+            if (currentCid) url.searchParams.set('cid', currentCid);
+            if (currentFolder) url.searchParams.set('folder', currentFolder);
+            url.searchParams.set('edit_mid', missionId); // ส่ง ID ไปแก้ไข
+            window.location.href = url.href;
+        }
+
+        // --- 🌟 ฟังก์ชันจัดการ Modal พรีวิวเกม (Demo) 🌟 ---
+        function openDemoModal(type) {
+            const modal = document.getElementById('demoModal');
+            const iframe = document.getElementById('demoIframe');
+            
+            // ใช้โครงสร้างโค้ดแบบหลอกๆ (Dummy Code) เพื่อแสดงผลใน Iframe ทันที
+            if (type === 'mission-Matching-flip') {
+                iframe.srcdoc = `
+                    <html><head><script src="https://cdn.tailwindcss.com"><\/script><link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet"></head>
+                    <body class="bg-slate-50 flex flex-col items-center justify-center h-full p-4 font-['Kanit'] text-center">
+                        <div class="text-6xl mb-4">🍎</div>
+                        <h2 class="text-xl font-bold text-blue-600 mb-2">ตัวอย่างเกมจับคู่พลิกไพ่</h2>
+                        <p class="text-sm text-slate-500">นี่คือตัวอย่างการแสดงผลบนหน้าจอมือถือของนักเรียน</p>
+                        <button class="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow-lg pointer-events-none">กดเริ่มเกม</button>
+                    </body></html>
+                `;
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDemoModal() {
+            const modal = document.getElementById('demoModal');
+            const iframe = document.getElementById('demoIframe');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            iframe.srcdoc = ''; // ล้างค่า iframe
+        }
+
+        // --- 🌟 ฟังก์ชันจัดการ Modal วิดีโอสอน (Tutorial) 🌟 ---
+        function openTutorialModal(videoId) {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
         // Toggle Mobile Menu
         function toggleMobileMenu() { 
@@ -263,7 +510,7 @@
 
             const message = document.createElement('div');
             message.id = 'tempAlert';
-            message.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 font-["Kanit"] text-sm animate-bounce flex items-center gap-2';
+            message.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 font-["Kanit"] text-sm animate-bounce flex items-center gap-2 w-[90%] max-w-sm justify-center';
             message.innerHTML = `<i class="fas fa-tools text-amber-400"></i> ${featureName} กำลังเตรียมเปิดให้บริการในอัปเดตหน้าครับ`;
             document.body.appendChild(message);
             setTimeout(() => message.remove(), 3500);
