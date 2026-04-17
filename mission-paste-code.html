@@ -568,6 +568,7 @@
             } else {
                 container.classList.add('opacity-50', 'pointer-events-none');
             }
+            refreshPreview(); // อัปเดตสถานะการตรวจสอบโค้ดทันทีเมื่อสลับโหมด
         }
 
         async function smartPaste() {
@@ -633,9 +634,14 @@
             const cleanCode = code.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
             const hasPostMessage = /postMessage\s*\(/i.test(cleanCode);
             const hasSaveType = /['"]SAVE_RESULT['"]/i.test(cleanCode);
+            const isSaveScore = document.getElementById('saveScoreToggle') && document.getElementById('saveScoreToggle').checked;
 
-            if (!hasPostMessage || !hasSaveType) return { status: 'warning', msg: "⚠️ ไม่พบโค้ดส่งคะแนน" };
-            return { status: 'success', msg: "✅ โค้ดถูกต้อง" };
+            if (isSaveScore) {
+                if (!hasPostMessage || !hasSaveType) return { status: 'warning', msg: "⚠️ ไม่พบโค้ดส่งคะแนน (สั่ง AI เติมได้)" };
+                return { status: 'success', msg: "✅ โค้ดถูกต้อง (พบระบบส่งคะแนน)" };
+            } else {
+                return { status: 'success', msg: "✅ โค้ดถูกต้อง (โหมดฝึกซ้อม)" };
+            }
         }
 
         function refreshPreview() {
@@ -909,6 +915,11 @@
                 const currentSubject = document.getElementById("missionSubjectInput").value.trim() || dbSubject;
                 const currentGrade = document.getElementById("missionGradeInput").value.trim() || dbGrade;
                 const contextStr = targetCid ? `Context: For Subject "${currentSubject}", Grade Level "${currentGrade}".` : "";
+                const isSaveScore = document.getElementById("saveScoreToggle").checked;
+
+                const scoreInstruction = isSaveScore 
+                    ? "2. **สำคัญมาก: ต้องมีระบบส่งคะแนนเมื่อจบเกม** ให้ตรวจดูว่ามีโค้ดส่งคะแนนหรือยัง ถ้ายังให้เพิ่มโค้ด `window.parent.postMessage({type: 'SAVE_RESULT', score: [ตัวแปรคะแนนที่ได้]}, '*');` เข้าไปทำงาน 'ทันทีที่ผู้เล่นเล่นจบ' (เช่น ชนะ, แพ้, หรือหมดเวลา) โดยไม่ต้องสร้างหน้าต่างยืนยัน"
+                    : "2. **โหมดฝึกซ้อม (ไม่บันทึกคะแนน):** กิจกรรมนี้เป็นแค่การฝึกซ้อม ห้ามใส่คำสั่ง `window.parent.postMessage({type: 'SAVE_RESULT'})` ลงไปในโค้ดโดยเด็ดขาด (หากมีให้ลบออก)";
 
                 // 🌟 เปลี่ยนคำสั่งใหม่: บังคับห้ามตัดทอนโค้ด และเลิกใช้ JSON เพื่อความเสถียร 100%
                 const sysPrompt = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) แบบ Single HTML File
@@ -916,12 +927,12 @@
                 ${contextStr}
                 กฎสำคัญขั้นเด็ดขาด (CRITICAL):
                 1. ใช้ภาษาไทย (Thai font เช่น Kanit, Sarabun) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
-                2. เมื่อกิจกรรมสิ้นสุด ต้องมีระบบส่งคะแนนและสถิติ: window.parent.postMessage({type: 'SAVE_RESULT', score: 100, answers: [...]}, '*')
+                ${scoreInstruction}
                 3. ในส่วนของ [HTML_CODE] คุณต้องคืนค่าโค้ด HTML "ฉบับเต็มตั้งแต่ <!DOCTYPE html> จนถึง </html>" เท่านั้น ห้ามตัดทอนโค้ด ห้ามใช้คอมเมนต์ละเว้นโค้ด (เช่น <!-- ... existing code ... -->) โดยเด็ดขาด ต้องรักษาโค้ดส่วนอื่นๆ ที่ไม่ได้สั่งแก้ไว้ให้ทำงานได้สมบูรณ์เหมือนเดิม 100%
                 4. รูปแบบการตอบกลับ ให้ส่งมาเป็น Text Format ตามแท็กนี้เท่านั้น (ห้ามครอบด้วย JSON):
                 
                 [CHANGE_LOG]
-                สรุปการแก้ไขที่ทำให้เป็นภาษาไทยสั้นๆ
+                สรุปการแก้ไขสั้นๆ
                 [/CHANGE_LOG]
                 
                 [HTML_CODE]
@@ -985,7 +996,7 @@
 
                 if (!isSuccess) {
                     if (lastErrorMsg.includes("limit: 0")) throw new Error("ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวขอ Key ครับ");
-                    else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) throw new Error("โควต้าเต็มทุกคีย์! ⏳ กรุณารอ 30 นาที หรือเพิ่ม Key จากบัญชีอื่น");
+                    else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) throw new Error("โควต้าเต็มทุกคีย์! ⏳ โค้ดต้นฉบับยาวเกินไปจนโควต้า Token หมด กรุณารอ 30 นาที หรือเปลี่ยนคีย์");
                     else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
                 }
 
