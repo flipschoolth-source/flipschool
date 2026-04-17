@@ -434,6 +434,8 @@
         let aiTimeoutId = null;
         let isFullScreen = false;
         let isFocusMode = false;
+        let previousCodeLength = 0;
+        let isSystemLoadingCode = false;
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
 
@@ -532,10 +534,19 @@
             });
 
             editor.onDidChangeModelContent(() => {
+                const currentCode = editor.getValue();
+                const currentLength = currentCode.length;
+                
+                // 🌟 แจ้งเตือนเมื่อมีการวางโค้ดที่ยาวเกินไป (ป้องกัน Token เต็ม)
+                if (!isSystemLoadingCode && (currentLength - previousCodeLength > 10000)) {
+                    showMessage("⚠️ โค้ดยาวมาก ระวังโควต้า Token ของ AI เต็มนะครับ", true);
+                    appendChatBubble('ai', "⚠️ ตรวจพบการวางโค้ดที่มีความยาวมาก!\n\n💡 โปรดทราบ: โควต้าฟรีของ Gemini ไม่ได้จำกัดแค่ \"จำนวนครั้งที่กดส่ง (RPM)\" แต่จำกัด \"ขนาดข้อความรวม (Tokens Per Minute - TPM)\" ด้วย\n\nการสั่ง AI แก้ไขโค้ดที่ยาวมากๆ ในครั้งเดียว (เช่นส่งไปทั้งไฟล์) อาจทำให้โควต้ารายนาทีเต็มทันที (Error: Quota Exceeded) แนะนำให้สั่งแก้ทีละส่วน หรือเตรียม Key สำรองไว้ครับ");
+                }
+                previousCodeLength = currentLength;
+
                 const statusEl = document.getElementById('validationStatus');
                 if (statusEl) statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-slate-400"></i> <span class="text-slate-400">กำลังประมวลผล...</span>';
                 
-                const currentCode = editor.getValue();
                 localStorage.setItem('mission_code_draft', currentCode);
                 
                 if (debounceTimer) clearTimeout(debounceTimer);
@@ -588,7 +599,9 @@
 
         function clearEditor() {
             if(confirm("ต้องการล้างโค้ดทั้งหมดใช่ไหมครับ?")) {
+                isSystemLoadingCode = true;
                 editor.setValue("");
+                isSystemLoadingCode = false;
                 refreshPreview();
             }
         }
@@ -996,7 +1009,9 @@
 
                 if (!isSuccess) {
                     if (lastErrorMsg.includes("limit: 0")) throw new Error("ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวขอ Key ครับ");
-                    else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) throw new Error("โควต้าเต็มทุกคีย์! ⏳ โค้ดต้นฉบับยาวเกินไปจนโควต้า Token หมด กรุณารอ 30 นาที หรือเปลี่ยนคีย์");
+                    else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
+                        throw new Error("โควต้าเต็มทุกคีย์! ⏳\n\nสาเหตุ: โควต้าฟรีของ Gemini ไม่ได้จำกัดแค่ \"จำนวนครั้งที่กดส่ง (RPM)\" แต่จำกัด \"ขนาดข้อความรวม (Tokens Per Minute - TPM)\" ด้วย\n\nโค้ดต้นฉบับอาจยาวเกินไปจนโควต้า Token หมด กรุณารอ 30 นาที หรือเพิ่ม Key จากบัญชีอื่นครับ");
+                    }
                     else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
                 }
 
@@ -1018,7 +1033,9 @@
                     }
 
                     if (extractedHtml) {
+                        isSystemLoadingCode = true;
                         editor.setValue(extractedHtml); 
+                        isSystemLoadingCode = false;
                         setTimeout(formatCode, 100);
                         appendChatBubble('ai', changeLog);
                         showMessage("✨ AI ปรับแก้โค้ดเสร็จสิ้น!");
@@ -1126,7 +1143,9 @@
 
                     if(editor && loadedHtml) {
                         if (debounceTimer) clearTimeout(debounceTimer);
+                        isSystemLoadingCode = true;
                         editor.setValue(loadedHtml);
+                        isSystemLoadingCode = false;
                     }
                 }
             } catch(e) { console.error("Error loading mission:", e); }
@@ -1136,7 +1155,9 @@
             const draft = localStorage.getItem('mission_code_draft');
             if(draft && editor) { 
                  if (debounceTimer) clearTimeout(debounceTimer);
+                 isSystemLoadingCode = true;
                  editor.setValue(draft); 
+                 isSystemLoadingCode = false;
                  showMessage("📂 โหลดโค้ดเดิมคืนมาแล้ว"); 
             }
         }
