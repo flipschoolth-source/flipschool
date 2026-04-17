@@ -344,7 +344,15 @@
                         <textarea id="promptInput" class="w-full min-h-[60px] bg-transparent outline-none resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed mb-2" placeholder="✨ สั่ง AI ให้แก้โค้ด (เช่น เปลี่ยนสีพื้นหลัง, เพิ่มเสียง, แก้บั๊ก) (ลากมุมขวาล่างเพื่อขยายได้)"></textarea>
                         
                         <div class="flex justify-between items-center border-t border-slate-100 pt-2">
-                            <span class="text-[10px] text-slate-400 font-medium">✨ พิมพ์คำสั่งแล้วกดส่ง</span>
+                            <!-- 🌟 เพิ่มสวิตช์โหมด Smart Patch ตรงนี้ 🌟 -->
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-slate-400 font-medium">✨ พิมพ์คำสั่งแล้วกดส่ง</span>
+                                <label class="flex items-center gap-1.5 cursor-pointer mt-1 group" title="ให้ AI คืนค่าเฉพาะจุดที่แก้ ช่วยประหยัดโควต้าได้ 90% (เหมาะสำหรับไฟล์ยาว)">
+                                    <input type="checkbox" id="smartPatchToggle" class="sr-only peer">
+                                    <div class="w-7 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-500 relative"></div>
+                                    <span class="text-[10px] font-bold text-slate-500 group-hover:text-purple-600 transition-colors">⚡ Smart Patch (ประหยัด Token)</span>
+                                </label>
+                            </div>
                             <div class="flex items-center gap-2">
                                 <button id="aiStopBtn" onclick="stopAIGeneration()" class="hidden-el w-10 h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-all shadow-md flex items-center justify-center text-sm" title="หยุด AI">
                                     <i class="fas fa-stop"></i>
@@ -537,10 +545,10 @@
                 const currentCode = editor.getValue();
                 const currentLength = currentCode.length;
                 
-                // 🌟 แจ้งเตือนเมื่อมีการวางโค้ดที่ยาวเกินไป (ป้องกัน Token เต็ม)
+                // 🌟 แจ้งเตือนเมื่อมีการวางโค้ดที่ยาวเกินไป พร้อมเสนอทางเลือก
                 if (!isSystemLoadingCode && (currentLength - previousCodeLength > 10000)) {
                     showMessage("⚠️ โค้ดยาวมาก ระวังโควต้า Token ของ AI เต็มนะครับ", true);
-                    appendChatBubble('ai', "⚠️ ตรวจพบการวางโค้ดที่มีความยาวมาก!\n\n💡 โปรดทราบ: โควต้าฟรีของ Gemini ไม่ได้จำกัดแค่ \"จำนวนครั้งที่กดส่ง (RPM)\" แต่จำกัด \"ขนาดข้อความรวม (Tokens Per Minute - TPM)\" ด้วย\n\nการสั่ง AI แก้ไขโค้ดที่ยาวมากๆ ในครั้งเดียว (เช่นส่งไปทั้งไฟล์) อาจทำให้โควต้ารายนาทีเต็มทันที (Error: Quota Exceeded) แนะนำให้สั่งแก้ทีละส่วน หรือเตรียม Key สำรองไว้ครับ");
+                    appendChatBubble('ai', "⚠️ ตรวจพบการวางโค้ดที่มีความยาวมาก!\n\nหากคุณกดสั่ง AI ให้แก้โค้ดทั้งไฟล์ โควต้าฟรีของ Google อาจจะเต็มทันที (Error Quota Exceeded) แนะนำให้ใช้ 2 วิธีนี้ครับ:\n\n💡 วิธีที่ 1 (แนะนำ): ให้ลากเมาส์ 'คลุมดำ' (Highlight) เฉพาะโค้ดส่วนที่คุณต้องการแก้ แล้วค่อยพิมพ์คำสั่ง AI ระบบจะฉลาดพอที่จะดึงไปแก้แค่จุดนั้นครับ!\n\n⚡ วิธีที่ 2: เปิดสวิตช์ 'Smart Patch' ด้านล่างก่อนกดส่ง ระบบจะให้ AI ส่งกลับมาเฉพาะจุดที่แก้ (แต่ต้องระวังบางครั้ง AI อาจหาจุดแก้ไม่เจอ)\n\n🚀 วิธีที่ 3: หากต้องการส่งทีละมากๆ ต้องใช้ API Key ของบัญชีที่ผูกบัตรเครดิต (Pay-as-you-go) ไว้ครับ");
                 }
                 previousCodeLength = currentLength;
 
@@ -650,7 +658,10 @@
             const isSaveScore = document.getElementById('saveScoreToggle') && document.getElementById('saveScoreToggle').checked;
 
             if (isSaveScore) {
-                if (!hasPostMessage || !hasSaveType) return { status: 'warning', msg: "⚠️ ไม่พบโค้ดส่งคะแนน (สั่ง AI เติมได้)" };
+                if (!hasPostMessage || !hasSaveType) {
+                    // เปลี่ยนจากแจ้งเตือนเฉยๆ เป็นบอกว่าระบบจะจัดการให้
+                    return { status: 'warning', msg: "⚠️ ไม่พบโค้ด (ระบบจะแทรกปุ่ม 'ส่งคะแนน' ให้อัตโนมัติ)" };
+                }
                 return { status: 'success', msg: "✅ โค้ดถูกต้อง (พบระบบส่งคะแนน)" };
             } else {
                 return { status: 'success', msg: "✅ โค้ดถูกต้อง (โหมดฝึกซ้อม)" };
@@ -897,6 +908,7 @@
             }
         }
 
+        // 🌟 Core ฟังก์ชันจัดการระบบ AI ทั้งหมด (คลุมดำ, Patch, ตอบทั้งหมด) 🌟
         async function handleAIModify() {
             if (aiAbortController) return;
 
@@ -912,13 +924,34 @@
             if (keys.length === 0) return showMessage("🔑 ไม่พบ API Key ที่ถูกต้องเลย", true);
             keys = keys.sort(() => Math.random() - 0.5);
 
+            // 🌟 1. ตรวจสอบโหมดต่างๆ (Highlight หรือ Smart Patch) 🌟
+            const selection = editor.getSelection();
+            const selectedText = editor.getModel().getValueInRange(selection);
+            let isPartialEdit = false;
+            let isSmartPatch = document.getElementById("smartPatchToggle") && document.getElementById("smartPatchToggle").checked;
+            let codeToSend = currentCode;
+
+            if (selectedText && selectedText.trim().length > 0) {
+                isPartialEdit = true;
+                isSmartPatch = false; // ถ้าคลุมดำ จะบังคับปิดโหมด Patch เพื่อความเสถียร
+                codeToSend = selectedText;
+                appendChatBubble('user', `(แก้เฉพาะส่วนที่คลุมดำ) ${prompt}`);
+            } else if (isSmartPatch) {
+                appendChatBubble('user', `⚡ [Smart Patch] ${prompt}`);
+            } else {
+                appendChatBubble('user', prompt);
+            }
+
             toggleFocusMode(true);
-            appendChatBubble('user', prompt);
             promptInputEl.value = "";
 
             document.getElementById("generateBtn").classList.add('hidden-el');
             document.getElementById("aiStopBtn").classList.remove('hidden-el');
-            toggleLoading(true, "AI กำลังอ่านโค้ดและปรับปรุง...");
+            
+            let loadingMsg = "AI กำลังอ่านโค้ดทั้งไฟล์...";
+            if (isPartialEdit) loadingMsg = "AI กำลังแก้เฉพาะส่วนที่คลุมดำ...";
+            if (isSmartPatch) loadingMsg = "⚡ AI กำลังสร้าง Patch แก้ไขโค้ด...";
+            toggleLoading(true, loadingMsg);
 
             aiAbortController = new AbortController();
             let isTimeout = false;
@@ -931,29 +964,63 @@
                 const isSaveScore = document.getElementById("saveScoreToggle").checked;
 
                 const scoreInstruction = isSaveScore 
-                    ? "2. **สำคัญมาก: ต้องมีระบบส่งคะแนนเมื่อจบเกม** ให้ตรวจดูว่ามีโค้ดส่งคะแนนหรือยัง ถ้ายังให้เพิ่มโค้ด `window.parent.postMessage({type: 'SAVE_RESULT', score: [ตัวแปรคะแนนที่ได้]}, '*');` เข้าไปทำงาน 'ทันทีที่ผู้เล่นเล่นจบ' (เช่น ชนะ, แพ้, หรือหมดเวลา) โดยไม่ต้องสร้างหน้าต่างยืนยัน"
-                    : "2. **โหมดฝึกซ้อม (ไม่บันทึกคะแนน):** กิจกรรมนี้เป็นแค่การฝึกซ้อม ห้ามใส่คำสั่ง `window.parent.postMessage({type: 'SAVE_RESULT'})` ลงไปในโค้ดโดยเด็ดขาด (หากมีให้ลบออก)";
+                    ? "2. **สำคัญมาก:** หากเกี่ยวข้อง ให้เพิ่ม `window.parent.postMessage({type: 'SAVE_RESULT', score: 10}, '*');` เมื่อจบเกม"
+                    : "2. **โหมดฝึกซ้อม:** ห้ามส่งคะแนนใดๆ";
 
-                // 🌟 เปลี่ยนคำสั่งใหม่: บังคับห้ามตัดทอนโค้ด และเลิกใช้ JSON เพื่อความเสถียร 100%
-                const sysPrompt = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS) แบบ Single HTML File
-                คำสั่งของครู: "${prompt}"
-                ${contextStr}
-                กฎสำคัญขั้นเด็ดขาด (CRITICAL):
-                1. ใช้ภาษาไทย (Thai font เช่น Kanit, Sarabun) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
-                ${scoreInstruction}
-                3. ในส่วนของ [HTML_CODE] คุณต้องคืนค่าโค้ด HTML "ฉบับเต็มตั้งแต่ <!DOCTYPE html> จนถึง </html>" เท่านั้น ห้ามตัดทอนโค้ด ห้ามใช้คอมเมนต์ละเว้นโค้ด (เช่น <!-- ... existing code ... -->) โดยเด็ดขาด ต้องรักษาโค้ดส่วนอื่นๆ ที่ไม่ได้สั่งแก้ไว้ให้ทำงานได้สมบูรณ์เหมือนเดิม 100%
-                4. รูปแบบการตอบกลับ ให้ส่งมาเป็น Text Format ตามแท็กนี้เท่านั้น (ห้ามครอบด้วย JSON):
-                
-                [CHANGE_LOG]
-                สรุปการแก้ไขสั้นๆ
-                [/CHANGE_LOG]
-                
-                [HTML_CODE]
-                <!DOCTYPE html>
-                <html>...ใส่โค้ดฉบับเต็มทั้งหมดห้ามตัดทอน...</html>
-                [/HTML_CODE]`;
+                // 🌟 2. กำหนด Prompt แบ่งตามโหมด 🌟
+                let sysPrompt = "";
+                if (isPartialEdit) {
+                    // โหมดคลุมดำ
+                    sysPrompt = `คุณคือผู้เชี่ยวชาญการเขียนโค้ด HTML/CSS/JS 
+                    ผู้ใช้ส่งโค้ด "เฉพาะส่วนย่อย" มาให้
+                    คำสั่ง: "${prompt}"
+                    กฎ: คืนค่าโค้ดที่แก้ไขแล้วกลับมาในแท็ก [HTML_CODE]...[/HTML_CODE] เท่านั้น ห้ามใส่ <!DOCTYPE html> ถ้าของเดิมไม่มี
+                    [CHANGE_LOG]
+                    สรุปการแก้ไขสั้นๆ
+                    [/CHANGE_LOG]
+                    [HTML_CODE]
+                    ...เฉพาะโค้ดที่แก้ไขแล้ว ห้ามมีอย่างอื่น...
+                    [/HTML_CODE]`;
+                } else if (isSmartPatch) {
+                    // โหมด Smart Patch (JSON)
+                    sysPrompt = `คุณคือระบบ AI สร้าง Patch อัตโนมัติสำหรับไฟล์ HTML
+                    คำสั่งของครู: "${prompt}"
+                    ${contextStr}
+                    กฎสำคัญขั้นเด็ดขาด (CRITICAL):
+                    1. ห้ามตอบกลับเป็นโค้ดเต็มไฟล์เด็ดขาด! ให้ตอบกลับเป็น JSON Array ของสิ่งที่ต้องค้นหาและแทนที่เท่านั้น
+                    2. ในช่อง "find" ให้คัดลอกโค้ดต้นฉบับมาให้เหมือนเป๊ะๆ (ระวังเรื่องการเว้นวรรค) และให้ยาวพอที่ระบบจะไม่ไปแทนที่ผิดจุด
+                    3. รูปแบบการตอบกลับ:
+                    [CHANGE_LOG]
+                    สรุปการแก้ไขสั้นๆ
+                    [/CHANGE_LOG]
+                    [PATCH_JSON]
+                    [
+                      {
+                        "find": "<button>เริ่ม</button>",
+                        "replace": "<button class='btn-new'>เริ่มเกมเลย</button>"
+                      }
+                    ]
+                    [/PATCH_JSON]
+                    ห้ามมีข้อความอธิบายอื่นใดนอกเหนือจากแท็กที่กำหนด`;
+                } else {
+                    // โหมดปกติ (ตอบกลับทั้งไฟล์)
+                    sysPrompt = `คุณคือผู้เชี่ยวชาญการสร้างสื่อการสอนแบบ Interactive (HTML5/TailwindCSS)
+                    คำสั่งของครู: "${prompt}"
+                    ${contextStr}
+                    กฎสำคัญขั้นเด็ดขาด (CRITICAL):
+                    1. ใช้ภาษาไทย (Thai font เช่น Kanit, Sarabun) ในส่วนแสดงผลให้นักเรียนอ่านทั้งหมด
+                    ${scoreInstruction}
+                    3. คืนค่าโค้ด HTML "ฉบับเต็มตั้งแต่ <!DOCTYPE html> จนถึง </html>"
+                    [CHANGE_LOG]
+                    สรุปการแก้ไขสั้นๆ
+                    [/CHANGE_LOG]
+                    [HTML_CODE]
+                    <!DOCTYPE html>
+                    <html>...ใส่โค้ดฉบับเต็ม...</html>
+                    [/HTML_CODE]`;
+                }
 
-                const payload = { contents: [{ parts: [{ text: `นี่คือโค้ดตั้งต้น โปรดปรับแก้ตามคำสั่ง:\n\`\`\`html\n${currentCode}\n\`\`\`` }] }], systemInstruction: { parts: [{ text: sysPrompt }] } };
+                const payload = { contents: [{ parts: [{ text: `โค้ด:\n\`\`\`html\n${codeToSend}\n\`\`\`` }] }], systemInstruction: { parts: [{ text: sysPrompt }] } };
 
                 let resultData = null;
                 let isSuccess = false;
@@ -968,26 +1035,18 @@
                         if (modelRes.ok) {
                             const modelData = await modelRes.json();
                             if (modelData.models) {
-                                const validModels = modelData.models
-                                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
-                                    .map(m => m.name.replace('models/', ''));
+                                const validModels = modelData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")).map(m => m.name.replace('models/', ''));
                                 const flashModels = validModels.filter(m => m.includes("flash"));
-                                if (flashModels.length > 0) AI_MODELS = flashModels.reverse(); 
-                                else if (validModels.length > 0) AI_MODELS = validModels;
+                                if (flashModels.length > 0) AI_MODELS = flashModels.reverse(); else if (validModels.length > 0) AI_MODELS = validModels;
                             }
                         }
-                    } catch(e) { if(e.name === 'AbortError') throw e; }
+                    } catch(e) {}
 
                     for (let m = 0; m < AI_MODELS.length; m++) {
                         const currentModel = AI_MODELS[m];
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
-
                         try {
-                            const res = await fetch(url, { 
-                                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                                body: JSON.stringify(payload), signal: aiAbortController.signal 
-                            });
-                            
+                            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: aiAbortController.signal });
                             if (!res.ok) {
                                 const errData = await res.json().catch(() => ({}));
                                 let errorMsg = errData.error?.message || `API Error (${res.status})`;
@@ -996,7 +1055,6 @@
                                     if (errorMsg.includes("limit: 0")) continue; else break; 
                                 } else if (res.status === 404 || res.status === 400) continue; else break; 
                             }
-                            
                             resultData = await res.json();
                             isSuccess = true; break; 
                         } catch (fetchErr) {
@@ -1008,47 +1066,104 @@
                 } 
 
                 if (!isSuccess) {
-                    if (lastErrorMsg.includes("limit: 0")) throw new Error("ไม่มีโควต้าฟรี (Limit: 0) แนะนำให้ใช้ Gmail ส่วนตัวขอ Key ครับ");
+                    if (lastErrorMsg.includes("limit: 0")) throw new Error("ไม่มีโควต้าฟรี แนะนำให้ใช้ Gmail ขอ Key ครับ");
                     else if (lastErrorMsg.toLowerCase().includes("quota") || lastErrorMsg.toLowerCase().includes("rate limit")) {
-                        throw new Error("โควต้าเต็มทุกคีย์! ⏳\n\nสาเหตุ: โควต้าฟรีของ Gemini ไม่ได้จำกัดแค่ \"จำนวนครั้งที่กดส่ง (RPM)\" แต่จำกัด \"ขนาดข้อความรวม (Tokens Per Minute - TPM)\" ด้วย\n\nโค้ดต้นฉบับอาจยาวเกินไปจนโควต้า Token หมด กรุณารอ 30 นาที หรือเพิ่ม Key จากบัญชีอื่นครับ");
+                        throw new Error("โควต้าเต็ม! ⏳\n\nไฟล์โค้ดอาจยาวเกินไปจนโควต้า (Token) หมด กรุณาเปิดสวิตช์ '⚡ Smart Patch' หรือลากเมาส์ 'คลุมดำ' เพื่อแก้ไขเฉพาะจุดครับ");
                     }
-                    else throw new Error(`เกิดข้อผิดพลาดจาก Google: ${lastErrorMsg}`);
+                    else throw new Error(`Google API Error: ${lastErrorMsg}`);
                 }
 
-                // 🌟 ดึงข้อความดิบออกมา และแปลผลผ่าน Tag แบบใหม่ 🌟
+                // 🌟 3. อ่านค่าที่ตอบกลับมาและนำมาทำงานตามโหมด 🌟
                 let responseText = resultData.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (responseText) {
-                    // อ่านโค้ด HTML ผ่าน Tag [HTML_CODE] หรือ ฟอร์แมต Markdown ```html
-                    const htmlMatch = responseText.match(/\[HTML_CODE\]([\s\S]*?)\[\/HTML_CODE\]/i) || responseText.match(/```html([\s\S]*?)```/i);
                     const logMatch = responseText.match(/\[CHANGE_LOG\]([\s\S]*?)\[\/CHANGE_LOG\]/i);
-                    
-                    let extractedHtml = htmlMatch ? htmlMatch[1].trim() : null;
-                    let changeLog = logMatch ? logMatch[1].trim() : "แก้ไขโค้ดเรียบร้อยแล้วครับ ✨ ลองกดพรีวิวดูได้เลย";
-                    
-                    // หากหาแท็กไม่เจอ ให้พยายามดึงตั้งแต่ <!DOCTYPE html> ลงมา
-                    if (!extractedHtml && responseText.includes("<!DOCTYPE html>")) {
-                        extractedHtml = responseText.substring(responseText.indexOf("<!DOCTYPE html>"));
-                        // ตัด Tag ปิดที่อาจจะหลงเหลือ
-                        if (extractedHtml.includes("[/HTML_CODE]")) extractedHtml = extractedHtml.split("[/HTML_CODE]")[0].trim();
+                    let changeLog = logMatch ? logMatch[1].trim() : "ดำเนินการเรียบร้อยแล้วครับ ✨";
+
+                    isSystemLoadingCode = true; // ล็อคระบบแจ้งเตือนความยาวโค้ด
+
+                    if (isSmartPatch) {
+                        // โหมด Smart Patch (วิเคราะห์ JSON)
+                        const patchMatch = responseText.match(/\[PATCH_JSON\]([\s\S]*?)\[\/PATCH_JSON\]/i);
+                        let jsonRaw = patchMatch ? patchMatch[1].trim() : null;
+                        
+                        if(!jsonRaw && responseText.includes('[')) {
+                             const jsonStart = responseText.indexOf('[');
+                             const jsonEnd = responseText.lastIndexOf(']') + 1;
+                             jsonRaw = responseText.substring(jsonStart, jsonEnd);
+                        }
+
+                        if (jsonRaw) {
+                            try {
+                                let patches = JSON.parse(jsonRaw);
+                                let currentEditorCode = editor.getValue();
+                                let successCount = 0;
+                                let failCount = 0;
+
+                                patches.forEach(p => {
+                                    const safeFind = p.find.trim(); 
+                                    if (currentEditorCode.includes(p.find)) {
+                                        currentEditorCode = currentEditorCode.replace(p.find, p.replace);
+                                        successCount++;
+                                    } else if (currentEditorCode.includes(safeFind)) {
+                                        currentEditorCode = currentEditorCode.replace(safeFind, p.replace);
+                                        successCount++;
+                                    } else {
+                                        failCount++;
+                                    }
+                                });
+
+                                editor.setValue(currentEditorCode);
+                                
+                                let patchResultMsg = `⚡ อัปเดตแพตช์สำเร็จ ${successCount} จุด (หาไม่พบ ${failCount} จุด)`;
+                                appendChatBubble('ai', changeLog + `\n\n` + patchResultMsg);
+                                showMessage(patchResultMsg);
+                                if(failCount > 0) showMessage("⚠️ บางจุดค้นหาไม่เจอ แนะนำให้ใช้โหมดคลุมดำแก้เฉพาะจุด", true);
+
+                            } catch (err) {
+                                throw new Error("รูปแบบแพตช์ (JSON) ที่ AI ส่งมาไม่ถูกต้อง");
+                            }
+                        } else {
+                            throw new Error("AI ส่งข้อมูลแพตช์กลับมาไม่สมบูรณ์");
+                        }
+                    } 
+                    else {
+                        // โหมดปกติ หรือ คลุมดำ
+                        const htmlMatch = responseText.match(/\[HTML_CODE\]([\s\S]*?)\[\/HTML_CODE\]/i) || responseText.match(/```html([\s\S]*?)```/i);
+                        let extractedHtml = htmlMatch ? htmlMatch[1].trim() : null;
+                        
+                        if (!extractedHtml && responseText.includes("<!DOCTYPE html>")) {
+                            extractedHtml = responseText.substring(responseText.indexOf("<!DOCTYPE html>"));
+                            if (extractedHtml.includes("[/HTML_CODE]")) extractedHtml = extractedHtml.split("[/HTML_CODE]")[0].trim();
+                        }
+                        
+                        if (!extractedHtml && isPartialEdit) {
+                             extractedHtml = responseText.replace(/\[CHANGE_LOG\]([\s\S]*?)\[\/CHANGE_LOG\]/i, '').trim();
+                        }
+
+                        if (extractedHtml) {
+                            if (isPartialEdit) {
+                                editor.executeEdits("ai-modify", [{ range: selection, text: extractedHtml, forceMoveMarkers: true }]);
+                                editor.setSelection(selection);
+                                editor.getAction('editor.action.formatSelection').run();
+                            } else {
+                                editor.setValue(extractedHtml); 
+                                setTimeout(formatCode, 100);
+                            }
+                            appendChatBubble('ai', changeLog);
+                            showMessage(isPartialEdit ? "✨ แก้ไขโค้ดส่วนที่เลือกเสร็จสิ้น!" : "✨ AI ปรับแก้โค้ดเสร็จสิ้น!");
+                        } else {
+                            throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์");
+                        }
                     }
 
-                    if (extractedHtml) {
-                        isSystemLoadingCode = true;
-                        editor.setValue(extractedHtml); 
-                        isSystemLoadingCode = false;
-                        setTimeout(formatCode, 100);
-                        appendChatBubble('ai', changeLog);
-                        showMessage("✨ AI ปรับแก้โค้ดเสร็จสิ้น!");
-                    } else {
-                        throw new Error("AI ส่งโค้ดกลับมาไม่สมบูรณ์ (ไม่พบโครงสร้าง HTML)");
-                    }
+                    isSystemLoadingCode = false; // ปลดล็อคระบบแจ้งเตือน
                 } else {
                     throw new Error("รูปแบบข้อมูลที่ได้จาก AI ไม่ถูกต้อง");
                 }
 
             } catch (e) { 
                 if (e.name === 'AbortError' || e.message === 'AbortError') {
-                    if (isTimeout) appendChatBubble('ai', "⏳ หมดเวลารอ (เกิน 2 นาที) โค้ดอาจยาวหรือซับซ้อนเกินไป กรุณาสั่งทีละส่วนครับ");
+                    if (isTimeout) appendChatBubble('ai', "⏳ หมดเวลารอ (เกิน 2 นาที) ลองเปิดโหมด '⚡ Smart Patch' หรือลากคลุมดำเฉพาะจุดดูครับ");
                 } else {
                     appendChatBubble('ai', "❌ " + e.message); 
                     promptInputEl.value = prompt;
@@ -1188,13 +1303,37 @@
             const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
             const grade = document.getElementById("missionGradeInput").value.trim() || "";
             const isSaveScore = document.getElementById("saveScoreToggle").checked;
-            const score = isSaveScore ? (parseInt(document.getElementById("missionScoreInput").value) || 10) : 0; 
-            const code = editor.getValue();
+            const scoreVal = parseInt(document.getElementById("missionScoreInput").value) || 10;
+            const score = isSaveScore ? scoreVal : 0; 
+            let code = editor.getValue();
             
             if(!title) {
                 closeSaveModal(); document.getElementById("missionTitleInput").focus();
                 if(isFocusMode) toggleFocusMode(false);
                 return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนบันทึก", true);
+            }
+
+            // 🌟 ระบบแทรก "ปุ่มส่งคะแนน" อัตโนมัติ (Auto-Inject) 🌟
+            if (isSaveScore) {
+                const cleanCode = code.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+                const hasSaveCode = /postMessage\s*\(.*SAVE_RESULT/i.test(cleanCode);
+                
+                // ถ้าสวิตช์เปิดอยู่ แต่โค้ดไม่มีระบบส่งคะแนน ให้สร้างปุ่มเพิ่มเข้าไป
+                if (!hasSaveCode) {
+                    const injectBtnHTML = `\n<!-- ========================================== -->\n<!-- 🌟 AUTO-INJECTED SCORE BUTTON BY FLIPSCHOOL 🌟 -->\n<!-- ========================================== -->\n<div id="fs-auto-score-widget" style="position: fixed; bottom: 20px; right: 20px; z-index: 999999; font-family: 'Kanit', sans-serif;">\n    <button onclick="\n        window.parent.postMessage({type: 'SAVE_RESULT', score: ${scoreVal}}, '*'); \n        this.innerHTML='<span style=\\'font-size:18px;\\'>✅</span> ส่งคะแนนสำเร็จ!'; \n        this.style.background='#059669';\n        this.disabled=true;\n        setTimeout(()=>document.getElementById('fs-auto-score-widget').style.display='none', 3000);\n    " style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;">\n        <span style="font-size: 18px;">🏆</span> จบเกม! (คลิกส่งคะแนน)\n    </button>\n</div>\n`;
+                    
+                    if (code.includes('</body>')) {
+                        code = code.replace('</body>', injectBtnHTML + '</body>');
+                    } else if (code.includes('</html>')) {
+                        code = code.replace('</html>', injectBtnHTML + '</html>');
+                    } else {
+                        code += '\n' + injectBtnHTML;
+                    }
+                    
+                    isSystemLoadingCode = true;
+                    editor.setValue(code);
+                    isSystemLoadingCode = false;
+                }
             }
 
             try {
@@ -1210,7 +1349,7 @@
                         creator_name: currentUserName
                     },
                     content: code, 
-                    reward_points: score, // 🌟 Use Custom Score or 0 🌟
+                    reward_points: score, 
                     can_replay: true, 
                     is_public: true, 
                     updated_at: new Date().toISOString()
