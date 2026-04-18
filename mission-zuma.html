@@ -191,7 +191,7 @@
                         <!-- Vocab Items Injected Here -->
                     </div>
 
-                    <button onclick="addVocabItem()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 border-dashed py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shrink-0">
+                    <button type="button" onclick="addVocabItem()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 border-dashed py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shrink-0">
                         <i class="fas fa-plus-circle"></i> เพิ่มคำศัพท์ใหม่
                     </button>
                 </div>
@@ -205,10 +205,10 @@
                 <div class="flex items-center gap-3">
                     <!-- ปุ่มสลับโหมด พรีวิว / แก้ไขโค้ด -->
                     <div class="flex bg-slate-100 p-1 rounded-lg">
-                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
+                        <button type="button" onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แก้ไขโค้ด">
+                        <button type="button" onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แก้ไขโค้ด">
                             <i class="fas fa-code"></i>
                         </button>
                     </div>
@@ -216,10 +216,10 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <button onclick="updatePreview()" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2">
+                    <button type="button" onclick="updatePreview()" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2">
                         <i class="fas fa-sync-alt"></i> อัปเดตพรีวิว
                     </button>
-                    <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
+                    <button type="button" id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
                         <i class="fas fa-cloud-upload-alt"></i> บันทึก
                     </button>
                 </div>
@@ -234,16 +234,9 @@
         </div>
     </main>
 
-    <script>
-        let currentUserId = null;
-        let targetCid = null;
-        let editingMid = new URLSearchParams(window.location.search).get('mid');
-        let generatedCode = "";
-
-        // -----------------------
-        // Game Engine Template (แยกออกมาไว้ในตัวแปรเพื่อป้องกันแท็กสคริปต์ตีกัน)
-        // -----------------------
-        const zumaTemplate = `<!DOCTYPE html>
+    <!-- Zuma Engine Template ย้ายมาใส่ใน Textarea เพื่อป้องกันปัญหา JavaScript Template Literal Error -->
+    <textarea id="zuma-template" class="hidden-el">
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -1247,7 +1240,7 @@
         generatedSentences = [];
         
         if (wordsArr.length > 0) {
-            wordDisplay.innerHTML = \`📚 <b>คำศัพท์ที่คุณทำลายได้:</b> <span style="color:#FFD700;">\${wordsArr.join(', ')}</span>\`;
+            wordDisplay.innerHTML = `📚 <b>คำศัพท์ที่คุณทำลายได้:</b> <span style="color:#FFD700;">${wordsArr.join(', ')}</span>`;
             aiBtn.style.display = 'inline-block';
         } else {
             wordDisplay.innerHTML = 'ยังทำลายคำศัพท์ไม่สำเร็จเลย... ลองสู้ใหม่อีกครั้งนะ! 💪';
@@ -1276,9 +1269,16 @@
     window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
 
     resize();
-<\/script>
+</script>
 </body>
-</html>`;
+</html>
+    </textarea> <!-- เพิ่มแท็กปิดตรงนี้ครับ เพื่อไม่ให้เบราว์เซอร์สับสน -->
+
+    <script>
+        let currentUserId = null;
+        let targetCid = null;
+        let editingMid = new URLSearchParams(window.location.search).get('mid');
+        let generatedCode = "";
 
         let defaultVocabs = [
             { word: "โบ", emoji: "🎀", color: "#FF1493" }, { word: "ไข่", emoji: "🥚", color: "#FFD700" },
@@ -1398,7 +1398,6 @@
                 }
             }, 500);
             
-            // 🌟 ระบบบันทึกคะแนนเมื่อตรวจพบการเล่นเกม 🌟
             window.addEventListener('message', async function(event) {
                 if (event.data && event.data.type === 'SAVE_RESULT') {
                     const score = event.data.score || 0;
@@ -1420,7 +1419,6 @@
                             if (fetchError) throw fetchError;
                             
                             if (existingRecords && existingRecords.length > 0) {
-                                // เล่นซ้ำ: อัปเดตคะแนนที่ดีที่สุด
                                 const currentBestScore = existingRecords[0].score || 0;
                                 const newScore = Math.max(currentBestScore, score);
                                 
@@ -1437,7 +1435,6 @@
                                 if (updateError) throw updateError;
                                 showMessage(score > currentBestScore ? `🎉 ยินดีด้วย! ทำลายสถิติเดิม อัปเดตคะแนนล่าสุดเป็น ${newScore} คะแนนสำเร็จ!` : `✅ บันทึกการเล่นซ้ำเรียบร้อย (คะแนนสูงสุด: ${newScore})`);
                             } else {
-                                // เล่นครั้งแรก: เพิ่มข้อมูลใหม่
                                 const { error: insertError } = await window.sysDB
                                     .from('student_missions')
                                     .insert([{
@@ -1461,7 +1458,6 @@
             });
         });
 
-        // โหลดข้อมูลเก่ามาแก้ไข (ถ้ามี)
         async function loadExistingMission() {
             try {
                 const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
@@ -1499,9 +1495,6 @@
             }
         }
 
-        // -----------------------
-        // View Mode Toggle (Preview <-> Code)
-        // -----------------------
         function switchViewMode(mode) {
             const frame = document.getElementById('missionFrame');
             const codeBox = document.getElementById('codeView');
@@ -1515,7 +1508,6 @@
                 btnPreview.className = "w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs";
                 btnCode.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
                 
-                // หากมีการแก้ไขโค้ดด้วยมือ ให้อัปเดตเข้าพรีวิวทันที
                 if (codeBox.value && codeBox.value !== generatedCode) {
                     generatedCode = codeBox.value;
                     const newIframe = document.createElement('iframe');
@@ -1536,9 +1528,6 @@
             }
         }
 
-        // -----------------------
-        // Vocabulary Editor Logic
-        // -----------------------
         function renderVocabList() {
             const container = document.getElementById('vocabListContainer');
             container.innerHTML = '';
@@ -1553,14 +1542,14 @@
                     </div>
                     <div class="relative w-20 shrink-0 flex items-center">
                         <input type="text" id="emoji-input-${index}" value="${item.emoji}" onchange="updateVocab(${index}, 'emoji', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 outline-none text-center text-sm focus:ring-2 focus:ring-orange-500" placeholder="อิโมจิ" maxlength="2">
-                        <button onclick="openEmojiPicker(${index})" class="absolute right-1.5 text-slate-400 hover:text-orange-500 transition-colors" title="เลือกอิโมจิ">
+                        <button type="button" onclick="openEmojiPicker(${index})" class="absolute right-1.5 text-slate-400 hover:text-orange-500 transition-colors" title="เลือกอิโมจิ">
                             <i class="far fa-smile"></i>
                         </button>
                     </div>
                     <div class="w-10 h-8 shrink-0 relative rounded-lg overflow-hidden border border-slate-200 cursor-pointer">
                         <input type="color" value="${item.color}" onchange="updateVocab(${index}, 'color', this.value)" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer">
                     </div>
-                    <button onclick="removeVocabItem(${index})" class="w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center shrink-0">
+                    <button type="button" onclick="removeVocabItem(${index})" class="w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center shrink-0">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 `;
@@ -1583,7 +1572,6 @@
             currentVocabs[index][field] = value;
         }
 
-        // --- Emoji Picker Logic ---
         let activeEmojiIndex = null;
 
         function openEmojiPicker(index) {
@@ -1613,6 +1601,7 @@
 
             filtered.forEach(item => {
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = "hover:bg-white bg-transparent rounded-lg p-1.5 transition-all transform hover:scale-110 shadow-sm border border-transparent hover:border-slate-200 cursor-pointer";
                 btn.innerText = item.emoji;
                 btn.onclick = () => selectEmoji(item.emoji);
@@ -1655,16 +1644,11 @@
             renderVocabList();
         }
 
-        // -----------------------
-        // Game Generation Logic
-        // -----------------------
         function generateGameHTML() {
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
-            
-            // แปลงออบเจกต์เป็น JSON String แล้วปิดแท็กแปลกๆ
             const jsonStr = JSON.stringify(currentVocabs).replace(/</g, '\\u003c');
             
-            let finalHtml = zumaTemplate;
+            let finalHtml = document.getElementById('zuma-template').value;
             finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
             finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST_JSON%%\*\//g, jsonStr);
             
@@ -1693,9 +1677,6 @@
             showMessage("✅ อัปเดตพรีวิวเรียบร้อย ลองเล่นดูได้เลย!");
         }
 
-        // -----------------------
-        // Save & Cloud Logic
-        // -----------------------
         function showMessage(text, isError = false) { 
             const msgBox = document.getElementById("msgBox");
             document.getElementById("msgText").innerText = text; 
@@ -1723,7 +1704,6 @@
             const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
             const grade = document.getElementById("missionGradeInput").value.trim() || "";
             
-            // หากอยู่ในโหมดแก้ไขโค้ด ให้ยึดโค้ดล่าสุดมาเซฟ
             if (!document.getElementById("codeView").classList.contains('hidden-el')) {
                 generatedCode = document.getElementById("codeView").value;
             } else if (!generatedCode) {
