@@ -1300,13 +1300,14 @@
     window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
 
     resize();
-</script>
+<\/script>
 </body>
 </html>
     </textarea>
 
     <script>
         let currentUserId = null;
+        let currentUserName = "คุณครู";
         let targetCid = null;
         let editingMid = new URLSearchParams(window.location.search).get('mid');
         let generatedCode = "";
@@ -1438,6 +1439,13 @@
                         return;
                     }
                     currentUserId = session.user.id;
+
+                    try {
+                        const { data: userData } = await window.sysDB.from('users').select('first_name, last_name').eq('user_id', currentUserId).single();
+                        if(userData) {
+                            currentUserName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || "คุณครู";
+                        }
+                    } catch(err) { console.error("Fetch user name error:", err); }
                     
                     if(editingMid) {
                         await loadExistingMission();
@@ -1891,7 +1899,8 @@
                         player_img_url: document.getElementById('playerImgInput').value.trim() || "https://www.flipschool.in.th/img/namsai/right.gif",
                         collectible_emoji: document.getElementById('collectibleEmojiInput').value.trim(),
                         source_file: "mission-zuma.html",
-                        creator_id: currentUserId
+                        creator_id: currentUserId,
+                        creator_name: currentUserName // ADDED
                     },
                     is_public: true,
                     created_by: currentUserId,
