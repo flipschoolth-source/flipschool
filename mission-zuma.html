@@ -433,7 +433,7 @@
 
     <div id="ui-layer">
         <div style="position: absolute; top: 15px; left: 20px; pointer-events: auto;">
-            <button id="replay-audio-btn" onmousedown="handleReplayClick(event)" ontouchstart="handleReplayClick(event)">🔊 ฟังเสียงซ้ำ</button>
+            <button id="replay-audio-btn">🔊 ฟังเสียงซ้ำ</button>
         </div>
 
         <div style="position: absolute; top: 15px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none;">
@@ -442,7 +442,7 @@
             </div>
         </div>
 
-        <button id="back-to-map-btn" style="position: absolute; bottom: 20px; left: 20px; pointer-events: auto; font-family: 'Kanit', sans-serif; font-size: 18px; padding: 10px 20px; border-radius: 20px; display: none; cursor: pointer; background: #333; color: white; border: 2px solid white;" onclick="showMapScreen()">⬅️ กลับแผนที่</button>
+        <button id="back-to-map-btn" style="position: absolute; bottom: 20px; left: 20px; pointer-events: auto; font-family: 'Kanit', sans-serif; font-size: 18px; padding: 10px 20px; border-radius: 20px; display: none; cursor: pointer; background: #333; color: white; border: 2px solid white;">⬅️ กลับแผนที่</button>
 
         <div class="hint" id="game-hint" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">🎯 ยิงแทรกขบวน! ถ้ายิงครบ 3 ลูก ขบวนหน้าจะถอยร่นมาชิด! 💥</div>
     </div>
@@ -453,7 +453,7 @@
     <div id="start-screen" class="screen">
         <h1 class="title">ZUMA DELUXE<br><span style="font-size:40px; color:#fff;">MATCH-3 EDITION</span></h1>
         <p class="subtitle" id="gameSubtitle">/*%%GAME_TITLE%%*/</p>
-        <button class="btn" onclick="initGameAndShowMap()">เริ่มลุยเลย!</button>
+        <button id="start-game-btn" class="btn">เริ่มลุยเลย!</button>
     </div>
 
     <!-- Map Screen -->
@@ -476,7 +476,7 @@
     <div id="level-complete-screen" class="screen" style="display: none;">
         <h1 class="title" style="color: #4CAF50; text-shadow: 0 5px 0 #1B5E20; font-size: 60px;">ยอดเยี่ยม! ผ่านด่านแล้ว 🎉</h1>
         <p class="subtitle" style="font-size: 24px; margin-bottom: 15px;">พิชิตด่านสำเร็จ!</p>
-        <button class="btn" onclick="showMapScreen()">ไปต่อด่านถัดไป</button>
+        <button id="next-level-btn" class="btn">ไปต่อด่านถัดไป</button>
     </div>
 
     <!-- Game Over Screen -->
@@ -487,21 +487,26 @@
         <div id="ai-feature-box">
             <p id="matched-words-display" style="color: white; font-size: 20px; margin-top: 0; margin-bottom: 15px;"></p>
             <div id="ai-buttons">
-                <button id="ai-story-btn" class="btn ai-btn" onclick="generateAISentences()">✨ ฝึกอ่านคำศัพท์เพิ่มเติม</button>
+                <button id="ai-story-btn" class="btn ai-btn">✨ ฝึกอ่านคำศัพท์เพิ่มเติม</button>
             </div>
             <div id="ai-story-result" style="display: none; margin-top: 10px;"></div>
         </div>
-        <button class="btn" style="font-size: 24px; padding: 10px 40px;" onclick="showMapScreen()">กลับไปแผนที่ด่าน</button>
+        <button id="back-to-map-gameover-btn" class="btn" style="font-size: 24px; padding: 10px 40px;">กลับไปแผนที่ด่าน</button>
     </div>
 
 <script>
+    // Global Error Handler เพื่อดักจับ Error ที่อาจถูกซ่อนไว้ใน Iframe
+    window.onerror = function(msg, url, lineNo) {
+        console.error("Game Error: ", msg, "at line", lineNo);
+        return false;
+    };
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
     const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
     const COLLECTIBLE_EMOJI = "/*%%COLLECTIBLE_EMOJI%%*/";
 
-    // ข้อมูลด่านและคำศัพท์จาก Creator
     const levelsData = /*%%LEVELS_JSON%%*/;
     
     const mapNodesPos = [
@@ -530,7 +535,6 @@
     let matchedWordsSet = new Set();
     let generatedSentences = []; 
     
-    // ห่อหุ้มระบบเสียงป้องกัน Error
     let synth = null;
     try { synth = window.speechSynthesis; } catch(e) {}
     let thaiVoice = null;
@@ -709,6 +713,7 @@
     }
 
     function handleReplayClick(e) {
+        e.preventDefault();
         e.stopPropagation(); 
         playCurrentAmmoAudio();
     }
@@ -727,13 +732,19 @@
             let htmlContent = '';
             wordsArr.forEach((word, idx) => {
                 let displaySentence = `ฉันเห็น ${word} อยู่ตรงนั้น`; 
-                
                 generatedSentences.push(displaySentence); 
                 
                 let markedSentence = displaySentence.replace(new RegExp(word, 'g'), `<span class="highlight-word">${word}</span>`);
-                htmlContent += `<div id="sentence-${idx}" class="sentence-row"><button class="play-btn-small" onclick="playSingleSentence(${idx})">🔊</button><span class="sentence-text">🎯 ${markedSentence}</span></div>`;
+                htmlContent += `<div id="sentence-${idx}" class="sentence-row"><button id="play-sentence-btn-${idx}" class="play-btn-small">🔊</button><span class="sentence-text">🎯 ${markedSentence}</span></div>`;
             });
             resultDiv.innerHTML = htmlContent;
+
+            // ผูก Event Listener แทนการใช้ inline onclick
+            wordsArr.forEach((word, idx) => {
+                const playBtn = document.getElementById(`play-sentence-btn-${idx}`);
+                if(playBtn) playBtn.addEventListener('click', () => playSingleSentence(idx));
+            });
+
         }, 800);
     }
 
@@ -743,7 +754,7 @@
             if(synth.speaking) synth.cancel(); 
             document.querySelectorAll('.sentence-row').forEach(el => el.classList.remove('active'));
             const currentEl = document.getElementById(`sentence-${idx}`);
-            currentEl.classList.add('active');
+            if(currentEl) currentEl.classList.add('active');
 
             let textToSpeak = getPhoneticText(generatedSentences[idx]);
 
@@ -753,82 +764,88 @@
             utterance.rate = 0.75; 
             utterance.pitch = 1.1;
             
-            utterance.onend = () => { currentEl.classList.remove('active'); };
-            utterance.onerror = () => { currentEl.classList.remove('active'); };
+            utterance.onend = () => { if(currentEl) currentEl.classList.remove('active'); };
+            utterance.onerror = () => { if(currentEl) currentEl.classList.remove('active'); };
             synth.speak(utterance);
         } catch(e) {}
     }
 
     function generateMapNodes() {
-        const container = document.getElementById('map-container');
-        container.querySelectorAll('.map-level-node').forEach(n => n.remove());
-        
-        const svg = document.getElementById('map-svg');
-        while (svg.firstChild) { svg.removeChild(svg.firstChild); }
-
-        let pathD = "";
-        levelsData.forEach((level, index) => {
-            const pos = mapNodesPos[index % mapNodesPos.length]; // วนซ้ำจุดในแผนที่ถ้าด่านเยอะเกิน
-            if (index === 0) pathD += `M ${pos.x} ${pos.y} `; else pathD += `L ${pos.x} ${pos.y} `;
-
-            const node = document.createElement('div');
-            node.className = `map-level-node`;
-            node.style.left = `${pos.x}%`; node.style.top = `${pos.y}%`;
+        try {
+            const container = document.getElementById('map-container');
+            container.querySelectorAll('.map-level-node').forEach(n => n.remove());
             
-            // ใช้ชื่อด่านแบบสั้นๆ หรือตัวเลขป้องกัน Error
-            let safeName = level.name || `ด่าน ${index+1}`;
-            let shortName = safeName.length > 5 ? safeName.substring(0,4)+".." : safeName;
-            node.innerHTML = `<span style='font-size:12px;'>${shortName}</span>`;
-            if(level.isAudioLevel) node.innerHTML += `<span style='font-size:10px; position:absolute; top:2px; right:2px; font-family:${EMOJI_FONT};'>🎵</span>`;
+            const svg = document.getElementById('map-svg');
+            while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+
+            let pathD = "";
+            levelsData.forEach((level, index) => {
+                const pos = mapNodesPos[index % mapNodesPos.length]; // วนซ้ำจุดในแผนที่ถ้าด่านเยอะเกิน
+                if (index === 0) pathD += `M ${pos.x} ${pos.y} `; else pathD += `L ${pos.x} ${pos.y} `;
+
+                const node = document.createElement('div');
+                node.className = `map-level-node`;
+                node.style.left = `${pos.x}%`; node.style.top = `${pos.y}%`;
+                
+                // ใช้ชื่อด่านแบบสั้นๆ หรือตัวเลขป้องกัน Error
+                let safeName = level.name || `ด่าน ${index+1}`;
+                let shortName = safeName.length > 5 ? safeName.substring(0,4)+".." : safeName;
+                node.innerHTML = `<span style='font-size:12px;'>${shortName}</span>`;
+                if(level.isAudioLevel) node.innerHTML += `<span style='font-size:10px; position:absolute; top:2px; right:2px; font-family:${EMOJI_FONT};'>🎵</span>`;
+                
+                if (COLLECTIBLE_EMOJI && index >= currentUnlockedLevel - 1) {
+                    const waitingEgg = document.createElement('div');
+                    waitingEgg.textContent = COLLECTIBLE_EMOJI;
+                    waitingEgg.className = 'waiting-egg';
+                    waitingEgg.style.position = 'absolute';
+                    waitingEgg.style.top = '-30px';
+                    waitingEgg.style.right = '-15px';
+                    waitingEgg.style.fontSize = '35px';
+                    waitingEgg.style.fontFamily = EMOJI_FONT; 
+                    waitingEgg.style.filter = 'drop-shadow(2px 4px 2px rgba(0,0,0,0.5))';
+                    node.appendChild(waitingEgg);
+                }
+                
+                if (index < currentUnlockedLevel - 1) {
+                    node.classList.add('completed'); 
+                    node.addEventListener('click', () => startLevel(index));
+                } else if (index === currentUnlockedLevel - 1) {
+                    node.classList.add('unlocked'); 
+                    node.addEventListener('click', () => startLevel(index));
+                }
+                container.appendChild(node);
+            });
+
+            const pathBorder = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathBorder.setAttribute('d', pathD); pathBorder.setAttribute('fill', 'none');
+            pathBorder.setAttribute('stroke', '#795548'); pathBorder.setAttribute('stroke-width', '4'); 
+            pathBorder.setAttribute('stroke-linecap', 'round'); pathBorder.setAttribute('stroke-linejoin', 'round');
+            svg.appendChild(pathBorder);
             
-            if (COLLECTIBLE_EMOJI && index >= currentUnlockedLevel - 1) {
-                const waitingEgg = document.createElement('div');
-                waitingEgg.textContent = COLLECTIBLE_EMOJI;
-                waitingEgg.className = 'waiting-egg';
-                waitingEgg.style.position = 'absolute';
-                waitingEgg.style.top = '-30px';
-                waitingEgg.style.right = '-15px';
-                waitingEgg.style.fontSize = '35px';
-                waitingEgg.style.fontFamily = EMOJI_FONT; 
-                waitingEgg.style.filter = 'drop-shadow(2px 4px 2px rgba(0,0,0,0.5))';
-                node.appendChild(waitingEgg);
+            const pathInner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathInner.setAttribute('d', pathD); pathInner.setAttribute('fill', 'none');
+            pathInner.setAttribute('stroke', '#D7CCC8'); pathInner.setAttribute('stroke-width', '2'); 
+            pathInner.setAttribute('stroke-linecap', 'round'); pathInner.setAttribute('stroke-linejoin', 'round');
+            svg.appendChild(pathInner);
+
+            const namsai = document.getElementById('namsai-player');
+            const targetNodeIdx = Math.min(currentUnlockedLevel - 1, levelsData.length - 1);
+            if (targetNodeIdx >= 0) {
+                const targetPos = mapNodesPos[targetNodeIdx % mapNodesPos.length];
+                setTimeout(() => { namsai.style.left = `${targetPos.x}%`; namsai.style.top = `${targetPos.y}%`; }, 100);
             }
-            
-            if (index < currentUnlockedLevel - 1) {
-                node.classList.add('completed'); node.onclick = () => startLevel(index);
-            } else if (index === currentUnlockedLevel - 1) {
-                node.classList.add('unlocked'); node.onclick = () => startLevel(index);
+
+            if (COLLECTIBLE_EMOJI) {
+                document.getElementById('egg-counter-box').style.display = 'flex';
+                const completedCount = currentUnlockedLevel - 1;
+                let eggString = ""; for(let i=0; i<completedCount; i++) eggString += COLLECTIBLE_EMOJI;
+                document.getElementById('egg-collected-display').textContent = eggString || "-";
+                document.getElementById('egg-collected-display').style.fontFamily = EMOJI_FONT;
+            } else {
+                document.getElementById('egg-counter-box').style.display = 'none';
             }
-            container.appendChild(node);
-        });
-
-        const pathBorder = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pathBorder.setAttribute('d', pathD); pathBorder.setAttribute('fill', 'none');
-        pathBorder.setAttribute('stroke', '#795548'); pathBorder.setAttribute('stroke-width', '4'); 
-        pathBorder.setAttribute('stroke-linecap', 'round'); pathBorder.setAttribute('stroke-linejoin', 'round');
-        svg.appendChild(pathBorder);
-        
-        const pathInner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pathInner.setAttribute('d', pathD); pathInner.setAttribute('fill', 'none');
-        pathInner.setAttribute('stroke', '#D7CCC8'); pathInner.setAttribute('stroke-width', '2'); 
-        pathInner.setAttribute('stroke-linecap', 'round'); pathInner.setAttribute('stroke-linejoin', 'round');
-        svg.appendChild(pathInner);
-
-        const namsai = document.getElementById('namsai-player');
-        const targetNodeIdx = Math.min(currentUnlockedLevel - 1, levelsData.length - 1);
-        if (targetNodeIdx >= 0) {
-            const targetPos = mapNodesPos[targetNodeIdx % mapNodesPos.length];
-            setTimeout(() => { namsai.style.left = `${targetPos.x}%`; namsai.style.top = `${targetPos.y}%`; }, 100);
-        }
-
-        if (COLLECTIBLE_EMOJI) {
-            document.getElementById('egg-counter-box').style.display = 'flex';
-            const completedCount = currentUnlockedLevel - 1;
-            let eggString = ""; for(let i=0; i<completedCount; i++) eggString += COLLECTIBLE_EMOJI;
-            document.getElementById('egg-collected-display').textContent = eggString || "-";
-            document.getElementById('egg-collected-display').style.fontFamily = EMOJI_FONT;
-        } else {
-            document.getElementById('egg-counter-box').style.display = 'none';
+        } catch(err) {
+            console.error("Map Generation Error: ", err);
         }
     }
 
@@ -1324,13 +1341,31 @@
         }
     }
     
-    window.addEventListener('mousemove', (e) => {
-        if(isPlaying && !isSucking) aimAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+    // Binding ALL Event Listeners safely at the bottom
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('start-game-btn').addEventListener('click', function() {
+            try { initGameAndShowMap(); } catch(e) { alert("Error starting: " + e.message); }
+        });
+        
+        const replayBtn = document.getElementById('replay-audio-btn');
+        if(replayBtn) {
+            replayBtn.addEventListener('mousedown', handleReplayClick);
+            replayBtn.addEventListener('touchstart', handleReplayClick, {passive: false});
+        }
+        
+        document.getElementById('back-to-map-btn').addEventListener('click', showMapScreen);
+        document.getElementById('next-level-btn').addEventListener('click', showMapScreen);
+        document.getElementById('ai-story-btn').addEventListener('click', generateAISentences);
+        document.getElementById('back-to-map-gameover-btn').addEventListener('click', showMapScreen);
+        
+        window.addEventListener('mousemove', (e) => {
+            if(isPlaying && !isSucking) aimAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+        });
+        window.addEventListener('mousedown', handleAimAndShoot);
+        window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
+        
+        resize();
     });
-    window.addEventListener('mousedown', handleAimAndShoot);
-    window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
-
-    resize();
 </script>
 </body>
 </html>
@@ -1933,7 +1968,7 @@
                         collectible_emoji: document.getElementById('collectibleEmojiInput').value.trim(),
                         source_file: "mission-zuma.html",
                         creator_id: currentUserId,
-                        creator_name: currentUserName
+                        creator_name: currentUserName // ADDED
                     },
                     is_public: true,
                     created_by: currentUserId,
