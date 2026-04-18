@@ -96,6 +96,28 @@
         </div>
     </div>
 
+    <!-- Emoji Picker Modal -->
+    <div id="emojiPickerModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-4 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-700">เลือกอิโมจิ</h3>
+                <button onclick="closeEmojiPicker()" class="text-slate-400 hover:text-rose-500 text-lg transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <!-- ช่องค้นหาอิโมจิ -->
+            <div class="mb-3">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="emojiSearchInput" oninput="filterEmojis(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 outline-none text-sm focus:ring-2 focus:ring-orange-500" placeholder="ค้นหา (เช่น แมว, cat, สัตว์)...">
+                </div>
+            </div>
+            <div class="flex-grow overflow-y-auto p-2 border border-slate-100 rounded-lg bg-slate-50">
+                <div id="emojiGrid" class="grid grid-cols-6 gap-2 text-2xl text-center">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
@@ -441,20 +463,25 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    
+    // ฟอนต์อิโมจิครอบจักรวาล เพื่อป้องกันอิโมจิไม่แสดงหรือกลายเป็นสี่เหลี่ยมบนอุปกรณ์ต่างๆ (iOS, Android, Windows, Mac)
+    const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
 
-    // === ข้อมูลคำศัพท์จาก Template ===
-    const fullVocabList = /*%%VOCAB_LIST%%*/;
+    // === ข้อมูลคำศัพท์จาก Template (แก้ปัญหา Emoji หายด้วย Base64) ===
+    const b64Data = "/*%%VOCAB_LIST_B64%%*/";
+    // ถอดรหัส Base64 กลับเป็น Object (รองรับภาษาไทยและ Emoji)
+    const fullVocabList = JSON.parse(decodeURIComponent(escape(atob(b64Data))));
     
     // โครงสร้าง 8 ด่าน (จัดให้รองรับคำศัพท์แบบ Dynamic)
     const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
     const levelsData = [
         { level: 1, words: fullVocabList.slice(0, half), totalSpawns: 30, speed: 0.1, isAudioLevel: false },      
-        { level: 2, words: fullVocabList.slice(half) || fullVocabList, totalSpawns: 35, speed: 0.1, isAudioLevel: false }, 
+        { level: 2, words: fullVocabList.slice(half).length > 0 ? fullVocabList.slice(half) : fullVocabList, totalSpawns: 35, speed: 0.1, isAudioLevel: false }, 
         { level: 3, words: fullVocabList, totalSpawns: 40, speed: 0.1, isAudioLevel: false },                 
         { level: 4, words: fullVocabList, totalSpawns: 50, speed: 0.13, isAudioLevel: false },                 
         { level: 5, words: fullVocabList, totalSpawns: 60, speed: 0.16, isAudioLevel: false },
         { level: 6, words: fullVocabList.slice(0, half), totalSpawns: 35, speed: 0.11, isAudioLevel: true }, 
-        { level: 7, words: fullVocabList.slice(half) || fullVocabList, totalSpawns: 40, speed: 0.11, isAudioLevel: true }, 
+        { level: 7, words: fullVocabList.slice(half).length > 0 ? fullVocabList.slice(half) : fullVocabList, totalSpawns: 40, speed: 0.11, isAudioLevel: true }, 
         { level: 8, words: fullVocabList, totalSpawns: 60, speed: 0.15, isAudioLevel: true } 
     ];
 
@@ -523,6 +550,7 @@
             egg.textContent = '🥚';
             egg.style.fontSize = '24px';
             egg.style.textAlign = 'center';
+            egg.style.fontFamily = EMOJI_FONT; // ใชัฟอนต์สำหรับอิโมจิ
             egg.style.transition = 'all 0.3s';
             if (i <= activeIdx) {
                 egg.style.opacity = '1';
@@ -651,7 +679,7 @@
             generatedSentences = [];
             let htmlContent = '';
             wordsArr.forEach((word, idx) => {
-                let displaySentence = `ฉันเห็น ${word} อยู่ตรงนั้น`; // Fallback simple sentence
+                let displaySentence = `ฉันเห็น ${word} อยู่ตรงนั้น`; 
                 
                 generatedSentences.push(displaySentence); 
                 
@@ -695,13 +723,14 @@
             const node = document.createElement('div');
             node.className = `map-level-node`;
             node.style.left = `${pos.x}%`; node.style.top = `${pos.y}%`;
-            node.innerHTML = level.isAudioLevel ? `${level.level}<span style="font-size:12px; position:absolute; top:2px; right:5px;">🎵</span>` : level.level;
+            node.innerHTML = level.isAudioLevel ? `${level.level}<span style="font-size:12px; position:absolute; top:2px; right:5px; font-family:${EMOJI_FONT};">🎵</span>` : level.level;
             
             if (index >= currentUnlockedLevel - 1) {
                 const waitingEgg = document.createElement('div');
                 waitingEgg.textContent = '🥚'; waitingEgg.className = 'waiting-egg';
                 waitingEgg.style.position = 'absolute'; waitingEgg.style.top = '-35px';
                 waitingEgg.style.right = '-20px'; waitingEgg.style.fontSize = '45px';
+                waitingEgg.style.fontFamily = EMOJI_FONT; // ใช้ฟอนต์สำหรับอิโมจิ
                 waitingEgg.style.filter = 'drop-shadow(2px 4px 2px rgba(0,0,0,0.5))';
                 node.appendChild(waitingEgg);
             }
@@ -735,6 +764,7 @@
         const completedCount = currentUnlockedLevel - 1;
         let eggString = ""; for(let i=0; i<completedCount; i++) eggString += "🥚";
         document.getElementById('egg-collected-display').textContent = eggString || "-";
+        document.getElementById('egg-collected-display').style.fontFamily = EMOJI_FONT;
     }
 
     function showMapScreen() {
@@ -761,7 +791,7 @@
         updateLevelEggs(activeLevelIndex);
         
         if(levelConfig.isAudioLevel) {
-            document.getElementById('game-hint').innerHTML = '🎯 <b>ด่านเสียง:</b> ฟังเสียงลูกบอลแล้วยิงให้ตรงรูป!';
+            document.getElementById('game-hint').innerHTML = `🎯 <b>ด่านเสียง:</b> ฟังเสียงลูกบอลแล้วยิงให้ตรงรูป <span style="font-family:${EMOJI_FONT};">🔊</span>`;
             document.getElementById('replay-audio-btn').style.display = 'block';
         } else {
             document.getElementById('game-hint').innerHTML = '🎯 ยิงลูกบอลคำศัพท์ให้ตรงกับรูปภาพ!';
@@ -878,7 +908,9 @@
             grad.addColorStop(0, "#fff"); grad.addColorStop(0.4, this.vocab.color); grad.addColorStop(1, "#222");
             ctx.fillStyle = grad; ctx.fill();
             ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
-            ctx.font = `${marbleRadius * 1.3}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+            
+            // ใชัฟอนต์รวมครอบจักรวาลสำหรับวาดอิโมจิบน Canvas
+            ctx.font = `${marbleRadius * 1.2}px ${EMOJI_FONT}`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(this.vocab.emoji, 0, 3);
             ctx.restore();
@@ -904,7 +936,7 @@
             ctx.shadowBlur = 10; ctx.shadowColor = this.vocab.color;
             let displayWord = levelsData[activeLevelIndex].isAudioLevel ? "🔊" : this.vocab.word;
             if (levelsData[activeLevelIndex].isAudioLevel) {
-                ctx.font = `20px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+                ctx.font = `20px ${EMOJI_FONT}`;
             } else {
                 ctx.font = `bold 20px "Kanit", sans-serif`;
             }
@@ -1103,7 +1135,7 @@
             ctx.fillStyle = grad; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
             let displayWord = levelsData[activeLevelIndex].isAudioLevel ? "🔊" : currentAmmo.word;
             if (levelsData[activeLevelIndex].isAudioLevel) {
-                ctx.font = `20px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+                ctx.font = `20px ${EMOJI_FONT}`;
             } else {
                 ctx.font = `bold 20px "Kanit", sans-serif`;
             }
@@ -1121,7 +1153,6 @@
             if (activeLevelIndex + 1 >= currentUnlockedLevel && currentUnlockedLevel < levelsData.length) {
                 currentUnlockedLevel++;
             } else if (currentUnlockedLevel === levelsData.length && activeLevelIndex === levelsData.length - 1) {
-                // Game Finished Entirely
                 try { window.parent.postMessage({ type: 'SAVE_RESULT', score: score }, '*'); } catch(e){}
             }
 
@@ -1254,6 +1285,92 @@
 
         let currentVocabs = [...defaultVocabs];
 
+        // ฐานข้อมูลอิโมจิพร้อมคำค้นหา (Tags) ทั้งภาษาไทยและอังกฤษ
+        const emojiDatabase = [
+            { emoji: "🎀", tags: ["โบ", "โบว์", "ribbon", "ของตกแต่ง"] },
+            { emoji: "🥚", tags: ["ไข่", "egg", "อาหาร", "food"] },
+            { emoji: "🧺", tags: ["ตะกร้า", "basket", "สิ่งของ"] },
+            { emoji: "🧊", tags: ["น้ำแข็ง", "ice", "เย็น", "cold"] },
+            { emoji: "🥣", tags: ["ถ้วย", "ชาม", "bowl", "ภาชนะ"] },
+            { emoji: "👧", tags: ["ผู้หญิง", "เด็กผู้หญิง", "girl", "woman", "คน", "person"] },
+            { emoji: "👦", tags: ["ผู้ชาย", "เด็กผู้ชาย", "boy", "man", "คน", "person"] },
+            { emoji: "👨", tags: ["ผู้ชาย", "ผู้ใหญ่", "man", "พ่อ", "father", "คน"] },
+            { emoji: "👩", tags: ["ผู้หญิง", "ผู้ใหญ่", "woman", "แม่", "mother", "คน"] },
+            { emoji: "👴", tags: ["ปู่", "ตา", "คนแก่", "ผู้ชาย", "grandfather", "old man"] },
+            { emoji: "👵", tags: ["ย่า", "ยาย", "คนแก่", "ผู้หญิง", "grandmother", "old woman"] },
+            { emoji: "😊", tags: ["ยิ้ม", "ดีใจ", "smile", "happy", "หน้า", "face"] },
+            { emoji: "😆", tags: ["หัวเราะ", "ขำ", "laugh", "funny", "หน้า", "face"] },
+            { emoji: "😍", tags: ["รัก", "ชอบ", "หลงรัก", "love", "heart", "eyes"] },
+            { emoji: "😎", tags: ["เท่", "แว่นตา", "cool", "glasses", "sunglasses"] },
+            { emoji: "😭", tags: ["ร้องไห้", "เสียใจ", "เศร้า", "cry", "sad"] },
+            { emoji: "😡", tags: ["โกรธ", "โมโห", "angry", "mad"] },
+            { emoji: "😱", tags: ["ตกใจ", "กลัว", "shock", "scared", "fear"] },
+            { emoji: "👀", tags: ["มอง", "ตา", "ดู", "eyes", "look", "see"] },
+            { emoji: "🙏", tags: ["ไหว้", "ขอร้อง", "ขอบคุณ", "pray", "thank you", "please"] },
+            { emoji: "👍", tags: ["เยี่ยม", "ดี", "ยอดเยี่ยม", "ไลค์", "thumbs up", "like", "good"] },
+            { emoji: "✌️", tags: ["สู้ๆ", "สองนิ้ว", "ชัยชนะ", "peace", "victory"] },
+            { emoji: "🖼️", tags: ["รูป", "รูปภาพ", "กรอบรูป", "picture", "frame", "photo"] },
+            { emoji: "📖", tags: ["หนังสือ", "อ่าน", "book", "read"] },
+            { emoji: "✏️", tags: ["ดินสอ", "เขียน", "pencil", "write", "pen"] },
+            { emoji: "🔴", tags: ["สีแดง", "วงกลม", "red", "circle"] },
+            { emoji: "🟢", tags: ["สีเขียว", "วงกลม", "green", "circle"] },
+            { emoji: "🟡", tags: ["สีเหลือง", "วงกลม", "yellow", "circle"] },
+            { emoji: "🔵", tags: ["สีน้ำเงิน", "สีฟ้า", "วงกลม", "blue", "circle"] },
+            { emoji: "🟠", tags: ["สีส้ม", "วงกลม", "orange", "circle"] },
+            { emoji: "🟣", tags: ["สีม่วง", "วงกลม", "purple", "circle"] },
+            { emoji: "💖", tags: ["หัวใจ", "สีชมพู", "รัก", "heart", "pink", "love"] },
+            { emoji: "⭐", tags: ["ดาว", "star"] },
+            { emoji: "☀️", tags: ["พระอาทิตย์", "ดวงอาทิตย์", "sun", "ร้อน", "hot", "day"] },
+            { emoji: "🌙", tags: ["พระจันทร์", "ดวงจันทร์", "moon", "กลางคืน", "night"] },
+            { emoji: "☁️", tags: ["เมฆ", "ก้อนเมฆ", "cloud", "sky"] },
+            { emoji: "🌧️", tags: ["ฝน", "ฝนตก", "rain", "weather"] },
+            { emoji: "⚡", tags: ["สายฟ้า", "ฟ้าผ่า", "lightning", "thunder", "storm"] },
+            { emoji: "🌈", tags: ["รุ้ง", "สายรุ้ง", "rainbow"] },
+            { emoji: "🌳", tags: ["ต้นไม้", "ป่า", "tree", "forest", "wood"] },
+            { emoji: "🌸", tags: ["ดอกไม้", "ซากุระ", "flower", "blossom", "pink"] },
+            { emoji: "🌻", tags: ["ดอกทานตะวัน", "ดอกไม้", "sunflower", "flower", "yellow"] },
+            { emoji: "🍁", tags: ["ใบไม้", "เมเปิ้ล", "leaf", "maple", "autumn"] },
+            { emoji: "🐱", tags: ["แมว", "cat", "kitty", "สัตว์", "animal"] },
+            { emoji: "🐶", tags: ["หมา", "สุนัข", "dog", "puppy", "สัตว์", "animal"] },
+            { emoji: "🐦", tags: ["นก", "bird", "สัตว์", "animal", "บิน", "fly"] },
+            { emoji: "🐟", tags: ["ปลา", "fish", "สัตว์", "animal", "น้ำ", "water"] },
+            { emoji: "🐷", tags: ["หมู", "pig", "สัตว์", "animal", "pork"] },
+            { emoji: "🐔", tags: ["ไก่", "chicken", "hen", "สัตว์", "animal"] },
+            { emoji: "🐸", tags: ["กบ", "frog", "สัตว์", "animal"] },
+            { emoji: "🐘", tags: ["ช้าง", "elephant", "สัตว์", "animal"] },
+            { emoji: "🐴", tags: ["ม้า", "horse", "สัตว์", "animal"] },
+            { emoji: "🐒", tags: ["ลิง", "monkey", "สัตว์", "animal"] },
+            { emoji: "🦆", tags: ["เป็ด", "duck", "สัตว์", "animal"] },
+            { emoji: "🦋", tags: ["ผีเสื้อ", "butterfly", "สัตว์", "animal", "แมลง", "insect"] },
+            { emoji: "🍎", tags: ["แอปเปิ้ล", "apple", "ผลไม้", "fruit", "red"] },
+            { emoji: "🍌", tags: ["กล้วย", "banana", "ผลไม้", "fruit", "yellow"] },
+            { emoji: "🍊", tags: ["ส้ม", "orange", "ผลไม้", "fruit"] },
+            { emoji: "🍉", tags: ["แตงโม", "watermelon", "ผลไม้", "fruit"] },
+            { emoji: "🍇", tags: ["องุ่น", "grape", "ผลไม้", "fruit", "purple"] },
+            { emoji: "🍓", tags: ["สตรอว์เบอร์รี", "สตรอเบอรี่", "strawberry", "ผลไม้", "fruit", "red"] },
+            { emoji: "🥥", tags: ["มะพร้าว", "coconut", "ผลไม้", "fruit"] },
+            { emoji: "🍚", tags: ["ข้าว", "rice", "อาหาร", "food"] },
+            { emoji: "💧", tags: ["น้ำ", "หยดน้ำ", "water", "drop", "liquid"] },
+            { emoji: "🥛", tags: ["นม", "milk", "เครื่องดื่ม", "drink"] },
+            { emoji: "🍬", tags: ["ขนม", "ลูกอม", "candy", "sweet"] },
+            { emoji: "🍰", tags: ["เค้ก", "cake", "ขนม", "sweet", "dessert"] },
+            { emoji: "🍦", tags: ["ไอศกรีม", "ไอติม", "ice cream", "sweet", "dessert", "cold"] },
+            { emoji: "🍕", tags: ["พิซซ่า", "pizza", "อาหาร", "food"] },
+            { emoji: "🍔", tags: ["แฮมเบอร์เกอร์", "เบอร์เกอร์", "hamburger", "burger", "อาหาร", "food"] },
+            { emoji: "🚗", tags: ["รถ", "รถยนต์", "car", "ยานพาหนะ", "vehicle", "drive"] },
+            { emoji: "⛵", tags: ["เรือ", "boat", "ship", "ยานพาหนะ", "vehicle", "water"] },
+            { emoji: "✈️", tags: ["เครื่องบิน", "airplane", "plane", "ยานพาหนะ", "vehicle", "fly"] },
+            { emoji: "🚆", tags: ["รถไฟ", "train", "ยานพาหนะ", "vehicle"] },
+            { emoji: "🚲", tags: ["จักรยาน", "bicycle", "bike", "ยานพาหนะ", "vehicle", "ride"] },
+            { emoji: "🏠", tags: ["บ้าน", "house", "home", "building"] },
+            { emoji: "🏫", tags: ["โรงเรียน", "school", "building", "study"] },
+            { emoji: "⚽", tags: ["ฟุตบอล", "บอล", "soccer", "football", "กีฬา", "sport", "ball"] },
+            { emoji: "🏀", tags: ["บาสเกตบอล", "บาส", "basketball", "กีฬา", "sport", "ball"] },
+            { emoji: "🧸", tags: ["ตุ๊กตาหมี", "ตุ๊กตา", "ของเล่น", "teddy bear", "toy", "bear"] },
+            { emoji: "🎈", tags: ["ลูกโป่ง", "balloon", "party", "ของเล่น", "toy"] },
+            { emoji: "🎁", tags: ["ของขวัญ", "กล่องของขวัญ", "gift", "present", "box", "party"] }
+        ];
+
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             targetCid = params.get('cid');
@@ -1261,7 +1378,6 @@
             renderVocabList();
             updatePreview();
 
-            // Initialize Auth
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -1288,10 +1404,13 @@
                 div.className = 'vocab-item bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap gap-2 items-center shadow-sm relative';
                 div.innerHTML = `
                     <div class="flex-grow min-w-[100px]">
-                        <input type="text" value="${item.word}" onchange="updateVocab(${index}, 'word', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-sm focus:ring-2 focus:ring-orange-500 font-bold" placeholder="คำศัพท์">
+                        <input type="text" value="${item.word}" oninput="handleWordInput(${index}, this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-sm focus:ring-2 focus:ring-orange-500 font-bold" placeholder="คำศัพท์">
                     </div>
-                    <div class="w-16 shrink-0">
-                        <input type="text" value="${item.emoji}" onchange="updateVocab(${index}, 'emoji', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none text-center text-sm focus:ring-2 focus:ring-orange-500" placeholder="อิโมจิ" maxlength="2">
+                    <div class="relative w-20 shrink-0 flex items-center">
+                        <input type="text" id="emoji-input-${index}" value="${item.emoji}" onchange="updateVocab(${index}, 'emoji', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 outline-none text-center text-sm focus:ring-2 focus:ring-orange-500" placeholder="อิโมจิ" maxlength="2">
+                        <button onclick="openEmojiPicker(${index})" class="absolute right-1.5 text-slate-400 hover:text-orange-500 transition-colors" title="เลือกอิโมจิ">
+                            <i class="far fa-smile"></i>
+                        </button>
                     </div>
                     <div class="w-10 h-8 shrink-0 relative rounded-lg overflow-hidden border border-slate-200 cursor-pointer">
                         <input type="color" value="${item.color}" onchange="updateVocab(${index}, 'color', this.value)" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer">
@@ -1304,8 +1423,69 @@
             });
         }
 
+        function handleWordInput(index, value) {
+            currentVocabs[index].word = value;
+            
+            const cleanWord = value.trim().toLowerCase();
+            const found = emojiDatabase.find(item => item.tags.some(tag => tag.toLowerCase() === cleanWord));
+            if (found) {
+                currentVocabs[index].emoji = found.emoji;
+                document.getElementById(`emoji-input-${index}`).value = found.emoji;
+            }
+        }
+
         function updateVocab(index, field, value) {
             currentVocabs[index][field] = value;
+        }
+
+        // --- Emoji Picker Logic ---
+        let activeEmojiIndex = null;
+
+        function openEmojiPicker(index) {
+            activeEmojiIndex = index;
+            document.getElementById('emojiSearchInput').value = '';
+            filterEmojis(''); 
+            document.getElementById('emojiPickerModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('emojiSearchInput').focus(), 100);
+        }
+
+        function filterEmojis(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            const grid = document.getElementById('emojiGrid');
+            grid.innerHTML = '';
+            
+            let filtered = emojiDatabase;
+            if (term !== "") {
+                filtered = emojiDatabase.filter(item => {
+                    return item.tags.some(tag => tag.toLowerCase().includes(term));
+                });
+            }
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="col-span-6 text-sm text-slate-400 py-4 text-center">ไม่พบอิโมจิที่ค้นหา</div>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = "hover:bg-white bg-transparent rounded-lg p-1.5 transition-all transform hover:scale-110 shadow-sm border border-transparent hover:border-slate-200 cursor-pointer";
+                btn.innerText = item.emoji;
+                btn.onclick = () => selectEmoji(item.emoji);
+                grid.appendChild(btn);
+            });
+        }
+
+        function closeEmojiPicker() {
+            document.getElementById('emojiPickerModal').classList.add('hidden');
+            activeEmojiIndex = null;
+        }
+
+        function selectEmoji(emoji) {
+            if (activeEmojiIndex !== null) {
+                currentVocabs[activeEmojiIndex].emoji = emoji;
+                document.getElementById(`emoji-input-${activeEmojiIndex}`).value = emoji;
+            }
+            closeEmojiPicker();
         }
 
         function addVocabItem() {
@@ -1337,9 +1517,13 @@
             const templateStr = document.getElementById('zuma-template').textContent;
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             
+            // เข้ารหัสข้อมูลเป็น Base64 เพื่อป้องกันปัญหา Emoji กลายเป็นเครื่องหมายคำถามเวลาบันทึกลง Database
+            const jsonStr = JSON.stringify(currentVocabs);
+            const encodedData = btoa(unescape(encodeURIComponent(jsonStr)));
+            
             let finalHtml = templateStr;
             finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
-            finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST%%\*\//g, JSON.stringify(currentVocabs));
+            finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST_B64%%\*\//g, encodedData);
             
             return finalHtml;
         }
@@ -1396,7 +1580,6 @@
             const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
             const grade = document.getElementById("missionGradeInput").value.trim() || "";
             
-            // ตรวจสอบความถูกต้องโค้ดล่าสุด
             generatedCode = generateGameHTML();
 
             try {
