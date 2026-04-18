@@ -301,8 +301,8 @@
             // 🌟 จำลองการ Scroll สำหรับหน้าจอล็อก (เพื่อให้ Navbar ย่อขนาดได้) 🌟
             document.addEventListener('wheel', (e) => {
                 const nav = document.getElementById('mainNav');
-                if (e.deltaY > 10) nav.classList.add('scrolled'); // ไถลง = ย่อ Navbar
-                else if (e.deltaY < -10) nav.classList.remove('scrolled'); // ไถขึ้น = ขยาย Navbar
+                if (e.deltaY > 10) nav.classList.add('scrolled'); 
+                else if (e.deltaY < -10) nav.classList.remove('scrolled'); 
             });
 
             let touchStartY = 0;
@@ -313,8 +313,8 @@
             document.addEventListener('touchmove', e => {
                 const touchEndY = e.touches[0].clientY;
                 const nav = document.getElementById('mainNav');
-                if (touchStartY - touchEndY > 30) nav.classList.add('scrolled'); // ปัดขึ้น = ย่อ Navbar
-                else if (touchEndY - touchStartY > 30) nav.classList.remove('scrolled'); // ปัดลง = ขยาย Navbar
+                if (touchStartY - touchEndY > 30) nav.classList.add('scrolled'); 
+                else if (touchEndY - touchStartY > 30) nav.classList.remove('scrolled'); 
             }, {passive: true});
 
             // 🌟 ย่อ Navbar อัตโนมัติเมื่อคลิกในบริเวณตัวเกม/Iframe 🌟
@@ -568,6 +568,16 @@
 
                 if (!missionData) throw new Error("ไม่พบภารกิจ (อาจถูกลบไปแล้ว)");
 
+                // 🌟 ระบบบันทึกยอดเข้าชม (View Count) 🌟
+                // ใช้ sessionStorage ป้องกันการปั๊มยอดวิวจากการกดรีเฟรช (F5) รัวๆ ในหน้าต่างเดิม
+                const viewStorageKey = 'viewed_mission_' + currentMissionId;
+                if (!sessionStorage.getItem(viewStorageKey)) {
+                    sessionStorage.setItem(viewStorageKey, 'true');
+                    const currentViews = parseInt(missionData.view_count) || 0;
+                    // ให้บันทึกทำงานในพื้นหลัง ไม่ต้อง await เพื่อไม่ให้หน้าเว็บโหลดช้า
+                    db.from('missions').update({ view_count: currentViews + 1 }).eq('mission_id', currentMissionId).then();
+                }
+
                 // ✅ Teacher Logic (เครื่องมือครู)
                 if (isTeacher && assignmentData) {
                     document.getElementById('teacherTools').classList.remove('hidden');
@@ -576,8 +586,14 @@
                     document.getElementById('editBtn').onclick = () => {
                         // ปรับลิงก์แก้ไขตามประเภทภารกิจ
                         let editUrl = 'mission-paste-code.html';
-                        if (missionData.mission_type && missionData.mission_type.includes('matching-flip')) {
+                        if (missionData.content_data && missionData.content_data.source_file) {
+                            editUrl = missionData.content_data.source_file;
+                        } else if (missionData.mission_type && missionData.mission_type.includes('matching-flip')) {
                             editUrl = 'mission-Matching-flip.html';
+                        } else if (missionData.mission_type && missionData.mission_type.includes('zuma')) {
+                            editUrl = 'mission-zuma.html';
+                        } else if (missionData.mission_type && missionData.mission_type.includes('ai')) {
+                            editUrl = 'mission-create-ai.html';
                         }
                         window.location.href = `${editUrl}?cid=${assignmentData.classroom_id}&edit_mid=${currentMissionId}`;
                     };
@@ -691,15 +707,20 @@
                 try {
                     const db = window.sysDB;
                     const { data: existing } = await db.from('student_missions')
-                        .select('id')
+                        .select('id, score')
                         .eq('student_id', currentUserId)
                         .eq('mission_id', currentMissionId)
                         .maybeSingle();
                         
+                    let newBestScore = score;
+                    if (existing && existing.score > score) {
+                        newBestScore = existing.score; // เก็บสถิติที่ดีที่สุด
+                    }
+
                     const payload = { 
                         student_id: currentUserId, 
                         mission_id: currentMissionId, 
-                        score: score, 
+                        score: newBestScore, 
                         answers: e.data.answers || [], 
                         is_completed: true,
                         completed_at: new Date().toISOString(),
