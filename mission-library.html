@@ -130,12 +130,10 @@
         <div style="font-family: 'Kanit'; color: var(--primary); font-weight: 600;">กำลังรวบรวมคลังข้อมูล...</div>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toastNotification">
         <i class="fas fa-check-circle"></i> <span id="toastText">ทำรายการสำเร็จ</span>
     </div>
 
-    <!-- Navbar -->
     <nav id="mainNav">
         <a href="index.html" class="nav-left">
             <div class="nav-logo-icon">🎓</div>
@@ -163,7 +161,6 @@
         </div>
     </nav>
 
-    <!-- Header Section -->
     <header class="header-gradient text-white py-8 px-5 md:px-12 relative overflow-hidden rounded-b-[1.5rem] md:rounded-b-[2rem] shadow-sm mb-8">
         <div class="container mx-auto max-w-[1200px] relative z-10 flex flex-col lg:flex-row justify-between lg:items-end gap-6">
             <div class="flex-1">
@@ -200,10 +197,8 @@
         <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
     </header>
 
-    <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 md:px-6 pb-12 max-w-[1200px] relative">
         
-        <!-- 🌟 แถบโหมดนำเข้าห้องเรียน (Import Mode) 🌟 -->
         <div id="importModeBanner" class="hidden-el mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg shadow-sm">
@@ -246,7 +241,6 @@
 
     <button onclick="checkAuthAndCreate()" id="fabAdd" class="fab-add hidden" title="สร้างภารกิจใหม่"><i class="fas fa-plus"></i></button>
 
-    <!-- Playlist Modal -->
     <div id="playlistModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10000] items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="closePlaylistModal()">
         <div class="playlist-modal" id="playlistModalBox" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
@@ -271,7 +265,6 @@
         </div>
     </div>
 
-    <!-- Custom Alert Modal -->
     <div id="customAlertModal" style="display: none; opacity: 0; transition: opacity 0.3s;" class="fixed inset-0 z-[10050] items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div class="bg-white rounded-[25px] w-full max-w-[420px] p-8 shadow-2xl text-center transform scale-95 transition-transform" id="customAlertBox">
             <div class="text-[50px] mb-4"><i id="customAlertIcon" class="fas fa-info-circle text-[var(--primary)]"></i></div>
@@ -786,42 +779,72 @@
         }
 
         function createCardHTML(m, index) {
-            const colors = { quiz:'#f43f5e', match:'#10b981', 'matching-flip':'#0d9488', ai_generated:'#8b5cf6', competition:'#f59e0b', html_custom:'#3b82f6', default: 'var(--primary)' };
-            const labels = { quiz:'ควิซปรนัย', match:'จับคู่ลากวาง', 'matching-flip':'จับคู่พลิกไพ่', ai_generated:'AI สร้าง', competition:'แข่งขัน', html_custom:'สื่อ/ลิงก์ภายนอก' };
+            // 🌟 ปรับปรุง: สีและป้ายกำกับสำหรับประเภทเกมที่ครอบคลุมขึ้น
+            const colors = { 
+                quiz: '#f43f5e', 
+                match: '#10b981', 
+                'matching-flip': '#0d9488', 
+                ai_generated: '#8b5cf6', 
+                competition: '#f59e0b', 
+                html_custom: '#3b82f6', 
+                zuma_template: '#f97316', // สีส้มสำหรับ Zuma
+                default: 'var(--primary)' 
+            };
+            const labels = { 
+                quiz: 'ควิซปรนัย', 
+                match: 'จับคู่ลากวาง', 
+                'matching-flip': 'จับคู่พลิกไพ่', 
+                ai_generated: 'AI สร้าง', 
+                competition: 'แข่งขัน', 
+                html_custom: 'สื่อ/ลิงก์ภายนอก', 
+                zuma_template: 'เกม Zuma' 
+            };
             
             const themeColor = colors[m.mission_type] || colors.default;
             const playUrl = currentUserId ? `mission-play.html?mid=${m.mission_id}` : `mission-play.html?mid=${m.mission_id}&mode=guest`;
             
-            // 🌟 เลือกลิงก์แก้ไขตามประเภทของภารกิจ 🌟
+            // 🌟 ปรับปรุง: เลือกลิงก์แก้ไขให้แม่นยำยิ่งขึ้นตามข้อมูล source_file ที่บันทึกไว้
             let editUrl = `mission-paste-code.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
-            if (m.mission_type === 'matching-flip') {
-                editUrl = `mission-Matching-flip.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
-            } else if (m.mission_type === 'matching' || m.mission_type === 'match') {
-                editUrl = `mission-Matching.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+            if (m.content_data && m.content_data.source_file) {
+                editUrl = `${m.content_data.source_file}?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+            } else {
+                // ระบบสำรองกรณีภารกิจเก่าไม่มีการบันทึก source_file
+                if (m.mission_type === 'matching-flip') {
+                    editUrl = `mission-Matching-flip.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+                } else if (m.mission_type === 'matching' || m.mission_type === 'match') {
+                    editUrl = `mission-Matching.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+                } else if (m.mission_type === 'zuma_template' || m.mission_type === 'zuma') {
+                    editUrl = `mission-zuma.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+                } else if (m.mission_type === 'ai_generated') {
+                    editUrl = `mission-create-ai.html?mid=${m.mission_id}&edit_mid=${m.mission_id}`;
+                }
             }
             
             const safeTitle = m.title || 'ไม่ระบุชื่อ';
             const safeSubject = m.subject_group || 'ทั่วไป';
 
+            // 🌟 ปรับปรุง: การแสดงผลชื่อผู้สร้างให้สะอาดขึ้น 🌟
             let creatorUser = m.users || {};
             if (Array.isArray(m.users)) {
                 creatorUser = m.users.length > 0 ? m.users[0] : {};
             }
 
-            let creatorName = 'ไม่ระบุชื่อผู้สร้าง';
             let actualCreatorId = m.created_by || '';
+            if (!actualCreatorId && m.content_data && m.content_data.creator_id) {
+                actualCreatorId = m.content_data.creator_id;
+            }
 
+            let creatorName = 'ไม่ระบุชื่อผู้สร้าง';
             if (creatorUser.first_name) {
-                let cleanFirstName = creatorUser.first_name.replace(/^(นาย|นางสาว|นาง)/, '').trim();
+                // ลบคำนำหน้าชื่อที่ติดมากับข้อมูล เพื่อให้แสดงผลแบบสั้นกระชับ
+                let cleanFirstName = creatorUser.first_name.replace(/^(นาย|นางสาว|นาง|ด\.ช\.|ด\.ญ\.)/, '').trim();
                 let cleanLastName = (creatorUser.last_name || '').trim();
                 creatorName = `ครู${cleanFirstName} ${cleanLastName}`.trim();
             } else if (m.content_data && m.content_data.creator_name) {
                 creatorName = m.content_data.creator_name;
-                if (!creatorName.startsWith('ครู')) creatorName = `ครู${creatorName}`;
-            }
-
-            if (!actualCreatorId && m.content_data && m.content_data.creator_id) {
-                actualCreatorId = m.content_data.creator_id;
+                if (!creatorName.startsWith('ครู') && creatorName !== 'คุณครู' && !creatorName.includes('นักเรียน')) {
+                    creatorName = `ครู${creatorName}`;
+                }
             }
 
             let defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(creatorName.replace('ครู', ''))}&background=e0e8ff&color=00008B&rounded=true`;
@@ -843,7 +866,6 @@
                 : "flex-1 h-9 bg-blue-50 hover:bg-blue-500 text-blue-500 hover:text-white shadow-sm rounded-xl flex items-center justify-center transition border-none cursor-pointer";
             const bookmarkIcon = isSaved ? "fas fa-bookmark" : "far fa-bookmark";
 
-            // 🌟 NEW: เพิ่มปุ่ม นำเข้า (Import) หากมี currentCid
             let importBtnHtml = '';
             if (currentCid) {
                 importBtnHtml = `<button onclick="importMissionToClass('${m.mission_id}', '${safeTitle.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="flex-1 h-9 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl flex items-center justify-center transition border-none cursor-pointer shadow-sm" title="นำเข้าห้องเรียน"><i class="fas fa-file-import"></i></button>`;
