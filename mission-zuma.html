@@ -529,8 +529,12 @@
     
     let matchedWordsSet = new Set();
     let generatedSentences = []; 
-    let synth = window.speechSynthesis || null;
+    
+    // ห่อหุ้มระบบเสียงป้องกัน Error
+    let synth = null;
+    try { synth = window.speechSynthesis; } catch(e) {}
     let thaiVoice = null;
+    
     let spawnedCount = 0; 
     let levelTargetSpawns = 0;
     
@@ -543,13 +547,17 @@
 
     function loadVoices() {
         if(!synth) return;
-        const voices = synth.getVoices();
-        thaiVoice = voices.find(v => v.lang.includes('th') && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Siri'))) || voices.find(v => v.lang.includes('th'));
+        try {
+            const voices = synth.getVoices();
+            thaiVoice = voices.find(v => v.lang.includes('th') && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Siri'))) || voices.find(v => v.lang.includes('th'));
+        } catch(e) {}
     }
-    if (synth && synth.onvoiceschanged !== undefined) {
-        synth.onvoiceschanged = loadVoices;
-    } else {
-        loadVoices();
+    if (synth) {
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        } else {
+            loadVoices();
+        }
     }
 
     function getPhoneticText(text) {
@@ -688,15 +696,16 @@
 
     function playCurrentAmmoAudio() {
         if (!currentAmmo || !levelsData[activeLevelIndex].isAudioLevel || !synth) return;
-        if(synth.speaking) synth.cancel();
-        
-        let textToSpeak = getPhoneticText(currentAmmo.word);
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = 'th-TH'; 
-        if (thaiVoice) utterance.voice = thaiVoice; 
-        utterance.rate = 0.75; 
-        utterance.pitch = 1.1; 
-        synth.speak(utterance);
+        try {
+            if(synth.speaking) synth.cancel();
+            let textToSpeak = getPhoneticText(currentAmmo.word);
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'th-TH'; 
+            if (thaiVoice) utterance.voice = thaiVoice; 
+            utterance.rate = 0.75; 
+            utterance.pitch = 1.1; 
+            synth.speak(utterance);
+        } catch(e) {}
     }
 
     function handleReplayClick(e) {
@@ -730,22 +739,24 @@
 
     function playSingleSentence(idx) {
         if(!synth) return;
-        if(synth.speaking) synth.cancel(); 
-        document.querySelectorAll('.sentence-row').forEach(el => el.classList.remove('active'));
-        const currentEl = document.getElementById(`sentence-${idx}`);
-        currentEl.classList.add('active');
+        try {
+            if(synth.speaking) synth.cancel(); 
+            document.querySelectorAll('.sentence-row').forEach(el => el.classList.remove('active'));
+            const currentEl = document.getElementById(`sentence-${idx}`);
+            currentEl.classList.add('active');
 
-        let textToSpeak = getPhoneticText(generatedSentences[idx]);
+            let textToSpeak = getPhoneticText(generatedSentences[idx]);
 
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = 'th-TH'; 
-        if (thaiVoice) utterance.voice = thaiVoice; 
-        utterance.rate = 0.75; 
-        utterance.pitch = 1.1;
-        
-        utterance.onend = () => { currentEl.classList.remove('active'); };
-        utterance.onerror = () => { currentEl.classList.remove('active'); };
-        synth.speak(utterance);
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'th-TH'; 
+            if (thaiVoice) utterance.voice = thaiVoice; 
+            utterance.rate = 0.75; 
+            utterance.pitch = 1.1;
+            
+            utterance.onend = () => { currentEl.classList.remove('active'); };
+            utterance.onerror = () => { currentEl.classList.remove('active'); };
+            synth.speak(utterance);
+        } catch(e) {}
     }
 
     function generateMapNodes() {
@@ -767,8 +778,8 @@
             // ใช้ชื่อด่านแบบสั้นๆ หรือตัวเลขป้องกัน Error
             let safeName = level.name || `ด่าน ${index+1}`;
             let shortName = safeName.length > 5 ? safeName.substring(0,4)+".." : safeName;
-            node.innerHTML = `<span style="font-size:12px;">${shortName}</span>`;
-            if(level.isAudioLevel) node.innerHTML += `<span style="font-size:10px; position:absolute; top:2px; right:2px; font-family:${EMOJI_FONT};">🎵</span>`;
+            node.innerHTML = `<span style='font-size:12px;'>${shortName}</span>`;
+            if(level.isAudioLevel) node.innerHTML += `<span style='font-size:10px; position:absolute; top:2px; right:2px; font-family:${EMOJI_FONT};'>🎵</span>`;
             
             if (COLLECTIBLE_EMOJI && index >= currentUnlockedLevel - 1) {
                 const waitingEgg = document.createElement('div');
@@ -839,7 +850,7 @@
         activeLevelIndex = levelIndex;
         const levelConfig = levelsData[levelIndex];
         
-        if(synth) synth.cancel(); 
+        if(synth) try { synth.cancel(); } catch(e){}
 
         document.getElementById('map-screen').style.display = 'none';
         document.getElementById('ui-layer').style.display = 'block';
@@ -848,7 +859,7 @@
         updateLevelEggs(activeLevelIndex);
         
         if(levelConfig.isAudioLevel) {
-            document.getElementById('game-hint').innerHTML = `🎯 <b>ด่านเสียง:</b> ฟังเสียงลูกบอลแล้วยิงให้ตรงรูป <span style="font-family:${EMOJI_FONT};">🔊</span>`;
+            document.getElementById('game-hint').innerHTML = `🎯 <b>ด่านเสียง:</b> ฟังเสียงลูกบอลแล้วยิงให้ตรงรูป <span style='font-family:${EMOJI_FONT};'>🔊</span>`;
             document.getElementById('replay-audio-btn').style.display = 'block';
         } else {
             document.getElementById('game-hint').innerHTML = '🎯 ยิงลูกบอลคำศัพท์ให้ตรงกับรูปภาพ!';
@@ -1275,7 +1286,8 @@
 
     function triggerGameOver() {
         isPlaying = false; isSucking = false;
-        if(synth) synth.cancel(); playSound('gameover'); 
+        if(synth) try { synth.cancel(); } catch(e){}
+        playSound('gameover'); 
         document.getElementById('final-score').textContent = score;
         document.getElementById('back-to-map-btn').style.display = 'none';
         
@@ -1827,8 +1839,9 @@
         function generateGameHTML() {
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             let playerImgUrl = document.getElementById('playerImgInput').value.trim() || "https://www.flipschool.in.th/img/namsai/right.gif";
+            
             let collectibleEmoji = document.getElementById('collectibleEmojiInput').value.trim();
-            collectibleEmoji = collectibleEmoji.replace(/"/g, '\\"');
+            collectibleEmoji = collectibleEmoji.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
             
             const engineLevels = gameLevels.map((lvl, index) => ({
                 level: index + 1,
@@ -1920,7 +1933,7 @@
                         collectible_emoji: document.getElementById('collectibleEmojiInput').value.trim(),
                         source_file: "mission-zuma.html",
                         creator_id: currentUserId,
-                        creator_name: currentUserName // ADDED
+                        creator_name: currentUserName
                     },
                     is_public: true,
                     created_by: currentUserId,
