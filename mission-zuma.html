@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>สร้างเกม Zuma | FlipSchool</title>
+
+    <link rel="icon" href="data:,">
+    
+    <script src="js/env-config.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-db.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { 
+            --primary: #00008B; 
+            --primary-light: #0000cd; 
+            --accent: #FF8C00; 
+            --bg-body: #f4f7fe; 
+            --text-main: #2d3436; 
+            --text-muted: #636e72; 
+        }
+
+        body { font-family: 'Sarabun', 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* ================= NAVBAR STYLES ================= */
+        #mainNav { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 clamp(15px, 5%, 50px); height: 80px; background: white; 
+            position: sticky; top: 0; z-index: 1000; width: 100%; box-sizing: border-box; 
+            border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+        }
+        .nav-left { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo-icon { 
+            font-size: 24px; background: white; width: 45px; height: 45px; 
+            border-radius: 12px; border: 2.5px solid var(--primary); 
+            display: flex; align-items: center; justify-content: center; color: var(--text-main);
+        }
+        .nav-brand { font-size: 22px; font-weight: 700; color: var(--primary); font-family: 'Kanit'; line-height: 1; }
+        .nav-brand span { color: var(--accent); }
+        .nav-slogan { font-size: 11px; color: var(--text-muted); font-family: 'Sarabun'; margin-top: 2px; }
+        
+        .preview-frame-wrapper {
+            background: #1e293b; border-radius: 2rem; overflow: hidden;
+            border: 8px solid #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            position: relative; flex-shrink: 0; width: 100%; height: 100%;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .hidden-el { display: none !important; }
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
+        
+        .custom-message-box {
+            position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem;
+            background: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 9999; border-left: 5px solid #3b82f6; display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .vocab-item { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col h-screen overflow-hidden">
+
+    <div id="msgBox" class="custom-message-box">
+        <p id="msgText" class="text-sm font-bold text-slate-700"></p>
+    </div>
+
+    <!-- Save Modal -->
+    <div id="saveModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-orange-100 shadow-sm text-3xl">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <h3 id="saveModalTitle" class="text-xl font-bold text-slate-800">ยืนยันการบันทึก</h3>
+                <p id="saveModalDesc" class="text-sm text-slate-500 mt-2 px-4 italic font-medium">เกมจะถูกจัดเก็บเข้าคลังสื่อสาระและพร้อมมอบหมายให้นักเรียน</p>
+            </div>
+            <div class="space-y-3">
+                <button onclick="confirmSave('exit')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-sm">
+                    💾 บันทึกและกลับห้องเรียน
+                </button>
+                <button onclick="closeSaveModal()" class="w-full text-slate-400 font-semibold py-2 text-sm hover:text-slate-600">ย้อนกลับไปแก้ไข</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav id="mainNav">
+        <a href="index.html" class="nav-left">
+            <div class="nav-logo-icon">🎓</div>
+            <div class="nav-text-group">
+                <div class="nav-brand"><span style="color: var(--primary);">Flip</span><span style="color: var(--accent);">School</span></div>
+                <div class="nav-slogan app-slogan-label">Innovation for Future Classrooms</div>
+            </div>
+        </a>
+        <div class="nav-right">
+            <button onclick="history.back()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold font-['Kanit'] transition-all text-xs flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> ย้อนกลับ
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-2 lg:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 h-[calc(100vh-80px)]">
+        
+        <!-- Left Panel: Editor -->
+        <div class="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 pb-2">
+            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-max">
+                <div class="flex items-center gap-3 mb-5 shrink-0">
+                    <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center shadow-inner">
+                        <i class="fas fa-bullseye text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 leading-tight">Zuma Creator</h2>
+                        <p class="text-xs text-slate-500 font-medium">สร้างเกมยิงลูกแก้วคำศัพท์</p>
+                    </div>
+                </div>
+
+                <!-- Mission Metadata -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 shrink-0">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ชื่อภารกิจ <span class="text-rose-500">*</span></label>
+                        <input type="text" id="missionTitleInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-sm font-bold focus:ring-2 focus:ring-orange-500 transition-all shadow-sm" placeholder="เช่น Zuma ล่าคำศัพท์ บทที่ 1">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">คำอธิบายภารกิจ</label>
+                        <textarea id="missionDescInput" rows="2" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none text-xs focus:ring-2 focus:ring-orange-500 shadow-inner resize-y" placeholder="คำอธิบายสำหรับให้นักเรียนอ่าน"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">หมวดวิชา</label>
+                            <input type="text" id="missionSubjectInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-orange-500 shadow-sm" placeholder="เช่น ภาษาไทย" value="ภาษาไทย">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">ระดับชั้น</label>
+                            <input type="text" id="missionGradeInput" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-xs focus:ring-2 focus:ring-orange-500 shadow-sm" placeholder="เช่น ป.1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vocab List Editor -->
+                <div class="flex-grow flex flex-col min-h-0">
+                    <div class="flex justify-between items-center mb-2 shrink-0">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-list-ul text-orange-500"></i> รายการคำศัพท์ (แนะนำ 10-15 คำ)
+                        </label>
+                        <span id="vocabCount" class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">0 คำ</span>
+                    </div>
+                    
+                    <div id="vocabListContainer" class="flex-grow overflow-y-auto space-y-2 pr-1 pb-2">
+                        <!-- Vocab Items Injected Here -->
+                    </div>
+
+                    <button onclick="addVocabItem()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 border-dashed py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-plus-circle"></i> เพิ่มคำศัพท์ใหม่
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Panel: Preview -->
+        <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-700">พรีวิวเกม</span>
+                    <span class="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-bold">Zuma Engine</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="updatePreview()" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> อัปเดตพรีวิว
+                    </button>
+                    <button id="saveToCloudBtn" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 transform active:scale-95">
+                        <i class="fas fa-cloud-upload-alt"></i> บันทึก
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
+                <div class="preview-frame-wrapper shadow-2xl relative w-full h-full">
+                    <iframe id="missionFrame" class="w-full h-full bg-black border-none absolute inset-0 z-10" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" title="Zuma Preview"></iframe>
+                    <textarea id="codeView" class="hidden-el"></textarea>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Zuma Engine Template -->
+    <script id="zuma-template" type="text/template">
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>/*%%GAME_TITLE%%*/</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #2e4a19, #0d1a05, #000000);
+            font-family: 'Kanit', sans-serif; overflow: hidden; touch-action: none; user-select: none;
+        }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+
+        .hud-box {
+            background: linear-gradient(to bottom, #8c6b22, #4a360a);
+            border: 3px solid #ffd700; border-radius: 15px; padding: 10px 25px;
+            color: #fff; font-size: 24px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        #replay-audio-btn {
+            pointer-events: auto; background: #FFD700; color: #8B4500;
+            border: 3px solid #FFF; border-radius: 15px; font-family: 'Kanit', sans-serif;
+            font-size: 20px; font-weight: bold; cursor: pointer; padding: 10px 20px;
+            box-shadow: 0 5px 0 #DAA520; display: none; transition: transform 0.1s, box-shadow 0.1s;
+        }
+        #replay-audio-btn:active { transform: translateY(5px); box-shadow: none; }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* Screens */
+        .screen {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 20; pointer-events: auto; backdrop-filter: blur(8px);
+        }
+
+        h1.title {
+            font-size: 70px; color: #FFD700; 
+            text-shadow: 0 5px 0 #8c6b22, 0 10px 20px #000, 0 0 40px rgba(255, 215, 0, 0.5);
+            margin-bottom: 0; text-align: center; line-height: 1.1; letter-spacing: 2px;
+        }
+
+        p.subtitle { color: #f5deb3; font-size: 26px; margin-bottom: 40px; text-align: center; text-shadow: 2px 2px 4px #000; }
+
+        button.btn {
+            background: linear-gradient(to bottom, #FFD700, #DAA520);
+            color: #2e1d00; font-family: 'Kanit', sans-serif; font-weight: bold;
+            font-size: 32px; padding: 15px 60px; border: 4px solid #fff; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 8px 0 #8c6b22, 0 15px 25px rgba(0,0,0,0.6);
+            transition: all 0.1s;
+        }
+        button.btn:active { transform: translateY(8px); box-shadow: 0 0 0 #8c6b22; }
+
+        .hint {
+            text-align: center; color: #ffd700; font-size: 20px; 
+            text-shadow: 1px 1px 5px #000; background: rgba(0,0,0,0.5); padding: 10px;
+            border-radius: 20px; border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        /* Map Screen Styles */
+        #map-screen {
+            background: url('https://www.transparenttextures.com/patterns/wood-pattern.png'), radial-gradient(circle at center, #3E2723, #1b0e0a);
+        }
+
+        #map-container {
+            position: relative; width: 90vw; max-width: 900px; height: 65vh;
+            background: #7CB342; 
+            background-image: radial-gradient(#8BC34A 15%, transparent 16%), radial-gradient(#8BC34A 15%, transparent 16%);
+            background-size: 60px 60px; background-position: 0 0, 30px 30px;
+            border-radius: 30px; border: 8px solid #5D4037;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        #map-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
+        .map-decor { position: absolute; z-index: 1; pointer-events: none; filter: drop-shadow(0 6px 4px rgba(0,0,0,0.4)); }
+
+        .map-level-node {
+            position: absolute; width: 55px; height: 55px;
+            transform: translate(-50%, -50%); border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #FFECB3, #FFCA28);
+            border: 5px solid #8D6E63;
+            box-shadow: 0 8px 10px rgba(0,0,0,0.6), inset 0 -4px 6px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Kanit', sans-serif; font-size: 26px; font-weight: 900; color: #5D4037;
+            z-index: 3; cursor: not-allowed; transition: all 0.3s;
+        }
+        
+        .map-level-node.unlocked {
+            background: radial-gradient(circle at 30% 30%, #FFF9C4, #FBC02D);
+            border-color: #E65100; color: #D84315;
+            box-shadow: 0 0 25px #FFD54F, inset 0 -3px 5px rgba(0,0,0,0.3);
+            cursor: pointer; animation: map-pulse 1.5s infinite;
+        }
+        .map-level-node.unlocked:hover { transform: translate(-50%, -50%) scale(1.15); }
+        .map-level-node.completed {
+            background: radial-gradient(circle at 30% 30%, #A5D6A7, #43A047);
+            border-color: #1B5E20; color: #fff; text-shadow: 1px 1px 2px #000; cursor: pointer;
+        }
+
+        @keyframes map-pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 30px #FFCA28; }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .waiting-egg { animation: eggBounce 1s infinite alternate ease-in-out; }
+        @keyframes eggBounce { 0% { transform: translateY(0); } 100% { transform: translateY(-8px); } }
+
+        #egg-counter-box {
+            position: absolute; top: 20px; right: 30px; background: rgba(93, 64, 55, 0.9);
+            border: 4px solid #FFCA28; border-radius: 20px; padding: 10px 20px;
+            font-size: 28px; color: white; font-weight: bold; z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px;
+        }
+
+        #namsai-player {
+            position: absolute; width: 70px; transform: translate(-50%, -90%);
+            z-index: 10; transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none; filter: drop-shadow(2px 6px 4px rgba(0,0,0,0.5));
+        }
+
+        /* AI Feature Styles */
+        #ai-feature-box {
+            background: rgba(30, 10, 40, 0.7); border: 3px dashed #b28dff; border-radius: 20px;
+            padding: 20px; text-align: center; max-width: 700px; width: 90%; margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(178, 141, 255, 0.3); max-height: 50vh; overflow-y: auto;
+        }
+        .ai-btn {
+            font-size: 24px !important; padding: 12px 30px !important;
+            background: linear-gradient(to bottom, #9b59b6, #8e44ad) !important;
+            color: white !important; box-shadow: 0 6px 0 #5e336e, 0 10px 20px rgba(0,0,0,0.5) !important;
+            border-color: #d2b4de !important; margin: 5px;
+        }
+        .ai-btn:active { box-shadow: 0 0 0 #5e336e !important; }
+        
+        .loading-text { animation: pulse-text 1.5s infinite; color: #d2b4de; font-size: 20px;}
+        @keyframes pulse-text { 0%, 100% { opacity: 0.6; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1.02); } }
+        
+        .sentence-row {
+            display: flex; align-items: center; justify-content: flex-start; gap: 15px;
+            background: rgba(0, 0, 0, 0.4); padding: 12px 20px; border-radius: 20px;
+            margin-bottom: 12px; border: 2px solid transparent; transition: all 0.3s; text-align: left;
+        }
+        .sentence-row.active {
+            border-color: #FFD700; background: rgba(255, 215, 0, 0.2);
+            transform: scale(1.02); box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+        .play-btn-small {
+            background: linear-gradient(to bottom, #00bfff, #1e90ff); border: none; border-radius: 50%;
+            width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;
+            font-size: 26px; cursor: pointer; box-shadow: 0 4px 0 #0056b3; color: white; flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+        .play-btn-small:active { transform: translateY(4px); box-shadow: none; }
+        .sentence-text { color: #eee; font-size: 24px; transition: all 0.2s; }
+        .sentence-row.active .sentence-text { color: #FFD700; font-weight: bold; font-size: 28px; }
+        .highlight-word { color: #FF1493; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <!-- ซ้ายบน: ปุ่มฟังเสียงสำหรับด่าน 6-8 -->
+        <div style="position: absolute; top: 15px; left: 20px; pointer-events: auto;">
+            <button id="replay-audio-btn" onmousedown="handleReplayClick(event)" ontouchstart="handleReplayClick(event)">🔊 ฟังเสียงซ้ำ</button>
+        </div>
+
+        <!-- ขวาบน: คะแนน + หลอดไข่ 8 ฟอง -->
+        <div style="position: absolute; top: 15px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none;">
+            <div class="hud-box">คะแนน: <span id="score">0</span></div>
+            <div id="level-eggs-container" style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px; border: 2px solid #ffd700;">
+            </div>
+        </div>
+
+        <!-- ซ้ายล่าง: ปุ่มกลับแผนที่ -->
+        <button id="back-to-map-btn" style="position: absolute; bottom: 20px; left: 20px; pointer-events: auto; font-family: 'Kanit', sans-serif; font-size: 18px; padding: 10px 20px; border-radius: 20px; display: none; cursor: pointer; background: #333; color: white; border: 2px solid white;" onclick="showMapScreen()">⬅️ กลับแผนที่</button>
+
+        <!-- ตรงกลางล่าง: คำใบ้เกม -->
+        <div class="hint" id="game-hint" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">🎯 ยิงแทรกขบวน! ถ้ายิงครบ 3 ลูก ขบวนหน้าจะถอยร่นมาชิด! 💥</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h1 class="title">ZUMA DELUXE<br><span style="font-size:40px; color:#fff;">MATCH-3 EDITION</span></h1>
+        <p class="subtitle" id="gameSubtitle">/*%%GAME_TITLE%%*/</p>
+        <button class="btn" onclick="initGameAndShowMap()">เริ่มลุยเลย!</button>
+    </div>
+
+    <!-- Map Screen -->
+    <div id="map-screen" class="screen" style="display: none;">
+        <div id="egg-counter-box">🧺 ไข่ในตะกร้า: <span id="egg-collected-display"></span></div>
+        <h1 class="title" style="margin-bottom: 20px; z-index: 5;">ช่วยน้ำใสไปเก็บไข่ไก่</h1>
+        <div id="map-container">
+            <div class="map-decor" style="left: 5%; top: 15%; font-size: 70px;">🌳</div>
+            <div class="map-decor" style="left: 85%; top: 10%; font-size: 80px;">🌲</div>
+            <div class="map-decor" style="left: 20%; top: 50%; font-size: 50px;">🌿</div>
+            <div class="map-decor" style="left: 70%; top: 55%; font-size: 65px;">🌳</div>
+            <div class="map-decor" style="left: 45%; top: 80%; font-size: 60px;">🌿</div>
+            <div class="map-decor" style="left: 10%; top: 85%; font-size: 55px;">🛖</div>
+            <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+            <img id="namsai-player" src="https://www.flipschool.in.th/img/namsai/right.gif" alt="น้ำใส" />
+        </div>
+    </div>
+
+    <!-- Level Complete Screen -->
+    <div id="level-complete-screen" class="screen" style="display: none;">
+        <h1 class="title" style="color: #4CAF50; text-shadow: 0 5px 0 #1B5E20; font-size: 60px;">ยอดเยี่ยม! ผ่านด่านแล้ว 🎉</h1>
+        <p class="subtitle" style="font-size: 24px; margin-bottom: 15px;">น้ำใสเก็บไข่ด่านนี้สำเร็จ!</p>
+        <button class="btn" onclick="showMapScreen()">ไปต่อด่านถัดไป</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen" style="display: none;">
+        <h1 class="title" style="color: #FF3B30; text-shadow: 0 5px 0 #8B0000; font-size: 50px;">GAME OVER</h1>
+        <p class="subtitle" style="font-size: 24px; margin-bottom: 15px;">คะแนนระดับตำนาน: <span id="final-score" style="color: #FFD700; font-size: 40px; font-weight:bold;">0</span></p>
+        
+        <div id="ai-feature-box">
+            <p id="matched-words-display" style="color: white; font-size: 20px; margin-top: 0; margin-bottom: 15px;"></p>
+            <div id="ai-buttons">
+                <button id="ai-story-btn" class="btn ai-btn" onclick="generateAISentences()">✨ ฝึกอ่านคำศัพท์เพิ่มเติม</button>
+            </div>
+            <div id="ai-story-result" style="display: none; margin-top: 10px;"></div>
+        </div>
+        <button class="btn" style="font-size: 24px; padding: 10px 40px;" onclick="showMapScreen()">กลับไปแผนที่ด่าน</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // === ข้อมูลคำศัพท์จาก Template ===
+    const fullVocabList = /*%%VOCAB_LIST%%*/;
+    
+    // โครงสร้าง 8 ด่าน (จัดให้รองรับคำศัพท์แบบ Dynamic)
+    const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
+    const levelsData = [
+        { level: 1, words: fullVocabList.slice(0, half), totalSpawns: 30, speed: 0.1, isAudioLevel: false },      
+        { level: 2, words: fullVocabList.slice(half) || fullVocabList, totalSpawns: 35, speed: 0.1, isAudioLevel: false }, 
+        { level: 3, words: fullVocabList, totalSpawns: 40, speed: 0.1, isAudioLevel: false },                 
+        { level: 4, words: fullVocabList, totalSpawns: 50, speed: 0.13, isAudioLevel: false },                 
+        { level: 5, words: fullVocabList, totalSpawns: 60, speed: 0.16, isAudioLevel: false },
+        { level: 6, words: fullVocabList.slice(0, half), totalSpawns: 35, speed: 0.11, isAudioLevel: true }, 
+        { level: 7, words: fullVocabList.slice(half) || fullVocabList, totalSpawns: 40, speed: 0.11, isAudioLevel: true }, 
+        { level: 8, words: fullVocabList, totalSpawns: 60, speed: 0.15, isAudioLevel: true } 
+    ];
+
+    const mapNodesPos = [
+        {x: 15, y: 80}, {x: 35, y: 70}, {x: 55, y: 80}, {x: 80, y: 70}, 
+        {x: 85, y: 45}, {x: 65, y: 30}, {x: 35, y: 25}, {x: 15, y: 40}
+    ];
+
+    let currentUnlockedLevel = 1;
+    let activeLevelIndex = 0; 
+    let cw, ch, cx, cy;
+    let isPlaying = false;
+    let isSucking = false; 
+    let score = 0;
+    
+    let pathPoints = []; 
+    let marbles = []; 
+    let bullets = []; 
+    let particles = [];
+    let floatingTexts = [];
+    
+    let activeVocabs = []; 
+    let spawnQueue = []; 
+    let currentAmmo = null;
+    let aimAngle = 0;
+    
+    let matchedWordsSet = new Set();
+    let generatedSentences = []; 
+    let synth = window.speechSynthesis;
+    let thaiVoice = null;
+    let spawnedCount = 0; 
+    let levelTargetSpawns = 0;
+    
+    const marbleRadius = 32; 
+    const marbleDiameter = marbleRadius * 2;
+    let baseSpeed = 0.1; 
+    let requiredGap = marbleRadius + 1; 
+    let spawnTimer = 0;
+    let frameCount = 0;
+
+    function loadVoices() {
+        const voices = synth.getVoices();
+        thaiVoice = voices.find(v => v.lang.includes('th') && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Siri'))) || voices.find(v => v.lang.includes('th'));
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    } else {
+        loadVoices();
+    }
+
+    function getPhoneticText(text) {
+        let res = text;
+        res = res.replace(/โบ/g, "โบว์"); 
+        res = res.replace(/ตะกร้า/g, "ตะ กร้า");
+        res = res.replace(/น้ำแข็ง/g, "น้ำ แข็ง ");
+        res = res.replace(/ผู้หญิง/g, "ผู้ หญิง");
+        return res;
+    }
+
+    function updateLevelEggs(activeIdx) {
+        const container = document.getElementById('level-eggs-container');
+        if (!container) return;
+        container.innerHTML = '';
+        for (let i = 0; i < 8; i++) {
+            let egg = document.createElement('div');
+            egg.textContent = '🥚';
+            egg.style.fontSize = '24px';
+            egg.style.textAlign = 'center';
+            egg.style.transition = 'all 0.3s';
+            if (i <= activeIdx) {
+                egg.style.opacity = '1';
+                egg.style.filter = 'drop-shadow(0 0 5px #FFD700)';
+                egg.style.transform = 'scale(1.1)';
+            } else {
+                egg.style.opacity = '0.3';
+                egg.style.filter = 'grayscale(100%)';
+                egg.style.transform = 'scale(0.9)';
+            }
+            container.appendChild(egg);
+        }
+    }
+
+    function preSpawnMarbles() {
+        let initialChain = Math.min(18, levelTargetSpawns);
+        while(spawnQueue.length < initialChain) {
+            let v = activeVocabs[Math.floor(Math.random() * activeVocabs.length)];
+            let amount = Math.floor(Math.random() * 3) + 1; 
+            for(let i=0; i<amount; i++) spawnQueue.push(v);
+        }
+        
+        let visibleStartIndex = 0;
+        if (pathPoints.length > 0) {
+            for (let i = 0; i < pathPoints.length; i++) {
+                if (pathPoints[i].y >= marbleRadius + 5) {
+                    visibleStartIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        for(let i=0; i<initialChain; i++) {
+            let m = new Marble(visibleStartIndex - (requiredGap * i), spawnQueue.shift());
+            m.scale = 1; 
+            m.updatePosition(); 
+            marbles.push(m);
+            spawnedCount++;
+        }
+    }
+
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'shoot') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'hit') {
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(150, now + 0.1);
+            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'explode') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+            gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'win') {
+             osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+             osc.frequency.linearRampToValueAtTime(600, now+0.2);
+             osc.frequency.linearRampToValueAtTime(800, now+0.4);
+             gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now+0.6);
+             osc.start(now); osc.stop(now + 0.6);
+        } else if (type === 'alarm') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(600, now + 0.1);
+            osc.frequency.setValueAtTime(400, now + 0.2);
+            osc.frequency.setValueAtTime(600, now + 0.3);
+            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now); osc.stop(now + 0.4);
+        } else if (type === 'fall') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now); osc.stop(now + 0.15);
+        } else if (type === 'gameover') {
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+            osc.frequency.linearRampToValueAtTime(150, now + 0.4);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.6);
+            gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
+            osc.start(now); osc.stop(now + 0.8);
+        }
+    }
+
+    function playCurrentAmmoAudio() {
+        if (!currentAmmo || !levelsData[activeLevelIndex].isAudioLevel) return;
+        if(synth.speaking) synth.cancel();
+        
+        let textToSpeak = getPhoneticText(currentAmmo.word);
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'th-TH'; 
+        if (thaiVoice) utterance.voice = thaiVoice; 
+        utterance.rate = 0.75; 
+        utterance.pitch = 1.1; 
+        synth.speak(utterance);
+    }
+
+    function handleReplayClick(e) {
+        e.stopPropagation(); 
+        playCurrentAmmoAudio();
+    }
+
+    function generateAISentences() {
+        const wordsArr = Array.from(matchedWordsSet);
+        if (wordsArr.length === 0) return;
+
+        const btn = document.getElementById('ai-story-btn');
+        const resultDiv = document.getElementById('ai-story-result');
+        btn.style.display = 'none'; resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="loading-text">✨ กำลังร่ายมนตร์สร้างประโยค...</div>';
+
+        setTimeout(() => {
+            generatedSentences = [];
+            let htmlContent = '';
+            wordsArr.forEach((word, idx) => {
+                let displaySentence = `ฉันเห็น ${word} อยู่ตรงนั้น`; // Fallback simple sentence
+                
+                generatedSentences.push(displaySentence); 
+                
+                let markedSentence = displaySentence.replace(new RegExp(word, 'g'), `<span class="highlight-word">${word}</span>`);
+                htmlContent += `<div id="sentence-${idx}" class="sentence-row"><button class="play-btn-small" onclick="playSingleSentence(${idx})">🔊</button><span class="sentence-text">🎯 ${markedSentence}</span></div>`;
+            });
+            resultDiv.innerHTML = htmlContent;
+        }, 800);
+    }
+
+    function playSingleSentence(idx) {
+        if(synth.speaking) synth.cancel(); 
+        document.querySelectorAll('.sentence-row').forEach(el => el.classList.remove('active'));
+        const currentEl = document.getElementById(`sentence-${idx}`);
+        currentEl.classList.add('active');
+
+        let textToSpeak = getPhoneticText(generatedSentences[idx]);
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'th-TH'; 
+        if (thaiVoice) utterance.voice = thaiVoice; 
+        utterance.rate = 0.75; 
+        utterance.pitch = 1.1;
+        
+        utterance.onend = () => { currentEl.classList.remove('active'); };
+        utterance.onerror = () => { currentEl.classList.remove('active'); };
+        synth.speak(utterance);
+    }
+
+    function generateMapNodes() {
+        const container = document.getElementById('map-container');
+        container.querySelectorAll('.map-level-node').forEach(n => n.remove());
+        const svg = document.getElementById('map-svg');
+        svg.innerHTML = ''; 
+
+        let pathD = "";
+        levelsData.forEach((level, index) => {
+            const pos = mapNodesPos[index];
+            if (index === 0) pathD += `M ${pos.x} ${pos.y} `; else pathD += `L ${pos.x} ${pos.y} `;
+
+            const node = document.createElement('div');
+            node.className = `map-level-node`;
+            node.style.left = `${pos.x}%`; node.style.top = `${pos.y}%`;
+            node.innerHTML = level.isAudioLevel ? `${level.level}<span style="font-size:12px; position:absolute; top:2px; right:5px;">🎵</span>` : level.level;
+            
+            if (index >= currentUnlockedLevel - 1) {
+                const waitingEgg = document.createElement('div');
+                waitingEgg.textContent = '🥚'; waitingEgg.className = 'waiting-egg';
+                waitingEgg.style.position = 'absolute'; waitingEgg.style.top = '-35px';
+                waitingEgg.style.right = '-20px'; waitingEgg.style.fontSize = '45px';
+                waitingEgg.style.filter = 'drop-shadow(2px 4px 2px rgba(0,0,0,0.5))';
+                node.appendChild(waitingEgg);
+            }
+            
+            if (index < currentUnlockedLevel - 1) {
+                node.classList.add('completed'); node.onclick = () => startLevel(index);
+            } else if (index === currentUnlockedLevel - 1) {
+                node.classList.add('unlocked'); node.onclick = () => startLevel(index);
+            }
+            container.appendChild(node);
+        });
+
+        const pathBorder = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathBorder.setAttribute('d', pathD); pathBorder.setAttribute('fill', 'none');
+        pathBorder.setAttribute('stroke', '#795548'); pathBorder.setAttribute('stroke-width', '4'); 
+        pathBorder.setAttribute('stroke-linecap', 'round'); pathBorder.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(pathBorder);
+        
+        const pathInner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathInner.setAttribute('d', pathD); pathInner.setAttribute('fill', 'none');
+        pathInner.setAttribute('stroke', '#D7CCC8'); pathInner.setAttribute('stroke-width', '2'); 
+        pathInner.setAttribute('stroke-linecap', 'round'); pathInner.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(pathInner);
+
+        const namsai = document.getElementById('namsai-player');
+        const targetNodeIdx = Math.min(currentUnlockedLevel - 1, levelsData.length - 1);
+        const targetPos = mapNodesPos[targetNodeIdx];
+        
+        setTimeout(() => { namsai.style.left = `${targetPos.x}%`; namsai.style.top = `${targetPos.y}%`; }, 100);
+
+        const completedCount = currentUnlockedLevel - 1;
+        let eggString = ""; for(let i=0; i<completedCount; i++) eggString += "🥚";
+        document.getElementById('egg-collected-display').textContent = eggString || "-";
+    }
+
+    function showMapScreen() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('level-complete-screen').style.display = 'none';
+        document.getElementById('ui-layer').style.display = 'none';
+        generateMapNodes();
+        document.getElementById('map-screen').style.display = 'flex';
+    }
+    
+    function initGameAndShowMap() { initAudio(); showMapScreen(); }
+
+    function startLevel(levelIndex) {
+        activeLevelIndex = levelIndex;
+        const levelConfig = levelsData[levelIndex];
+        
+        if(synth) synth.cancel(); 
+
+        document.getElementById('map-screen').style.display = 'none';
+        document.getElementById('ui-layer').style.display = 'block';
+        document.getElementById('back-to-map-btn').style.display = 'block';
+        
+        updateLevelEggs(activeLevelIndex);
+        
+        if(levelConfig.isAudioLevel) {
+            document.getElementById('game-hint').innerHTML = '🎯 <b>ด่านเสียง:</b> ฟังเสียงลูกบอลแล้วยิงให้ตรงรูป!';
+            document.getElementById('replay-audio-btn').style.display = 'block';
+        } else {
+            document.getElementById('game-hint').innerHTML = '🎯 ยิงลูกบอลคำศัพท์ให้ตรงกับรูปภาพ!';
+            document.getElementById('replay-audio-btn').style.display = 'none';
+        }
+
+        resize();
+        marbles = []; bullets = []; particles = []; floatingTexts = []; spawnQueue = [];
+        frameCount = 0; spawnTimer = 0; isSucking = false;
+        
+        activeVocabs = [...levelConfig.words]; 
+        baseSpeed = levelConfig.speed; 
+        levelTargetSpawns = levelConfig.totalSpawns;
+        spawnedCount = 0;
+        
+        document.getElementById('score').textContent = score;
+        matchedWordsSet.clear(); generatedSentences = [];
+        
+        preSpawnMarbles(); 
+        
+        isPlaying = true;
+        reloadAmmo();
+        animate();
+    }
+
+    function buildPath() {
+        pathPoints = [];
+        let maxLoops = 2.5; 
+        let startRx = Math.min((cw / 2) - 30, 450); 
+        let startRy = (ch / 2) + marbleRadius * 2.5; 
+        let endRx = marbleRadius * 2.5; 
+        let endRy = marbleRadius * 2.5; 
+        
+        let tempPoints = []; let t = 0;
+        while(t <= 1) {
+            tempPoints.push(getSpiralPoint(t, startRx, startRy, endRx, endRy, maxLoops));
+            t += 0.0002; 
+        }
+        
+        pathPoints.push(tempPoints[0]);
+        let lastPt = tempPoints[0];
+        
+        for(let i=1; i<tempPoints.length; i++) {
+            let pt = tempPoints[i];
+            let dist = Math.hypot(pt.x - lastPt.x, pt.y - lastPt.y);
+            while(dist >= 2.0) {
+                let ratio = 2.0 / dist;
+                let newPt = { x: lastPt.x + (pt.x - lastPt.x) * ratio, y: lastPt.y + (pt.y - lastPt.y) * ratio };
+                pathPoints.push(newPt);
+                lastPt = newPt;
+                dist = Math.hypot(pt.x - lastPt.x, pt.y - lastPt.y);
+            }
+        }
+    }
+
+    function getSpiralPoint(t, startRx, startRy, endRx, endRy, loops) {
+        let angle = -Math.PI / 2 - (t * Math.PI * 2 * loops);
+        let rx = startRx - (t * (startRx - endRx));
+        let ry = startRy - (t * (startRy - endRy));
+        let offsetX = 0; let offsetY = (t * (ch * 0.15));
+        return { x: cx + offsetX + Math.cos(angle) * rx, y: cy + offsetY + Math.sin(angle) * ry };
+    }
+
+    function resize() {
+        cw = canvas.width = window.innerWidth;
+        ch = canvas.height = window.innerHeight;
+        cx = cw / 2; cy = ch / 2;
+        buildPath();
+    }
+    window.addEventListener('resize', resize);
+
+    class Marble {
+        constructor(pathIndex, vocab) {
+            this.d = pathIndex; this.vocab = vocab;
+            this.updatePosition(); this.markedForDeletion = false;
+            this.scale = 0; this.isFalling = false;
+        }
+        updatePosition() {
+            let exactD = this.d;
+            if (exactD < 0) exactD = 0;
+            if (exactD >= pathPoints.length - 2) exactD = pathPoints.length - 2; 
+
+            let idx = Math.floor(exactD);
+            let frac = exactD - idx;
+            let pt1 = pathPoints[idx]; let pt2 = pathPoints[idx + 1];
+            
+            if (pt1 && pt2) {
+                this.x = pt1.x + (pt2.x - pt1.x) * frac;
+                this.y = pt1.y + (pt2.y - pt1.y) * frac;
+            } else if (pt1) {
+                this.x = pt1.x; this.y = pt1.y;
+            }
+        }
+        update() {
+            if (this.scale < 1 && !this.isFalling) this.scale += 0.1;
+            if (this.d >= pathPoints.length - 10) this.isFalling = true;
+            if (this.isFalling) {
+                this.scale -= 0.15; 
+                if (this.scale <= 0) {
+                    this.scale = 0; this.markedForDeletion = true;
+                    if (isSucking && Math.random() > 0.6) playSound('fall'); 
+                }
+            }
+            this.updatePosition();
+        }
+        draw() {
+            if(this.scale <= 0) return;
+            ctx.save();
+            ctx.translate(this.x, this.y); ctx.scale(this.scale, this.scale);
+            ctx.beginPath(); ctx.arc(5, 5, marbleRadius, 0, Math.PI*2);
+            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, marbleRadius, 0, Math.PI*2);
+            let grad = ctx.createRadialGradient(-8, -8, 8, 0, 0, marbleRadius);
+            grad.addColorStop(0, "#fff"); grad.addColorStop(0.4, this.vocab.color); grad.addColorStop(1, "#222");
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+            ctx.font = `${marbleRadius * 1.3}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(this.vocab.emoji, 0, 3);
+            ctx.restore();
+        }
+    }
+
+    class Bullet {
+        constructor(angle, vocab) {
+            this.x = cx; this.y = cy; this.vx = Math.cos(angle) * 12; this.vy = Math.sin(angle) * 12;
+            this.r = 28; this.vocab = vocab; this.markedForDeletion = false;
+        }
+        update() {
+            this.x += this.vx; this.y += this.vy;
+            if(this.x < -50 || this.x > cw+50 || this.y < -50 || this.y > ch+50) this.markedForDeletion = true;
+        }
+        draw() {
+            ctx.save();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+            let grad = ctx.createRadialGradient(this.x-5, this.y-5, 5, this.x, this.y, this.r);
+            grad.addColorStop(0, "#fff"); grad.addColorStop(0.5, this.vocab.color); grad.addColorStop(1, "#333");
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+            ctx.shadowBlur = 10; ctx.shadowColor = this.vocab.color;
+            let displayWord = levelsData[activeLevelIndex].isAudioLevel ? "🔊" : this.vocab.word;
+            if (levelsData[activeLevelIndex].isAudioLevel) {
+                ctx.font = `20px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+            } else {
+                ctx.font = `bold 20px "Kanit", sans-serif`;
+            }
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.lineWidth = 3; ctx.strokeStyle = "#fff";
+            ctx.strokeText(displayWord, this.x, this.y);
+            ctx.fillStyle = "#000"; ctx.fillText(displayWord, this.x, this.y);
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 15; this.vy = (Math.random() - 0.5) * 15;
+            this.life = 1; this.color = color; this.size = Math.random() * 8 + 3;
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.04; }
+        draw() {
+            ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color;
+            ctx.shadowBlur = 15; ctx.shadowColor = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        }
+    }
+
+    class FloatingText {
+        constructor(text, x, y, color) { this.text = text; this.x = x; this.y = y; this.color = color; this.life = 1; }
+        update() { this.y -= 2; this.life -= 0.02; }
+        draw() {
+            ctx.save(); ctx.globalAlpha = Math.max(0, this.life);
+            ctx.font = "bold 36px Kanit"; ctx.fillStyle = this.color;
+            ctx.shadowBlur = 10; ctx.shadowColor = this.color; ctx.strokeStyle = "#fff"; ctx.lineWidth = 4;
+            ctx.strokeText(this.text, this.x, this.y); ctx.fillText(this.text, this.x, this.y); ctx.restore();
+        }
+    }
+
+    function createExplosion(x, y, color) { for(let i=0; i<40; i++) particles.push(new Particle(x, y, color)); }
+
+    function updateMarbles() {
+        if(marbles.length === 0) return;
+        
+        if (marbles[0].d >= pathPoints.length - 15 && !isSucking) {
+            isSucking = true; playSound('alarm'); spawnQueue = []; currentAmmo = null; 
+        }
+
+        if (isSucking) {
+            let suckSpeed = 4.5;
+            marbles[0].d += suckSpeed; 
+            for (let i = 1; i < marbles.length; i++) {
+                let targetD = marbles[i-1].d - (requiredGap * 0.3); 
+                if (marbles[i].d < targetD) {
+                    marbles[i].d += suckSpeed * 1.5; 
+                    if (marbles[i].d > targetD) marbles[i].d = targetD;
+                } else {
+                    marbles[i].d = targetD;
+                }
+            }
+        } else {
+            marbles[marbles.length - 1].d += baseSpeed; 
+            for (let i = marbles.length - 2; i >= 0; i--) {
+                let targetD = marbles[i+1].d + requiredGap;
+                if (marbles[i].d > targetD + 0.5) {
+                    marbles[i].d -= baseSpeed * 15; 
+                    if (marbles[i].d < targetD) marbles[i].d = targetD;
+                } else if (marbles[i].d < targetD - 0.5) {
+                    marbles[i].d += baseSpeed * 25; 
+                    if (marbles[i].d > targetD) marbles[i].d = targetD;
+                } else {
+                    marbles[i].d = targetD;
+                }
+            }
+        }
+
+        for (let i = marbles.length - 1; i >= 0; i--) {
+            marbles[i].update();
+            if(marbles[i].markedForDeletion) marbles.splice(i, 1);
+        }
+    }
+
+    function reloadAmmo() {
+        if (marbles.length > 0) { currentAmmo = marbles[Math.floor(Math.random() * marbles.length)].vocab; } 
+        else { currentAmmo = activeVocabs[Math.floor(Math.random() * activeVocabs.length)]; }
+        if (levelsData[activeLevelIndex].isAudioLevel) { playCurrentAmmoAudio(); }
+    }
+
+    function checkCollisions() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let bullet = bullets[i]; let hit = false;
+            let closestDist = Infinity; let closestIdx = -1;
+            
+            for (let j = 0; j < marbles.length; j++) {
+                let dist = Math.hypot(bullet.x - marbles[j].x, bullet.y - marbles[j].y);
+                if (dist <= bullet.r + marbleRadius) {
+                    if (dist < closestDist) { closestDist = dist; closestIdx = j; }
+                }
+            }
+
+            if (closestIdx !== -1) {
+                bullet.markedForDeletion = true; hit = true;
+                let cMarble = marbles[closestIdx];
+                let pt1 = pathPoints[Math.floor(cMarble.d)];
+                let pt2 = pathPoints[Math.min(pathPoints.length-1, Math.floor(cMarble.d) + 5)];
+                let dot = 0;
+                if (pt1 && pt2) {
+                    let dxPath = pt2.x - pt1.x; let dyPath = pt2.y - pt1.y;
+                    let dxBullet = bullet.x - cMarble.x; let dyBullet = bullet.y - cMarble.y;
+                    dot = dxPath * dxBullet + dyPath * dyBullet;
+                }
+
+                let insertIdx = (dot > 0) ? closestIdx : closestIdx + 1;
+                let newMarble = new Marble(0, bullet.vocab);
+                newMarble.scale = 1; 
+
+                if (insertIdx >= marbles.length) { newMarble.d = marbles[marbles.length - 1].d - requiredGap; } 
+                else { newMarble.d = marbles[insertIdx].d + (requiredGap / 2); }
+
+                marbles.splice(insertIdx, 0, newMarble);
+
+                let matchWord = marbles[insertIdx].vocab.word;
+                let left = insertIdx; let right = insertIdx;
+
+                while (left > 0 && marbles[left - 1].vocab.word === matchWord) left--;
+                while (right < marbles.length - 1 && marbles[right + 1].vocab.word === matchWord) right++;
+
+                let matchCount = right - left + 1;
+
+                if (matchCount >= 3) {
+                    playSound('explode');
+                    let comboScore = matchCount * 15; score += comboScore;
+                    document.getElementById('score').textContent = score;
+                    matchedWordsSet.add(matchWord);
+                    
+                    for (let k = left; k <= right; k++) { createExplosion(marbles[k].x, marbles[k].y, marbles[k].vocab.color); }
+                    floatingTexts.push(new FloatingText(`+${comboScore}`, marbles[insertIdx].x, marbles[insertIdx].y, "#4cd964"));
+                    marbles.splice(left, matchCount);
+
+                    canvas.style.boxShadow = "inset 0 0 100px rgba(0, 255, 0, 0.4)";
+                    setTimeout(() => canvas.style.boxShadow = "none", 150);
+                } else { playSound('hit'); }
+                reloadAmmo(); break; 
+            }
+        }
+    }
+
+    function drawScenery() {
+        ctx.save();
+        ctx.beginPath();
+        for(let i=0; i<pathPoints.length; i++) {
+            if(i===0) ctx.moveTo(pathPoints[i].x, pathPoints[i].y);
+            else ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+        }
+        ctx.strokeStyle = "#1b330e"; ctx.lineWidth = marbleDiameter + 10;
+        ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
+        
+        ctx.strokeStyle = "#496831"; ctx.lineWidth = marbleDiameter; ctx.stroke();
+        ctx.strokeStyle = "#658f46"; ctx.lineWidth = marbleDiameter - 8; ctx.stroke();
+        ctx.restore();
+
+        if(pathPoints.length > 0) {
+            ctx.save();
+            let endPt = pathPoints[pathPoints.length-1];
+            ctx.translate(endPt.x, endPt.y);
+            ctx.rotate(frameCount * 0.05); 
+
+            for(let i=4; i>0; i--) {
+                ctx.beginPath(); ctx.arc(0, 0, marbleRadius * i * 0.6, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(0,0,0, ${0.3 + (4-i)*0.15})`; ctx.fill();
+            }
+
+            ctx.beginPath(); ctx.arc(0, 0, marbleRadius * 1.8, 0, Math.PI*2);
+            ctx.lineWidth = 3; ctx.strokeStyle = "#8A2BE2"; ctx.shadowBlur = 15; ctx.shadowColor = "#8A2BE2"; ctx.stroke();
+
+            if(isSucking) {
+                ctx.beginPath(); ctx.arc(0, 0, marbleRadius * 2.2, 0, Math.PI*2);
+                ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+                ctx.lineWidth = 8 + Math.sin(frameCount * 0.5) * 8;
+                ctx.shadowBlur = 25; ctx.shadowColor = "#FF0000"; ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    function drawShooter() {
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(aimAngle);
+        ctx.beginPath(); ctx.arc(0, 0, 55, 0, Math.PI*2); ctx.fillStyle = "#222"; ctx.fill();
+        ctx.lineWidth = 5; ctx.strokeStyle = "#FFD700"; ctx.stroke();
+        ctx.fillStyle = "linear-gradient(to right, #DAA520, #FFD700)"; ctx.fillRect(0, -22, 75, 44);
+        ctx.strokeStyle = "#8c6b22"; ctx.lineWidth = 3; ctx.strokeRect(0, -22, 75, 44);
+        ctx.beginPath(); ctx.arc(70, 0, 24, 0, Math.PI*2); ctx.fillStyle = "#FFD700"; ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        if (currentAmmo && !isSucking) {
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, 28, 0, Math.PI*2);
+            let grad = ctx.createRadialGradient(cx-5, cy-5, 5, cx, cy, 28);
+            grad.addColorStop(0, "#fff"); grad.addColorStop(0.5, currentAmmo.color); grad.addColorStop(1, "#333");
+            ctx.fillStyle = grad; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+            let displayWord = levelsData[activeLevelIndex].isAudioLevel ? "🔊" : currentAmmo.word;
+            if (levelsData[activeLevelIndex].isAudioLevel) {
+                ctx.font = `20px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+            } else {
+                ctx.font = `bold 20px "Kanit", sans-serif`;
+            }
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.lineWidth = 3; ctx.strokeStyle = "#fff";
+            ctx.strokeText(displayWord, cx, cy); ctx.fillStyle = "#000"; ctx.fillText(displayWord, cx, cy);
+            ctx.restore();
+        }
+    }
+
+    function checkWinCondition() {
+        if (marbles.length === 0 && spawnedCount > 0 && isPlaying && !isSucking) {
+            isPlaying = false; playSound('win');
+            
+            if (activeLevelIndex + 1 >= currentUnlockedLevel && currentUnlockedLevel < levelsData.length) {
+                currentUnlockedLevel++;
+            } else if (currentUnlockedLevel === levelsData.length && activeLevelIndex === levelsData.length - 1) {
+                // Game Finished Entirely
+                try { window.parent.postMessage({ type: 'SAVE_RESULT', score: score }, '*'); } catch(e){}
+            }
+
+            document.getElementById('back-to-map-btn').style.display = 'none';
+            document.getElementById('level-complete-screen').style.display = 'flex';
+        }
+    }
+
+    function animate() {
+        if (!isPlaying) return;
+
+        if (isSucking && marbles.length === 0) {
+            triggerGameOver(); 
+            return;
+        }
+
+        ctx.clearRect(0, 0, cw, ch);
+        frameCount++;
+
+        drawScenery();
+
+        if (spawnQueue.length === 0 && spawnedCount < levelTargetSpawns && !isSucking) {
+            let v = activeVocabs[Math.floor(Math.random() * activeVocabs.length)];
+            let amount = Math.floor(Math.random() * 3) + 1;
+            for(let i=0; i<amount; i++) {
+                if(spawnedCount + spawnQueue.length < levelTargetSpawns) {
+                    spawnQueue.push(v);
+                }
+            }
+        }
+
+        if (spawnQueue.length > 0 && !isSucking) {
+            if (marbles.length === 0) {
+                marbles.push(new Marble(0, spawnQueue.shift())); spawnedCount++;
+            } else if (marbles[marbles.length-1].d >= requiredGap) {
+                marbles.push(new Marble(marbles[marbles.length-1].d - requiredGap, spawnQueue.shift())); spawnedCount++;
+            }
+        }
+
+        updateMarbles();
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            bullets[i].update(); bullets[i].draw();
+            if (bullets[i].markedForDeletion) bullets.splice(i, 1);
+        }
+
+        if (!isSucking) checkCollisions();
+        
+        checkWinCondition();
+
+        for(let i=particles.length-1; i>=0; i--) {
+            particles[i].update(); particles[i].draw();
+            if(particles[i].life <= 0) particles.splice(i, 1);
+        }
+        for(let i=floatingTexts.length-1; i>=0; i--) {
+            floatingTexts[i].update(); floatingTexts[i].draw();
+            if(floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+        }
+
+        for (let m of marbles) m.draw();
+        drawShooter();
+        
+        requestAnimationFrame(animate);
+    }
+
+    function triggerGameOver() {
+        isPlaying = false; isSucking = false;
+        if(synth) synth.cancel(); playSound('gameover'); 
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('back-to-map-btn').style.display = 'none';
+        
+        try { window.parent.postMessage({ type: 'SAVE_RESULT', score: score }, '*'); } catch(e){}
+
+        const wordsArr = Array.from(matchedWordsSet);
+        const wordDisplay = document.getElementById('matched-words-display');
+        const aiBtn = document.getElementById('ai-story-btn');
+        const aiResult = document.getElementById('ai-story-result');
+        
+        aiResult.style.display = 'none'; aiResult.innerHTML = '';
+        generatedSentences = [];
+        
+        if (wordsArr.length > 0) {
+            wordDisplay.innerHTML = `📚 <b>คำศัพท์ที่คุณทำลายได้:</b> <span style="color:#FFD700;">${wordsArr.join(', ')}</span>`;
+            aiBtn.style.display = 'inline-block';
+        } else {
+            wordDisplay.innerHTML = 'ยังทำลายคำศัพท์ไม่สำเร็จเลย... ลองสู้ใหม่อีกครั้งนะ! 💪';
+            aiBtn.style.display = 'none';
+        }
+        document.getElementById('game-over-screen').style.display = 'flex';
+    }
+
+    function handleAimAndShoot(e) {
+        if (!isPlaying || isSucking) return; 
+        if(e.target.id === 'back-to-map-btn' || e.target.id === 'replay-audio-btn') return;
+        
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        aimAngle = Math.atan2(clientY - cy, clientX - cx);
+        
+        if (currentAmmo && (e.type === 'mousedown' || e.type === 'touchstart')) {
+            playSound('shoot'); bullets.push(new Bullet(aimAngle, currentAmmo)); reloadAmmo();
+        }
+    }
+    
+    window.addEventListener('mousemove', (e) => {
+        if(isPlaying && !isSucking) aimAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+    });
+    window.addEventListener('mousedown', handleAimAndShoot);
+    window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
+
+    resize();
+</script>
+</body>
+</html>
+    </script>
+
+    <script>
+        let currentUserId = null;
+        let targetCid = null;
+        let generatedCode = "";
+
+        // คำศัพท์พื้นฐานตอนเริ่มต้น
+        let defaultVocabs = [
+            { word: "โบ", emoji: "🎀", color: "#FF1493" }, { word: "ไข่", emoji: "🥚", color: "#FFD700" },
+            { word: "ตะกร้า", emoji: "🧺", color: "#D2691E" }, { word: "น้ำแข็ง", emoji: "🧊", color: "#00CED1" },
+            { word: "ถ้วย", emoji: "🥣", color: "#32CD32" }, { word: "ผู้หญิง", emoji: "👧", color: "#FFB6C1" },
+            { word: "ยิ้ม", emoji: "😊", color: "#FFA500" }, { word: "มอง", emoji: "👀", color: "#E0E0E0" },
+            { word: "ไหว้", emoji: "🙏", color: "#F4A460" }, { word: "รูป", emoji: "🖼️", color: "#87CEFA" }
+        ];
+
+        let currentVocabs = [...defaultVocabs];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            targetCid = params.get('cid');
+
+            renderVocabList();
+            updatePreview();
+
+            // Initialize Auth
+            const checkDB = setInterval(async () => {
+                if(window.sysDB) {
+                    clearInterval(checkDB);
+                    const { data: { session } } = await window.sysDB.auth.getSession();
+                    if (!session) {
+                        window.location.href = 'login.html'; 
+                        return;
+                    }
+                    currentUserId = session.user.id;
+                }
+            }, 500);
+        });
+
+        // -----------------------
+        // Vocabulary Editor Logic
+        // -----------------------
+        function renderVocabList() {
+            const container = document.getElementById('vocabListContainer');
+            container.innerHTML = '';
+            document.getElementById('vocabCount').innerText = `${currentVocabs.length} คำ`;
+
+            currentVocabs.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'vocab-item bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap gap-2 items-center shadow-sm relative';
+                div.innerHTML = `
+                    <div class="flex-grow min-w-[100px]">
+                        <input type="text" value="${item.word}" onchange="updateVocab(${index}, 'word', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 outline-none text-sm focus:ring-2 focus:ring-orange-500 font-bold" placeholder="คำศัพท์">
+                    </div>
+                    <div class="w-16 shrink-0">
+                        <input type="text" value="${item.emoji}" onchange="updateVocab(${index}, 'emoji', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none text-center text-sm focus:ring-2 focus:ring-orange-500" placeholder="อิโมจิ" maxlength="2">
+                    </div>
+                    <div class="w-10 h-8 shrink-0 relative rounded-lg overflow-hidden border border-slate-200 cursor-pointer">
+                        <input type="color" value="${item.color}" onchange="updateVocab(${index}, 'color', this.value)" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer">
+                    </div>
+                    <button onclick="removeVocabItem(${index})" class="w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center shrink-0">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateVocab(index, field, value) {
+            currentVocabs[index][field] = value;
+        }
+
+        function addVocabItem() {
+            const randomColors = ["#FF1493", "#FFD700", "#00CED1", "#32CD32", "#FFB6C1", "#FFA500", "#FF0000", "#DA70D6"];
+            currentVocabs.push({ 
+                word: "คำใหม่", 
+                emoji: "🌟", 
+                color: randomColors[Math.floor(Math.random() * randomColors.length)] 
+            });
+            renderVocabList();
+            
+            const container = document.getElementById('vocabListContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeVocabItem(index) {
+            if (currentVocabs.length <= 4) {
+                showMessage("⚠️ ต้องมีคำศัพท์อย่างน้อย 4 คำเพื่อสร้างเกมครับ", true);
+                return;
+            }
+            currentVocabs.splice(index, 1);
+            renderVocabList();
+        }
+
+        // -----------------------
+        // Game Generation Logic
+        // -----------------------
+        function generateGameHTML() {
+            const templateStr = document.getElementById('zuma-template').textContent;
+            let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
+            
+            let finalHtml = templateStr;
+            finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
+            finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST%%\*\//g, JSON.stringify(currentVocabs));
+            
+            return finalHtml;
+        }
+
+        function updatePreview() {
+            if (currentVocabs.length < 4) {
+                showMessage("⚠️ กรุณาเพิ่มคำศัพท์อย่างน้อย 4 คำ", true);
+                return;
+            }
+
+            generatedCode = generateGameHTML();
+            
+            const iframe = document.getElementById("missionFrame");
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'missionFrame';
+            newIframe.className = "w-full h-full bg-black border-none absolute inset-0 z-10";
+            newIframe.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals"; 
+            newIframe.title = "Zuma Preview";
+            newIframe.srcdoc = generatedCode;
+            
+            iframe.parentNode.replaceChild(newIframe, iframe);
+            document.getElementById("codeView").value = generatedCode;
+
+            showMessage("✅ อัปเดตพรีวิวเรียบร้อย ลองเล่นดูได้เลย!");
+        }
+
+        // -----------------------
+        // Save & Cloud Logic
+        // -----------------------
+        function showMessage(text, isError = false) { 
+            const msgBox = document.getElementById("msgBox");
+            document.getElementById("msgText").innerText = text; 
+            msgBox.style.borderLeftColor = isError ? '#ef4444' : '#3b82f6';
+            msgBox.style.display = 'block';
+            setTimeout(() => msgBox.style.display = 'none', 4000); 
+        }
+
+        function openSaveModal() { 
+            const title = document.getElementById("missionTitleInput").value.trim();
+            if(!title) {
+                document.getElementById("missionTitleInput").focus();
+                return showMessage("⚠️ กรุณาตั้งชื่อภารกิจก่อนบันทึก", true);
+            }
+            document.getElementById('saveModal').classList.remove('hidden'); 
+        }
+        
+        function closeSaveModal() { 
+            document.getElementById('saveModal').classList.add('hidden'); 
+        }
+
+        async function confirmSave(mode) {
+            const title = document.getElementById("missionTitleInput").value.trim();
+            const desc = document.getElementById("missionDescInput").value.trim();
+            const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
+            const grade = document.getElementById("missionGradeInput").value.trim() || "";
+            
+            // ตรวจสอบความถูกต้องโค้ดล่าสุด
+            generatedCode = generateGameHTML();
+
+            try {
+                const missionData = {
+                    title: title,
+                    description: desc,
+                    subject_group: subject,
+                    grade_level: grade,
+                    mission_type: "zuma_template",
+                    content_data: { 
+                        html: generatedCode,
+                        vocab_list: currentVocabs
+                    },
+                    is_public: true,
+                    created_by: currentUserId,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
+                if (insertError) throw insertError;
+                
+                const mid = data[0].mission_id;
+
+                if (targetCid) {
+                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
+                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                    }, { onConflict: 'classroom_id, mission_id' });
+                    if (mapError) throw mapError;
+                }
+
+                showMessage("✅ บันทึกเกม Zuma สำเร็จ!");
+
+                if (mode === 'exit') {
+                    document.getElementById('saveModal').classList.add('hidden');
+                    setTimeout(() => {
+                        window.location.href = targetCid ? `classroom-detail.html?id=${targetCid}` : 'mission-library.html';
+                    }, 1500);
+                } else {
+                    closeSaveModal();
+                }
+            } catch (err) { 
+                showMessage("บันทึกไม่สำเร็จ: " + err.message, true); 
+            }
+        }
+    </script>
+</body>
+</html>
