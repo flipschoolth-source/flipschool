@@ -255,13 +255,13 @@
             <div class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
                 <div class="preview-frame-wrapper shadow-2xl relative w-full h-full">
                     <iframe id="missionFrame" class="w-full h-full bg-black border-none absolute inset-0 z-10" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" title="Zuma Preview"></iframe>
-                    <textarea id="codeView" class="hidden-el" spellcheck="false"></textarea>
+                    <textarea id="codeView" class="hidden-el" spellcheck="false" autocomplete="off"></textarea>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Zuma Engine Template -->
+    <!-- Zuma Engine Template ย้ายมาใส่ใน Textarea เพื่อป้องกันปัญหา JavaScript Template Literal Error -->
     <textarea id="zuma-template" class="hidden-el">
 <!DOCTYPE html>
 <html lang="th">
@@ -529,7 +529,7 @@
     
     let matchedWordsSet = new Set();
     let generatedSentences = []; 
-    let synth = window.speechSynthesis;
+    let synth = window.speechSynthesis || null;
     let thaiVoice = null;
     let spawnedCount = 0; 
     let levelTargetSpawns = 0;
@@ -542,11 +542,12 @@
     let frameCount = 0;
 
     function loadVoices() {
+        if(!synth) return;
         const voices = synth.getVoices();
         thaiVoice = voices.find(v => v.lang.includes('th') && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Siri'))) || voices.find(v => v.lang.includes('th'));
     }
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
+    if (synth && synth.onvoiceschanged !== undefined) {
+        synth.onvoiceschanged = loadVoices;
     } else {
         loadVoices();
     }
@@ -620,62 +621,73 @@
 
     let audioCtx = null;
     function initAudio() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext && !audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        } catch(e) {
+            console.warn("AudioContext error:", e);
+        }
     }
     
     function playSound(type) {
         if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
 
-        if (type === 'shoot') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'hit') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
-            osc.frequency.linearRampToValueAtTime(150, now + 0.1);
-            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'explode') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-            gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-            osc.start(now); osc.stop(now + 0.3);
-        } else if (type === 'win') {
-             osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
-             osc.frequency.linearRampToValueAtTime(600, now+0.2);
-             osc.frequency.linearRampToValueAtTime(800, now+0.4);
-             gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now+0.6);
-             osc.start(now); osc.stop(now + 0.6);
-        } else if (type === 'alarm') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
-            osc.frequency.setValueAtTime(600, now + 0.1);
-            osc.frequency.setValueAtTime(400, now + 0.2);
-            osc.frequency.setValueAtTime(600, now + 0.3);
-            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-            osc.start(now); osc.stop(now + 0.4);
-        } else if (type === 'fall') {
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
-            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-            osc.start(now); osc.stop(now + 0.15);
-        } else if (type === 'gameover') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
-            osc.frequency.linearRampToValueAtTime(200, now + 0.2);
-            osc.frequency.linearRampToValueAtTime(150, now + 0.4);
-            osc.frequency.linearRampToValueAtTime(100, now + 0.6);
-            gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
-            osc.start(now); osc.stop(now + 0.8);
-        }
+            if (type === 'shoot') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'hit') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.1);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'explode') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                 osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+                 osc.frequency.linearRampToValueAtTime(600, now+0.2);
+                 osc.frequency.linearRampToValueAtTime(800, now+0.4);
+                 gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now+0.6);
+                 osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'alarm') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.1);
+                osc.frequency.setValueAtTime(400, now + 0.2);
+                osc.frequency.setValueAtTime(600, now + 0.3);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'fall') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'gameover') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.4);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.6);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
+                osc.start(now); osc.stop(now + 0.8);
+            }
+        } catch(e) {}
     }
 
     function playCurrentAmmoAudio() {
-        if (!currentAmmo || !levelsData[activeLevelIndex].isAudioLevel) return;
+        if (!currentAmmo || !levelsData[activeLevelIndex].isAudioLevel || !synth) return;
         if(synth.speaking) synth.cancel();
         
         let textToSpeak = getPhoneticText(currentAmmo.word);
@@ -717,6 +729,7 @@
     }
 
     function playSingleSentence(idx) {
+        if(!synth) return;
         if(synth.speaking) synth.cancel(); 
         document.querySelectorAll('.sentence-row').forEach(el => el.classList.remove('active'));
         const currentEl = document.getElementById(`sentence-${idx}`);
@@ -738,8 +751,9 @@
     function generateMapNodes() {
         const container = document.getElementById('map-container');
         container.querySelectorAll('.map-level-node').forEach(n => n.remove());
+        
         const svg = document.getElementById('map-svg');
-        svg.innerHTML = ''; 
+        while (svg.firstChild) { svg.removeChild(svg.firstChild); }
 
         let pathD = "";
         levelsData.forEach((level, index) => {
@@ -750,8 +764,9 @@
             node.className = `map-level-node`;
             node.style.left = `${pos.x}%`; node.style.top = `${pos.y}%`;
             
-            // ใช้ชื่อด่านแบบสั้นๆ
-            let shortName = level.name.length > 5 ? level.name.substring(0,4)+".." : level.name;
+            // ใช้ชื่อด่านแบบสั้นๆ หรือตัวเลขป้องกัน Error
+            let safeName = level.name || `ด่าน ${index+1}`;
+            let shortName = safeName.length > 5 ? safeName.substring(0,4)+".." : safeName;
             node.innerHTML = `<span style="font-size:12px;">${shortName}</span>`;
             if(level.isAudioLevel) node.innerHTML += `<span style="font-size:10px; position:absolute; top:2px; right:2px; font-family:${EMOJI_FONT};">🎵</span>`;
             
@@ -790,9 +805,10 @@
 
         const namsai = document.getElementById('namsai-player');
         const targetNodeIdx = Math.min(currentUnlockedLevel - 1, levelsData.length - 1);
-        const targetPos = mapNodesPos[targetNodeIdx % mapNodesPos.length];
-        
-        setTimeout(() => { namsai.style.left = `${targetPos.x}%`; namsai.style.top = `${targetPos.y}%`; }, 100);
+        if (targetNodeIdx >= 0) {
+            const targetPos = mapNodesPos[targetNodeIdx % mapNodesPos.length];
+            setTimeout(() => { namsai.style.left = `${targetPos.x}%`; namsai.style.top = `${targetPos.y}%`; }, 100);
+        }
 
         if (COLLECTIBLE_EMOJI) {
             document.getElementById('egg-counter-box').style.display = 'flex';
@@ -814,7 +830,10 @@
         document.getElementById('map-screen').style.display = 'flex';
     }
     
-    function initGameAndShowMap() { initAudio(); showMapScreen(); }
+    function initGameAndShowMap() { 
+        initAudio(); 
+        showMapScreen(); 
+    }
 
     function startLevel(levelIndex) {
         activeLevelIndex = levelIndex;
@@ -1300,7 +1319,7 @@
     window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
 
     resize();
-<\/script>
+</script>
 </body>
 </html>
     </textarea>
@@ -1809,23 +1828,24 @@
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             let playerImgUrl = document.getElementById('playerImgInput').value.trim() || "https://www.flipschool.in.th/img/namsai/right.gif";
             let collectibleEmoji = document.getElementById('collectibleEmojiInput').value.trim();
+            collectibleEmoji = collectibleEmoji.replace(/"/g, '\\"');
             
             const engineLevels = gameLevels.map((lvl, index) => ({
                 level: index + 1,
-                name: lvl.title,
+                name: lvl.title || `ด่านที่ ${index + 1}`,
                 speed: parseFloat(lvl.speed) || 0.1,
                 totalSpawns: parseInt(lvl.totalSpawns) || 30,
-                isAudioLevel: lvl.isAudioLevel,
+                isAudioLevel: lvl.isAudioLevel || false,
                 words: lvl.words
             }));
 
             const jsonStr = JSON.stringify(engineLevels).replace(/</g, '\\u003c');
             
             let finalHtml = document.getElementById('zuma-template').value;
-            finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
-            finalHtml = finalHtml.replace(/\/\*%%PLAYER_IMG_URL%%\*\//g, playerImgUrl);
-            finalHtml = finalHtml.replace(/\/\*%%COLLECTIBLE_EMOJI%%\*\//g, collectibleEmoji);
-            finalHtml = finalHtml.replace(/\/\*%%LEVELS_JSON%%\*\//g, jsonStr);
+            finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, () => title.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+            finalHtml = finalHtml.replace(/\/\*%%PLAYER_IMG_URL%%\*\//g, () => playerImgUrl.replace(/"/g, '&quot;'));
+            finalHtml = finalHtml.replace(/\/\*%%COLLECTIBLE_EMOJI%%\*\//g, () => collectibleEmoji);
+            finalHtml = finalHtml.replace(/\/\*%%LEVELS_JSON%%\*\//g, () => jsonStr);
             
             return finalHtml;
         }
