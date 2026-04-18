@@ -1275,16 +1275,16 @@
     </script>
 
     <script>
-        let currentUserId = null;
-        let targetCid = null;
-        let editingMid = new URLSearchParams(window.location.search).get('mid');
-        let generatedCode = "";
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
 
-        // คำศัพท์พื้นฐานตอนเริ่มต้น
-        let defaultVocabs = [
-            { word: "โบ", emoji: "🎀", color: "#FF1493" }, { word: "ไข่", emoji: "🥚", color: "#FFD700" },
-            { word: "ตะกร้า", emoji: "🧺", color: "#D2691E" }, { word: "น้ำแข็ง", emoji: "🧊", color: "#00CED1" },
-            { word: "ถ้วย", emoji: "🥣", color: "#32CD32" }, { word: "ผู้หญิง", emoji: "👧", color: "#FFB6C1" },
+    // แก้ไขปัญหาการอ่าน Emoji โดยใช้วิธีฝังออบเจกต์ JSON ลงไปโดยตรง
+    const fullVocabList = /*%%VOCAB_LIST_JSON%%*/;
+    
+    const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
+    const levelsData = [
             { word: "ยิ้ม", emoji: "😊", color: "#FFA500" }, { word: "มอง", emoji: "👀", color: "#E0E0E0" },
             { word: "ไหว้", emoji: "🙏", color: "#F4A460" }, { word: "รูป", emoji: "🖼️", color: "#87CEFA" }
         ];
@@ -1664,12 +1664,12 @@
             const templateStr = document.getElementById('zuma-template').textContent;
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             
-            const jsonStr = JSON.stringify(currentVocabs);
-            const encodedData = btoa(unescape(encodeURIComponent(jsonStr)));
+            // แก้ไขปัญหา Base64 พังเมื่อเจออิโมจิพิเศษ โดยการฝัง JSON ลงไปโดยตรง (ป้องกันแท็กสคริปต์ตีกันด้วยการแทนที่ < )
+            const jsonStr = JSON.stringify(currentVocabs).replace(/</g, '\\u003c');
             
             let finalHtml = templateStr;
             finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
-            finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST_B64%%\*\//g, encodedData);
+            finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST_JSON%%\*\//g, jsonStr);
             
             return finalHtml;
         }
