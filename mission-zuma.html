@@ -51,6 +51,13 @@
             position: relative; flex-shrink: 0; width: 100%; height: 100%;
         }
         
+        #codeView { 
+            font-family: 'JetBrains Mono', monospace; width: 100%; height: 100%; 
+            background: #0d1117; color: #10b981; padding: 1.5rem; font-size: 0.875rem; 
+            border: none; outline: none; resize: none; position: absolute; inset: 0; 
+            z-index: 20; line-height: 1.6;
+        }
+        
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -103,7 +110,6 @@
                 <h3 class="font-bold text-slate-700">เลือกอิโมจิ</h3>
                 <button onclick="closeEmojiPicker()" class="text-slate-400 hover:text-rose-500 text-lg transition-colors"><i class="fas fa-times"></i></button>
             </div>
-            <!-- ช่องค้นหาอิโมจิ -->
             <div class="mb-3">
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -196,9 +202,17 @@
         <!-- Right Panel: Preview -->
         <div class="lg:col-span-7 flex flex-col h-full min-h-0 pb-2">
             <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center px-4 shrink-0 mb-4 gap-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-sm font-bold text-slate-700">พรีวิวเกม</span>
-                    <span class="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-bold">Zuma Engine</span>
+                <div class="flex items-center gap-3">
+                    <!-- ปุ่มสลับโหมด พรีวิว / แก้ไขโค้ด -->
+                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                        <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="โค้ด">
+                            <i class="fas fa-code"></i>
+                        </button>
+                    </div>
+                    <span class="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-bold hidden sm:inline-block">Zuma Engine</span>
                 </div>
 
                 <div class="flex items-center gap-3">
@@ -214,7 +228,7 @@
             <div class="bg-slate-100 rounded-[2rem] border-4 border-dashed border-slate-300 flex-grow relative overflow-hidden flex justify-center items-center p-2 lg:p-4 transition-all duration-300">
                 <div class="preview-frame-wrapper shadow-2xl relative w-full h-full">
                     <iframe id="missionFrame" class="w-full h-full bg-black border-none absolute inset-0 z-10" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" title="Zuma Preview"></iframe>
-                    <textarea id="codeView" class="hidden-el"></textarea>
+                    <textarea id="codeView" class="hidden-el" spellcheck="false"></textarea>
                 </div>
             </div>
         </div>
@@ -394,22 +408,18 @@
 <body>
 
     <div id="ui-layer">
-        <!-- ซ้ายบน: ปุ่มฟังเสียงสำหรับด่าน 6-8 -->
         <div style="position: absolute; top: 15px; left: 20px; pointer-events: auto;">
             <button id="replay-audio-btn" onmousedown="handleReplayClick(event)" ontouchstart="handleReplayClick(event)">🔊 ฟังเสียงซ้ำ</button>
         </div>
 
-        <!-- ขวาบน: คะแนน + หลอดไข่ 8 ฟอง -->
         <div style="position: absolute; top: 15px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none;">
             <div class="hud-box">คะแนน: <span id="score">0</span></div>
             <div id="level-eggs-container" style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px; border: 2px solid #ffd700;">
             </div>
         </div>
 
-        <!-- ซ้ายล่าง: ปุ่มกลับแผนที่ -->
         <button id="back-to-map-btn" style="position: absolute; bottom: 20px; left: 20px; pointer-events: auto; font-family: 'Kanit', sans-serif; font-size: 18px; padding: 10px 20px; border-radius: 20px; display: none; cursor: pointer; background: #333; color: white; border: 2px solid white;" onclick="showMapScreen()">⬅️ กลับแผนที่</button>
 
-        <!-- ตรงกลางล่าง: คำใบ้เกม -->
         <div class="hint" id="game-hint" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">🎯 ยิงแทรกขบวน! ถ้ายิงครบ 3 ลูก ขบวนหน้าจะถอยร่นมาชิด! 💥</div>
     </div>
 
@@ -464,15 +474,11 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // ฟอนต์อิโมจิครอบจักรวาล เพื่อป้องกันอิโมจิไม่แสดงหรือกลายเป็นสี่เหลี่ยมบนอุปกรณ์ต่างๆ (iOS, Android, Windows, Mac)
     const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
 
-    // === ข้อมูลคำศัพท์จาก Template (แก้ปัญหา Emoji หายด้วย Base64) ===
     const b64Data = "/*%%VOCAB_LIST_B64%%*/";
-    // ถอดรหัส Base64 กลับเป็น Object (รองรับภาษาไทยและ Emoji)
     const fullVocabList = JSON.parse(decodeURIComponent(escape(atob(b64Data))));
     
-    // โครงสร้าง 8 ด่าน (จัดให้รองรับคำศัพท์แบบ Dynamic)
     const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
     const levelsData = [
         { level: 1, words: fullVocabList.slice(0, half), totalSpawns: 30, speed: 0.1, isAudioLevel: false },      
@@ -550,7 +556,7 @@
             egg.textContent = '🥚';
             egg.style.fontSize = '24px';
             egg.style.textAlign = 'center';
-            egg.style.fontFamily = EMOJI_FONT; // ใชัฟอนต์สำหรับอิโมจิ
+            egg.style.fontFamily = EMOJI_FONT; 
             egg.style.transition = 'all 0.3s';
             if (i <= activeIdx) {
                 egg.style.opacity = '1';
@@ -730,7 +736,7 @@
                 waitingEgg.textContent = '🥚'; waitingEgg.className = 'waiting-egg';
                 waitingEgg.style.position = 'absolute'; waitingEgg.style.top = '-35px';
                 waitingEgg.style.right = '-20px'; waitingEgg.style.fontSize = '45px';
-                waitingEgg.style.fontFamily = EMOJI_FONT; // ใช้ฟอนต์สำหรับอิโมจิ
+                waitingEgg.style.fontFamily = EMOJI_FONT; 
                 waitingEgg.style.filter = 'drop-shadow(2px 4px 2px rgba(0,0,0,0.5))';
                 node.appendChild(waitingEgg);
             }
@@ -909,7 +915,6 @@
             ctx.fillStyle = grad; ctx.fill();
             ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
             
-            // ใชัฟอนต์รวมครอบจักรวาลสำหรับวาดอิโมจิบน Canvas
             ctx.font = `${marbleRadius * 1.2}px ${EMOJI_FONT}`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(this.vocab.emoji, 0, 3);
@@ -1272,6 +1277,7 @@
     <script>
         let currentUserId = null;
         let targetCid = null;
+        let editingMid = new URLSearchParams(window.location.search).get('mid');
         let generatedCode = "";
 
         // คำศัพท์พื้นฐานตอนเริ่มต้น
@@ -1375,9 +1381,6 @@
             const params = new URLSearchParams(window.location.search);
             targetCid = params.get('cid');
 
-            renderVocabList();
-            updatePreview();
-
             const checkDB = setInterval(async () => {
                 if(window.sysDB) {
                     clearInterval(checkDB);
@@ -1387,9 +1390,153 @@
                         return;
                     }
                     currentUserId = session.user.id;
+                    
+                    if(editingMid) {
+                        await loadExistingMission();
+                    } else {
+                        renderVocabList();
+                        updatePreview();
+                    }
                 }
             }, 500);
+            
+            // 🌟 ระบบบันทึกคะแนนเมื่อตรวจพบการเล่นเกม 🌟
+            window.addEventListener('message', async function(event) {
+                if (event.data && event.data.type === 'SAVE_RESULT') {
+                    const score = event.data.score || 0;
+                    
+                    if (!editingMid) {
+                        return showMessage(`🏆 ทดสอบเล่นได้ ${score} คะแนน (ต้องกดบันทึกภารกิจลงระบบก่อน ระบบถึงจะสามารถเก็บคะแนนลง DB ได้จริง)`);
+                    }
+
+                    showMessage(`⏳ กำลังบันทึก ${score} คะแนนลงระบบ...`);
+                    
+                    if (window.sysDB && currentUserId) {
+                        try {
+                            const { data: existingRecords, error: fetchError } = await window.sysDB
+                                .from('student_missions')
+                                .select('id, score')
+                                .eq('student_id', currentUserId)
+                                .eq('mission_id', editingMid);
+                                
+                            if (fetchError) throw fetchError;
+                            
+                            if (existingRecords && existingRecords.length > 0) {
+                                // เล่นซ้ำ: อัปเดตคะแนนที่ดีที่สุด
+                                const currentBestScore = existingRecords[0].score || 0;
+                                const newScore = Math.max(currentBestScore, score);
+                                
+                                const { error: updateError } = await window.sysDB
+                                    .from('student_missions')
+                                    .update({ 
+                                        score: newScore, 
+                                        updated_at: new Date().toISOString(),
+                                        is_completed: true,
+                                        completed_at: new Date().toISOString()
+                                    })
+                                    .eq('id', existingRecords[0].id);
+                                    
+                                if (updateError) throw updateError;
+                                showMessage(score > currentBestScore ? `🎉 ยินดีด้วย! ทำลายสถิติเดิม อัปเดตคะแนนล่าสุดเป็น ${newScore} คะแนนสำเร็จ!` : `✅ บันทึกการเล่นซ้ำเรียบร้อย (คะแนนสูงสุด: ${newScore})`);
+                            } else {
+                                // เล่นครั้งแรก: เพิ่มข้อมูลใหม่
+                                const { error: insertError } = await window.sysDB
+                                    .from('student_missions')
+                                    .insert([{
+                                        student_id: currentUserId, 
+                                        mission_id: editingMid,
+                                        score: score,
+                                        is_completed: true,
+                                        completed_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }]);
+
+                                if (insertError) throw insertError;
+                                showMessage(`✅ บันทึก ${score} คะแนนลงฐานข้อมูลสำเร็จ!`);
+                            }
+                        } catch (err) {
+                            console.error("DB Score Table error:", err);
+                            showMessage(`⚠️ เกิดข้อผิดพลาดในการบันทึกคะแนน: ${err.message}`, true);
+                        }
+                    }
+                }
+            });
         });
+
+        // โหลดข้อมูลเก่ามาแก้ไข (ถ้ามี)
+        async function loadExistingMission() {
+            try {
+                const { data, error } = await window.sysDB.from('missions').select('*').eq('mission_id', editingMid).single();
+                if (error) throw error;
+                if (data) {
+                    document.getElementById("missionTitleInput").value = data.title || "";
+                    document.getElementById("missionDescInput").value = data.description || "";
+                    document.getElementById("missionSubjectInput").value = data.subject_group || "ภาษาไทย";
+                    document.getElementById("missionGradeInput").value = data.grade_level || "";
+
+                    if (data.content_data) {
+                        if (data.content_data.vocab_list) {
+                            currentVocabs = data.content_data.vocab_list;
+                            renderVocabList();
+                        }
+                        if (data.content_data.html) {
+                            generatedCode = data.content_data.html;
+                            document.getElementById("codeView").value = generatedCode;
+                            
+                            const iframe = document.getElementById("missionFrame");
+                            const newIframe = document.createElement('iframe');
+                            newIframe.id = 'missionFrame';
+                            newIframe.className = "w-full h-full bg-black border-none absolute inset-0 z-10";
+                            newIframe.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals";
+                            newIframe.title = "Zuma Preview";
+                            newIframe.srcdoc = generatedCode;
+                            iframe.parentNode.replaceChild(newIframe, iframe);
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Error loading mission:", e);
+                renderVocabList();
+                updatePreview();
+            }
+        }
+
+        // -----------------------
+        // View Mode Toggle (Preview <-> Code)
+        // -----------------------
+        function switchViewMode(mode) {
+            const frame = document.getElementById('missionFrame');
+            const codeBox = document.getElementById('codeView');
+            const btnPreview = document.getElementById('btn-mode-preview');
+            const btnCode = document.getElementById('btn-mode-code');
+
+            if (mode === 'preview') {
+                frame.classList.remove('hidden-el');
+                codeBox.classList.add('hidden-el');
+                
+                btnPreview.className = "w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs";
+                btnCode.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
+                
+                // หากมีการแก้ไขโค้ดด้วยมือ ให้อัปเดตเข้าพรีวิวทันที
+                if (codeBox.value && codeBox.value !== generatedCode) {
+                    generatedCode = codeBox.value;
+                    const newIframe = document.createElement('iframe');
+                    newIframe.id = 'missionFrame';
+                    newIframe.className = "w-full h-full bg-black border-none absolute inset-0 z-10";
+                    newIframe.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals"; 
+                    newIframe.title = "Zuma Preview";
+                    newIframe.srcdoc = generatedCode;
+                    frame.parentNode.replaceChild(newIframe, frame);
+                }
+            } else {
+                frame.classList.add('hidden-el');
+                codeBox.classList.remove('hidden-el');
+                codeBox.value = generatedCode;
+                
+                btnCode.className = "w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs";
+                btnPreview.className = "w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs";
+            }
+        }
 
         // -----------------------
         // Vocabulary Editor Logic
@@ -1517,7 +1664,6 @@
             const templateStr = document.getElementById('zuma-template').textContent;
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             
-            // เข้ารหัสข้อมูลเป็น Base64 เพื่อป้องกันปัญหา Emoji กลายเป็นเครื่องหมายคำถามเวลาบันทึกลง Database
             const jsonStr = JSON.stringify(currentVocabs);
             const encodedData = btoa(unescape(encodeURIComponent(jsonStr)));
             
@@ -1580,7 +1726,12 @@
             const subject = document.getElementById("missionSubjectInput").value.trim() || "อื่นๆ";
             const grade = document.getElementById("missionGradeInput").value.trim() || "";
             
-            generatedCode = generateGameHTML();
+            // หากอยู่ในโหมดแก้ไขโค้ด ให้ยึดโค้ดล่าสุดมาเซฟ
+            if (!document.getElementById("codeView").classList.contains('hidden-el')) {
+                generatedCode = document.getElementById("codeView").value;
+            } else if (!generatedCode) {
+                generatedCode = generateGameHTML();
+            }
 
             try {
                 const missionData = {
@@ -1599,16 +1750,22 @@
                     updated_at: new Date().toISOString()
                 };
 
-                const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
-                if (insertError) throw insertError;
-                
-                const mid = data[0].mission_id;
+                let mid = editingMid;
 
-                if (targetCid) {
-                    const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
-                        classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
-                    }, { onConflict: 'classroom_id, mission_id' });
-                    if (mapError) throw mapError;
+                if (editingMid) {
+                    const { error: updateError } = await window.sysDB.from('missions').update(missionData).eq('mission_id', editingMid);
+                    if (updateError) throw updateError;
+                } else {
+                    const { data, error: insertError } = await window.sysDB.from('missions').insert([missionData]).select();
+                    if (insertError) throw insertError;
+                    mid = data[0].mission_id;
+                    
+                    if (targetCid) {
+                        const { error: mapError } = await window.sysDB.from('classroom_missions').upsert({
+                            classroom_id: targetCid, mission_id: mid, assigned_at: new Date().toISOString()
+                        }, { onConflict: 'classroom_id, mission_id' });
+                        if (mapError) throw mapError;
+                    }
                 }
 
                 showMessage("✅ บันทึกเกม Zuma สำเร็จ!");
