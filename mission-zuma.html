@@ -208,7 +208,7 @@
                         <button onclick="switchViewMode('preview')" id="btn-mode-preview" class="w-8 h-8 bg-white shadow-sm text-orange-600 rounded-md flex items-center justify-center transition-all text-xs" title="พรีวิว">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="โค้ด">
+                        <button onclick="switchViewMode('code')" id="btn-mode-code" class="w-8 h-8 hover:bg-white text-slate-500 rounded-md transition-all flex items-center justify-center text-xs" title="แก้ไขโค้ด">
                             <i class="fas fa-code"></i>
                         </button>
                     </div>
@@ -234,9 +234,16 @@
         </div>
     </main>
 
-    <!-- Zuma Engine Template -->
-    <script id="zuma-template" type="text/template">
-<!DOCTYPE html>
+    <script>
+        let currentUserId = null;
+        let targetCid = null;
+        let editingMid = new URLSearchParams(window.location.search).get('mid');
+        let generatedCode = "";
+
+        // -----------------------
+        // Game Engine Template (แยกออกมาไว้ในตัวแปรเพื่อป้องกันแท็กสคริปต์ตีกัน)
+        // -----------------------
+        const zumaTemplate = `<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -476,8 +483,8 @@
     
     const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
 
-    const b64Data = "/*%%VOCAB_LIST_B64%%*/";
-    const fullVocabList = JSON.parse(decodeURIComponent(escape(atob(b64Data))));
+    // คำศัพท์ดึงมาจาก Template (แปลงจาก JSON String เพื่อป้องกันปัญหาสคริปต์ตีกัน)
+    const fullVocabList = /*%%VOCAB_LIST_JSON%%*/;
     
     const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
     const levelsData = [
@@ -1240,7 +1247,7 @@
         generatedSentences = [];
         
         if (wordsArr.length > 0) {
-            wordDisplay.innerHTML = `📚 <b>คำศัพท์ที่คุณทำลายได้:</b> <span style="color:#FFD700;">${wordsArr.join(', ')}</span>`;
+            wordDisplay.innerHTML = \`📚 <b>คำศัพท์ที่คุณทำลายได้:</b> <span style="color:#FFD700;">\${wordsArr.join(', ')}</span>\`;
             aiBtn.style.display = 'inline-block';
         } else {
             wordDisplay.innerHTML = 'ยังทำลายคำศัพท์ไม่สำเร็จเลย... ลองสู้ใหม่อีกครั้งนะ! 💪';
@@ -1269,29 +1276,20 @@
     window.addEventListener('touchstart', handleAimAndShoot, {passive: false});
 
     resize();
-</script>
+<\/script>
 </body>
-</html>
-    </script>
+</html>`;
 
-    <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    const EMOJI_FONT = '"Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif';
-
-    // แก้ไขปัญหาการอ่าน Emoji โดยใช้วิธีฝังออบเจกต์ JSON ลงไปโดยตรง
-    const fullVocabList = /*%%VOCAB_LIST_JSON%%*/;
-    
-    const half = Math.max(1, Math.ceil(fullVocabList.length / 2));
-    const levelsData = [
+        let defaultVocabs = [
+            { word: "โบ", emoji: "🎀", color: "#FF1493" }, { word: "ไข่", emoji: "🥚", color: "#FFD700" },
+            { word: "ตะกร้า", emoji: "🧺", color: "#D2691E" }, { word: "น้ำแข็ง", emoji: "🧊", color: "#00CED1" },
+            { word: "ถ้วย", emoji: "🥣", color: "#32CD32" }, { word: "ผู้หญิง", emoji: "👧", color: "#FFB6C1" },
             { word: "ยิ้ม", emoji: "😊", color: "#FFA500" }, { word: "มอง", emoji: "👀", color: "#E0E0E0" },
             { word: "ไหว้", emoji: "🙏", color: "#F4A460" }, { word: "รูป", emoji: "🖼️", color: "#87CEFA" }
         ];
 
         let currentVocabs = [...defaultVocabs];
 
-        // ฐานข้อมูลอิโมจิพร้อมคำค้นหา (Tags) ทั้งภาษาไทยและอังกฤษ
         const emojiDatabase = [
             { emoji: "🎀", tags: ["โบ", "โบว์", "ribbon", "ของตกแต่ง"] },
             { emoji: "🥚", tags: ["ไข่", "egg", "อาหาร", "food"] },
@@ -1661,13 +1659,12 @@
         // Game Generation Logic
         // -----------------------
         function generateGameHTML() {
-            const templateStr = document.getElementById('zuma-template').textContent;
             let title = document.getElementById('missionTitleInput').value.trim() || "Zuma ล่าคำศัพท์";
             
-            // แก้ไขปัญหา Base64 พังเมื่อเจออิโมจิพิเศษ โดยการฝัง JSON ลงไปโดยตรง (ป้องกันแท็กสคริปต์ตีกันด้วยการแทนที่ < )
+            // แปลงออบเจกต์เป็น JSON String แล้วปิดแท็กแปลกๆ
             const jsonStr = JSON.stringify(currentVocabs).replace(/</g, '\\u003c');
             
-            let finalHtml = templateStr;
+            let finalHtml = zumaTemplate;
             finalHtml = finalHtml.replace(/\/\*%%GAME_TITLE%%\*\//g, title);
             finalHtml = finalHtml.replace(/\/\*%%VOCAB_LIST_JSON%%\*\//g, jsonStr);
             
