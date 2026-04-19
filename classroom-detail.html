@@ -599,7 +599,7 @@
         let currentUserId = null;
         let currentClassId = null;
         let isClassOwner = false; 
-        let isSimulateStudent = false; // 🌟 สถานะจำลองมุมมองนักเรียน
+        let isSimulateStudent = false; 
         let missions = [];
         let folders = []; 
         let isManageMode = false;
@@ -608,8 +608,8 @@
         let currentOpenedFolder = null;
         let currentClassCode = '';
         let isJoinable = true;
-        let myProgressList = []; // เก็บรายการภารกิจที่ทำสำเร็จแล้ว
-        let myProgressMap = {}; // เก็บข้อมูลคะแนนของแต่ละภารกิจ
+        let myProgressList = []; 
+        let myProgressMap = {}; 
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -648,7 +648,6 @@
         
         function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
         
-        // 🌟 จำลองมุมมองนักเรียน (Student View) 🌟
         function toggleSimulateStudent(checkbox) {
             isSimulateStudent = checkbox.checked;
             applyRoleStyles();
@@ -684,7 +683,6 @@
             }
         }
 
-        // 🌟 อัปเดต Batch Actions UI 🌟
         function updateBatchUI() {
             const checks = document.querySelectorAll('.batch-checkbox:checked');
             const count = checks.length;
@@ -710,14 +708,13 @@
                 });
                 if(!folders.includes(folderName)) folders.push(folderName);
                 renderAdminManageView();
-                showCustomAlert("จำลองการย้ายเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+                showCustomAlert("จำลองการย้ายเรียบร้อย <b>กรุณากดปุ่มบันทึกข้อมูล</b> เพื่อยืนยัน", "success");
             }, '', 'fas fa-folder-open', 'พิมพ์ชื่อหมวดหมู่ที่มีอยู่แล้ว หรือหมวดหมู่ใหม่');
         }
 
         function batchSchedule() {
             const checks = document.querySelectorAll('.batch-checkbox:checked');
             if(checks.length === 0) return;
-            // ใช้ schedAssignmentId พิเศษว่า "BATCH"
             openScheduleModal('BATCH', '', '');
         }
 
@@ -733,7 +730,7 @@
                 document.getElementById('missionCount').innerText = missions.length;
                 renderAdminManageView();
                 updateBatchUI();
-                showCustomAlert("นำออกเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+                showCustomAlert("นำออกจากหน้าจอเรียบร้อย <b>กรุณากดปุ่มบันทึกข้อมูล (สีเขียว)</b> ด้านบนเพื่อยืนยันการลบ", "success");
             });
         }
 
@@ -976,7 +973,6 @@
 
                     // 🌟 ระบบดึง Progress 🌟
                     if (isClassOwner) {
-                        // 🌟 ดึงข้อมูลรวมสำหรับ Analytics & Leaderboard 🌟
                         if (totalStudents > 0 && missions.length > 0) {
                             const uids = enrollList.map(e => e[userColName]);
                             const mids = missions.map(m => m.mission_id);
@@ -987,13 +983,11 @@
                                 .in('student_id', uids);
                                 
                             if (allProg) {
-                                // 🌟 1. คำนวณอัตราความสำเร็จ (Avg Completion)
                                 const totalCompleted = allProg.filter(p => p.is_completed).length;
                                 const totalPossible = totalStudents * missions.length;
                                 const avgPct = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
                                 document.getElementById('avgCompletion').innerText = avgPct + '%';
                                 
-                                // 🌟 2. คำนวณ Leaderboard
                                 let studentScores = {};
                                 uids.forEach(uid => studentScores[uid] = 0);
                                 allProg.forEach(p => {
@@ -1039,7 +1033,6 @@
                         }
 
                     } else {
-                        // 🌟 ดึง Progress สำหรับมุมมองนักเรียน
                         try {
                             const validMissions = missions;
                             const total = validMissions.length;
@@ -1565,7 +1558,6 @@
                 const validMissions = (cMissions || []).filter(m => m.missions);
                 const missionIds = validMissions.map(m => m.mission_id);
                 
-                // 🌟 อัปเดตดึงคะแนนจาก student_missions
                 let progressData = [];
                 try {
                     const { data: prog } = await db.from('student_missions').select('student_id, mission_id, score, is_completed').in('mission_id', missionIds).in('student_id', userIds);
@@ -1729,7 +1721,6 @@
             try {
                 const db = getDB();
                 
-                // 🌟 ตรวจสอบว่าเป็นการตั้งเวลาแบบกลุ่ม (Batch) หรือไม่ 🌟
                 if (assignmentId === 'BATCH') {
                     const checks = document.querySelectorAll('.batch-checkbox:checked');
                     const updates = [];
@@ -1743,12 +1734,12 @@
                         updates.push(db.from('classroom_missions').update({ 
                             start_date: start ? new Date(start).toISOString() : null, 
                             due_date: due ? new Date(due).toISOString() : null 
-                        }).eq('assignment_id', aId));
+                        }).eq('assignment_id', aId).then(({error}) => { if(error) throw error; }));
                     });
                     
                     await Promise.all(updates);
                     renderAdminManageView();
-                    showCustomAlert("จำลองการตั้งเวลาเรียบร้อย กด <b>บันทึกข้อมูล</b> เพื่อยืนยัน", "success");
+                    showCustomAlert("จำลองการตั้งเวลาเรียบร้อย <b>กรุณากดปุ่มบันทึกข้อมูล</b> เพื่อยืนยัน", "success");
                     
                 } else {
                     const { error } = await db.from('classroom_missions').update({ 
@@ -1830,7 +1821,6 @@
                 return;
             }
 
-            // 🌟 สร้างการ์ดแสดงผลภารกิจแบบใหม่ (Modern Cards) 🌟
             let cardsHtml = '<div class="mission-list-container">';
             folderMissions.forEach((m, idx) => {
                 const baseTitle = m.missions?.title || 'ไม่ระบุชื่อภารกิจ';
@@ -1843,7 +1833,6 @@
                 const isCompleted = myProgressList.includes(m.mission_id);
                 const myScore = isCompleted ? (myProgressMap[m.mission_id] || 0) : 0;
                 
-                // 🌟 FEATURE 2: ป้ายกำกับเวลา (Schedule Status) 🌟
                 let timeStatusHtml = '';
                 let isLocked = false;
                 const now = new Date();
@@ -1856,7 +1845,6 @@
                         isLocked = true;
                     } else if (due && now > due) {
                         timeStatusHtml = `<span class="bg-rose-50 text-rose-500 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-200 shadow-sm"><i class="fas fa-lock"></i> ปิดแล้ว</span>`;
-                        // isLocked = true; // อนุญาตให้ดูย้อนหลังได้ หรือจะแก้เป็นปิดเลยก็ได้
                     } else if (due) {
                         timeStatusHtml = `<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 shadow-sm"><i class="fas fa-unlock"></i> ถึง ${due.toLocaleDateString('th-TH', {month:'short', day:'numeric'})}</span>`;
                     }
@@ -2061,6 +2049,7 @@
                 if(folderIndex !== -1) folders[folderIndex] = cleanName;
                 missions.forEach(m => { if ((m.folder_name || 'ทั่วไป') === oldName) m.folder_name = cleanName; });
                 renderAdminManageView();
+                showCustomAlert("เปลี่ยนชื่อแล้ว <b>กรุณากดปุ่มบันทึกข้อมูล</b> เพื่อยืนยัน", "info");
             }, oldName, 'fas fa-edit'); 
         }
 
@@ -2071,6 +2060,7 @@
                 folders = folders.filter(f => f !== folderName);
                 if(!folders.includes('ทั่วไป')) folders.push('ทั่วไป');
                 renderAdminManageView();
+                showCustomAlert("ลบออกจากหน้าจอแล้ว <b>กรุณากดปุ่มบันทึกข้อมูล (สีเขียว)</b> เพื่อยืนยัน", "info");
             });
         }
 
@@ -2084,11 +2074,12 @@
                 document.getElementById('loadingOverlay').style.visibility = 'visible';
                 try {
                     const db = getDB();
-                    await db.from('classroom_missions').update({ custom_title: newCustomTitle }).eq('assignment_id', assignmentId);
+                    const { error } = await db.from('classroom_missions').update({ custom_title: newCustomTitle }).eq('assignment_id', assignmentId);
+                    if(error) throw error;
                     await fetchFreshData(db);
                     showCustomAlert("อัปเดตชื่อภารกิจเรียบร้อย!", "success"); 
                     renderAdminManageView(); 
-                } catch (e) { showCustomAlert("เกิดข้อผิดพลาด", "error"); } 
+                } catch (e) { showCustomAlert("เกิดข้อผิดพลาด: " + e.message, "error"); } 
                 finally { 
                     document.getElementById('loadingOverlay').style.opacity = '0';
                     setTimeout(() => { document.getElementById('loadingOverlay').style.visibility = 'hidden'; }, 400); 
@@ -2114,7 +2105,7 @@
                 } catch (err) { 
                     document.getElementById('loadingOverlay').style.opacity = '0';
                     setTimeout(() => { document.getElementById('loadingOverlay').style.visibility = 'hidden'; }, 400);
-                    showCustomAlert("เกิดข้อผิดพลาด ไม่สามารถลบได้", "error"); 
+                    showCustomAlert("เกิดข้อผิดพลาด ไม่สามารถลบได้: " + err.message, "error"); 
                 }
             });
         }
@@ -2127,6 +2118,9 @@
                 missions = missions.filter(m => String(m.assignment_id) !== String(assignmentId));
                 document.getElementById('missionCount').innerText = missions.length;
                 updateBatchUI(); // อัปเดตเผื่อลบตัวที่เลือกอยู่
+                
+                // 🌟 เพิ่มแจ้งเตือนให้กดบันทึกข้อมูล
+                showCustomAlert("นำออกจากหน้าจอแล้ว <b>กรุณากดปุ่มบันทึกข้อมูล (สีเขียว) ด้านบน</b> เพื่อยืนยันการลบ", "info");
             });
         }
 
@@ -2136,9 +2130,15 @@
             document.getElementById('loadingOverlay').style.visibility = 'visible';
             try {
                 const db = getDB();
+                
+                // 🌟 แก้ไข: ดักจับ Error ในขั้นตอนการลบ
                 if (deletedAssignments.length > 0) {
-                    const deletePromises = deletedAssignments.map(id => db.from('classroom_missions').delete().eq('assignment_id', id));
-                    await Promise.all(deletePromises); deletedAssignments = []; 
+                    const deletePromises = deletedAssignments.map(async id => {
+                        const { error } = await db.from('classroom_missions').delete().eq('assignment_id', id);
+                        if (error) throw error; // ถ้าลบไม่สำเร็จ จะหยุดและแจ้งเตือนทันที
+                    });
+                    await Promise.all(deletePromises); 
+                    deletedAssignments = []; 
                 }
 
                 const updates = [];
@@ -2148,12 +2148,22 @@
                     const missionItems = section.querySelectorAll('.admin-mission-item');
                     missionItems.forEach((node, index) => {
                         const assignmentId = node.getAttribute('data-assignment-id');
-                        updates.push(db.from('classroom_missions').update({ order_index: index, folder_name: folderName }).eq('assignment_id', assignmentId));
+                        
+                        // 🌟 แก้ไข: ดักจับ Error ในขั้นตอนการอัปเดต
+                        updates.push(
+                            db.from('classroom_missions')
+                              .update({ order_index: index, folder_name: folderName })
+                              .eq('assignment_id', assignmentId)
+                              .then(({error}) => { if (error) throw error; })
+                        );
                     });
                 });
 
                 await Promise.all(updates);
-                try { await db.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId); } catch(e) {}
+                
+                // 🌟 แก้ไข: ดักจับ Error ตอนอัปเดตโฟลเดอร์
+                const { error: clsErr } = await db.from('classrooms').update({ folders: folders }).eq('classroom_id', currentClassId);
+                if(clsErr) throw clsErr;
 
                 isManageMode = false;
                 document.getElementById('batchToolbar').classList.add('translate-y-full');
@@ -2173,7 +2183,10 @@
                 }
                 
                 showCustomAlert("บันทึกโครงสร้างห้องเรียนสำเร็จ!", "success");
-            } catch (err) { showCustomAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error'); }
+            } catch (err) { 
+                // 🌟 จะแสดงข้อความ Error จาก Supabase บนหน้าจอให้เห็นชัดเจน 
+                showCustomAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล (อาจติดเงื่อนไขฐานข้อมูล): ' + err.message, 'error'); 
+            }
             finally { 
                 document.getElementById('loadingOverlay').style.opacity = '0';
                 setTimeout(() => { document.getElementById('loadingOverlay').style.visibility = 'hidden'; }, 400); 
