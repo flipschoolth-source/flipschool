@@ -80,17 +80,20 @@
 
         /* Mission specific UI */
         .modal-overlay { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); }
-        .teacher-fab { position: absolute; bottom: 20px; right: 20px; width: 55px; height: 55px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,139,0.3); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 20px; }
+        
+        /* 🌟 ปรับย้ายปุ่มเครื่องมือครูหลบปุ่ม Fullscreen 🌟 */
+        .teacher-fab { position: absolute; bottom: 20px; right: 75px; width: 55px; height: 55px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,139,0.3); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 20px; }
         .teacher-fab:hover { background: var(--primary-light); transform: scale(1.05); }
         .teacher-fab:active { transform: scale(0.95); }
-        .teacher-menu { position: absolute; bottom: 85px; right: 20px; background: white; padding: 10px; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 8px; z-index: 1000; border: 1px solid #f1f5f9; transform-origin: bottom right; transition: all 0.2s; }
+        .teacher-menu { position: absolute; bottom: 85px; right: 75px; background: white; padding: 10px; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 8px; z-index: 1000; border: 1px solid #f1f5f9; transform-origin: bottom right; transition: all 0.2s; }
         
         /* ปุ่ม Fullscreen & ปุ่มย้อนกลับแบบลอยตัว */
         .floating-btn { position: absolute; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.9); color: var(--text-main); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: all 0.2s; border: none; font-size: 18px; backdrop-filter: blur(4px); }
         .floating-btn:hover { background: white; transform: scale(1.1); color: var(--primary); }
         .floating-btn:active { transform: scale(0.95); }
         
-        .fullscreen-fab { top: 20px; right: 20px; }
+        /* 🌟 ย้าย Fullscreen ไปอยู่มุมขวาล่าง 🌟 */
+        .fullscreen-fab { bottom: 20px; right: 20px; }
         .back-fab { top: 20px; left: 20px; }
 
         #loader { position: fixed; inset: 0; z-index: 9999; background-color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
@@ -256,9 +259,9 @@
             <i class="fas fa-arrow-left"></i>
         </button>
 
-        <!-- ปุ่มเต็มจอ (Fullscreen Button) -->
+        <!-- 🌟 ปุ่มเต็มจอ ย้ายมาด้านล่างขวา (Fullscreen Button) 🌟 -->
         <button id="fullscreenBtn" onclick="toggleFullScreen()" class="floating-btn fullscreen-fab" title="เต็มจอ">
-            <i class="fas fa-expand"></i>
+            <i id="fullscreenIcon" class="fas fa-expand"></i>
         </button>
 
         <!-- ปุ่มและเมนูลอยสำหรับครูผู้สอน (ซ้อนบน Iframe) -->
@@ -786,6 +789,7 @@
         // ================= ระบบ Fullscreen =================
         function toggleFullScreen() {
             const elem = document.getElementById("mainContainer");
+            const icon = document.getElementById('fullscreenIcon');
             
             if (!document.fullscreenElement && !document.mozFullScreenElement &&
                 !document.webkitFullscreenElement && !document.msFullscreenElement) {
@@ -813,15 +817,19 @@
             }
         }
 
-        // ตรวจจับเมื่อมีการเปลี่ยนสถานะ Fullscreen เพื่อเปลี่ยนไอคอน
+        // ตรวจจับเมื่อมีการเปลี่ยนสถานะ Fullscreen เพื่อเปลี่ยนไอคอนอัตโนมัติ (รองรับปุ่ม ESC)
         ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(eventType => {
             document.addEventListener(eventType, () => {
-                const icon = document.querySelector("#fullscreenBtn i");
+                const icon = document.getElementById('fullscreenIcon');
+                if (!icon) return;
+                
                 if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                    // กำลังเปิดเต็มจอ -> เปลี่ยนไอคอนเป็น >< (หด)
                     icon.classList.remove('fa-expand');
                     icon.classList.add('fa-compress');
                     document.getElementById('fullscreenBtn').title = "ยกเลิกเต็มจอ";
                 } else {
+                    // ไม่ได้เต็มจอแล้ว (อาจจะกดปุ่ม หรือกด ESC) -> กลับเป็นไอคอน < > (ขยาย)
                     icon.classList.remove('fa-compress');
                     icon.classList.add('fa-expand');
                     document.getElementById('fullscreenBtn').title = "เต็มจอ";
