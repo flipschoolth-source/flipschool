@@ -1,4 +1,3 @@
-```json
 {
   "name": "anyflip-downloader",
   "version": "1.0.0",
